@@ -1068,9 +1068,8 @@ def sisters_association(point_cloud_ref, point_cloud_flo, correspondences, siste
 							  and values corresponding to associated sisters_flo labels so that it minimizes the squares distances
 							  between associated labels with respect to the T_flo<-ref transformation computed in function of the input 
 							  correspondences
-		(psn, volume_ratio_ref, volume_ratio_flo) : tuple of length 3:
-							psn: "produit scalaire normalise", indeed normalized dot product value between division axes of sisters_ref 
-								 and sisters_flo
+		(angle, volume_ratio_ref, volume_ratio_flo) : tuple of length 3:
+							angle: value of the angle between division axes of sisters_ref and sisters_flo
 							volume_ratio_ref: volume ratio between reference sisters under constraint that ratio <=1 (if the volumes 
 											  are not known, returns 1) 
 							volume_ratio_flo: volume ratio between floating sisters following the association determined by this function
@@ -1121,6 +1120,10 @@ def sisters_association(point_cloud_ref, point_cloud_flo, correspondences, siste
 		volume_ratio_ref = 1/volume_ratio_ref
 		volume_ratio_flo = 1/volume_ratio_flo
 	return new_correspondences, (angle_degree, volume_ratio_ref, volume_ratio_flo)
+	#label_mere_ref=lineage.
+	#volume_naissance_mere_ref=?
+	#
+	#return new_correspondences, (angle_degree, volume_naissance_mere_ref, volume_naissance_fille_1_ref, volume_naissance_fille_2_ref, volume_naissance_mere_flo, volume_naissance_fille_1_flo, volume_naissance_fille_2_flo )
 
 
 
@@ -1191,7 +1194,7 @@ def propagate_all_correspondences(lineage_ref, lineage_flo, correspondences, sta
 
 	return new_correspondences, unpropagated_cells_ref, scalars
 
-def temporal_affine_registration(lineage_ref, lineage_flo, correspondences, include_end_of_time=False):
+def temporal_affine_registration(lineage_ref, lineage_flo, correspondences, time_ref_min=None, time_ref_max=None, time_flo_min=None, time_flo_max=None):
 	"""
 	Affine temporal registration of a floating lineage lineage_flo onto a reference lineage lineage_ref 
 	with respect to a cell-to-cell correspondence dictionary correspondences.
@@ -1200,14 +1203,23 @@ def temporal_affine_registration(lineage_ref, lineage_flo, correspondences, incl
 		lineage_ref
 		lineage_flo
 		correspondences
-		linclude_end_of_time (default=False) : excludes from the regression the data from cells whose death time-points 
-											   coincide with the last time-point of the reference or floating lineage.
+	Optional:
+		time_ref_min
+		time_ref_max
+		time_flo_min
+		time_flo_max
+			-> in order to specify the delimiters 
 	Outputs:
 		a, b : providing the relation t_flo = a * t_ref + b 
 	"""
-
-	t_ref_max=lineage_ref.timepoints()[-1]
-	t_flo_max=lineage_flo.timepoints()[-1]
+	if time_ref_min == None:
+		time_ref_min=lineage_ref.timepoints()[0]
+	if time_flo_min == None:
+		time_flo_min=lineage_flo.timepoints()[0]
+	if time_ref_max == None:
+		time_ref_max=lineage_ref.timepoints()[-1]
+	if time_flo_max == None:
+		time_flo_max=lineage_flo.timepoints()[-1]
 
 	times_death_ref=[]
 	times_death_flo=[]
@@ -1221,7 +1233,7 @@ def temporal_affine_registration(lineage_ref, lineage_flo, correspondences, incl
 			else:
 				t_ref=lineage_ref.relabelled_death(k)
 				t_flo=lineage_flo.relabelled_death(v)
-				if include_end_of_time or (t_ref < t_ref_max and t_flo < t_flo_max):
+				if (t_ref < time_ref_max and t_flo < time_flo_max) and (t_ref >= time_ref_min and t_flo >= time_flo_min):
 					times_death_ref.append(t_ref)
 					times_death_flo.append(t_flo)
 
@@ -1237,5 +1249,350 @@ def temporal_affine_registration(lineage_ref, lineage_flo, correspondences, incl
 
 	return a,b
 
+def temporal_affine_registration_robust(lineage_ref,lineage_flo,correspondences,init_ref_min=20,init_flo_min=10):
+	"""
 
+	"""
+	time_ref_first=lineage_ref.timepoints()[0]
+	time_ref_last=lineage_ref.timepoints()[-1]
+	time_flo_first=lineage_flo.timepoints()[0]
+	time_flo_last=lineage_flo.timepoints()[-1]
+
+	a={}
+	b={}
+	for t_ref in lineage_ref.timepoints()[init_ref_min:]:
+		for t_flo in lineage_flo.timepoints()[init_flo_min:]:
+			a[(t_ref,t_flo)],b[(t_ref,t_flo)]=temporal_affine_registration(lineage_ref, lineage_flo, correspondences, time_ref_max=t_ref, time_flo_max=t_flo)
+	return a,b
+
+def volumes_variation_study_for_pairings_validity(lineage_ref, lineage_flo, correspondences, label_ref, field_volume='real_volume'):
+	'''
+	
+	'''
+	assert correspondences.has_key(label_ref)
+	label_flo=correspondences[label_ref]
+	daughters_ref=lineage_ref.relabelled_daughters(label_ref)
+	if len(daughters_ref)!=2:
+		print "Not the expected number of daughters for reference relabelled cell %d."%label_ref
+		return None
+	daughter_1_ref=daughters_ref[0]
+	daughter_2_ref=daughters_ref[1]
+	assert correspondences.has_key(daughter_1_ref)
+	assert correspondences.has_key(daughter_2_ref)
+	daughter_1_flo=correspondences[daughter_1_ref]
+	daughter_2_flo=correspondences[daughter_2_ref]
+
+
+	volumes_label_ref=lineage_ref.relabelled_volumes(label_ref,field_volume=field_volume)
+	volumes_label_flo=lineage_flo.relabelled_volumes(label_flo,field_volume=field_volume)
+	ratio_death_birth_label_ref=lineage_ref.relabelled_growth_ratio(label_ref,field_volume=field_volume) # Must be close to 1
+	ratio_death_birth_label_flo=lineage_flo.relabelled_growth_ratio(label_flo,field_volume=field_volume) # Must be close to 1
+
+	volume_daughter_1_ref = lineage_ref.relabelled_volume_at_time(daughter_1_ref, lineage_ref.relabelled_birth(daughter_1_ref),field_volume=field_volume)
+	volume_daughter_2_ref = lineage_ref.relabelled_volume_at_time(daughter_2_ref, lineage_ref.relabelled_birth(daughter_2_ref),field_volume=field_volume)
+	volume_daughter_1_flo = lineage_flo.relabelled_volume_at_time(daughter_1_flo, lineage_flo.relabelled_birth(daughter_1_flo),field_volume=field_volume)
+	volume_daughter_2_flo = lineage_flo.relabelled_volume_at_time(daughter_2_flo, lineage_flo.relabelled_birth(daughter_2_flo),field_volume=field_volume)
+
+	ratio_daughters_mother_ref = (volume_daughter_1_ref + volume_daughter_2_ref) / volumes_label_ref[lineage_ref.relabelled_death(label_ref)] # Must be close to 1
+	ratio_daughters_mother_flo = (volume_daughter_1_flo + volume_daughter_2_flo) / volumes_label_flo[lineage_flo.relabelled_death(label_flo)] # Must be close to 1
+
+	ratio_d_1_daughters_ref = volume_daughter_1_ref / (volume_daughter_1_ref + volume_daughter_2_ref)
+	ratio_d_1_daughters_flo = volume_daughter_1_flo / (volume_daughter_1_flo + volume_daughter_2_flo)
+	# Must have ratio_d_1_daughters_ref ~ ratio_d_1_daughters_flo and (1-ratio_d_1_daughters_ref) close to (1-ratio_d_1_daughters_flo)
+	squared_ratio_difference = (ratio_d_1_daughters_ref-ratio_d_1_daughters_flo)**2 # Must be close to 0
+
+
+	D={
+		'volumes_label_ref':volumes_label_ref,
+		'volumes_label_flo':volumes_label_flo,
+		'ratio_death_birth_mother_ref':ratio_death_birth_label_ref, # Must be close to 1
+		'ratio_death_birth_mother_flo':ratio_death_birth_label_flo, # Must be close to 1
+		'volume_daughter_1_ref':volume_daughter_1_ref,
+		'volume_daughter_2_ref':volume_daughter_2_ref,
+		'volume_daughter_1_flo':volume_daughter_1_flo,
+		'volume_daughter_2_flo':volume_daughter_2_flo,
+		'ratio_daughters_mother_ref':ratio_daughters_mother_ref, # Must be close to 1
+		'ratio_daughters_mother_flo':ratio_daughters_mother_flo, # Must be close to 1
+		'ratio_d_1_daughters_ref':ratio_d_1_daughters_ref,
+		'ratio_d_1_daughters_flo':ratio_d_1_daughters_flo,
+		'squared_ratio_difference':squared_ratio_difference # Should be close to 0
+		#'grand_mother':
+	}
+	return D
+
+
+
+
+
+def temporal_registration_distance_to_regression_for_pairings_validity(lineage_ref, lineage_flo, correspondences, label_ref, a=None, b=None, include_end_of_time=False, predictive=False):
+	"""
+
+	"""
+	assert correspondences.has_key(label_ref)
+	label_flo=correspondences[label_ref]
+
+	if a==None or b==None:
+		a,b=temporal_affine_registration(lineage_ref, lineage_flo, correspondences, include_end_of_time=include_end_of_time)
+
+	# Alignement temporel : t_flo = a * t_ref + b
+
+	d_r=lineage_ref.relabelled_death(label_ref) # death ref
+	#b_r=lineage_ref.relabelled_birth(label_ref) # birth ref
+	d_f=lineage_flo.relabelled_death(label_flo) # death flo
+	#b_f=lineage_flo.relabelled_birth(label_flo) # birth flo
+
+	#d=0
+	if predictive:
+		#return b_f - a*b_r - b, d_f - a*d_r - b
+		return d_f - a*d_r - b
+	#denom=np.sqrt(a**2+1)
+	#return np.abs(a*b_r-b_f+b)/denom, np.abs(a*d_r-d_f+b)/denom
+	return np.abs(a*d_r-d_f+b)/np.sqrt(a**2+1)
+
+
+def temporal_registration_weighting(weighting_mode=None, parameters=None):
+	"""
+	weighting mode: function to be applied for the given pair of labels. If None, returns 1.
+	opt: options for the weighting_mode function (tuple)
+
+	"""
+	if weighting_mode==None:
+		return 1
+	if type(weighting_mode)==str:
+		# TODO
+		return 1
+	else:
+		# weighting_mode is a function
+		return weighting_mode(parameters)
+
+
+
+def weighting_fun_ncells(parameters):
+	"""
+	Function (a,b,c,d) = weighting_fun_ncells(parameters) 
+	    parameters = ( n, m )
+	    parameters = ( lineage_ref, lineage_flo, label_ref, [ label_flo | correspondences ] )
+	    parameters = ( ... , ('alpha', alpha)) 
+	    parameters = ( ... , ('func_alpha', func_alpha)) 
+	    parameters = ( ... , ('func_alpha_normalized', func_alpha_normalized)) 
+	    parameters = ( ... , ('beta', beta)) 
+	    parameters = ( ... , ('func_beta', func_beta)) 
+	    parameters = ( ... , ('func', func)) 
+	Note: the mandatory parameters can be given using tuples of length 2 with first value being the 
+	name of the parameter as well as the optional parameters.
+	E.g. ('label_ref', 50 ) is equivalent to label_ref = 50
+	Input parameters description:
+		n: int > 0
+		m: int > 0
+		lineage_ref: morpheme_lineage.Morpheme_lineage instance
+		lineage_flo: morpheme_lineage.Morpheme_lineage instance
+		label_ref: int
+		label_flo: int (if "correspondences" not specified)
+		correspondences: dict (if "label_flo" not specified)
+		alpha: float (=1 by default)
+		beta: float (=1 by default)
+		func_alpha_normalized: boolean (default=True)
+		func_alpha, func_beta, func: <function>
+			'exponential': lambda x, coef=1: numpy.exp(-float(x)*coef), # (default for func_alpha)
+			'inverse':lambda x,coef=1: 1/(float(x)*coef),
+			'inverse_sqrt':lambda x,coef=1: 1/numpy.sqrt(float(x)*coef),# (default for func_beta)
+			'inverse_square':lambda x,coef=1: 1/(float(x)*coef)**2,
+			'inverse_1':lambda x,coef=1: 1/(1+float(x)*coef),
+			'identity':lambda x,coef=1: x*coef)
+			(where coef = alpha | beta respectively for func_alpha | func_beta)
+			Or any custom function taking one mandatory and one optional (default=1) parameters
+		Note: ('func', func) is a shortcut for ('func_alpha', func), ('func_beta',func).
+	Output values description:
+		a = func_alpha( abs(n - m) ) if not func_alpha_normalized or func_alpha( 2. * abs(n - m) / (n + m) ) if func_alpha_normalized
+		b = func_beta( n )
+		c = func_beta( m )
+		d = a*b*c
+	E.g. of use:
+		a,b,c,d=weighting_fun_ncells([lineage_ref, lineage_flo, 2, correspondences, ('alpha', 10), ('beta', 1./64), ('func_alpha','exponential'), ('func_alpha_normalized', True)])
+	"""
+	program="weighting_fun_ncells"
+	import numpy
+	default_lambdas={
+	'exponential': lambda x, coef=1: numpy.exp(-float(x)*coef),
+	'inverse':lambda x,coef=1: 1/(float(x)*coef),
+	'inverse_sqrt':lambda x,coef=1: 1/numpy.sqrt(float(x)*coef),
+	'inverse_square':lambda x,coef=1: 1/(float(x)*coef)**2,
+	'inverse_1':lambda x,coef=1: 1/(1+float(x)*coef),
+	'identity':lambda x,coef=1: float(x)*coef
+	}
+
+
+	#headers=dict(parameters)
+	# Parameters parsing
+	assert len(parameters) >= 4, "%s: Unexpected number of parameters. See function help." % program
+	# Mandatory parameters
+	ncell_ref = None
+	ncell_flo = None
+	lineage_ref = None
+	lineage_flo = None
+	label_ref = None
+	label_flo = None
+	correspondences = None
+	for i in range(4):
+		if type(parameters[i])==tuple:
+			break
+		if i == 0:
+			ncell_ref = parameters[i]
+		if i == 1:
+			ncell_flo = parameters[i]
+		if i == 2:
+			lineage_ref = ncell_ref
+			lineage_flo = ncell_flo
+			label_ref = parameters[i]
+			# the two first arguments correspond to the lineages
+			# assert not type(label)
+			ncell_ref = None
+			ncell_flo = None
+		if i == 3:
+			if type(parameters[i]) == dict:
+				correspondences = parameters[i]
+			else:
+				assert type(label_ref)==type(parameters[i]), "%s: Unexpected type for the %d-th mandatory parameter." % (program, i+1)
+				label_flo = parameters[i]
+			i = i+1
+
+	headers=dict(parameters[i:])
+	#print "headers=%s"%str(headers)
+
+	# Mandatory parameters
+	if headers.has_key('n'):
+		assert ncell_ref==None, "%s: Multiple definition of 'n'." % program
+		assert lineage_ref==None and lineage_flo==None and label_ref == None and label_flo == None and correspondences == None, "%s: The {'n', 'm'} and {'lineage_ref', 'lineage_flo', 'label_ref', 'label_flo' | 'correspondences'}  parameters cannot be defined simutaneously." % program
+		ncell_ref=int(headers['n'])
+		del headers['n']
+	if headers.has_key('m'):
+		assert ncell_flo==None, "%s: Multiple definition of 'm'." % program
+		assert lineage_ref==None and lineage_flo==None and label_ref == None and label_flo == None and correspondences == None, "%s: The {'n', 'm'} and {'lineage_ref', 'lineage_flo', 'label_ref', 'label_flo' | 'correspondences'}  parameters cannot be defined simutaneously." % program
+		ncell_flo=int(headers['m'])
+		del headers['m']
+	if headers.has_key('lineage_ref'):
+		assert lineage_ref==None, "%s: Multiple definition of 'lineage_ref'." % program
+		assert i == 0, "%s: Multiple definition of 'lineage_ref' (see help)." % program
+		lineage_ref=headers['lineage_ref']
+		del headers['lineage_ref']
+	if headers.has_key('lineage_flo'):
+		assert lineage_flo==None, "%s: Multiple definition of 'lineage_flo'." % program
+		assert i < 2, "%s: Multiple definition of 'lineage_flo' (see help)." % program
+		lineage_flo=headers['lineage_flo']
+		del headers['lineage_flo']
+	if headers.has_key('label_ref'):
+		assert label_ref==None, "%s: Multiple definition of 'label_ref'." % program
+		if i > 0:
+			lineage_ref = ncell_ref
+			ncell_ref = None
+			if i == 2:
+				lineage_flo = ncell_flo
+				ncell_flo = None
+		label_ref=int(headers['label_ref'])
+		del headers['label_ref']
+	if headers.has_key('label_flo'):
+		assert label_flo==None, "%s: Multiple definition of 'label_flo'." % program
+		label_flo=int(headers['label_flo'])
+		del headers['label_flo']
+	if headers.has_key('correspondences'):
+		assert correspondences==None, "%s: Multiple definition of 'correspondences'." % program
+		correspondences=headers['correspondences']
+		del headers['correspondences']
+
+	assert ncell_ref != None or lineage_ref != None
+	assert ncell_flo != None or lineage_flo != None
+	assert ncell_ref != None or label_ref != None
+	if correspondences != None:
+		assert ncell_flo != None or label_flo == None, "%s: The 'correspondences' and 'label_flo' parameters cannot be defined simultaneously." % program
+	if label_flo == None:
+		assert ncell_flo != None or correspondences != None, "%s: Missing 'label_flo' or 'correspondences' parameter (see documentation)." % program
+		if ncell_flo == None:
+			assert type(correspondences)==dict, "%s: 'correspondences' parameter of wrong type '%s' (expected type 'dict') ." % (program,str(type(correspondences)))
+			assert correspondences.has_key(label_ref), "%s: 'correspondences' does not have the key corresponding to label_ref %d." % (program,label_ref)
+			label_flo = correspondences[label_ref]
+			assert label_flo != None
+
+	# Optional parameters default values
+	func_alpha_normalized=True
+
+	# Optional parameters 
+	if headers.has_key('func_alpha_normalized'):
+		func_alpha_normalized=bool(headers['func_alpha_normalized'])
+		del headers['func_alpha_normalized']
+
+	# Optional parameters default values
+	alpha=1
+	beta=1
+
+	# Optional parameters 
+	if headers.has_key('alpha'):
+		alpha=float(headers['alpha'])
+		del headers['alpha']
+	if headers.has_key('beta'):
+		beta=float(headers['beta'])
+		del headers['beta']
+
+	# Optional parameters default values
+	func_alpha=default_lambdas['exponential']
+	func_beta=default_lambdas['inverse_sqrt']
+
+	# Optional parameters 
+	if headers.has_key('func'):
+		assert not headers.has_key('func_alpha'), "%s: The 'func' parameter cannot be defined simultaneously with 'func_alpha' or 'func_beta'." % program
+		assert not headers.has_key('func_beta'), "%s: The 'func' parameter cannot be defined simultaneously with 'func_alpha' or 'func_beta'." % program
+		if default_lambdas.has_key(headers['func']):
+			func_alpha=default_lambdas[headers['func']]
+			func_beta=default_lambdas[headers['func']]
+		else:
+			assert type(headers['func']) != str, "%s: Unknown function name %s for 'func' option." % (program, headers['func'])
+			func_alpha=headers['func']
+			func_beta=headers['func']
+		del headers['func']
+
+	if headers.has_key('func_alpha'):
+		if default_lambdas.has_key(headers['func_alpha']):
+			func_alpha=default_lambdas[headers['func_alpha']]
+		else:
+			assert type(headers['func_alpha']) != str, "%s: Unknown function name %s for 'func_alpha' option." % (program, headers['func_alpha'])
+			func_alpha=headers['func_alpha']
+		del headers['func_alpha']
+
+	if headers.has_key('func_beta'):
+		if default_lambdas.has_key(headers['func_beta']):
+			func_beta=default_lambdas[headers['func_beta']]
+		else:
+			assert type(headers['func_beta']) != str, "%s: Unknown function name %s for 'func_beta' option." % (program, headers['func_beta'])
+			func_beta=headers['func_beta']
+		del headers['func_beta']
+
+	assert len(headers)==0, "%s: Unexpected optional parameters (unknown or duplicated ones): %s" % (program, str(headers))
+
+
+	# Stuff
+	if ncell_ref == None :
+		assert lineage_ref.exists(label_ref), "%s: Specified label_ref '%d' not found in lineage_ref." % (program, int(label_ref))
+		t_ref=lineage_ref.death(label_ref)
+		ncell_ref=lineage_ref.ncells(t_ref)
+	if ncell_flo == None :
+		assert lineage_flo.exists(label_flo), "%s: Specified label_flo '%d' not found in lineage_flo." % (program, int(label_flo))
+		t_flo=lineage_flo.death(label_flo)
+		ncell_flo=lineage_flo.ncells(t_flo)
+
+
+	#print "ncell_ref = %d ; ncell_flo = %d" % (ncell_ref, ncell_flo)
+	a=0
+	if func_alpha_normalized:
+		a=func_alpha(2.*abs(ncell_ref-ncell_flo)/(ncell_ref+ncell_flo), alpha)
+	else:
+		a=func_alpha(abs(ncell_ref-ncell_flo), alpha)
+	b=func_beta(ncell_ref,beta)
+	c=func_beta(ncell_flo,beta)
+
+	return (a,b,c,a*b*c)
+
+
+#def temporal_registration_weighting_function(lineage_ref, lineage_flo, label_ref=None, label_flo=None, correspondences=None, weighting_mode=None, opt=None):
+#	"""
+#
+#	"""
 

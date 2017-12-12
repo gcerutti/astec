@@ -106,5 +106,37 @@ importe de usr/lib/python2.7/dist-packages
   version git :
   git clone \
   git+ssh://gmicheli@scm.gforge.inria.fr/gitroot/astec-package/astec-package.git
-
+171212 GAEL : MAJ de REGISTRATION.py et morpheme_lineage.py
+  REGISTRATION.py : ajouts et modifications pour le recalage temporel
+            + temporal_registration_distance_to_regression_for_pairings_validity
+            + weighting_fun_ncells
+            + temporal_registration_weighting
+            + volumes_variation_study_for_pairings_validity
+            + temporal_affine_registration_robust
+            M temporal_affine_registration 
+            M sisters_association
+  morpheme_lineage.py : adapte pour les modifications de REGISTRATION.py
+            + relabelled_lineage_lifespan # Returns the lifespan (tuple of two 
+              elements) of the complete lineage the given relabelled cell 
+              belongs to.
+            + relabelled_cells_at_time # Returns the sorted list of relabelled 
+              cells that are defined at given time
+            + relabelled_daughters # Returns the list of relabelled daughters 
+              of given label ([] if no daughters)
+            + relabelled_volume_at_time # Returns the volume of the cell 
+              defined by its (relabel) information at the at_time specified.
+            + relabelled_volumes # Returns the volume variation of the specified
+              relabelled cell from its birth to its death.
+              If specified, from t1 to t2 instead.
+  		        Parameter field_volume corresponds to the method 
+  		        extract_cell_volume volume field (default="real_volume").
+  		      + relabelled_growth_ratio # Returns the ratio of volumes 
+  		        volume_death/volume_birth of the specified relabelled cell 
+  		        between its birth and its death.
+  		      + relabelled_growth_ratios # Returns the dictionnary of ratios of 
+  		        volumes volume_t/volume_ of the specified relabelled cell between 
+  		        its birth and its death.
+            M birth, death                          
+              
+  
 

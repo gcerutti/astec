@@ -210,17 +210,24 @@ class Morpheme_lineage:
 			return self.reverse_luts[time][label]
 		return None
 
-	def birth(self, label, time):
+	def birth(self, label, time=None):
 		'''
-		Returns the birth time of the cell of the given initial label at the given time
+		Returns the birth time of the cell of the given initial label at the given time if time is given.
+		Returns the birth time of the relabelled cell if time==None.
 		'''
+		if time==None:
+			return self.relabelled_birth(label)
+		assert self.exists(label, time), "Attempted to access to label %d at time %d but these do not exist in this lineage."%(label, time)
 		return self.relabelled_birth(self.label_to_relabelled_id(label, time))
 		#return self.labels[self.label_to_relabelled_id(label, time)]['birth']
 
-	def death(self, label, time):
+	def death(self, label, time=None):
 		'''
-		Returns the death time of the cell of the given initial label at the given time
+		Returns the death time of the cell of the given initial label at the given time if time is given.
+		Returns the death time of the relabelled cell if time==None.
 		'''
+		if time==None:
+			return self.relabelled_death(label)
 		assert self.exists(label, time), "Attempted to access to label %d at time %d but these do not exist in this lineage."%(label, time)
 		return self.labels[self.label_to_relabelled_id(label, time)]['death']
 
@@ -245,9 +252,41 @@ class Morpheme_lineage:
 		 '''
 		return self.relabelled_normalized_age(self.label_to_relabelled_id(label, time) ,time)
 
+
+	def relabelled_lineage_lifespan(self, label):
+		"""
+		Returns the lifespan (tuple of two elements) of the complete lineage the given relabelled cell belongs to.
+		"""
+		def recursive_lineage_birth(self, l):
+			#Birth:
+			m=self.relabelled_mother(l)
+			if not m:
+				return self.relabelled_birth(l)
+			return recursive_lineage_birth(self,m)
+		def recursive_lineage_death(self,l):
+			#Death:
+			D=self.relabelled_daughters(l)
+			if not D:
+				return self.relabelled_death(l)
+			v=[]
+			for d in D:
+				v.append(recursive_lineage_death(self,d))
+			return max(v)
+		return (recursive_lineage_birth(self,label), recursive_lineage_death(self,label))
+
+
+
+	def relabelled_cells_at_time(self,time):
+		"""
+		Returns the sorted list of relabelled cells that are defined at given time 
+		"""
+		L=[self.label_to_relabelled_id(l,time) for l in self.labels_at_time(time)]
+		L.sort()
+		return L
+
 	def relabelled_daughters(self,label):
 		"""
-
+		Returns the list of relabelled daughters of given label ([] if no daughters)
 		"""
 		return self.labels[label]['daughters']
 
@@ -315,12 +354,14 @@ class Morpheme_lineage:
 		'''
 		Returns the birth time of the cell corresponding to the relabelled key <<label>>
 		'''
+		assert self.exists(label)
 		return self.labels[label]['birth']
 
 	def relabelled_death(self,label):
 		'''
 		Returns the death time of the cell corresponding to the relabelled key <<label>>
 		'''
+		assert self.exists(label)
 		return self.labels[label]['death']
 
 	def relabelled_age(self,label,time):
@@ -375,6 +416,24 @@ class Morpheme_lineage:
 
 			return self.relabelled_to_labels(label).keys()
 		return []
+
+	def relabelled_volume_at_time(self, label, at_time, field_volume='real_volume'):
+		'''
+		Returns the volume of the cell defined by its (relabel) information at the at_time specified. 
+		'''
+		#To do :
+		#	If at that at_time, the cell has divided or was not born yet, then it returns the volume of its descendants/ancestor. 
+		#	If at that at_time, there is no ancestor neither descendant for this cell, then it returns an None value.
+		
+		assert self.exists(label)
+		assert at_time>=self.relabelled_birth(label) and  at_time<=self.relabelled_death(label) 
+		if not self.info.has_key(field_volume):
+			print "Warning: the asked volume field '"+field_volume+"' was not found. Trying 'volume_information' instead, but processus may fail..."
+			field_volume='volume_information'
+		assert(self.info[field_volume].has_key(at_time))
+		assert(self.reverse_luts.has_key(at_time))
+		assert(self.reverse_luts[at_time].has_key(label))
+		return self.extract_cell_volume(self.reverse_luts[at_time][label], at_time, field_volume=field_volume)
 
 	def relabelled_barycenter_at_time(self, label, at_time, field_barycenter='real_barycenter', field_volume='real_volume'):
 		'''
@@ -437,7 +496,7 @@ class Morpheme_lineage:
 		'''
 		Returns True if the (label,time) or (relabel) cell exists in the lineage or lineage_relabelling, False otherwise. 
 		'''
-		if not time:
+		if time==None:
 			return self.labels.has_key(label)
 		return (self.has_time(time) and self.lineage[time].has_key(label))
 
@@ -665,6 +724,62 @@ class Morpheme_lineage:
 				if self.info[field_volume][time].has_key(label):
 					return self.info[field_volume][time][label]
 		return None
+
+	def relabelled_volumes(self,label, t1=None, t2=None, field_volume="real_volume"):
+		'''
+		Returns the volume variation of the specified relabelled cell from its birth to its death.
+		If specified, from t1 to t2 instead.
+		Parameter field_volume corresponds to the method extract_cell_volume volume field (default="real_volume").
+		'''
+		if t1==None:
+			t1=self.relabelled_birth(label)
+		if t2==None:
+			t2=self.relabelled_death(label)
+		D={}
+		for t in [tmp for tmp in self.timepoints() if (tmp >=t1 and tmp<=t2)]:
+			D[t]=self.relabelled_volume_at_time(label,t, field_volume=field_volume)
+		return D
+
+	def relabelled_growth_ratio(self, label, t1=None, t2=None, field_volume='real_volume'):
+		"""
+		Returns the ratio of volumes volume_death/volume_birth of the specified relabelled cell between its birth and its death.
+		If specified, returns the ratio of volumes volume_t2/volume_t1 of the specified relabelled cell between t1 and t2.
+		Parameter field_volume corresponds to the method extract_cell_volume volume field (default="real_volume").
+		"""
+		if t1==None:
+			t1=self.relabelled_birth(label)
+		if t2==None:
+			t2=self.relabelled_death(label)
+		volumebirth=self.relabelled_volume_at_time(label,t1, field_volume=field_volume)
+		volumedeath=self.relabelled_volume_at_time(label,t2, field_volume=field_volume)
+		if not volumebirth or volumedeath == None:
+			return None
+		return volumedeath/volumebirth
+
+	def relabelled_growth_ratios(self, label, t1=None, t2=None, field_volume='real_volume'):
+		"""
+		Returns the dictionnary of ratios of volumes volume_t/volume_ of the specified relabelled cell between its birth and its death.
+		Keys are the time-points and values are the corresponding volume ratios.
+		If specified, returns the ratio of volumes volume_t2/volume_t1 of the specified relabelled cell between t1 and t2.
+		Parameter field_volume corresponds to the method extract_cell_volume volume field (default="real_volume").
+		"""
+		if t1==None:
+			t1=self.relabelled_birth(label)
+		if t2==None:
+			t2=self.relabelled_death(label)
+		volumet1=self.relabelled_volume_at_time(label,t1, field_volume=field_volume)
+		D={}
+		if volumet1 :
+			D[t1]=1.0
+		else:
+			return {tmp:None for tmp in self.timepoints() if (tmp >=t1 and tmp<=t2)}
+		for t in [tmp for tmp in self.timepoints() if (tmp >t1 and tmp<=t2)]:
+			volumet=self.relabelled_volume_at_time(label,t, field_volume=field_volume)
+			if volumet == None:
+				D[t]=None
+			else:
+				D[t]=volumet/volumet1
+		return D
 
 	def get_fields(self):
 		"""
