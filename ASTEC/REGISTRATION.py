@@ -1424,7 +1424,7 @@ def weighting_fun_ncells(parameters):
 
 	#headers=dict(parameters)
 	# Parameters parsing
-	assert len(parameters) >= 4, "%s: Unexpected number of parameters. See function help." % program
+	assert len(parameters) >= 1, "%s: Unexpected number of parameters. See function help." % program
 	# Mandatory parameters
 	ncell_ref = None
 	ncell_flo = None
@@ -1455,6 +1455,8 @@ def weighting_fun_ncells(parameters):
 				assert type(label_ref)==type(parameters[i]), "%s: Unexpected type for the %d-th mandatory parameter." % (program, i+1)
 				label_flo = parameters[i]
 			i = i+1
+
+	assert i == 2 or i == 4, "%s: Unexpected number of parameters. See function help." % program
 
 	headers=dict(parameters[i:])
 	#print "headers=%s"%str(headers)
