@@ -90,6 +90,9 @@ def lineage_test(lineage, image_dict, file_out=None, background=[0,1], light=0, 
 		print title
 		f.write(title+NL)
 
+
+	f.write(lineage_labels_unicity_test(lineage, file_out=None, verbose=verbose, title=None))
+
 	report={}
 
 	is_ok=True
@@ -187,3 +190,68 @@ def lineage_test(lineage, image_dict, file_out=None, background=[0,1], light=0, 
 
 	return report
 
+
+
+def pkl_lineage_labels_unicity_test(pkl_lineage, file_out=None, verbose=1, title=None):
+	'''
+	'''
+	return lineage_labels_unicity_test(Morpheme_lineage("tmp", pklDictToTimeOrderedDict(pkl_lineage)), file_out, verbose, title) 
+
+def lineage_labels_unicity_test(lineage, file_out=None, verbose=1, title=None):
+	'''
+	Controle de l'unicite de la mere de chaque cellule dans l'arbre de lignage (hypothese biologique qu'il n'y a pas de fusions de cellules).
+	'''
+
+	NL='\n'
+	f=None
+	if file_out:
+		f = open(file_out, 'w')
+	else:
+		f = open('/dev/null','w')
+
+	if title:
+		print title
+		f.write(title+NL)
+
+	report=""
+
+	is_ok=True
+
+	# STUFF
+
+	time_lineage=lineage.timepoints()
+
+	inv_lineage={}
+	fusing_labels=[]
+	for time in time_lineage:
+		lin_at_time=lineage.lineage[time]
+		#keys=[]
+		#values=[]
+		for mother,daughters in lin_at_time.iteritems():
+			if len(daughters):
+				for daughter in daughters:
+					t_daughter, l_daughter = daughter[0], daughter[1]
+					if not inv_lineage.has_key(daughter):
+						inv_lineage[daughter]=[]
+					else:
+						fusing_labels.append(daughter)
+						is_ok = False
+					inv_lineage[daughter].append((time,mother))
+
+	if is_ok:
+		if verbose:
+			print "Given lineage is consistent for labels mother unicity."
+		report=NL+"Given lineage is consistent for labels mother unicity."+NL
+		f.write("\n  Given lineage is consistent for labels mother unicity.\n")
+	else:
+		report=NL+"Given lineage is unconsistent for labels mother unicity:"+NL
+		for daughter in fusing_labels:
+			if verbose:
+				print "Label %s has non-unique mother: %s"%(str(daughter),str(inv_lineage[daughter]))
+			report=report+("Label %s has non-unique mother: %s"%(str(daughter),str(inv_lineage[daughter])))+NL
+			f.write("\n  Label %s has non-unique mother: %s \n"%(str(daughter),str(inv_lineage[daughter])))
+
+	if f:
+		f.close()
+
+	return report

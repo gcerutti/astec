@@ -1,7 +1,7 @@
 
 # RAWDATA DEFINITION
 begin=0
-end=3 #Last Point
+end=209 #Last Point
 
 delta = 1 # Delta between two time points (if one does not want to fuse every single time point)
 ori = 'right' # if im2 angle - im1 angle < 0 => right
@@ -44,6 +44,13 @@ path_angle4=rawdata_Path+"RC/Stack0001" # 2nd from the right camera
 #FUSION DATA 
 fuse_Path=datapath+"FUSE/" #path fused images
 fused_files=fuse_Path+EN+'_fuse_t$TIME.inr' #  fused images names
+
+#INTRA REGISTRATION DATA 
+intrareg_Path=datapath+"FUSE/REG/" #path intra registration data
+intrareg_step_files=intrareg_Path+EN+'_reg_t$TIMEFLO_t$TIMEREF.trsf' #  intra registration step-by-step trsf file names
+intrareg_multiple_files=intrareg_Path+EN+'_reg_compose_t$TIME_t$TIME.trsf' #  intra registration composed trsf file names
+intrareg_change_files=intrareg_Path+EN+'_reg_compose_t$TIME.trsf' #  intra registration recentered trsf file names
+intrareg_change_template=intrareg_Path+EN+'_reg_compose_template.inr.gz' #  intra registration template file name for recentered trsfs
 
 #RECONSTRUCTION DATA 
 reconstruct_Path=fuse_Path+"RECONSTRUCTION/" #path reconstructed images

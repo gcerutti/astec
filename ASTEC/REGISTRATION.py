@@ -9,6 +9,20 @@ from cpp_wrapping import *
 
 #def associate_labels(path_ref, path_flo, path_pairs_ref_flo, path_ref_out, path_flo_out, path_labels_out, zeros=False, ref=False, force=False, verbose=False):
 
+def step_by_step_intra_registration():
+	"""
+	
+	"""
+
+def intra_registration():
+	"""
+	Function <intra_registration> for fused sequences intra-registration.
+
+	"""
+
+
+
+
 def readLUT(file):
 	'''
 	Return a dictionnary of integer key-to-key correspondances 
@@ -1194,7 +1208,7 @@ def propagate_all_correspondences(lineage_ref, lineage_flo, correspondences, sta
 
 	return new_correspondences, unpropagated_cells_ref, scalars
 
-def temporal_affine_registration(lineage_ref, lineage_flo, correspondences, time_ref_min=None, time_ref_max=None, time_flo_min=None, time_flo_max=None):
+def temporal_affine_registration(lineage_ref, lineage_flo, correspondences, time_ref_min=None, time_ref_max=None, time_flo_min=None, time_flo_max=None, weighting_param=None):
 	"""
 	Affine temporal registration of a floating lineage lineage_flo onto a reference lineage lineage_ref 
 	with respect to a cell-to-cell correspondence dictionary correspondences.
@@ -1209,6 +1223,8 @@ def temporal_affine_registration(lineage_ref, lineage_flo, correspondences, time
 		time_flo_min
 		time_flo_max
 			-> in order to specify the delimiters 
+		weighting_param
+			-> in order to specify weighing parameters (those for the function <weighting_fun_ncells>) ; default = None
 	Outputs:
 		a, b : providing the relation t_flo = a * t_ref + b 
 	"""
@@ -1223,6 +1239,8 @@ def temporal_affine_registration(lineage_ref, lineage_flo, correspondences, time
 
 	times_death_ref=[]
 	times_death_flo=[]
+	ncells_at_death_ref=[]
+	ncells_at_death_flo=[]
 
 	for k, v in correspondences.items():
 		if not lineage_ref.exists(k):
@@ -1236,6 +1254,8 @@ def temporal_affine_registration(lineage_ref, lineage_flo, correspondences, time
 				if (t_ref < time_ref_max and t_flo < time_flo_max) and (t_ref >= time_ref_min and t_flo >= time_flo_min):
 					times_death_ref.append(t_ref)
 					times_death_flo.append(t_flo)
+					ncells_at_death_ref.append(lineage_ref.ncells(t_ref))
+					ncells_at_death_flo.append(lineage_flo.ncells(t_flo))
 
 	X=times_death_ref
 	Y=times_death_flo
@@ -1243,11 +1263,27 @@ def temporal_affine_registration(lineage_ref, lineage_flo, correspondences, time
 	# Linear regression on (X,Y)
 	# -> find (a,b) that minimize square error given by sum(|y-(ax+b)|^2) for 
 
-	c=np.cov(X,Y, bias=False)
-	a=c[0,1]/c[0,0];
-	b=np.mean(Y)-a*np.mean(X)
+	if weighting_param == None or weighting_param == False:
+		c=np.cov(X,Y, bias=False)
+		a=c[0,1]/c[0,0];
+		b=np.mean(Y)-a*np.mean(X)
+		return a,b
+	if type(weighting_param) is not tuple:
+		weighting_param=tuple()
+	#print "weighting_param = %s"% str(weighting_param)
+	W=[weighting_fun_ncells((ncells_at_death_ref[i], ncells_at_death_flo[i], weighting_param))[-1] for i in range(len(ncells_at_death_ref))]
+	M=np.zeros((2,2))
+	N=np.zeros((2,1))
+	for i in range(len(X)):
+		M[0,0]=M[0,0]+W[i]*X[i]**2
+		M[0,1]=M[0,1]+W[i]*X[i]
+		N[0]=N[0]+W[i]*X[i]*Y[i]
+		N[1]=N[1]+W[i]*Y[i]
+	M[1,0]=M[0,1]
+	M[1,1]=sum(W)
 
-	return a,b
+	D=np.dot(np.linalg.inv(M),N)
+	return D[0,0],D[1,0]
 
 def temporal_affine_registration_robust(lineage_ref,lineage_flo,correspondences,init_ref_min=20,init_flo_min=10):
 	"""
@@ -1398,7 +1434,8 @@ def weighting_fun_ncells(parameters):
 			'inverse_sqrt':lambda x,coef=1: 1/numpy.sqrt(float(x)*coef),# (default for func_beta)
 			'inverse_square':lambda x,coef=1: 1/(float(x)*coef)**2,
 			'inverse_1':lambda x,coef=1: 1/(1+float(x)*coef),
-			'identity':lambda x,coef=1: x*coef)
+			'identity':lambda x,coef=1: x*coef),
+			'one':lambda x,coef=1: 1
 			(where coef = alpha | beta respectively for func_alpha | func_beta)
 			Or any custom function taking one mandatory and one optional (default=1) parameters
 		Note: ('func', func) is a shortcut for ('func_alpha', func), ('func_beta',func).
@@ -1418,7 +1455,8 @@ def weighting_fun_ncells(parameters):
 	'inverse_sqrt':lambda x,coef=1: 1/numpy.sqrt(float(x)*coef),
 	'inverse_square':lambda x,coef=1: 1/(float(x)*coef)**2,
 	'inverse_1':lambda x,coef=1: 1/(1+float(x)*coef),
-	'identity':lambda x,coef=1: float(x)*coef
+	'identity':lambda x,coef=1: float(x)*coef,
+	'one':lambda x,coef=1: 1
 	}
 
 
@@ -1597,4 +1635,285 @@ def weighting_fun_ncells(parameters):
 #	"""
 #
 #	"""
+
+
+def plot_temporal_correspondences(lin_ref, lin_flo, correspondences, func_temporal_reg=None, marker_cloud=None, label_cloud=None, marker_reg=None, label_reg=None, block=0, loc=4, xlabel=None, ylabel=None, title=None):
+	'''
+
+	'''
+	import matplotlib.pyplot as plt
+
+	t_beg_ref=lin_ref.timepoints()[0]
+	t_beg_flo=lin_flo.timepoints()[0]
+
+	t_end_ref=lin_ref.timepoints()[-1]
+	t_end_flo=lin_flo.timepoints()[-1]
+
+	X_tot=[lin_ref.relabelled_death(r) for r in correspondences.keys()]
+	Y_tot=[lin_flo.relabelled_death(r) for r in correspondences.values()]
+
+	X=[X_tot[i] for i in range(len(X_tot)) if (X_tot[i] != t_end_ref and Y_tot[i] != t_end_flo)]
+	Y=[Y_tot[i] for i in range(len(Y_tot)) if (X_tot[i] != t_end_ref and Y_tot[i] != t_end_flo)]
+
+	x=[]
+	y=[]
+	if func_temporal_reg is not None:
+		if type(func_temporal_reg) is list :
+			assert len(func_temporal_reg) == 2
+			# func_temporal_reg = [a, b] where a and b are the values of the coefficients for the affine function t_flo = a * t_ref + b
+			x=[t_beg_ref,t_end_ref]
+			y=[func_temporal_reg[0]*i + func_temporal_reg[1] for i in x]
+
+		else:
+			# Here we assume that func_temporal_reg is a function that takes one numeric argument and returns a numeric value
+			x=range(t_beg_ref,t_end_ref+1)
+			y=[func_temporal_reg(i) for i in x]
+
+	if not marker_cloud:
+		marker_cloud="r+"
+	if not label_cloud:
+		label_cloud='Mapped cell division times'
+
+
+	plt.plot(X,Y,marker_cloud, label=label_cloud)
+	if x:
+		if not marker_reg:
+			marker_reg='b--'
+		if not label_reg:
+			label_reg="Linear regression"
+		plt.plot(x,y,marker_reg, label=label_reg)
+	if xlabel is None:
+		xlabel='Floating sample timespan'
+	if ylabel is None:
+		ylabel='Reference sample timespan'
+	if title is None:
+		title='Embryo temporal alignment'
+	plt.xlabel(xlabel)
+	plt.ylabel(ylabel)
+	plt.title(title)
+	#plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+	plt.legend(loc=loc)
+	plt.axis([t_beg_ref, t_end_ref, t_beg_flo, t_end_flo])
+	plt.show(block=block)
+
+
+def plot_descent_lineage_with_temporal_correspondences(lin_ref, lin_flo, correspondences, relabel_ref, func_temporal_reg=None, weights=None, s=70, cmap=None, flt_format=None, loc=4, xlabel=None, ylabel=None, title=None, block=0):
+	'''
+	weights : None or dict containing the keys one wants to plot with values which are the weights the user wants to plot.
+			If None, the the weights will be automatically set to the cell level in the lineage to be plotted (1, 2, 3, ...).
+	'''
+	import matplotlib.pyplot as plt
+
+	if xlabel is None:
+		xlabel='Reference sample timespan'
+	if ylabel is None:
+		ylabel='Floating sample timespan'
+	if title is None:
+		title='Lineage divisions alignments from cell %d'% relabel_ref
+
+
+	t_beg_ref=lin_ref.timepoints()[0]
+	t_beg_flo=lin_flo.timepoints()[0]
+
+	t_end_ref=lin_ref.timepoints()[-1]
+	t_end_flo=lin_flo.timepoints()[-1]
+
+	assert lin_ref.exists(relabel_ref)
+	assert correspondences.has_key(relabel_ref)
+	relabels_ref=[relabel_ref]+ lin_ref.relabelled_descendents(relabel_ref)
+
+	X=[lin_ref.relabelled_death(r) for r in relabels_ref if r in correspondences.keys() ]
+	Y=[lin_flo.relabelled_death(correspondences[r]) for r in relabels_ref if r in correspondences.keys() ]
+
+	c=[]
+	
+	for r in relabels_ref :
+		if not r in correspondences.keys():
+			continue
+		if weights:
+			assert weights.has_key(r), "No entry for reference relabel %d" %r
+			c = c + [weights[r]]
+		else:
+			r0=r
+			i = 1
+			while r0 is not relabel_ref :
+				i = i+1
+				r0=lin_ref.relabelled_mother(r0)
+				assert r0 is not None, "Unexpectedly unable to find the descent level of label %d in the sub-lineage of label %d "% (r, relabel_ref)
+			c = c + [i]
+
+	assert len(c) == len(X)
+
+
+	the_Xs=[]
+	the_Ys=[]
+	for r in relabels_ref :
+		if r is relabel_ref:
+			continue
+		if not r in correspondences.keys():
+			continue
+		if lin_ref.relabelled_death(r) == lin_ref.timepoints()[-1] and lin_flo.relabelled_death(correspondences[r]) == lin_flo.timepoints()[-1]:
+			continue
+		the_Xs.append([lin_ref.relabelled_death(r)])
+		the_Ys.append([lin_flo.relabelled_death(correspondences[r])])
+		r0=lin_ref.relabelled_mother(r)
+		assert r0 is not None, "Unexpectedly unable to find the mother of label %d in the sub-lineage of label %d "% (r, relabel_ref)
+		while not r0 in correspondences.keys():
+			r1=lin_ref.relabelled_mother(r0)
+			assert r1 is not None, "Unexpectedly unable to find the mother of label %d in the sub-lineage of label %d "% (r0, relabel_ref)
+			r0=r1
+		the_Xs[-1].append(lin_ref.relabelled_death(r0))
+		the_Ys[-1].append(lin_flo.relabelled_death(correspondences[r0]))
+
+	#print the_Xs
+	#print the_Ys
+
+	x=[]
+	y=[]
+	if func_temporal_reg is not None:
+		if type(func_temporal_reg) is list :
+			assert len(func_temporal_reg) == 2
+			# func_temporal_reg = [a, b] where a and b are the values of the coefficients for the affine function t_flo = a * t_ref + b
+			x=[t_beg_ref,t_end_ref]
+			y=[func_temporal_reg[0]*i + func_temporal_reg[1] for i in x]
+
+		else:
+			# Here we assume that func_temporal_reg is a function that takes one numeric argument and returns a numeric value
+			x=range(t_beg_ref,t_end_ref+1)
+			y=[func_temporal_reg(i) for i in x]
+
+
+
+	if cmap is None:
+		cmap = plt.cm.gnuplot2
+
+	for i in range(len(the_Xs)):
+		the_x=the_Xs[i]
+		the_y=the_Ys[i]
+		plt.plot(the_x,the_y,'k')
+
+	cax=plt.scatter(X,Y, c=c, cmap=cmap, s=s, marker='o')
+	if x:
+		plt.plot(x,y,marker_reg, label=label_reg)
+	plt.axis([t_beg_ref, t_end_ref, t_beg_flo, t_end_flo])
+	plt.xlabel(xlabel)
+	plt.ylabel(ylabel)
+	plt.legend(loc=loc)
+	plt.title(title)
+
+	if weights:
+		if angle :
+			cbar = plt.colorbar(cax, ticks=[1,10,20,30,40,50,60,70,80,87.5], orientation='vertical')
+			cbar.set_ticklabels([str(angle)+' degrees'.decode("utf8") for angle in [0,10,20,30,40,50,60,70,80,90]])  # horizontal colorbar
+		else:
+			import numpy as np
+			cbar = plt.colorbar(cax, ticks=np.linspace(min(c),max(c),5), orientation='vertical')
+			if not flt_format:
+				flt_format = "%f"
+			cbar.set_ticklabels([flt_format%v for v in np.linspace(min(c),max(c),5)])  # horizontal colorbar
+	else:
+		cbar = plt.colorbar(cax, ticks=range(1,max(c)+1), orientation='vertical')
+		cbar.set_ticklabels(["Level "+str(v) for v in range(1,max(c)+1)])  # horizontal colorbar
+	plt.show(block=block)
+
+
+
+
+
+
+def plot_angles_histogram(angles, xlabel=None, ylabel=None, title=None, bins=None, normed=True, block=0):
+	"""
+
+	"""
+	import matplotlib.pyplot as plt
+
+	# Histogrammes des angles 
+	if bins is None:
+		bins=[0.5+_x for _x in range(0,90,2)]
+	plt.hist(angles,bins=bins,normed=normed)
+	if xlabel is None:
+		xlabel='Angle (degrees)'
+	if ylabel is None:
+		ylabel='Proportion of cell divisions'
+	if title is None:
+		title='Histogram of angles between corresponding cells division axes (Ref/Flo)'
+	plt.xlabel(xlabel)
+	plt.ylabel(ylabel)
+	plt.title(title)
+	plt.show(block=block)
+
+
+
+
+def scatter_temporal_correspondences(lin_ref, lin_flo, correspondences, func_temporal_reg=None, weights=None, marker_cloud=None, label_cloud=None, marker_reg=None, s=70, label_reg=None, block=0, loc=4, bins=None, xlabel=None, ylabel=None, title=None, cmap=None):
+	'''
+
+	'''
+	import matplotlib.pyplot as plt
+
+	t_beg_ref=lin_ref.timepoints()[0]
+	t_beg_flo=lin_flo.timepoints()[0]
+
+	t_end_ref=lin_ref.timepoints()[-1]
+	t_end_flo=lin_flo.timepoints()[-1]
+
+	X_tot=[lin_ref.relabelled_death(r) for r in correspondences.keys()]
+	Y_tot=[lin_flo.relabelled_death(r) for r in correspondences.values()]
+
+	#X90=[X90_tot[i] for i in range(len(X90_tot)) if (X90_tot[i] != t_end_ref and Y90_tot[i] != t_end_flo)]
+	#Y90=[Y90_tot[i] for i in range(len(Y90_tot)) if (X90_tot[i] != t_end_ref and Y90_tot[i] != t_end_flo)]
+	X=[X_tot[i] for i in range(len(X_tot)) if (X_tot[i] != t_end_ref and Y_tot[i] != t_end_flo)]
+	Y=[Y_tot[i] for i in range(len(Y_tot)) if (X_tot[i] != t_end_ref and Y_tot[i] != t_end_flo)]
+
+	x=[]
+	y=[]
+	if func_temporal_reg is not None:
+		if type(func_temporal_reg) is list :
+			assert len(func_temporal_reg) == 2
+			# func_temporal_reg = [a, b] where a and b are the values of the coefficients for the affine function t_flo = a * t_ref + b
+			x=[t_beg_ref,t_end_ref]
+			y=[func_temporal_reg[0]*i + func_temporal_reg[1] for i in x]
+
+		else:
+			# Here we assume that func_temporal_reg is a function that takes one numeric argument and returns a numeric value
+			x=range(t_beg_ref,t_end_ref+1)
+			y=[func_temporal_reg(i) for i in x]
+
+	if not marker_reg:
+		marker_reg='b--'
+	if not label_reg:
+		label_reg="Linear regression"
+
+	if xlabel is None:
+		xlabel='Floating sample timespan'
+	if ylabel is None:
+		ylabel='Reference sample timespan'
+	if title is None:
+		title='Embryo temporal alignment'
+	if cmap is None:
+		cmap = plt.cm.gnuplot2
+
+	if bins is None:
+		bins=[0.5+val for val in range(0,90)]
+	#colors = cmap([b/90 for b in bins])
+	#hist, bin_edges = np.histogram(angles, bins)
+	#ax1.bar(bin_edges[:-1], hist, color=colors, alpha=0.8) # HISTOGRAMME NORMAL
+	#Hist=[sum(hist[:i]) for i in range(1,len(hist)+1)]
+	#ax2.set_colorbar()
+
+	#cax=plt.scatter(X,Y, c=t, cmap=cmap, s=s, marker='o')
+	cax=plt.scatter(X,Y, s=s, marker='o')
+	if x:
+		plt.plot(x,y,marker_reg, label=label_reg)
+	#ax2.plot(x,y45,'y--', label="Linear regression (angle max=45)")
+	#plt.plot(x,yinit,'g--', label="Linear regression (initial mapping)")
+	plt.axis([t_beg_ref, t_end_ref, t_beg_flo, t_end_flo])
+	plt.xlabel(xlabel)
+	plt.ylabel(ylabel)
+	plt.legend(loc=loc)
+	plt.title(title)
+
+	cbar = plt.colorbar(cax, ticks=[1,10,20,30,40,50,60,70,80,87.5], orientation='vertical')
+	cbar.set_ticklabels([str(angle)+' degrees'.decode("utf8") for angle in [0,10,20,30,40,50,60,70,80,90]])  # horizontal colorbar
+	plt.show(block=block)
 

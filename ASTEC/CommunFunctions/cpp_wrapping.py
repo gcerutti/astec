@@ -33,6 +33,8 @@ path_planeRegistration=path_to_bins + 'planeRegistration'
 path_pointCloudRegistration=path_to_bins + 'pointCloudRegistration'
 path_setvoxelsize=path_to_bins + 'setVoxelSize'
 path_compose_trsf=path_to_bins + 'composeTrsf'
+path_multiple_trsfs=path_to_bins + 'multipleTrsfs'
+path_change_multiple_trsfs=path_to_bins + 'changeMultipleTrsfs'
 path_non_zeros_image=path_to_bins + 'nonZerosImage'
 path_setvoxelvalue=path_to_bins + 'setVoxelValue'
 path_fuselabels=path_to_bins + "fuseLabels"
@@ -265,13 +267,16 @@ def non_linear_registration(image_file_flo,image_file_ref, affine_image, affine_
     os.system(cmd)
     
 
-def linear_registration(path_ref, path_flo, path_trsf, path_output, path_output_trsf):
+def linear_registration(path_ref, path_flo, path_trsf, path_output, path_output_trsf, py_hl=6, py_ll=3, lts_fraction=0.55):
     ''' Compute the linear transformation that register the floating image onto the reference image
     path_flo : path to the floating image
     path_ref : path to the reference image
     path_output : path to the floating image after affine registration
     path_trsf : path to the initial registration
     path_output_trsf : path to the affine transformation
+    py_hl : pyramid highest level (default = 6)
+    py_ll : pyramid lowest level (default = 3)
+    lts_fraction : least trimmed squares fraction (default = 0.55)
     '''
     os.system(path_block +
               " -ref " + path_ref +
@@ -281,10 +286,36 @@ def linear_registration(path_ref, path_flo, path_trsf, path_output, path_output_
               " -init-trsf " + path_trsf +
               " -trsf-type affine" +
               " -estimator wlts" +
-              " -pyramid-highest-level 6" +
-              " -pyramid-lowest-level 3" +
-              " -lts-fraction 0.55")
+              " -pyramid-highest-level " + py_hl +
+              " -pyramid-lowest-level " + py_ll +
+              " -lts-fraction " + lts_fraction)
 
+def rigid_registration(path_ref, path_flo, path_trsf, path_output, path_output_trsf, py_hl=6, py_ll=3, lts_fraction=0.55, verbose=False):
+    ''' Compute the rigid transformation that register the floating image onto the reference image
+    path_flo : path to the floating image
+    path_ref : path to the reference image
+    path_output : path to the floating image after affine registration
+    path_trsf : path to the initial registration (can be set to None or "/dev/null" if one does not want to initialize the trsf)
+    path_output_trsf : path to the affine transformation
+    py_hl : pyramid highest level (default = 6)
+    py_ll : pyramid lowest level (default = 3)
+    lts_fraction : least trimmed squares fraction (default = 0.55)
+    '''
+    cmd=path_block + \
+              " -ref " + path_ref + \
+              " -flo " + path_flo + \
+              " -res " + path_output + \
+              " -res-trsf " + path_output_trsf + \
+              " -trsf-type rigid" + \
+              " -estimator wlts" + \
+              " -pyramid-highest-level " + str(py_hl) + \
+              " -pyramid-lowest-level " + str(py_ll) + \
+              " -lts-fraction " + str(lts_fraction)
+    if path_trsf :
+      cmd = cmd + " -init-trsf " + path_trsf
+    if verbose:
+      print cmd
+    os.system(cmd)
 
 def apply_trsf(path_flo, path_trsf=None, path_output="tmp_seeds.inr", 
                template=None, nearest=True, voxelsize=None, iso=None, dimensions=None, lazy=True, verbose=False):
@@ -1475,6 +1506,90 @@ def compose_trsf(path_trsf_1, path_trsf_2, path_output="tmp_compose.inr", lazy=T
     cmd='rm '+path_output
     os.system(cmd)
     return out
+
+def multiple_trsfs(format_in, format_out, first_index, last_index, reference_index, trsf_type='rigid', method='propagation', nfloatingbefore=None, nfloatingafter=None, verbose=False):
+  '''
+  Given the transformations between couple of images (typically successive
+  images in a series), compute the transformations for every images with
+  respect to the same reference image
+
+  format_in    # format 'a la printf' of transformations to be processed
+               # must contain two '%d'
+               # the first one if for the floating image
+               # the second one if for the reference image
+  format_out # format 'a la printf' for output transformations
+  first_index %d     # first value of the index in the format
+  last_index %d      # last value of the index in the format
+  reference_index %d # index of the reference image for result transformations
+   # if 'before' or 'after' are non-null, the interval of transformation
+   # for a given reference 'ref' is [ref-before, ref-1] U [ref+1, ref+after]
+  trsf_type %s # transformation type
+    translation2D, translation3D, translation-scaling2D, translation-scaling3D,
+  rigid2D, rigid3D, rigid, similitude2D, similitude3D, similitude,
+  affine2D, affine3D, affine, vectorfield2D, vectorfield3D, vectorfield, vector
+  method %s # 
+    average: compute transformation estimation by averaging composition
+           of transformation
+    propagation: compose transformations from the reference one
+  nfloatingbefore %d # relative left half-interval for floating images
+  nfloatingafter %d  # relative right half-interval for floating images
+  '''
+  cmd=path_multiple_trsfs+ \
+      ' ' + format_in + ' -res ' + format_out + \
+      ' -trsf-type ' + trsf_type + \
+      ' -f ' + str(first_index) + ' -l ' + str(last_index) + \
+      ' -ref ' +  str(reference_index) + ' -method ' + method 
+  if nfloatingbefore != None:
+    cmd = cmd + ' -nfloatingbefore ' + str(nfloatingbefore)
+  if nfloatingafter != None:
+    cmd = cmd + ' -nfloatingafter ' + str(nfloatingafter)
+
+  if verbose:
+    print cmd
+  os.system(cmd)
+
+def change_multiple_trsfs(format_trsf_in, format_image_in, format_trsf_out, template_image_out, first_index, last_index, threshold=2, iso=None, verbose=False):
+  '''
+  Given a list of transformation towards a reference,
+  compute a new template that contains all transformed images as well
+  as the new transformations
+
+  format_trsf_in   # format 'a la printf' of transformations to be processed
+                   # must contain one '%d'
+                   # depicts transformations of the form T_{i<-ref}
+  format_trsf_out # format 'a la printf' for output transformations
+                  # will allow to resample input image into the resulting
+                  # template (thus still of the form T_{i<-ref})
+                  # reference is changed if '-index-reference' is used
+  first_index %d     # first value of the index in the format
+  last_index %d      # last value of the index in the format
+  reference_index %d # index of the reference image for result transformations
+   # if 'before' or 'after' are non-null, the interval of transformation
+   # for a given reference 'ref' is [ref-before, ref-1] U [ref+1, ref+after]
+  trsf_type %s # transformation type
+    translation2D, translation3D, translation-scaling2D, translation-scaling3D,
+  rigid2D, rigid3D, rigid, similitude2D, similitude3D, similitude,
+  affine2D, affine3D, affine, vectorfield2D, vectorfield3D, vectorfield, vector
+  method %s # 
+    average: compute transformation estimation by averaging composition
+           of transformation
+    propagation: compose transformations from the reference one
+  nfloatingbefore %d # relative left half-interval for floating images
+  nfloatingafter %d  # relative right half-interval for floating images
+  '''
+  cmd=path_change_multiple_trsfs+ \
+      ' -trsf-format ' + format_trsf_in + ' -res ' + format_trsf_out + \
+      ' -trsf-type ' + trsf_type + \
+      ' -f ' + str(first_index) + ' -l ' + str(last_index) + \
+      ' -ref ' +  str(reference_index) + ' -method ' + method 
+  if nfloatingbefore != None:
+    cmd = cmd + ' -nfloatingbefore ' + str(nfloatingbefore)
+  if nfloatingafter != None:
+    cmd = cmd + ' -nfloatingafter ' + str(nfloatingafter)
+
+  if verbose:
+    print cmd
+  os.system(cmd)
 
 def Arit(image_in, image_ext_or_out, image_out=None, Mode=None, Type='', lazy=True, verbose=False):
   """
