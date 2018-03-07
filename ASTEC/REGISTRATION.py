@@ -1917,3 +1917,249 @@ def scatter_temporal_correspondences(lin_ref, lin_flo, correspondences, func_tem
 	cbar.set_ticklabels([str(angle)+' degrees'.decode("utf8") for angle in [0,10,20,30,40,50,60,70,80,90]])  # horizontal colorbar
 	plt.show(block=block)
 
+
+def compute_intra_sequence_two_by_two_registration(fused_files_format, trsf_files_format, begin, end, delta=1, verbose=False):
+	"""
+	Step-by-step registration using sequence of fused images 
+
+	Inputs:
+		fused_files_format: fused images names for blockmatching rigid registration (eg. '/fakepath/171106-Leonard-St8_fuse_t$TIME.inr')
+		begin: index for sequence beginning
+		end: index for sequence ending
+		delta: delta between two indices in the sequence
+		verbose: level of verbosity
+	Output:
+		trsf_files_format: intra registration two-by-two (step-by-step) trsf file names (eg. '/fakepath/171106-Leonard-St8_reg_t$TIMEFLO_t$TIMEREF.trsf')
+					ie each transformation is a transformation T_flo<-ref enabling to resample the floating image onto reference image referential
+	"""
+	from lineage import timeNamed,timesNamed
+
+	trsf_files_path=os.path.sep.join(trsf_files_format.split(os.path.sep)[:-1])
+	if not os.path.isdir(trsf_files_path):
+		os.mkdir(trsf_files_path)  
+	assert os.path.isdir(trsf_files_path)
+
+	for t in range(begin, end):
+		time_ref=t+delta #Time point of Segmentation 
+		time_flo=t
+		if verbose:
+			print 'Starting the step-by-step registration between ' + str(time_flo) + " and " + str(time_ref)
+		fused_file_ref=timeNamed(fused_files_format,time_ref) #Reference image file
+		fused_file_flo=timeNamed(fused_files_format,time_flo) #Floating image file
+		trsf_file=timesNamed(trsf_files_format,'$TIMEFLO',time_flo,'$TIMEREF',time_ref) #trsf file
+		assert os.path.exists(fused_file_ref), "Input image file %s not found."%fused_file_ref
+		assert os.path.exists(fused_file_flo), "Input image file %s not found."%fused_file_flo
+		rigid_registration(fused_file_ref, fused_file_flo, None, "/dev/null", trsf_file, verbose=verbose)
+
+def compute_intra_sequence_respatialization_trsfs(trsf_files_two_by_two_format, trsf_files_composed_format, begin, end, time_point_ref=None, index_format='%03d', verbose=False):
+	'''
+	Recomputing the trsfs with a unique reference
+
+	Inputs:
+		trsf_files_two_by_two_format: intra registration two-by-two (step-by-step) trsf file names (eg. '/fakepath/171106-Leonard-St8_reg_t$TIMEFLO_t$TIMEREF.trsf')
+					ie each transformation is a transformation T_flo<-ref enabling to resample the floating image onto reference image referential
+		begin: index for sequence beginning
+		end: index for sequence ending
+		time_point_ref: time-point of the sequence which will be used as reference for output transformations (ie for this time-point, the resulting trsf will be identity)
+					Default is time_point_ref=begin
+		index_format: format of the indices (default is '%03d')
+		verbose: level of verbosity
+	Output:
+		trsf_files_composed_format: intra registration recomputed trsf file names so that each image can be put in a unique referential. 
+					Two admitted formats: '/fakepath/171106-Leonard-St8_reg_compose_t$TIME_t$TIME.trsf'
+										  '/fakepath/171106-Leonard-St8_reg_compose_t$TIME.trsf'
+					Output trsfs enable the resampling of each image onto a unique referential (T_flo<-ref)
+	Return value:
+		time_point_ref: %d
+	'''
+
+	if time_point_ref==None:
+		time_point_ref=begin
+
+	input_trsfs_path=os.path.sep.join(trsf_files_two_by_two_format.split(os.path.sep)[:-1])
+	assert os.path.isdir(input_trsfs_path)
+	trsf_files_path=os.path.sep.join(trsf_files_composed_format.split(os.path.sep)[:-1])
+	if not os.path.isdir(trsf_files_path):
+		os.mkdir(trsf_files_path)  
+	assert os.path.isdir(trsf_files_path)
+
+	intrareg_step_format=trsf_files_two_by_two_format.replace('$TIMEREF',index_format).replace('$TIMEFLO',index_format) 
+	intrareg_comp_format=trsf_files_composed_format.split('$TIME')
+	assert len(intrareg_comp_format) == 2 or len(intrareg_comp_format) == 3, "Naming convention not respected for the 2nd parameter of function compute_intra_sequence_respatialization_trsfs. Refer to function 'help'."
+	if len(intrareg_comp_format) == 3:
+		intrareg_comp_format=intrareg_comp_format[0]+index_format+intrareg_comp_format[1]+(index_format%time_point_ref)+intrareg_comp_format[2]
+	else:
+		intrareg_comp_format=trsf_files_composed_format.replace('$TIME', index_format)
+	multiple_trsfs(intrareg_step_format, intrareg_comp_format, begin, end, time_point_ref, verbose=verbose)
+	return time_point_ref
+
+def compute_optimized_intra_sequence_respatialization_trsfs(image_files_format, trsf_files_composed_format, optimized_template, trsf_files_optimized_format, begin, end, threshold=2, iso=1.0, margin=10, verbose=False):
+	'''
+	Usage of function "changeMultipleTrsfs" for 
+		- computing the minimal window for building a 3D+t subsequence of images of the full sequence 
+		- building a template image into which the original images will be transformed
+	
+	Inputs:
+		image_files_format: format for the stack of images on which the user wants to be based on for the optimal box computation (ideally a sequence of segmented images)
+				Accepted format example: '/fakepath/171106-Leonard-St8_fuse_seg_post_t$TIME.inr'
+		trsf_files_composed_format: intra registration trsf file names so that each image can be put in a unique spatial referential 
+				Accepted format example: '/fakepath/171106-Leonard-St8_reg_compose_t$TIME_t000.trsf' (/!\ only one occurence of '$TIME' is accepted)
+		begin: index for sequence beginning
+		end: index for sequence ending
+		threshold: threshold on input templates/images to compute the useful bounding box (else it is the entire image)
+		iso: make voxels isotropic for the output template (%f, default is 1.0) (if no value is given, uses the smallest voxel size from the template(s))
+		margin: add a margin (in voxels)
+		verbose: level of verbosity
+	Outputs:
+		optimized_template: output template image corresponding to the output transformations
+		trsf_files_optimized_format: format 'a la printf' for output transformations will allow to resample input image into the resulting
+             	template (thus still of the form T_{i<-ref}) reference is changed if '-index-reference' is used
+				Accepted format example: '/fakepath/171106-Leonard-St8_reg_compose_t$TIME.trsf' 
+	'''
+
+	assert image_files_format.count('$TIME')==1
+	assert trsf_files_composed_format.count('$TIME')==1
+	assert trsf_files_optimized_format.count('$TIME')==1
+
+
+	input_trsfs_path=os.path.sep.join(trsf_files_composed_format.split(os.path.sep)[:-1])
+	assert os.path.isdir(input_trsfs_path)
+	input_images_path=os.path.sep.join(image_files_format.split(os.path.sep)[:-1])
+	assert os.path.isdir(input_images_path)
+	trsf_files_path=os.path.sep.join(trsf_files_optimized_format.split(os.path.sep)[:-1])
+	if not os.path.isdir(trsf_files_path):
+		os.mkdir(trsf_files_path)  
+	assert os.path.isdir(trsf_files_path)
+	template_path=os.path.sep.join(optimized_template.split(os.path.sep)[:-1])
+	if not os.path.isdir(template_path):
+		os.mkdir(template_path)  
+	assert os.path.isdir(template_path)
+
+
+	intrareg_comp_format=trsf_files_composed_format.replace('$TIME','%03d')
+	intrareg_change_trsf_format=trsf_files_optimized_format.replace('$TIME','%03d')
+	intrareg_change_images_format=image_files_format.replace('$TIME','%03d')
+	change_multiple_trsfs(intrareg_comp_format, intrareg_change_trsf_format, intrareg_change_images_format, optimized_template, 
+                          begin, end, 
+                          reference_index=None, trsf_type='rigid', 
+                          threshold=threshold, iso=iso, margin=margin, verbose=verbose)
+
+
+def compose_transformation_stack_with_a_transformation(format_input_trsfs, file_trsf, format_output_trsfs, begin, end, verbose=False):
+	'''
+	Function for stack of transformations composition with an outsider transformation.
+	Useful for example in order to force a sequence realignment under a given orientation.
+
+	Input data:
+		format_input_trsfs: str containing transformations format with index appearing as '$TIME' (eg. '/fakepath/171106-Leonard-St8_reg_compose_t$TIME.trsf')
+		file_trsf: str containing path to the file of transformation which will be used for the composition
+		begin: index for sequence beginning (MANDATORY)
+		end: index for sequence ending (MANDATORY)
+		verbose; level of verbosity
+
+	Output data:
+		format_outputs: str containing output transformations format with index appearing as '$TIME' (eg. '/fakepath/COMPOSE_GERMINAL/171106-Leonard-St8_reg_compose_germinal_t$TIME.trsf')
+	'''
+	input_trsfs_path=os.path.sep.join(format_input_trsfs.split(os.path.sep)[:-1])
+	assert os.path.isdir(input_trsfs_path)
+	assert os.path.exists(file_trsf), "Input transformation file '%s' not found."%file_trsf
+	outputs_path=os.path.sep.join(format_output_trsfs.split(os.path.sep)[:-1])
+	if not os.path.isdir(outputs_path):
+		os.mkdir(outputs_path)  
+	assert os.path.isdir(outputs_path)
+
+	assert format_input_trsfs.count('$TIME')==1
+	assert format_output_trsfs.count('$TIME')==1
+
+	for t in range(begin, end+1):
+		path_trsf=timeNamed(format_input_trsfs,t) 
+		assert os.path.exists(path_trsf), "Input transformation file '%s' not found."%path_trsf
+		path_out=timeNamed(format_output_trsfs,t) 
+		compose_trsf(path_trsf, file_trsf, path_output=path_out, lazy=True, verbose=verbose)
+
+
+
+
+def intra_sequence_realignment(format_images, format_outputs, format_trsfs, template_image=None, begin=None, end=None, delta=1, nearest=True, iso=None, threshold=None, margin=None, visu=False, verbose=False):
+	'''
+	Function for embryo image sequence 
+	
+	Input data:
+		format_images: str containing input images format with index appearing as '$TIME' (eg. '/fakepath/171106-Leonard-St8_glas_seg_post_t$TIME.inr')
+					   (which will be also used for the optimal box computation if 'iso' parameter is specified)
+		format_trsfs: str containing rigid transformations format with index appearing as '$TIME' (eg. '/fakepath/171106-Leonard-St8_reg_compose_t$TIME.trsf')
+		begin: index for sequence beginning (MANDATORY)
+		end: index for sequence ending (MANDATORY)
+		delta: delta between two indices in the sequence (default=1)
+		nearest : do not interpolate (take the nearest value) if True, to use when applying on label images (default = True). Use nearest = True for segmented images.
+		visu:   option enabling labels thin erosion. Useful for segmented images 3D visualisation for example.
+
+		template_image: template image corresponding to the transformations to be applied on the images
+			/!\ THIS PARAMETER MUST NOT BE USED WITH 'iso' PARAMETER AT THE SAME TIME
+		iso: make voxels isotropic for the output template (%f, default is 1.0) (if no value is given, uses the smallest voxel size from the template(s))
+			/!\ THIS PARAMETER MUST NOT BE USED WITH 'template_image' PARAMETER AT THE SAME TIME
+		/!\ EITHER 'template_image' OR 'iso' PARAMETER MUST BE PROVIDED (BUT NOT BOTH)
+		# Options to be used in complement with 'iso' parameter
+		threshold: threshold on input templates/images to compute the useful bounding box (else it is the entire image)
+		margin: add a margin (in voxels)
+		verbose: level of verbosity
+	
+	Output data:
+		format_outputs: str containing output images format with index appearing as '$TIME' (eg. '/fakepath/res/171106-Leonard-St8_glas_seg_post_realignment_t$TIME.mha')
+	'''
+	assert not begin==None
+	assert not end==None
+	assert format_trsfs, "The trsfs option is not optional"
+	assert format_images.count('$TIME')==1
+	assert format_trsfs.count('$TIME')==1
+	assert format_outputs.count('$TIME')==1
+
+
+	input_trsfs_path=os.path.sep.join(format_trsfs.split(os.path.sep)[:-1])
+	assert os.path.isdir(input_trsfs_path)
+	input_images_path=os.path.sep.join(format_images.split(os.path.sep)[:-1])
+	assert os.path.isdir(input_images_path)
+	outputs_path=os.path.sep.join(format_outputs.split(os.path.sep)[:-1])
+	if not os.path.isdir(outputs_path):
+		os.mkdir(outputs_path)  
+	assert os.path.isdir(outputs_path)
+
+
+	flag_rm=False
+
+	format_optimized_trsfs=''
+
+	if template_image == None:
+		assert not iso == None, "Either 'template_image' or 'iso' parameter must be provided (but not both). Exiting."
+		flag_rm=True
+		template_image=outputs_path+os.path.sep+"intra_sequence_realignment_template.inr"
+		format_optimized_trsfs=outputs_path+os.path.sep+"intra_sequence_realignment_tmp_t$TIME.trsf"
+		compute_optimized_intra_sequence_respatialization_trsfs(format_images, format_trsfs, template_image, format_optimized_trsfs, begin, end, threshold=threshold, iso=iso, margin=margin, verbose=verbose)
+	else:
+		assert iso == None, "Either 'template_image' or 'iso' parameter must be provided (but not both). Exiting."
+		format_optimized_trsfs=format_trsfs
+
+	for t in range(begin, end+1):
+		if verbose:
+			print 'Realignment at t=%d '%t
+		image_in=timeNamed(format_images,t) #Original image file
+		image_out=timeNamed(format_outputs,t) #Output image file
+		trsf_file=timeNamed(format_optimized_trsfs,t) #Transformation to be applied
+		assert os.path.exists(image_in), "Input image file '%s' not found."%image_in
+		assert os.path.exists(trsf_file), "Input transformation file '%s' not found."%trsf_file
+		apply_trsf(image_in, path_trsf=trsf_file, path_output=image_out, 
+		           template=template_image, nearest=nearest, lazy=True, verbose=verbose)
+		if flag_rm:
+			cmd='rm -f '+trsf_file
+			if verbose:
+				print cmd
+			os.system(cmd)
+		if visu:
+			erodeLabels(image_out, image_out, lazy=True, verbose=verbose)
+
+	if flag_rm:
+		cmd='rm -f '+template_image
+		if verbose:
+			print cmd
+		os.system(cmd)
+

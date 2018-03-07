@@ -1,7 +1,7 @@
 
 # RAWDATA DEFINITION
 begin=0
-end=209 #Last Point
+end=92 #Last Point
 
 delta = 1 # Delta between two time points (if one does not want to fuse every single time point)
 ori = 'right' # if im2 angle - im1 angle < 0 => right
@@ -51,6 +51,13 @@ intrareg_step_files=intrareg_Path+EN+'_reg_t$TIMEFLO_t$TIMEREF.trsf' #  intra re
 intrareg_multiple_files=intrareg_Path+EN+'_reg_compose_t$TIME_t$TIME.trsf' #  intra registration composed trsf file names
 intrareg_change_files=intrareg_Path+EN+'_reg_compose_t$TIME.trsf' #  intra registration recentered trsf file names
 intrareg_change_template=intrareg_Path+EN+'_reg_compose_template.inr.gz' #  intra registration template file name for recentered trsfs
+#postsegment_files=datapath+"GLACE/SEG/POST/"+EN+'_glas_seg_post_t$TIME.inr' #Segmentation output files
+
+#INTRA REGISTRATION COMPOSED WITH ROTATION SO THAT GERMINAL CELLS ARE AT THE DOWN OF THE IMAGE # NOT USED NOW
+intrareg_germinal_Path=intrareg_Path+"COMPOSE_GERMINAL/" # path intra registration data under germinal cells reorientation constraint
+intrareg_germinal_file=intrareg_germinal_Path+EN+'_germinal.trsf' # transformation (rotation) to compose with all the intra-registration trsf files 
+intrareg_germinal_files=intrareg_germinal_Path+EN+'_germinal_t$TIME.trsf' #  intra registration recentered trsf file names
+intrareg_germinal_template=intrareg_germinal_Path+EN+'_germinal_template.inr.gz' #  intra registration template file name for recentered trsfs
 
 #RECONSTRUCTION DATA 
 reconstruct_Path=fuse_Path+"RECONSTRUCTION/" #path reconstructed images

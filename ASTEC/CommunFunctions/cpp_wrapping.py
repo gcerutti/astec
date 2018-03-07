@@ -1548,44 +1548,58 @@ def multiple_trsfs(format_in, format_out, first_index, last_index, reference_ind
     print cmd
   os.system(cmd)
 
-def change_multiple_trsfs(format_trsf_in, format_image_in, format_trsf_out, template_image_out, first_index, last_index, threshold=2, iso=None, verbose=False):
+def change_multiple_trsfs(format_trsf_in, 
+                          format_trsf_out, 
+                          format_image_in, template_image_out, 
+                          first_index, last_index, 
+                          reference_index=None, trsf_type='rigid', 
+                          threshold=2, iso=None, margin=10, verbose=False):
   '''
   Given a list of transformation towards a reference,
   compute a new template that contains all transformed images as well
   as the new transformations
 
-  format_trsf_in   # format 'a la printf' of transformations to be processed
-                   # must contain one '%d'
-                   # depicts transformations of the form T_{i<-ref}
-  format_trsf_out # format 'a la printf' for output transformations
-                  # will allow to resample input image into the resulting
-                  # template (thus still of the form T_{i<-ref})
-                  # reference is changed if '-index-reference' is used
-  first_index %d     # first value of the index in the format
-  last_index %d      # last value of the index in the format
-  reference_index %d # index of the reference image for result transformations
-   # if 'before' or 'after' are non-null, the interval of transformation
-   # for a given reference 'ref' is [ref-before, ref-1] U [ref+1, ref+after]
-  trsf_type %s # transformation type
-    translation2D, translation3D, translation-scaling2D, translation-scaling3D,
-  rigid2D, rigid3D, rigid, similitude2D, similitude3D, similitude,
-  affine2D, affine3D, affine, vectorfield2D, vectorfield3D, vectorfield, vector
-  method %s # 
-    average: compute transformation estimation by averaging composition
-           of transformation
-    propagation: compose transformations from the reference one
-  nfloatingbefore %d # relative left half-interval for floating images
-  nfloatingafter %d  # relative right half-interval for floating images
+format_trsf_in # format 'a la printf' of transformation files
+             # to be processed. It must contain one '%d'
+             # depicts transformations of the form T_{i<-ref}
+             # (ie allows to resample image I_i in geometry of I_ref)
+format_trsf_out # format 'a la printf' for output transformations
+             # will allow to resample input image into the resulting
+             # template (thus still of the form T_{i<-ref})
+             # reference is changed if '-index-reference' is used
+format_image_in # format 'a la printf' of image corresponding to the input images
+             # one template for all
+template_image_out # output template image corresponding to the output transformations
+first_index  # first value of the index in the format (%d)
+last_index   # last value of the index in the format (%d)
+reference_index # index of the reference transformation
+             # the corresponding image will only be translated
+             # if none, only translations will change in transformations
+             # (ie reference is not changed) (%d)
+trsf_type    # transformation type, which can be :
+             # [translation2D, translation3D, translation-scaling2D, translation-scaling3D,
+             # rigid2D, rigid3D, rigid, similitude2D, similitude3D, similitude,
+             # affine2D, affine3D, affine, vectorfield2D, vectorfield3D, vectorfield, vector]
+threshold    # threshold on input templates/images to compute the
+             # useful bounding box (else it is the entire image)
+iso          # make voxels isotropic for the output template (%f)
+             # (if no value is given, uses the smallest voxel size from the template(s))
+margin       # add a margin (in voxels)
+verbose      # vorbose mode
   '''
   cmd=path_change_multiple_trsfs+ \
-      ' -trsf-format ' + format_trsf_in + ' -res ' + format_trsf_out + \
+      ' -trsf-format ' + format_trsf_in + ' -res-trsf-format ' + format_trsf_out +\
       ' -trsf-type ' + trsf_type + \
       ' -f ' + str(first_index) + ' -l ' + str(last_index) + \
-      ' -ref ' +  str(reference_index) + ' -method ' + method 
-  if nfloatingbefore != None:
-    cmd = cmd + ' -nfloatingbefore ' + str(nfloatingbefore)
-  if nfloatingafter != None:
-    cmd = cmd + ' -nfloatingafter ' + str(nfloatingafter)
+      ' -image-format ' +  str(format_image_in) + ' -result-template ' + str(template_image_out)
+  if reference_index != None:
+    cmd = cmd + ' -index-reference ' + str(reference_index)
+  if threshold != None:
+    cmd = cmd + ' -threshold ' + str(threshold)
+  if iso != None:
+    cmd = cmd + ' -res-iso ' + str(iso)
+  if margin != None:
+    cmd = cmd + ' -margin ' + str(margin)
 
   if verbose:
     print cmd
@@ -1735,24 +1749,37 @@ def erodeLabels(image_in, image_out, r=None, lazy=True, verbose=False):
   Fonction permettant d'eroder tous les labels non nuls d'une image de labels.
   Possibilite de specifier un rayon d'erosion r. Sinon, l'erosion se limite a la mise a zero des voxels en bordure de labels.  
   """
-  assert(image_in != image_out)
-  cmd=path_labelborders + " " + str(image_in) + ' ' + str(image_out)
+  image_tmp=image_out
+  flag_rm=False
+  if image_tmp==image_in:
+    if image_tmp.count(os.path.sep):
+      image_tmp=os.path.sep.join(image_tmp.split(os.path.sep)[:-1])+os.path.sep+"erodeLabels_tmp.inr"
+    else:
+      image_tmp="erodeLabels_tmp.inr"
+    flag_rm=True
+  assert(image_in != image_tmp)
+  cmd=path_labelborders + " " + str(image_in) + ' ' + str(image_tmp)
   if verbose:
     print cmd
   os.system(cmd)
   if r:
-    cmd=path_morpho + ' -dil -r ' + str(r) + ' ' + str(image_out) + ' ' + str(image_out)
+    cmd=path_morpho + ' -dil -r ' + str(r) + ' ' + str(image_tmp) + ' ' + str(image_tmp)
     if verbose:
       print cmd
     os.system(cmd)
-  cmd = path_Logic + ' -inv ' + str(image_out) + ' ' + str(image_out)
+  cmd = path_Logic + ' -inv ' + str(image_tmp) + ' ' + str(image_tmp)
   if verbose:
     print cmd
   os.system(cmd)
-  cmd=path_Logic + " -mask " + str(image_out) + ' ' + str(image_in) + ' ' + str(image_out)
+  cmd=path_Logic + " -mask " + str(image_tmp) + ' ' + str(image_in) + ' ' + str(image_out)
   if verbose:
     print cmd
   os.system(cmd)
+  if flag_rm:
+    cmd='rm -f '+image_tmp
+    if verbose:
+      print cmd
+    os.system(cmd)
   if not lazy:
     out=imread(str(image_out))
     if image_out != image_in:
