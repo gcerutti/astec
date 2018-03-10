@@ -1268,10 +1268,12 @@ def temporal_affine_registration(lineage_ref, lineage_flo, correspondences, time
 		a=c[0,1]/c[0,0];
 		b=np.mean(Y)-a*np.mean(X)
 		return a,b
+	W=[]
 	if type(weighting_param) is not tuple:
-		weighting_param=tuple()
-	#print "weighting_param = %s"% str(weighting_param)
-	W=[weighting_fun_ncells((ncells_at_death_ref[i], ncells_at_death_flo[i], weighting_param))[-1] for i in range(len(ncells_at_death_ref))]
+		W=[weighting_fun_ncells((ncells_at_death_ref[i], ncells_at_death_flo[i]))[-1] for i in range(len(ncells_at_death_ref))]
+	else:
+		#print "weighting_param = %s"% str(weighting_param)
+		W=[weighting_fun_ncells((ncells_at_death_ref[i], ncells_at_death_flo[i], weighting_param))[-1] for i in range(len(ncells_at_death_ref))]
 	M=np.zeros((2,2))
 	N=np.zeros((2,1))
 	for i in range(len(X)):
@@ -1287,7 +1289,7 @@ def temporal_affine_registration(lineage_ref, lineage_flo, correspondences, time
 
 def temporal_affine_registration_robust(lineage_ref,lineage_flo,correspondences,init_ref_min=20,init_flo_min=10):
 	"""
-
+	NOT TO BE USED
 	"""
 	time_ref_first=lineage_ref.timepoints()[0]
 	time_ref_last=lineage_ref.timepoints()[-1]
@@ -1471,7 +1473,7 @@ def weighting_fun_ncells(parameters):
 	label_ref = None
 	label_flo = None
 	correspondences = None
-	for i in range(4):
+	for i in range(min(len(parameters),4)):
 		if type(parameters[i])==tuple:
 			break
 		if i == 0:
@@ -1494,9 +1496,11 @@ def weighting_fun_ncells(parameters):
 				label_flo = parameters[i]
 			i = i+1
 
-	assert i == 2 or i == 4, "%s: Unexpected number of parameters. See function help." % program
+	assert len(parameters)==2 or i == 2 or i == 4, "%s: Unexpected number of parameters. See function help." % program
 
-	headers=dict(parameters[i:])
+	headers={}
+	if i==2 or i==4:
+		headers=dict(parameters[i:])
 	#print "headers=%s"%str(headers)
 
 	# Mandatory parameters
@@ -1630,15 +1634,149 @@ def weighting_fun_ncells(parameters):
 
 	return (a,b,c,a*b*c)
 
+###################################
+### VISU TEMPORAL REGISTRATION ####
+###################################
 
-#def temporal_registration_weighting_function(lineage_ref, lineage_flo, label_ref=None, label_flo=None, correspondences=None, weighting_mode=None, opt=None):
-#	"""
-#
-#	"""
+def generate_registered_sequences(lin_ref, lin_flo, correspondences, func_temporal_reg, 
+								  format_images_in_ref, format_images_in_flo, 
+								  format_images_out_ref, format_images_out_flo, format_trsfs_ref=None,
+								  template_image_ref=None, iso=None, dimensions=None, voxelsize=None,
+								  backgroundLabels=[0,1],
+								  visu=True, verbose=False):
+	'''
+
+	
+	'''
+	from lineage import timeNamed, timesNamed
+
+	path_images_ref_in=os.path.sep.join(format_images_in_ref.split(os.path.sep)[:-1])
+	path_images_flo_in=os.path.sep.join(format_images_in_flo.split(os.path.sep)[:-1])
+	path_images_ref_out=os.path.sep.join(format_images_out_ref.split(os.path.sep)[:-1])
+	path_images_flo_out=os.path.sep.join(format_images_out_flo.split(os.path.sep)[:-1])
+
+	if path_images_ref_in == '':
+		path_images_ref_in=os.path.curdir
+	if path_images_flo_in == '':
+		path_images_flo_in=os.path.curdir
+	if path_images_ref_out == '':
+		path_images_ref_out=os.path.curdir
+	if path_images_flo_out == '':
+		path_images_flo_out=os.path.curdir
+
+	assert format_images_out_ref.count('$TIME')==1 or (format_images_out_ref.count('$TIMEREF')==1 and format_images_out_ref.count('$TIMEFLO')==1 )
+	assert format_images_out_flo.count('$TIME')==1 or (format_images_out_flo.count('$TIMEREF')==1 and format_images_out_flo.count('$TIMEFLO')==1 )
+
+	assert os.path.isdir(path_images_ref_in)
+
+	assert os.path.isdir(path_images_flo_in)
+
+	if not os.path.isdir(path_images_ref_out):
+		os.mkdir(path_images_ref_out)
+	assert os.path.isdir(path_images_ref_out)
+
+	if not os.path.isdir(path_images_flo_out):
+		os.mkdir(path_images_flo_out)
+	assert os.path.isdir(path_images_flo_out)
+
+	if format_trsfs_ref:
+		path_trsfs_ref=os.path.sep.join(format_trsfs_ref.split(os.path.sep)[:-1])
+		if path_trsfs_ref == '':
+			path_trsfs_ref=os.path.curdir
+		assert os.path.isdir(path_trsfs_ref)
+
+	if func_temporal_reg is not None:
+		if type(func_temporal_reg) is list :
+			assert len(func_temporal_reg) == 2
+			# func_temporal_reg = [a, b] where a and b are the values of the coefficients for the affine function t_flo = a * t_ref + b
+			func_temporal_reg = lambda x,a=func_temporal_reg[0],b=func_temporal_reg[1] : a*x + b
+		#else:
+		#	# Here we assume that func_temporal_reg is a function that takes one numeric argument and returns a numeric value
+		#	x=range(t_beg_ref,t_end_ref+1)
+		#	y=[func_temporal_reg(i) for i in x]
+
+
+	for time_ref in lin_ref.timepoints():
+		time_flo = int(func_temporal_reg(time_ref))
+		if time_flo<lin_flo.timepoints()[0]:
+			#time_flo=lin_flo.timepoints()[0]
+			continue
+		if time_flo>lin_flo.timepoints()[-1]:
+			#time_flo=lin_flo.timepoints()[-1]
+			continue
+
+		path_ref_in_at_time = timeNamed(format_images_in_ref, time_ref)
+		path_flo_in_at_time = timeNamed(format_images_in_flo, time_flo)
+		assert os.path.exists(path_ref_in_at_time), "Input image file '%s' not found."%path_ref_in_at_time
+		assert os.path.exists(path_flo_in_at_time), "Input image file '%s' not found."%path_flo_in_at_time
+		path_trsf_at_time=None
+		if format_trsfs_ref:
+			path_trsf_at_time = timeNamed(format_trsfs_ref, time_ref)
+			assert os.path.exists(path_trsf_at_time), "Input transformation file '%s' not found."%path_trsf_at_time
+		if verbose:
+			print "TIME_REF = t%03d, TIME_FLO = t%03d"%(time_ref,time_flo)
+
+		#path_ref_out=timeNamed(format_images_out_ref,time_ref)
+		path_ref_out=''
+		path_flo_out=''
+		if format_images_out_ref.count('$TIME')==1:
+			path_ref_out=timeNamed(format_images_out_ref,time_ref)
+		else:
+			path_ref_out=timesNamed(format_images_out_ref,'$TIMEREF',time_ref,'$TIMEFLO',time_flo)
+		if format_images_out_flo.count('$TIME')==1:
+			path_flo_out=timeNamed(format_images_out_flo,time_ref)
+		else:
+			path_flo_out=timesNamed(format_images_out_flo,'$TIMEREF',time_ref,'$TIMEFLO',time_flo)
+
+		segmentationRelabellingAtTime(path_ref_in_at_time, path_ref_out, lin_ref, time_ref, lut=correspondences.keys(), trsf=path_trsf_at_time, template=template_image_ref,
+										 voxelsize=voxelsize, iso=iso, dimensions=dimensions, backgroundLabels=backgroundLabels, visu=visu, verbose=verbose)
+
+		assert os.path.exists(path_ref_out), "Failed to generate output file '%s'"%path_ref_out
+
+		# Calcul de la transformation
+		out=pointCloudRegistration(lin_ref.relabelled_barycenters_at_time(time_ref), lin_flo.relabelled_barycenters_at_time(time_flo), 
+					correspondences, trsf_type='rigid', skip_not_found=True, lazy=False, verbose=verbose)
+		trsf_f_r=out['trsf']
+		#path_trsf_r_template = "/home/gmicheli/DIG-EM/Data/140317-Patrick-St8/FUSE/REG/140317-Patrick-St8_reg_compose_t%03d.trsf"%time_ref
+		path_trsf_tmp = path_images_flo_out+os.path.sep+"generate_registered_sequences_tmp_path.trsf"
+		f=open(path_trsf_tmp,"w")
+		np.savetxt(f, trsf_f_r, '%f')
+		#f.write(str(np.array(trsf_f_r)).replace('[','').replace(']',''))
+		f.close()
+		# Composition de la transformation avec la transformation de la reference vers le template
+		if path_trsf_at_time:
+			compose_trsf(path_trsf_tmp, path_trsf_at_time, path_trsf_tmp, verbose=verbose)
+
+		segmentationRelabellingAtTime(path_flo_in_at_time, path_flo_out, lin_flo, time_flo, reverse_lut=correspondences, trsf=path_trsf_tmp, template=path_ref_out,
+					voxelsize=None, iso=None, dimensions=None, backgroundLabels=backgroundLabels, visu=visu, verbose=verbose)
+
+		assert os.path.exists(path_flo_out), "Failed to generate output file '%s'"%path_flo_out
+
+		if os.path.exists(path_trsf_tmp):
+			cmd='rm -f %s'%path_trsf_tmp
+			if verbose:
+				print cmd
+			os.system(cmd)
+
+
 
 
 def plot_temporal_correspondences(lin_ref, lin_flo, correspondences, func_temporal_reg=None, marker_cloud=None, label_cloud=None, marker_reg=None, label_reg=None, block=0, loc=4, xlabel=None, ylabel=None, title=None):
 	'''
+	Function to plot a cloud of temporal correspondences between division time-points of corresponding cells from two developing ascidian embryos.
+	
+	Inputs:
+		marker_cloud="r+" or whatever instead
+		label_cloud='Mapped cell division times' or whatever instead
+		xlabel='Reference sample timespan' or whatever instead
+		ylabel='Floating sample timespan' or whatever instead
+		title='Embryo temporal alignment' or whatever instead
+
+		func_temporal_reg = [a, b] where a and b are the values of the coefficients for the affine function t_flo = a * t_ref + b
+		marker_reg='b--'
+
+		loc=4 -> plt.legend(loc=loc)
+		block=0 -> plt.show(block=block)
 
 	'''
 	import matplotlib.pyplot as plt
@@ -1683,9 +1821,9 @@ def plot_temporal_correspondences(lin_ref, lin_flo, correspondences, func_tempor
 			label_reg="Linear regression"
 		plt.plot(x,y,marker_reg, label=label_reg)
 	if xlabel is None:
-		xlabel='Floating sample timespan'
+		xlabel='Reference sample timespan'
 	if ylabel is None:
-		ylabel='Reference sample timespan'
+		ylabel='Floating sample timespan'
 	if title is None:
 		title='Embryo temporal alignment'
 	plt.xlabel(xlabel)
@@ -1845,7 +1983,8 @@ def plot_angles_histogram(angles, xlabel=None, ylabel=None, title=None, bins=Non
 
 
 
-def scatter_temporal_correspondences(lin_ref, lin_flo, correspondences, func_temporal_reg=None, weights=None, marker_cloud=None, label_cloud=None, marker_reg=None, s=70, label_reg=None, block=0, loc=4, bins=None, xlabel=None, ylabel=None, title=None, cmap=None):
+def scatter_temporal_correspondences(lin_ref, lin_flo, correspondences, func_temporal_reg=None, weights=None, marker_cloud=None, label_cloud=None, marker_reg=None, 
+									 s=70, label_reg=None, block=0, loc=4, bins=None, xlabel=None, ylabel=None, title=None, cmap=None, c=None):
 	'''
 
 	'''
@@ -1885,11 +2024,11 @@ def scatter_temporal_correspondences(lin_ref, lin_flo, correspondences, func_tem
 		label_reg="Linear regression"
 
 	if xlabel is None:
-		xlabel='Floating sample timespan'
+		xlabel='Reference sample timespan'
 	if ylabel is None:
-		ylabel='Reference sample timespan'
+		ylabel='Floating sample timespan'
 	if title is None:
-		title='Embryo temporal alignment'
+		title='Embryos temporal alignment'
 	if cmap is None:
 		cmap = plt.cm.gnuplot2
 
@@ -1900,9 +2039,10 @@ def scatter_temporal_correspondences(lin_ref, lin_flo, correspondences, func_tem
 	#ax1.bar(bin_edges[:-1], hist, color=colors, alpha=0.8) # HISTOGRAMME NORMAL
 	#Hist=[sum(hist[:i]) for i in range(1,len(hist)+1)]
 	#ax2.set_colorbar()
-
-	#cax=plt.scatter(X,Y, c=t, cmap=cmap, s=s, marker='o')
-	cax=plt.scatter(X,Y, s=s, marker='o')
+	if c:
+		cax=plt.scatter(X,Y, c=c, cmap=cmap, s=s, marker='o')
+	else:
+		cax=plt.scatter(X,Y, s=s, marker='o')
 	if x:
 		plt.plot(x,y,marker_reg, label=label_reg)
 	#ax2.plot(x,y45,'y--', label="Linear regression (angle max=45)")
@@ -1913,10 +2053,16 @@ def scatter_temporal_correspondences(lin_ref, lin_flo, correspondences, func_tem
 	plt.legend(loc=loc)
 	plt.title(title)
 
-	cbar = plt.colorbar(cax, ticks=[1,10,20,30,40,50,60,70,80,87.5], orientation='vertical')
-	cbar.set_ticklabels([str(angle)+' degrees'.decode("utf8") for angle in [0,10,20,30,40,50,60,70,80,90]])  # horizontal colorbar
+	if c:
+		cbar = plt.colorbar(cax, ticks=[1,10,20,30,40,50,60,70,80,87.5], orientation='vertical')
+		cbar.set_ticklabels([str(angle)+' degrees'.decode("utf8") for angle in [0,10,20,30,40,50,60,70,80,90]])  # horizontal colorbar
+
 	plt.show(block=block)
 
+
+###################################################
+### INTRA-SEQUENCE-RELATED REGISTRATION METHODS ###
+###################################################
 
 def compute_intra_sequence_two_by_two_registration(fused_files_format, trsf_files_format, begin, end, delta=1, verbose=False):
 	"""
