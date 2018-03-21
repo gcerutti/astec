@@ -7,22 +7,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__),"CommunFunctions"))
 from ImageHandling import imread, imsave, SpatialImage
 from cpp_wrapping import *
 
-#def associate_labels(path_ref, path_flo, path_pairs_ref_flo, path_ref_out, path_flo_out, path_labels_out, zeros=False, ref=False, force=False, verbose=False):
-
-def step_by_step_intra_registration():
-	"""
-	
-	"""
-
-def intra_registration():
-	"""
-	Function <intra_registration> for fused sequences intra-registration.
-
-	"""
-
-
-
-
 def readLUT(file):
 	'''
 	Return a dictionnary of integer key-to-key correspondances 
@@ -45,17 +29,20 @@ def symmetry_plane(image_bin, image_seg=None, image_direction_histogram="tmp_sph
 	frac=None, maxima=None, 
 	d=10, dmin=2, delta=2, p=0.1, sigma=None, iterations=None, realSize=True, keep_all=False, verbose=False):
 	"""
+	
+
 	maxima: pour specifier le ou les maxima (0=plus gros, 1=deuxieme plus gros, etc.) que l'on souhaite utiliser pour l'extraction du plan de symetrie.
 			Si non specifie, on prend par defaut la liste des maxima de hauteur >= hauteur max * frac 
 	frac: pour specifier la tolerance de hauteur que l'on se donne pour l'extraction des maxima en fonction de la hauteur maximale de l'histogramme des directions.
 			Si non specifie, le programme par defaut prend la valeur 0.5 pour ce parametre.
+
 	"""
-    ###### Exemple de chaine d'execution de commandes shell #######
-    # symmetryPlane ../BIN/bin_t0${i}_on_t099.inr -sphere ../HISTO/bin_t0${i}_on_t099_R15A32.inr -sigma 0.1 -weq ../SYM/planeEq_t0${i}_on_t099_max_0.txt -d 0 -dmin 1 
+    ###### Example of pipeline of shell commands #######
+    # symmetryPlane bin_t0${i}_on_t099.inr -sphere HISTO/bin_t0${i}_on_t099_R15A32.inr -sigma 0.1 -weq SYM/planeEq_t0${i}_on_t099_max_0.txt -d 0 -dmin 1 
     #
-    # diceMaximisation ../WAT/OUT_t0${i}_on_t099-wat.inr ../SYM/planeEq_t0${i}_on_t099_max_0_dmax.txt -n `cat ../SYM/planeEq_t0${i}_on_t099_max_0.txt | grep -v "#" | awk -F':' '{print $2}'` -delta 10 
+    # diceMaximisation WAT/OUT_t0${i}_on_t099-wat.inr SYM/planeEq_t0${i}_on_t099_max_0_dmax.txt -n `cat SYM/planeEq_t0${i}_on_t099_max_0.txt | grep -v "#" | awk -F':' '{print $2}'` -delta 10 
     #
-    # symmetryPlane ../BIN/bin_t0${i}_on_t099.inr -n `cat ../SYM/planeEq_t0${i}_on_t099_max_0_dmax.txt | grep new | awk -F':' '{print $2}'` -weq ../SYM/planeEq_t0${i}_on_t099_max_0_dmax_a.txt -d 10 -dmin 10 -p 0.1 
+    # symmetryPlane BIN/bin_t0${i}_on_t099.inr -n `cat SYM/planeEq_t0${i}_on_t099_max_0_dmax.txt | grep new | awk -F':' '{print $2}'` -weq SYM/planeEq_t0${i}_on_t099_max_0_dmax_a.txt -d 10 -dmin 10 -p 0.1 
 
 	#assert(os.path.exists(flo_file_bin) and os.path.exists(flo_file_hist))
 	#symmetryPlane(flo_file_bin, flo_file_hist, equation_output=flo_file_sym_eq, trsf_output=flo_file_sym_alignment_trsf, plane_output=flo_file_sym_plane, 

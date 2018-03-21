@@ -12,6 +12,9 @@ from cpp_wrapping import *
 
 
 def random_number():
+	'''
+	Fucntion which generates a random number compouded of 8 characters.
+	'''
 	import uuid
 	return str(uuid.uuid4().fields[-1])[:5]+str(uuid.uuid4().fields[-1])[:5]
 
@@ -30,13 +33,19 @@ def light_LACE(parameters):
 	 - path_membrane_prefix : paths of maxima of enhanced membranes image (ext) and of associated angles (theta, phi) --> path_membrane_prefix+".[ext|theta|phi].inr" must be existing.
 	 - path_bin : path to the binarised membranes result image
 	 - rayon_dil : dilation ray for region of interest (see path_mask and label_of_interest)
-	 - manual : parametre activant le mode manuel (ie parametrise) du seuil de binarisation des membranes si egal a True
-	 - manual_sigma : parametre manuel d'initialisation pour le calcul du seuil de binarisation des membranes
-	 - hard_thresholding : possibilite de choisir un seuillage dur global sur l'image en mettant cette option a True
-	 - hard_threshold : si hard_thresholding est a True, seuillage des membranes rehaussees via ce seuil
-	 - sensitivity : parametre de calcul des seuils anisotropiques selon un critere de sensibilite 
-                                (true positive rate) : seuil = #(classe membrane>=seuil)/#(classe membrane)
-	 - verbose : verbosite de la fonction
+	 - manual : if set to True, this parameter activates the "manual" mode, ie the user fixes the manual parameters for the thresholds computation for membranes binarization
+	 			# parametre activant le mode manuel (ie parametrise) du seuil de binarisation des membranes si egal a True
+	 - manual_sigma : manual parameter for the initialization of Rayleigh function sigma parameter for the directional histograms fitting for the thresholds computation
+	 				  # parametre manuel d'initialisation pour le calcul du seuil de binarisation des membranes
+	 - hard_thresholding : if set to True, this enables to fix a global threshold on the image. This threshold is given by the parameter 'hard_threshold'
+	 					   # possibilite de choisir un seuillage dur global sur l'image en mettant cette option a True
+	 - hard_threshold : if 'hard_thresholding' is set to True, this is the threshold for the binarization of enhanced membranes image
+	 					# si hard_thresholding est a True, seuillage des membranes rehaussees via ce seuil
+	 - sensitivity : parameter which fixes the sensitivity criterion for axial thresholds computation:
+                                (true positive rate) : threshold = #(membrane class>=threshold)/#(membrane class)
+	 				 # parametre de calcul des seuils anisotropiques selon un critere de sensibilite 
+                     #          (true positive rate) : seuil = #(classe membrane>=seuil)/#(classe membrane)
+	 - verbose : verbosity of the function
 	light_LACE return value is path_bin.
 	"""
 	path_mask, label_of_interest, bbox, path_membrane_prefix, path_bin, rayon_dil, manual, manual_sigma, hard_thresholding, hard_threshold, sensitivity, verbose=parameters
@@ -62,19 +71,22 @@ def light_LACE(parameters):
 	else:
 		seuillage(path_mask, path_output=path_mask_dil,sb=label_of_interest, sh=label_of_interest, verbose=verbose )
 
+	# Dilation of the ROI at t+1
 	# Dilatation de la zone d'interet a l'instant t+1
-	if True: # Calcul du rayon de dilatation en coordonnees reelles
+	if True: # Computation of the dilation ray in real coordinates / Calcul du rayon de dilatation en coordonnees reelles
 		rayon_dil /= imread(path_mask).voxelsize[0]
 		rayon_dil = int(rayon_dil+0.5)
 	morpho(path_mask_dil, path_mask_dil, ' -dil -R '+str(rayon_dil), verbose=verbose)
 
+	# Here, path_mask_dil defines the ROI in which LACE should apply the segmentation
 	# Ici, path_mask_dil definit la zone d'interet dans laquelle LACE doit realiser la segmentation 
 
 	if bbox:
 		cropImage(path_membrane_prefix+".ext.inr", path_ext_tmp, bbox, verbose=verbose )
 
-	# Binarisation des membranes
+	# Membranes binarization 
 	if not hard_thresholding:
+		# Anisotropic threshold of membranes (the choice of the sensitivity parameter may be critical)
 		# Seuillage anisotropique des membranes (parametre de sensitivite potentiellement critique)
 		if bbox:
 			cropImage(path_membrane_prefix+".theta.inr", path_theta_tmp, bbox, verbose=verbose )
@@ -88,7 +100,7 @@ def light_LACE(parameters):
 		else:
 			seuillage(path_input=path_membrane_prefix+".ext.inr", path_output=path_bin,sb=hard_threshold, verbose=verbose)
 
-	# Application du masque sur l'image binaire
+	# Mask application on the binary image
 	Logic(path_mask_dil, path_bin, path_bin, Mode='mask', verbose=verbose)
 
 
@@ -122,7 +134,64 @@ def LACE(path_fused_0, path_fused_1, path_seg_0, label_of_interest, path_membran
 	'''
 	LACE for Local Automated Cell Extractor
 	
+	<ENGLISH>
+	# Input paths:
+	path_fused_0 : fused image at t (the one for which the segmentation is known)
+	path_fused_1 : fused image at t+1 (the one that should be locally reconstructed)
+	path_seg_0 : segmented image at t (must have the same dimensions as path_fused_0)
+	path_membrane_prefix+'.[ext|theta|phi].inr' (optionel) : paths to maxima image (ext) of enhanced images and its associated angle images which give the membranes spatial orientation (theta, phi), in order to avoid their recomputation if possible
+	path_vector (optional) : path to the deformation field previously computed (via blockmatching for example) between t (flo) and t+1 (ref) : T_flo<-ref
+							 If the path already exists, the deformation field is not recomputed, otherwise it is computed and kept
 
+	# Label of interest at time t (or 0), which defines the propagated ROI at time t+1 (or 1)
+	label_of_interest : integer that corresponds to the label of interest
+
+	# Output paths:
+	path_membrane_prefix+'.[ext|theta|phi].inr' (optional) : paths to save the maxima image (ext) of enhanced images and its associated angle images which give the membranes spatial orientation (theta, phi)
+	path_vector (optional) : see description in the "Input paths" section
+	path_bin (optional) : path to save the binarized membranes image (ie the image sent in input for the tensor voting step)
+	path_output (optional) : path to save the output reconstructed image (default is None)
+
+	# Mask parameters
+	rayon_dil=3.6 (default, in real coordinates) : dilatation ray for propagated ROI from time t to t+1
+
+
+	# Membrane reconstruction parameters
+	sigma_membrane=0.9 (default, in real coordinates, adapted to images like Patrick/Ralph/Aquila) : parameter for membranes enhancement filter (before the membranes binarization step)
+	sensitivity=0.99 (default) : sensitivity parameter for axial thresholds computation for membranes binarization, with respect to the following criterion 
+                                 (true positive rate) : threshold = #(membrane class>=threshold)/#(membrane class) 
+	
+	manual=False (default) : if set to True, this parameter activates the "manual" mode, ie the user fixes the manual parameters for the thresholds computation for membranes binarization
+	manual_sigma=7 (default) : manual parameter for the initialization of Rayleigh function sigma parameter for the directional histograms fitting for the thresholds computation
+
+	hard_thresholding=False (default) : This option enables the user to set a "hard threshold" (avoiding the automatic computation of anisotropic thresholds) if set to True.
+										In that case, the hard_threshold parameter is applied on the whole enhanced image
+	hard_threshold=1.0 (default) : if 'hard_thresholding' is set to True, this is the threshold for the binarization of enhanced membranes image
+	                          (1.0 : adapted for the time-point t001 of Aquila for example)
+
+	sigma_TV=3.6 (default, real coordinates, adapted to images with a spatial resolution of 0.3um^3) : parameter of membranes propagation by the tensor voting algorithm
+	sigma_LF=0.9 (default, real coordinates) : parameter for the gaussian blurring of the reconstructed image by the tensor voting method
+	sample=0.2 (default) : multiplicative parameter between 0 and 1 that fixes the sampling of voting token from the initial image (1.0 means no resampling) (has an influence on the processing time)
+
+
+
+	# Parameter for a shorter version of LACE (for its integration into GLACE framework)
+	short_LACE (default=False) : if True, the tensor voting algorithm is not processed and the function returns the image of binarized images instead
+
+	# Intermediary images keep-or-leave parameters
+	keep_vector=False : if set to True, keeps the vectorfield transformation T_t<-t+1 which enables to resample the segmented image at t on the time-point t+1  (is automatically set to True if path_vector is provided)
+	keep_membrane=False : if set to True, keeps all the images from membrane enhancement step (extrema and angles images) (is automatically set to True if path_membrane_prefix is provided)
+	keep_hist=False : if set to True, keeps the file containing the axial histograms (file name ending with ".hist.txt")
+	keep_all=False : if set to True, keeps all the intermediary images generated during the processing
+	
+
+	# Others
+	verbose=False : verbosity of the function, displays for example the temporary files generation and deletion
+
+
+
+
+	<FRENCH>
 	# Paths d'entree 
 	path_fused_0 : image fusionnee a l'instant t (celle dont on connait la segmentation) ; 
 	path_fused_1 : image fusionnee a l'instant t+1 (celle qu'on souhaite reconstruire localement)
@@ -175,9 +244,11 @@ def LACE(path_fused_0, path_fused_1, path_seg_0, label_of_interest, path_membran
 	verbose=False : verbosite de la fonction, affiche par exemple les fichiers generes temporairement et ceux qui sont supprimes
 	'''
 
+	# Test for input images existence
 	# Test existence des images d'entree
 	assert(os.path.exists(path_fused_0) and os.path.exists(path_fused_1) and os.path.exists(path_seg_0))
 
+	# Parameters for intermediary files keep-or-leave
 	# Parametres de conservation des images generees
 	if not keep_membrane:
 		keep_membrane=keep_all
@@ -186,6 +257,7 @@ def LACE(path_fused_0, path_fused_1, path_seg_0, label_of_interest, path_membran
 	if not keep_hist:
 		keep_hist=keep_all
 
+	# Definition of intermediary image paths
 	# Definition des paths d'images intermediaires
 	path_WORK=''
 	if path_output:
@@ -218,7 +290,7 @@ def LACE(path_fused_0, path_fused_1, path_seg_0, label_of_interest, path_membran
 	if not keep_tmp_bin:
 		keep_tmp_bin=path_bin and (path_bin != path_membrane_prefix+'.bin.inr')
 
-	# Verbose pour les fichiers
+	# Verbose for files
 	if verbose:
 		print "Temporary files:"
 		print path_affine_trsf
@@ -257,30 +329,31 @@ def LACE(path_fused_0, path_fused_1, path_seg_0, label_of_interest, path_membran
 			print path_output
 
 
-	### Path de sortie ###
+	### Output path ###
 	if not os.path.isdir(path_WORK):
 		try:
 			os.mkdir(path_WORK)
 		except Exception :
 			print "Unexpected error: unable to create working directory"
 
-	### Calculs ###
+	### Stuff ###
 
 
 	if not os.path.exists(path_vector):
 		non_linear_registration(path_fused_0, path_fused_1, '/dev/null', path_affine_trsf, '/dev/null', path_vector, verbose=verbose)
 
-	# Projection de la zone d'interet a l'instant t+1
+	# ROI resampling at t+1
 	apply_trsf(path_seg_0, path_trsf=path_vector, path_output=path_mask, template=path_fused_1, nearest=True, verbose=verbose)
 
 
 	if (not os.path.exists(path_membrane_prefix+".ext.inr")) or (not os.path.exists(path_membrane_prefix+".theta.inr")) or (not os.path.exists(path_membrane_prefix+".phi.inr")):
-		# Extraction de la zone d'interet a l'instant t
+		# Extraction of the ROI at t
 		seuillage(path_mask, path_output=path_mask_dil,sb=label_of_interest, sh=label_of_interest, verbose=verbose )
-		# Calcul du rayon de dilatation en coordonnees reelles
+		# Conversion in real coordinates of the dilation ray
 		rayon_dil_vox = rayon_dil / imread(path_mask).voxelsize[0]
 		rayon_dil_vox = int(rayon_dil_vox+0.5)
 		morpho(path_mask_dil, path_mask_dil, ' -dil -R '+str(rayon_dil_vox), verbose=verbose)
+		# Local enhancement of membranes from fused image at t+1 and extraction of the directional maxima (generates the '.[ext|theta|phi].inr')
 		# Renforcement local des membranes de l'image fusionnee a l'instant t+1 + extraction des maxima directionnels
 		membrane_renforcement(path_fused_1, prefix_output=path_membrane_prefix, path_mask=path_mask_dil,  init=sigma_membrane, verbose=verbose)
 		if path_mask_dil and os.path.exists(path_mask_dil):
@@ -307,16 +380,16 @@ def LACE(path_fused_0, path_fused_1, path_seg_0, label_of_interest, path_membran
 		else:
 			reconstructed_image_1=path_membrane_prefix+'.bin.inr'
 	else:
-		# Tensor voting sur l'image des membranes binarisees
+		# Tensor voting on the binarized membranes image
 		TVmembrane(path_input=path_bin, path_output=path_TV, sample=sample, scale=sigma_TV, sigma_LF=sigma_LF, realScale=True, keepAll=False, verbose=verbose)
 
-		# Copie vers l'image de sortie 
+		# Copie to the output path
 		if path_output and path_TV != path_output:
 			copy(path_TV, path_output, verbose=verbose)
 
 		reconstructed_image_1=path_TV
 
-	# Suppression des images intermediaires
+	# Deletion of intermediary images
 	files_to_rm = ""
 
 	if not keep_all:
@@ -351,7 +424,7 @@ def LACE(path_fused_0, path_fused_1, path_seg_0, label_of_interest, path_membran
 			print "Deleting temporary files: \n" + files_to_rm
 		os.system("rm " + files_to_rm)
 
-	# Fin de LACE
+	# End of LACE
 	return reconstructed_image_1
 
 
@@ -363,6 +436,49 @@ def GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=Non
 	'''
 	GACE for Global Automated Cell Extractor
 	
+	<ENGLISH>
+	
+	# Input paths:
+	path_input : fused OR binary image that has to be reconstructed
+				 /!\ If path_input is a binary image used with the parameter 'binary_input' set to True, then the following conditions must be verified:
+						  - path_input = <prefix>.inr[.gz] or <prefix>.<particle>.inr[.gz]
+						  - The files <prefix>.theta.inr and <prefix>.phi.inr must exist and must correspond to angle images associated to the orientation of membranes in the binary image
+	path_membrane_prefix+'.[ext|theta|phi].inr' (optionel) : paths to maxima image (ext) of enhanced images and its associated angle images which give the membranes spatial orientation (theta, phi), in order to avoid their recomputation if possible
+
+	# Output paths:
+	path_membrane_prefix+'.[ext|theta|phi].inr' (optional) : paths to save the maxima image (ext) of enhanced images and its associated angle images which give the membranes spatial orientation (theta, phi)
+	path_bin (optional) : path to save the binarized membranes image (ie the image sent in input for the tensor voting step)
+	path_output (optional) : path to save the output reconstructed image (default is None)
+
+	# Membrane reconstruction parameters
+	sigma_membrane=0.9 (default, in real coordinates, adapted to images like Patrick/Ralph/Aquila) : parameter for membranes enhancement filter (before the membranes binarization step)
+	sensitivity=0.99 (default) : sensitivity parameter for axial thresholds computation for membranes binarization, with respect to the following criterion 
+                                 (true positive rate) : threshold = #(membrane class>=threshold)/#(membrane class) 
+	
+	manual=False (default) : if set to True, this parameter activates the "manual" mode, ie the user fixes the manual parameters for the thresholds computation for membranes binarization
+	manual_sigma=7 (default) : manual parameter for the initialization of Rayleigh function sigma parameter for the directional histograms fitting for the thresholds computation
+
+	hard_thresholding=False (default) : This option enables the user to set a "hard threshold" (avoiding the automatic computation of anisotropic thresholds) if set to True.
+										In that case, the hard_threshold parameter is applied on the whole enhanced image
+	hard_threshold=1.0 (default) : if 'hard_thresholding' is set to True, this is the threshold for the binarization of enhanced membranes image
+	                          (1.0 : adapted for the time-point t001 of Aquila for example)
+
+	sigma_TV=3.6 (default, real coordinates, adapted to images with a spatial resolution of 0.3um^3) : parameter of membranes propagation by the tensor voting algorithm
+	sigma_LF=0.9 (default, real coordinates) : parameter for the gaussian blurring of the reconstructed image by the tensor voting method
+	sample=0.2 (default) : multiplicative parameter between 0 and 1 that fixes the sampling of voting token from the initial image (1.0 means no resampling) (has an influence on the processing time)
+
+
+	# Intermediary images keep-or-leave parameters
+	keep_membrane=False : if set to True, keeps all the images from membrane enhancement step (extrema and angles images) (is automatically set to True if path_membrane_prefix is provided)
+	keep_all=False : if set to True, keeps all the intermediary images generated during the processing
+	
+
+	# Others
+	verbose=False : verbosity of the function, displays for example the temporary files generation and deletion
+
+
+
+	<FRENCH>
 
 	# Paths d'entree 
 	path_input : image fusionnee OU image binaire que l'on souhaite reconstruire 
@@ -404,13 +520,16 @@ def GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=Non
 	verbose=False : verbosite de la fonction, affiche par exemple les fichiers generes temporairement et ceux qui sont supprimes
 	'''
 
+	# Test for input images existence
 	# Test existence de l'image d'entree
 	assert(os.path.exists(path_input))
 
+	# Parameters for intermediary files keep-or-leave
 	# Parametres de conservation des images generees
 	if not keep_membrane:
 		keep_membrane=keep_all
 
+	# Definition of intermediary image paths
 	# Definition des paths d'images intermediaires
 	path_WORK=''
 	if path_output:
@@ -448,39 +567,42 @@ def GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=Non
 		if path_output:
 			print path_output
 
-	### Path de sortie ###
+	### Output path ###
 	if not os.path.isdir(path_WORK):
 		try:
 			os.mkdir(path_WORK)
 		except Exception :
 			print "Unexpected error: unable to create working directory"
 
-	### Calculs ###
+	### Stuff ###
 	
 	path_TV_input=''
 	if binary_input:
-		# Image d'entree = image binaire
+		# Input image = binary image
 		path_TV_input=path_input
 		keep_membrane=True
 	else:
 		if (not os.path.exists(path_membrane_prefix+".ext.inr")) or (not os.path.exists(path_membrane_prefix+".theta.inr")) or (not os.path.exists(path_membrane_prefix+".phi.inr")):
+			# Local enhancement of membranes from fused image at t+1 and extraction of the directional maxima (generates the '.[ext|theta|phi].inr')
 			# Renforcement des membranes de l'image fusionnee a l'instant t+1 + extraction des maxima directionnels
 			membrane_renforcement(path_input, prefix_output=path_membrane_prefix, path_mask=None,  init=sigma_membrane, verbose=verbose)
 
-		# Binarisation des membranes
+		# Membranes binarization 
 		if not hard_thresholding:
+			# Anisotropic threshold of membranes (the choice of the sensitivity parameter may be critical)
 			# Seuillage anisotropique des membranes (parametre de sensitivite potentiellement critique)
 			anisotropicHist(path_input=path_membrane_prefix+".ext.inr", path_output=path_membrane_prefix+'.bin.inr', path_mask=None, manual=manual, manual_sigma=manual_sigma, sensitivity=sensitivity, keepAll=False, verbose=verbose)
 		else:
-			# Seuillage dur
+			# Hard threshold
 			seuillage(path_input=path_membrane_prefix+".ext.inr", path_output=path_membrane_prefix+'.bin.inr',sb=hard_threshold, verbose=verbose)
 		path_TV_input=path_membrane_prefix+".bin.inr"
 		if path_bin and not os.path.exists(path_bin):
+			# Copy of the temporary binary image to the path provided in parameter
 			# Copie de l'image binaire temporaire vers le path renseigne en parametre
 			assert os.path.exists(path_membrane_prefix+'.bin.inr')
 			copy(path_membrane_prefix+".bin.inr", path_bin, verbose=verbose)
 
-	# Tensor voting sur l'image des membranes binarisees
+	# Tensor voting on the image of binarized membranes
 	if verbose:
 		print 'Processing Tensor Voting on image ' + path_TV_input + ' ...'
 	assert(os.path.exists(path_TV_input))
@@ -496,14 +618,14 @@ def GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=Non
 	TVmembrane(path_input=path_TV_input, path_output=path_TV, path_mask=None, scale=sigma_TV, sample=sample, sigma_LF=sigma_LF, realScale=True, keepAll=False, verbose=verbose)
 
 
-	# Lecture de l'image reconstruite (image retournee par la fonction)
+	# Reading of the reconstructed image (the one returned by the function)
 	reconstructed_image=imread(path_TV)
 
-	# Copie vers l'image de sortie 
+	# Copy to the output image to the provided output path
 	if path_output and path_TV != path_output:
 		copy(path_TV, path_output, verbose=verbose)
 
-	# Suppression des images intermediaires
+	# Deletion of intermediary images
 	files_to_rm = ""
 
 	if not keep_all:
@@ -537,7 +659,7 @@ def GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=Non
 			print "Deleting temporary files: \n" + files_to_rm
 		os.system("rm " + files_to_rm)
 
-	# Fin de LACE
+	# End of GACE
 	return reconstructed_image
 
 
@@ -562,6 +684,67 @@ def GLACE(path_fused_0, path_fused_1, path_seg_0, labels_of_interest='all', back
 
 	GLACE for Grouped Local Automated Cell Extractor
 	
+	<ENGLISH>
+
+	# Input paths:
+	path_fused_0 : fused image at t (the one for which the segmentation is known)
+	path_fused_1 : fused image at t+1 (the one that should be locally reconstructed)
+	path_seg_0 : segmented image at t (must have the same dimensions as path_fused_0)
+	path_membrane_prefix+'.[ext|theta|phi].inr' (optionel) : paths to maxima image (ext) of enhanced images and its associated angle images which give the membranes spatial orientation (theta, phi), in order to avoid their recomputation if possible
+	path_vector (optional) : path to the deformation field previously computed (via blockmatching for example) between t (flo) and t+1 (ref) : T_flo<-ref
+							 If the path already exists, the deformation field is not recomputed, otherwise it is computed and kept
+
+	# Labels of interest at time t (or 0), which define the propagated ROI at time t+1 (or 1)
+	labels_of_interest : list of integers corresponding to labels of the segmented image at time t from which we want to reconstruct the membrane signal at time t+1. Possibly, one can provide a unique integer (equivalent to LACE).
+						Default : 'all' (means that we propagate all the labels which exist in path_seg_0). If 'all', the 'background' parameter fixes the background label(s) (default : [0,1]).
+
+
+	# Output paths:
+	path_membrane_prefix+'.[ext|theta|phi].inr' (optional) : paths to save the maxima image (ext) of enhanced images and its associated angle images which give the membranes spatial orientation (theta, phi)
+	path_vector (optional) : see description in the "Input paths" section
+	path_bin (optional) : path to save the binarized membranes image (ie the image sent in input for the tensor voting step)
+	path_output (optional) : path to save the output reconstructed image (default is None)
+
+	# Mask parameters
+	rayon_dil=3.6 (default, in real coordinates) : dilatation ray for propagated ROI from time t to t+1
+
+
+	# Membrane reconstruction parameters
+	sigma_membrane=0.9 (default, in real coordinates, adapted to images like Patrick/Ralph/Aquila) : parameter for membranes enhancement filter (before the membranes binarization step)
+	sensitivity=0.99 (default) : sensitivity parameter for axial thresholds computation for membranes binarization, with respect to the following criterion 
+                                 (true positive rate) : threshold = #(membrane class>=threshold)/#(membrane class) 
+	
+	manual=False (default) : if set to True, this parameter activates the "manual" mode, ie the user fixes the manual parameters for the thresholds computation for membranes binarization
+	manual_sigma=7 (default) : manual parameter for the initialization of Rayleigh function sigma parameter for the directional histograms fitting for the thresholds computation
+
+	hard_thresholding=False (default) : This option enables the user to set a "hard threshold" (avoiding the automatic computation of anisotropic thresholds) if set to True.
+										In that case, the hard_threshold parameter is applied on the whole enhanced image
+	hard_threshold=1.0 (default) : if 'hard_thresholding' is set to True, this is the threshold for the binarization of enhanced membranes image
+	                          (1.0 : adapted for the time-point t001 of Aquila for example)
+
+	sigma_TV=3.6 (default, real coordinates, adapted to images with a spatial resolution of 0.3um^3) : parameter of membranes propagation by the tensor voting algorithm
+	sigma_LF=0.9 (default, real coordinates) : parameter for the gaussian blurring of the reconstructed image by the tensor voting method
+	sample=0.2 (default) : multiplicative parameter between 0 and 1 that fixes the sampling of voting token from the initial image (1.0 means no resampling) (has an influence on the processing time)
+
+
+
+	# Parameter for a shorter version of LACE (for its integration into GLACE framework)
+	short_LACE (default=False) : if True, the tensor voting algorithm is not processed and the function returns the image of binarized images instead
+
+	# Intermediary images keep-or-leave parameters
+	keep_vector=False : if set to True, keeps the vectorfield transformation T_t<-t+1 which enables to resample the segmented image at t on the time-point t+1  (is automatically set to True if path_vector is provided)
+	keep_membrane=False : if set to True, keeps all the images from membrane enhancement step (extrema and angles images) (is automatically set to True if path_membrane_prefix is provided)
+	keep_hist=False : if set to True, keeps the file containing the axial histograms (file name ending with ".hist.txt")
+	keep_all=False : if set to True, keeps all the intermediary images generated during the processing
+	
+	# Parallelism 
+	nb_proc=7 : number of processes launched in parallel for LACE 
+
+	# Others
+	verbose=False : verbosity of the function, displays for example the temporary files generation and deletion
+
+
+	<FRENCH>
 
 	# Paths d'entree 
 	path_fused_0 : image fusionnee a l'instant t (celle dont on connait la segmentation)
@@ -633,6 +816,7 @@ def GLACE(path_fused_0, path_fused_1, path_seg_0, labels_of_interest='all', back
 
 
 
+	# Test for input images existence
 	# Test existence des images d'entree
 	assert os.path.exists(path_fused_0), 'Miss file '+path_fused_0
 	assert os.path.exists(path_fused_1), 'Miss file '+path_fused_1
@@ -641,12 +825,14 @@ def GLACE(path_fused_0, path_fused_1, path_seg_0, labels_of_interest='all', back
 	# Multi process import
 	from multiprocessing import Process, Queue, Pool
 
+	# Parameters for intermediary files keep-or-leave
 	# Parametres de conservation des images generees
 	if not keep_membrane:
 		keep_membrane=keep_all
 	if not keep_vector:
 		keep_vector=keep_all
 
+	# Definition of intermediary image paths
 	# Definition des paths d'images intermediaires
 	path_WORK=''
 	if path_output:
@@ -677,7 +863,7 @@ def GLACE(path_fused_0, path_fused_1, path_seg_0, labels_of_interest='all', back
 	path_seg_trsf = path_WORK+'seg_trsf_at_1_'+tmp_ID+'.inr'
 	path_tmp = path_WORK+'tmp_threshold_'+tmp_ID+'.inr'
 
-	### Path de sortie ###
+	### Output path ###
 	if not os.path.isdir(path_WORK):
 		try:
 			os.mkdir(path_WORK)
@@ -690,7 +876,7 @@ def GLACE(path_fused_0, path_fused_1, path_seg_0, labels_of_interest='all', back
 		rayon_dil_voxel = rayon_dil / imread(path_fused_1).voxelsize[0]
 		rayon_dil_voxel = int(rayon_dil_voxel+0.5)
 
-	### Calculs ###
+	### Stuff ###
 
 	# Step 1
 
@@ -698,13 +884,14 @@ def GLACE(path_fused_0, path_fused_1, path_seg_0, labels_of_interest='all', back
 	if not os.path.exists(path_vector):
 		non_linear_registration(path_fused_0, path_fused_1, '/dev/null', path_affine_trsf, '/dev/null', path_vector, verbose=verbose)
 
-	# Projection de la zone d'interet a l'instant t+1
+	# Projection of ROI at t+1
 	apply_trsf(path_seg_0, path_trsf=path_vector, path_output=path_seg_trsf, template=path_fused_1, nearest=True, verbose=verbose)
 
 
 	# Step 2
 
 	if (not os.path.exists(path_membrane_prefix+".ext.inr")) or (not os.path.exists(path_membrane_prefix+".theta.inr")) or (not os.path.exists(path_membrane_prefix+".phi.inr")):
+		# Local enhancement of membranes from fused image at t+1 and extraction of the directional maxima (generates the '.[ext|theta|phi].inr')
 		# Renforcement des membranes de l'image fusionnee a l'instant t+1 + extraction des maxima directionnels
 		membrane_renforcement(path_fused_1, prefix_output=path_membrane_prefix, path_mask=None,  init=sigma_membrane, verbose=verbose)
 
@@ -717,18 +904,17 @@ def GLACE(path_fused_0, path_fused_1, path_seg_0, labels_of_interest='all', back
 		import operator
 		for x, b in bboxes.iteritems():
 			b=map(operator.add, b, dilation_tuple) 
-			if b[1] < 0:	# origine en x >= 0
+			if b[1] < 0:	# origin in x >= 0
 				b[1] = 0
-			if b[2] < 0:	# origine en y >= 0
+			if b[2] < 0:	# origin in y >= 0
 				b[2] = 0
-			if b[3] < 0:	# origine en z >= 0
+			if b[3] < 0:	# origin in z >= 0
 				b[3] = 0
+			# NB : the coordinates of the "final" point of the bounding box can "go" out of the original image dimensions without affecting the following of the program
 			# NB : les coordonnees du point "final" de la bounding box peuvent aller au dela de la dimension de l'image d'origine sans que cela n'affecte la suite du programme
 			bboxes[x]=tuple(b)
 
 	if type(labels_of_interest)==str and labels_of_interest=='all':
-		#from lineage_test import labelsInImage
-		#labels_of_interest=labelsInImage(imread(path_seg_0), background=background)
 		labels_of_interest=[x for x in bboxes.keys() if not background.count(x)]
 
 	pool=Pool(processes=nb_proc)
@@ -737,11 +923,7 @@ def GLACE(path_fused_0, path_fused_1, path_seg_0, labels_of_interest='all', back
 	for label_of_interest in labels_of_interest:
 
 		# Step 3.1
-		#path_local_bin=path_membrane_prefix+'.'+str(label_of_interest)+'.inr'
-
 		# 	light_LACE METHOD INTERFACE (since ASTEC-170327):
-		#		path_mask, label_of_interest, bbox, path_membrane_prefix, path_bin, rayon_dil, sigma_membrane, manual, manual_sigma, hard_thresholding, hard_threshold, sensitivity, verbose=parameters
-		#parameters=(path_seg_trsf, label_of_interest, bboxes[label_of_interest], path_membrane_prefix, path_local_bin, \
 		parameters=(path_seg_trsf, label_of_interest, bboxes[label_of_interest], path_membrane_prefix, None, \
 			rayon_dil, manual, manual_sigma, hard_thresholding, hard_threshold, sensitivity, \
 			verbose)
@@ -763,13 +945,12 @@ def GLACE(path_fused_0, path_fused_1, path_seg_0, labels_of_interest='all', back
 		label_of_interest = int(path_local_bin.split(os.path.sep)[-1].split('.')[-2])
 		bbox=bboxes[label_of_interest]
 		patchLogic(path_local_bin, path_union_of_local_bins, path_union_of_local_bins, bbox, Mode='or', verbose=verbose)
-		#Logic(path_union_of_local_bins, path_local_bin, path_union_of_local_bins, Mode='or', verbose=verbose)
 		if not keep_all:
 			cmd='rm ' + path_local_bin
 			print cmd
 			os.system(cmd)
 
-	# Suppression fichiers temporaires
+	# Deletion of temporary files
 	files_to_rm = path_affine_trsf + ' '
 	if not keep_vector:
 		files_to_rm += path_vector + ' '
@@ -794,7 +975,7 @@ def GLACE(path_fused_0, path_fused_1, path_seg_0, labels_of_interest='all', back
 
 	reconstructed_image_1=imread(path_output)
 
-	# Suppression fichiers temporaires
+	# Deletion of temporary files
 	files_to_rm=""
 
 	if os.path.exists(path_membrane_prefix+'.hist.txt'):

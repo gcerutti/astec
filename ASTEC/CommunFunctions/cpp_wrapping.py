@@ -179,24 +179,6 @@ def watershed(path_seeds, path_int, path_output=None, lazy=True):
         os.system('rm seeds.inr intensity.inr seg.inr')
         return out
 
-#def reech3d(im_path,downsize, output_shape):
-#    ''' Perform a resampling operation
-#    im_path : path to the image to resample
-#    downsize : size of the voxels in $\mu m**3$ (x, y, z)
-#    output_shape : desired output shape
-#    '''
-#    tmp_file=im_path.replace('.inr','_temp.inr')
-#    os.system(path_filters + ' ' + im_path + ' '+tmp_file +
-#              ' -sx ' + str(downsize) + ' -sy ' + str(downsize) + ' -cont 10' +
-#              ' -x 0 -y 0 -z 0')
-#    tmp2_file=im_path.replace('.inr','_temp2.inr')
-#    os.system(path_reech3d + ' '+tmp_file+'  '+tmp2_file+
-#              ' -x ' + str(int(output_shape[0])) +
-#              ' -y ' + str(int(output_shape[1])) +
-#              ' -z ' + str(int(output_shape[2])))
-#    out = imread(tmp2_file)
-#    os.system('rm '+tmp_file+' '+tmp2_file)
-#    return  out
 
 def reech3d(im_path, output_shape):
     ''' Perform a resampling operation
@@ -472,9 +454,6 @@ def gradient_norm(image_input,gradient_output):
     '''
     os.system(path_gradient_norm + ' ' + image_input + ' ' + gradient_output + ' -sigma 1')
 
-##################### DERNIERS AJOUTS #####################
-
-
 def readMatrixFile(file,t=int,comments='#'):
     '''
     Reads a matrix file.
@@ -493,21 +472,19 @@ def readMatrixFile(file,t=int,comments='#'):
                     v.append(t(val))
                 if len(v):
                     M.append(v)
-                #if len(info) == 2:
-                #    if not M.has_key(int(info[0])):
-                #        M[int(info[0])]=None
-                #    lut[int(info[0])]=int(info[1])
         f.close()
     return M
 
 
 def membrane_renforcement(path_input, prefix_output='tmp_membrane', path_mask=None, init=0.9, realScale=True, lazy=True, verbose=False):
-    ''' rehaussement du signal des membranes : Calcul les fonctions de reponses planaires, Calcul des plans centraux
+    '''
+    Membrane (plane-like) structures enhancement and oriented centerplanes extraction 
+    (using the method detailed in [Michelin et al. 2014] inspired by [Krissian 2000])
     path_input : path to the image to filter
     prefix_output : Write 3 files call <prefix_output>.ext.inr,<prefix_output>.theta.inr,<prefix_output>.phi.inr
-    path_mask : image binaire (u8 ou u16) telle que le calcul de la fonction de reponse n'est realise que dans ce masque (voxels non-nuls)
-    init : echelle du calcul du rehaussement (demi-epaisseur de la membrane) 
-    realScale : vaut True si l'echelle de calcul du rehaussement est donnee en dimensions reelles (defaut), vaut False si dimensions voxelliques
+    path_mask : binary image (u8 or u16) such that the response function is only computed for non-null voxels from this mask
+    init : enhancement scale parameter (should be set as the semi-thickness of the membrane) 
+    realScale : set as True if the scale parameter is given in real coordinates system (defaut), set as False if given in voxel coordinates
     lazy : do not return the output image if True
     '''
     options=''
@@ -536,17 +513,14 @@ def membrane_renforcement(path_input, prefix_output='tmp_membrane', path_mask=No
         return out_ext, out_theta, out_phi
 
 def seuillage(path_input, path_output='tmp_threshold.inr',sb=1, sh=None,grey=False,lazy=True, verbose=False):
-    ''' Manual Threshold
+    ''' Manual image threshold
     path_input : path to the image to threshold
     path_output: image threshold
-    sb : seuil bas (defalut : 1)
-    sh : seuil haut (optionel)
-    Les points dont la valeur est superieure ou egale au seuil bas, et,
-    si un seuil haut est donne, inferieure ou egale au seuil haut, sont mis
-    a 255, 32765, 65535, 2147483647 ou 1.0; les autres a 0.0 (defaut);
-    -grey : les points dont la valeur est superieure ou egale au seuil bas, et,
-    si un seuil haut est donne, inferieure ou egale au seuil haut, gardent
-    valeur, les autres sont mis a 0;
+    sb : low threshold (seuil bas) (defalut : 1)
+    sh : high threshold (seuil haut) (optional)
+    grey : set to True if the user wants to keep original voxel values for the thresholded ones.
+           if set to False (default), the output image will be binary 
+           (out[i][j][k]=255 iif sb<=in[i][j][k](<=sh), out[i][j][k]=0 otherwise)
     lazy : do not return the output image if True
     '''
     options=""
@@ -565,14 +539,15 @@ def seuillage(path_input, path_output='tmp_threshold.inr',sb=1, sh=None,grey=Fal
 
 def anisotropicHist(path_input="temp_membrane.ext.inr", path_output='tmp_membrane.bin.inr', path_mask=None, manual=False,manual_sigma=7,sensitivity=0.98, keepAll=False, lazy=True, verbose=False):
     ''' binarisation des membranes par seuillage anisotropic adaptatif
+    Centerplanes image binarisation using an adaptative anisotropic threshold method detailed in [Michelin 2016]
     Generate temp_membrane.bin.inr and path_output
     path_input : path to the image to filter
     path_output : path to the temporary output image
-    path_mask : calcule les seuils anisotropiques seulement sur une sous-partie de l'image-in definie par le masque specifie 
-                (image 8 bits aux dimensions identiques a l'image-in). Seuls les voxels dont la valeur du masque est non-nulle sont pris en compte.
+    path_mask : binary image (u8 or u16) such that the thresholding is only computed for non-null voxels from this mask 
+                (8 bits image of same size as input image). 
     manual : if True, enables manual initialisation of sigma value for histograms fitting (default: False)
     manual_sigma : the sigma value for histogram fitting in case of manual mode (default: 20)
-    sensitivity :     calcule les seuils anisotropiques selon un critere de sensibilite (true positive rate) : seuil = #(classe membrane>=seuil)/#(classe membrane) 
+    sensitivity : computes the anisotropic thresholds following a sensitivity criterion (true positive rate) : threshold = #(membrane class >= threshold) / #(membrane class) 
     lazy : do not return the output image if True
     '''
     mask_option=''
@@ -642,7 +617,7 @@ def anisotropicHist(path_input="temp_membrane.ext.inr", path_output='tmp_membran
 
 def nonZerosImage(image_in, verbose=False):
   """
-  Retourne True si image_in n'est pas compose que de zeros, False sinon.  
+  Returns True if image_in contains only zeros, False otherwise.  
   """
   cmd=path_non_zeros_image + ' ' + str(image_in) 
 
@@ -653,23 +628,23 @@ def nonZerosImage(image_in, verbose=False):
   return bool(os.system(cmd))
 
 def TVmembrane(path_input="temp_membrane.bin.inr", path_output='tmp_TVmembrane.VP31.inr', path_mask=None, scale=3.6, sigma_LF=0.9, realScale=True, sample=0.2, keepAll=False, lazy=True, verbose=False):
-    '''  reconstruction d'une image en niveaux de gris a partir des membranes binarisees
+    '''
+    Grey-level image reconstruction from an image of binarised membranes associated to images of orientations.
     path_input : path to input image which is contains binarised planar structures, 
                  with associated input angle images <path_prefix>.theta.inr and <path_prefix>.phi.inr in the same folder.
     path_output : path to the output images prefix (final reconstructed image is path_output+'.u8.inr')
     path_mask : mask image applied to the input image to restrict the domain of tensor voting tokens (must be same dimensions with input image)
-    scale : echelle en voxel (/!\ uniquement sur des images isotropes) (default = 3.6 um)
-    realScale : parametre d'echelle en coordonnees reelles si l'option est activee (si False, parametre d'echelle en voxels)
-    sample : coef multiplicatif permettant de diminuer le temps de process
-             du tensor voting en diminuant le nombre de tokens votants (0<sample<=1, default = 0.2)
-    sigma_LF : echelle du lissage gaussien apres vote de tenseurs (default = 0.9 um)
-    keepAll : conserve toutes les images intermediaires (imvp*, tv, lf, u8...) si True (default = False)
+    scale : scaling for tensor voting method (only on isotropic images) (default = 3.6 um)
+    realScale : True (default) if scale in real coordinates. Falseif scale in voxel coordinates.
+    sample : multiplying parameter for decrease the time-cost of the function by diminishing the number of voting token;
+             0 < sample <= 1, default = 0.2
+    sigma_LF : scale for gaussien smooting after tensor voting (default = 0.9 um)
+    keepAll : option to be set to True to keep all the intermediary images (imvp*, tv, lf, u8...) (default = False)
 
     lazy : do not return the output image if True
 
     '''
 
-    #l=path_output.rstrip('.gz').split('.')
     prefixe_output = ".".join(path_output.rstrip('.gz').split('.')[0:-1])
     mask_option=''
     if path_mask != None:
@@ -715,13 +690,13 @@ def TVmembrane(path_input="temp_membrane.bin.inr", path_output='tmp_TVmembrane.V
         ext_to_erase = ['', '.lf.inr', '.tv.inr', '.imxx.inr', '.imxy.inr', '.imxz.inr', '.imyy.inr', '.imyz.inr', '.imzz.inr', 
                         '.iszero.inr', '.imvp1.inr', '.imvp2.inr', '.imvp3.inr', '.imtheta1.inr', '.imtheta2.inr', '.imtheta3.inr', '.imphi1.inr', '.imphi2.inr', '.imphi3.inr']
         files_to_erase=(' '+prefixe_output).join(ext_to_erase)
-        files_to_erase.replace(' '+path_output.lstrip().rstrip(),'') # Au cas ou path_output correspondrait a l'un des noms de fichiers automatiquement generes par TVmembrane...
+        files_to_erase.replace(' '+path_output.lstrip().rstrip(),'') # in case path_output would correspond to one of the file names automatically generated by TVmembrane...
         cmd='rm ' + files_to_erase
         if verbose:
           print cmd
         os.system(cmd)
     else:
-      # L'image d'entree n'est composee que de zeros : en sortie, on obtient une image de zeros de meme taille
+      # The input image is only compounded of zeros : the output image will only contain zeros too
       if verbose:
         print "WARNING : TVmembrane INPUT IMAGE " + path_input + " SEEMS TO CONTAIN ONLY VOXELS WITH NULL VALUE /!\\"
       cmd=path_copy + ' ' + path_input + ' ' + path_output + ' -o 1'
@@ -735,9 +710,14 @@ def TVmembrane(path_input="temp_membrane.bin.inr", path_output='tmp_TVmembrane.V
         return out  
 
 def copy(path_input, path_output, normalize=False, lazy=True, verbose=False):
-    ''' realise une copie de l'image d'entree 
-    path_input : path de l'image d'entree
-    path_output : path de l'image de sortie
+    ''' copy of the input image
+    path_input : path for input image
+    path_output : path for output image
+    normalize : if True, automatic normalization of input image before its copy
+          (linear transformation (ax+b) of intensity
+
+    lazy : do not return the output image if True
+
     '''
     if normalize:
       cmd=path_copy + ' ' + path_input + ' ' + path_output + '-norma -o 1'
@@ -758,7 +738,17 @@ def copy(path_input, path_output, normalize=False, lazy=True, verbose=False):
 
 def directionHistogram(path_input,path_output,rayon=None,sigma=None,verbose=0,lazy=True):
     '''
-    Calcule l'histogramme des directions a partir d'une image de membranes binarisees orientees
+    Compute the orientations histogram from an image of oriented binarized membranes
+    
+    path_input : path for input image
+    path_output : path for output histogram which will be a 32-bits image
+
+    optional parameters:
+    rayon : ray parameter for output histogram (related to histogram granulosity)
+    sigma :  standard deviation for voting accumulation (kernel density estimation) (defaut : PI/32)
+    verbose : verbosity level
+
+    lazy : do not return the output image if True
     '''
     options=''
     if rayon:
@@ -779,17 +769,20 @@ def directionHistogram(path_input,path_output,rayon=None,sigma=None,verbose=0,la
 
 def directionHistogramMaxima(path_input, file_out=None, maxima=None, frac=None, verbose=False):
   """
-  Calcule les maxima de l'histogramme des directions de la fonction directionHistogram. Retourne un array en mode lazy.
-  directionHistogramMaxima [image-in] [file-out] [-max %d [%d [...]]] [-frac %lf]
-   [-v] [-D] [-help]
-   si 'image-in' est '-', on prendra stdin
-   si les deux sont absents, on prendra stdin et stdout
-   -max %d [%d [...]] : direction extraite la %d-eme plus grande (0=plus grand)
-   -frac %lf : directions extraites : celles dont le maximum est superieur ou egal a l'elevation max 
-            multipliee par la fraction donnee (de valeur >=0 (0.5 = defaut) et inferieure a 1)
-   Note: les deux options ne sont pas prevues pour etre utilisees en simultane
-   -v : mode verbose
-   -D : mode debug
+  Extract the maxima (modes) of the orientations histogram provided by the function 'directionHistogram'.
+
+  path_input : input image containing the orientations histogram 
+  file_out : output file ; if not specified, the function returns an array
+
+  Optional parameters:
+
+  maxima : list of integers where each integer %d corresponds to the %d-th highest direction maximum to be extracted (index starting at 0)
+           (not specified by default)
+  frac : fraction %lf between 0 and 1 so that local maxima are extracted iif their value is greater or equal to the global maximum multipied by the fraction %lf
+         (default is not specified)
+  Note for users : the options 'maxima' and 'frac' must not be used simultaneously. If none is specified, the function behaves like if frac=0.5
+
+  verbose : level of verbosity
 
   """
   from numpy import loadtxt
