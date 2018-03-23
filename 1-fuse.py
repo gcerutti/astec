@@ -37,6 +37,7 @@ else:
         if not os.path.isfile(fused_file):
             time_angles_files=[timeNamed(angle_file + ext_im,time) for angle_file in angles_files]
             temporary_time_path=timeNamed(temporary_path,time) #Temporary Path for this time point
+            print temporary_time_path
             time_process=fusion_process(time_angles_files,
                        fused_file,  
                        temporary_time_path,

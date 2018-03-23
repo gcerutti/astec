@@ -1299,7 +1299,6 @@ def planeRegistration(path_label_ref, path_label_flo, plane_eq_ref, plane_eq_flo
                 li=line.strip()
                 if not li.startswith('#'):
                     n=li
-                #os.system('cat ' + str(plane_eq_in) + ' | grep -v "#"' + " | awk -F':' '{print $2}'" + ' > tmp_planeRegisration_plane_eq_in' )
             file.close()
         else:
             n=plane_eq_ref
@@ -1311,7 +1310,6 @@ def planeRegistration(path_label_ref, path_label_flo, plane_eq_ref, plane_eq_flo
                 li=line.strip()
                 if not li.startswith('#'):
                     n=li
-                #os.system('cat ' + str(plane_eq_in) + ' | grep -v "#"' + " | awk -F':' '{print $2}'" + ' > tmp_planeRegisration_plane_eq_in' )
             file.close()
         else:
             n=plane_eq_flo

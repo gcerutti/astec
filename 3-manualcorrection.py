@@ -11,33 +11,30 @@ segmentation_file = timeNamed(segmentation_files,begin) #First time step to segm
 seg = imread(segmentation_file)
 
 mapping = np.arange(np.max(seg)+1)
+
 '''
-mapping[8] = 7
+# Example of mapping setting:
+mapping[8] = 7	  # This mapping is going to set voxels of label 8 with the new value 7
 mapping[9] = 4
-mapping[11] = 6
-mapping[21] = 14
-mapping[22] = 16
-mapping[19] = 1
-mapping[24] = 13
+# ... etc ...
 mapping[29] = 23
-mapping[30] = 1
-mapping[33] = 27
-mapping[43] = 34
-mapping[47] = 42
-mapping[45] = 42
-mapping[54] = 48
-mapping[56] = 42
-mapping[67] = 62
-mapping[65] = 61
-mapping[69] = 66
-mapping[82] = 73
-mapping[78] = 72
-mapping[88] = 80
-mapping[86] = 79
-mapping[89] = 1
-mapping[87] = 1
+mapping[30] = 1   # 1 corresponds to the background label
+mapping[89] = 1	  # 1 corresponds to the background label
 '''
+
 seg_corrected = mapping[seg]
 
+cells_list = np.unique(seg_corrected)
+nb_cells = len(cells_list)
 
-imsave(segmentation_file, SpatialImage(seg_corrected, voxelsize=seg.voxelsize).astype(np.uint16)) # Save into segmentation file as inr
+print "list of cells by ids: " + str(cells_list)
+print "total cells: " + str(nb_cells)
+
+imsave(segmentation_file, SpatialImage(seg_corrected).astype(np.uint16)) # Save into segmentation file as inr /!\ HERE WE OVERWRITE ON THE ORIGINAL SEGMENTATION FILE (GAEL)
+
+# MERGE Sophia - Montpellier (UTILITE ?)
+# <<<<
+imsave(segmentation_file.replace('.inr','_mars.tiff'), imread(segmentation_file))
+# <<<<
+
+

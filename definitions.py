@@ -32,6 +32,12 @@ sys.path.append(astec_Path+"ASTEC") #Add the ASTEC Function
 sys.path.append(astec_Path+'ASTEC/CommunFunctions')
 
 
+#ASTEC modules choice
+Mars_methods=['Classic','Ace','Hybridation']
+Mars_method=1 # 1 for 'Classic' method, 2 for 'Ace' method, 3 for 'Hybridation' method 
+
+
+
 #Image Path definition
 rawdata_Path=datapath+"RAWDATA/"
 
@@ -82,6 +88,10 @@ name_file=datapath+EN+"-names.txt"
 named_lineage_tree_filename=postsegment_Path+EN+'_fuse_seg_post_lin_tree_named.pkl' #The main lineage tree file output 
 named_lineage_tree_test_filename=postsegment_Path+EN+'_fuse_seg_post_lin_tree_named.test' #The main lineage tree test file output 
 
+
+###################################################################
+####### VIRTUAL EMBRYO SHOULD BE TAKEN OUT OF ASTEC PACKAGE #######
+###################################################################
 
 #VIRTUAL EMBRYO
 vo_login="emmanuel.faure"

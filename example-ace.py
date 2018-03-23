@@ -1,4 +1,4 @@
-# ACE  segmentation propagation
+# ACE  for Automated Cell Extractor : THIS FILE IS A PATTERN FOR THE USAGE OF GACE METHOD, THIS IS NOT SUPPOSED TO BE USED AS A STEP FOR THE ASTEC METHOD !! -> THE GACE METHOD USED FOR MARS ALGORITHM IS ALREADY WRITTEN IN MARS FILES...
 from definitions import *
 if not os.path.isdir(reconstruct_Path):
     os.mkdir(reconstruct_Path)  

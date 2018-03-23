@@ -227,7 +227,8 @@ def name_propagation(lin_tree, starting_name, segmentation_corrected_files, begi
                 naming[cell]=""
             print " -->" +naming[cell]
   
-
+    """
+    #suite a erreurs sur le naming de Ralph
     #Propage Errors
     errors=error_metric
     roots=[k for k in lin_tree.keys() if k<=2*10**4]
@@ -248,7 +249,8 @@ def name_propagation(lin_tree, starting_name, segmentation_corrected_files, begi
         todo.extend(new)
 
     return naming,errors
-    
+    """
+    return naming
 
 
 

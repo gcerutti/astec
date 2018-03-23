@@ -362,8 +362,8 @@ def read_raw_data(datapath):
     if len(Extensions)!=1:
         print ' Error this folder '+datapath+' contains several different extensions '+str(Extensions)
         return ErrorReturn
-    if extension.lower()!='.zip' and extension.lower()!='.tif' and extension.lower()!='.zip' and extension.lower()!='.hdr' and extension.lower()!='.h5':
-        print ' Error this folder '+datapath+' does not have valid angles images (.tif,.tiff.hdr.h5,.zip) '+str(Extensions)
+    if extension.lower()!='.zip' and extension.lower()!='.tif' and extension.lower()!='.gz' and extension.lower()!='.hdr' and extension.lower()!='.h5':
+        print ' Error this folder '+datapath+' does not have valid angles images (.tif,.tiff.hdr.h5,.zip,.gz) '+str(Extensions)
         return ErrorReturn
     lens=len(FileNames[0])
     for i in range(len(FileNames)):
@@ -429,11 +429,11 @@ def read_raw_data(datapath):
                 begin=timestep
             else:
                 if timestep!=begin+idx:
-                    print ' Error file names in this folder '+datapath+' does not have consecutive 3 digits to define time steps'
+                    print ' Error 1 file name in this folder '+datapath+' does not have consecutive 3 digits to define time steps'
                     return ErrorReturn
             idx+=1
         except ValueError:
-            print ' Error file names in this folder '+datapath+' does not always have 3 digits to define time steps'
+            print ' Error 2 file name in this folder '+datapath+' does not always have 3 digits to define time steps'
             return ErrorReturn
     end=timestep
     return 1,begin,end,extension,datapath+'/'+startName+'$TIME'+endName

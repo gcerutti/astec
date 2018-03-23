@@ -21,6 +21,7 @@ Soon=True #True if the cell life span has to be taken into account
 ShortLifespan=25 # (length < SL time points, in our case SL = 10)
 PearsonThreshold=0.9; #If they are anticorrelated (Pearson correlation under -0.9)
 
+
 ### CORRECT THE LINEAGE TREE WITH THE CELLS VOLUMES
 lin_tree_cor, new_volumes, to_fuse, been_fused=remove_too_little_branches(lin_tree_information['lin_tree'], lin_tree_information['volumes_information'], Volume_Threshold, soon=Soon)
 

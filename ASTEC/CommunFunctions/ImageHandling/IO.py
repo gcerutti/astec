@@ -29,7 +29,17 @@ def imread (filename, dimension=3) :
     :Returns Type:
         |SpatialImage|
     """
+    program='imread'
     filename = expusr(filename)
+
+    if not os.path.isfile(filename) and os.path.isfile(filename+".gz"):
+        filename=filename+".gz"
+        print "%s: Warning: path to read image has been changed to %s."%(program,filename)
+
+    if not os.path.isfile(filename) and os.path.isfile(filename+".zip"):
+        filename=filename+".zip"
+        print "%s: Warning: path to read image has been changed to %s."%(program,filename)
+
     if not exists(filename) :
         raise IOError("The requested file do not exist: %s" % filename)
 

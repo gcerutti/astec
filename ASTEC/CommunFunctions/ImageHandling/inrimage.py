@@ -43,6 +43,13 @@ def open_inrifile (filename) :
 
     Manage the gz attribute
     """
+    program="open_inrifile"
+    if not os.path.isfile(filename) and os.path.isfile(filename+".gz"):
+        filename=filename+".gz"
+        print "%s: Warning: path to read image has been changed to %s."%(program,filename)
+    if not os.path.isfile(filename) and os.path.isfile(filename+".zip"):
+        filename=filename+".zip"
+        print "%s: Warning: path to read image has been changed to %s."%(program,filename)
     if path.splitext(filename)[1] in (".gz",".zip") :
         fzip = gzip.open(filename,'rb')
         f = StringIO(fzip.read() )

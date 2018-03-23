@@ -30,7 +30,8 @@ def croping(image_input, impage_output,downsize):
     volumes.pop(0)
     label = volumes.keys()[np.argmax(volumes.values())]
     bb = nd.find_objects(comp_co)[label-1]
-    bb2 = (slice(max(bb[0].start - 40, 0), min(image_main.shape[0], bb[0].stop + 40), None), slice(max(bb[1].start - 40, 0), min(image_main.shape[1], bb[1].stop + 40), None), slice(0, image_main.shape[2]))
+    #change 40-->120 et 40-->80 nouvelle box
+    bb2 = (slice(max(bb[0].start - 120, 0), min(image_main.shape[0], bb[0].stop + 40), None), slice(max(bb[1].start - 80, 0), min(image_main.shape[1], bb[1].stop + 40), None), slice(0, image_main.shape[2]))
     out=SpatialImage(image_main[bb2])
     out.voxelsize=(float("{0:.1f}".format(image_main.resolution[0])), float("{0:.1f}".format(image_main.resolution[1])), float("{0:.1f}".format(image_main.resolution[2])))
     imsave(impage_output, out.astype(np.uint16))
