@@ -407,7 +407,9 @@ def perform_ac(parameters):
     return m, daughters, bb, cell_out
 
 
-def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, divided_cells, bounding_boxes, right_parameters, im_ref, im_ref16, seeds, nb_cells, label_max, exterior_corres, parameters, h_min_information, sigma_information, seg_origin, segmentation_file_ref, vf_file, path_h_min, volumes_t_1, nb_proc=26,Thau= 25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200 ,DeltaVoxels=10**3):
+def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, divided_cells, bounding_boxes, right_parameters, im_ref, im_ref16, seeds, nb_cells, 
+    label_max, exterior_corres, parameters, h_min_information, sigma_information, seg_origin, segmentation_file_ref, vf_file, path_h_min, volumes_t_1, 
+    nb_proc=26,Thau= 25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200 ,DeltaVoxels=10**3):
     """
     Return corrected final segmentation based on conservation of volume in time
     seg : propagated segmentation (seg at t deformed on t+dt) (SpatialImage)
@@ -669,7 +671,8 @@ def outer_correction(seg_from_opt_h, exterior_correction,segmentation_file_ref,R
     return seg_from_opt_h
 
 
-def segmentation_propagation(t, fused_file_ref,segmentation_file_ref, fused_file , seeds_file_ref,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,RadiusOpening=20,Thau=25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200,DeltaVoxels=10**3,Volum_Min_No_Seed=100):
+def segmentation_propagation(t, fused_file_ref,segmentation_file_ref, fused_file , seeds_file_ref,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
+    RadiusOpening=20,Thau=25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200,DeltaVoxels=10**3,Volum_Min_No_Seed=100):
     """
     Return the propagated segmentation at time t+dt and the updated lineage tree and cell informations
     t : time t

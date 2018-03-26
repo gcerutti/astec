@@ -48,7 +48,7 @@ if 'lin_tree' in lin_tree_information:
         time_segment=t+delta #Time point of Segmentation 
         segmentation_file=timeNamed(segmentation_files,time_segment) #Output Segmentation file
         if not os.path.isfile(segmentation_file): 
-            print 'Miss segmentation file at ' +str(t)
+            print 'Miss segmentation file at ' +str(t) + ' -> '+segmentation_file
             restart=t
         else:
             if cellat[t]==0:
@@ -85,7 +85,8 @@ for t in range(begin, end):
     seed_file=timeNamed(temporary_folder+'Seed_t$TIME.inr',t) #SEEDS FILE
 
     #PROCESS PROGATION SEGMENTATION
-    seg_from_opt_h, lin_tree_information=segmentation_propagation(t,fused_file_ref,segmentation_file_ref, fused_file, seed_file,vf_file , h_min_files, h_min_min,h_min_max, sigma1, lin_tree_information, delta, nb_proc,RadiusOpening=RadiusOpening,Thau=Thau,MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,NIterations=NIterations,DeltaVoxels=DeltaVoxels)
+    seg_from_opt_h, lin_tree_information=segmentation_propagation(t,fused_file_ref,segmentation_file_ref, fused_file, seed_file,vf_file , h_min_files, h_min_min,h_min_max, sigma1, lin_tree_information, delta, nb_proc,
+        RadiusOpening=RadiusOpening,Thau=Thau,MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,NIterations=NIterations,DeltaVoxels=DeltaVoxels)
     
     #SAVE OUTPUT
     print 'Write the segmentation in ' + segmentation_file
