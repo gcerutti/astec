@@ -30,11 +30,11 @@ nb_cells = len(cells_list)
 print "list of cells by ids: " + str(cells_list)
 print "total cells: " + str(nb_cells)
 
-imsave(segmentation_file, SpatialImage(seg_corrected).astype(np.uint16)) # Save into segmentation file as inr /!\ HERE WE OVERWRITE ON THE ORIGINAL SEGMENTATION FILE (GAEL)
+imsave(segmentation_file, SpatialImage(seg_corrected, voxelsize=seg.voxelsize).astype(np.uint16)) # Save into segmentation file as inr /!\ HERE WE OVERWRITE ON THE ORIGINAL SEGMENTATION FILE (GAEL)
 
 # MERGE Sophia - Montpellier (UTILITE ?)
 # <<<<
-imsave(segmentation_file.replace('.inr','_mars.tiff'), imread(segmentation_file))
+#imsave(segmentation_file.replace('.inr','_mars.tiff'), imread(segmentation_file))
 # <<<<
 
 

@@ -731,10 +731,13 @@ def segmentation_propagation(t, fused_file_ref,segmentation_file_ref, fused_file
     right_parameters, cells_with_no_seed=get_back_parameters(nb_cells, parameters, lin_tree, cells,Thau=Thau)
     
     print 'Applying volume correction '+str(t+delta_t)
-    seeds_from_opt_h, seg_from_opt_h, corres, exterior_corres, h_min_information, sigma_information, divided_cells, label_max = get_seeds_from_optimized_parameters(t, segmentation, cells, cells_with_no_seed, right_parameters, delta_t, bounding_boxes, im_fused, seeds, parameters, h_min_max, path_h_min, sigma,Volum_Min_No_Seed=Volum_Min_No_Seed)
+    seeds_from_opt_h, seg_from_opt_h, corres, exterior_corres, h_min_information, sigma_information, divided_cells, label_max = get_seeds_from_optimized_parameters(t, segmentation, cells, cells_with_no_seed, 
+        right_parameters, delta_t, bounding_boxes, im_fused, seeds, parameters, h_min_max, path_h_min, sigma,Volum_Min_No_Seed=Volum_Min_No_Seed)
 	
     print 'Perform volume checking '+str(t+delta_t)
-    seg_from_opt_h, bigger, lower, to_look_at, too_little, corres, exterior_correction = volume_checking(t,delta_t,segmentation, seeds_from_opt_h, seg_from_opt_h, corres, divided_cells, bounding_boxes, right_parameters, im_fused, im_fused_16, seeds, nb_cells, label_max, exterior_corres, parameters, h_min_information, sigma_information, segmentation_ref, segmentation_file_ref, vf_file, path_h_min, volumes_t_1, nb_proc=nb_proc,Thau=Thau, MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,NIterations=NIterations ,DeltaVoxels=DeltaVoxels)
+    seg_from_opt_h, bigger, lower, to_look_at, too_little, corres, exterior_correction = volume_checking(t,delta_t,segmentation, seeds_from_opt_h, seg_from_opt_h, corres, divided_cells, bounding_boxes, right_parameters, 
+        im_fused, im_fused_16, seeds, nb_cells, label_max, exterior_corres, parameters, h_min_information, sigma_information, segmentation_ref, segmentation_file_ref, vf_file, path_h_min, volumes_t_1, 
+        nb_proc=nb_proc,Thau=Thau, MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,NIterations=NIterations ,DeltaVoxels=DeltaVoxels)
 
     print 'Perform Outer Correction '+str(t+delta_t)
     seg_from_opt_h = outer_correction(seg_from_opt_h, exterior_correction,segmentation_file_ref,RadiusOpening=RadiusOpening)

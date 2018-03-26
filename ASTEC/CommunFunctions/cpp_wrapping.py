@@ -65,14 +65,14 @@ def recfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, lazy
         os.system('rm ' + path_output)
         return out  
 
-def linearfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, realScale=False, lazy=False):
+def linearfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, realScale=False, type=None, verbose=False, lazy=False):
     ''' Perform a gaussian filtering on an intensity image
     path_input : path to the image to filter
     path_output : path to the temporary output image
-    filter_value : sigma of the gaussian filter
+    filter_value : sigma of the gaussian filter for each axis (default is 1.0)
     rad_min : TO REMOVE, NOT USED
-    realScale : sigma of the gaussian for each axis (default is 1.0)
-    values are in 'real' units (will be divided by the voxel size to get 'voxel' values) if this option is at True
+    realScale : scale values are in 'real' units (will be divided by the voxel size to get 'voxel' values) if this option is at True (default=False)
+    type : gaussian type, which can be ['deriche'|'fidrich'|'young-1995'|'young-2002'|'gabor-young-2002'|'convolution'] or None (default)
     lazy : do not return the output image if True
     '''
     opt=""
@@ -80,11 +80,15 @@ def linearfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, r
       opt += " -unit real"
     else:
       opt += ' -unit voxel'
-
-    os.system(path_linearfilters + ' ' + path_input +\
+    if type:
+      opt += " -gaussian-type " + str(type)
+    cmd=path_linearfilters + ' ' + path_input +\
               ' ' + path_output +\
               ' -cont 10 -sigma ' + str(filter_value) + opt +\
-              ' -x 0 -y 0 -z 0 -o 2')
+              ' -x 0 -y 0 -z 0 -o 2'
+    if verbose:
+      print cmd
+    os.system(cmd)
     if not lazy:
         out = imread(path_output)
         os.system('rm ' + path_output)
@@ -268,9 +272,9 @@ def linear_registration(path_ref, path_flo, path_trsf, path_output, path_output_
               " -init-trsf " + path_trsf +
               " -trsf-type affine" +
               " -estimator wlts" +
-              " -pyramid-highest-level " + py_hl +
-              " -pyramid-lowest-level " + py_ll +
-              " -lts-fraction " + lts_fraction)
+              " -pyramid-highest-level " + str(py_hl) +
+              " -pyramid-lowest-level " + str(py_ll) +
+              " -lts-fraction " + str(lts_fraction))
 
 def rigid_registration(path_ref, path_flo, path_trsf, path_output, path_output_trsf, py_hl=6, py_ll=3, lts_fraction=0.55, verbose=False):
     ''' Compute the rigid transformation that register the floating image onto the reference image

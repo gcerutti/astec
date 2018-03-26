@@ -12,6 +12,10 @@ if not os.path.isdir(fuse_Path):
     os.mkdir(fuse_Path)  
 
 
+os.system("cp -f "+astec_Path+"definitions.py "+fuse_Path )
+os.system("cp -f "+astec_Path+"1-fuse.py "+fuse_Path )
+
+
 #Search for image format in different angle folders
 success1,begin1,end1,ext_im1,path_im1=read_raw_data(path_angle1) 
 success2,begin2,end2,ext_im2,path_im2=read_raw_data(path_angle2)

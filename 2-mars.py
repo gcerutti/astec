@@ -16,8 +16,8 @@ os.system("cp -f "+astec_Path+"2-mars.py "+segmented_Path )
 
 
 ### Parameters for MARS segmentation
-sigma1 = 0.6 / target_resolution   #sigma 1 (0.6um)
-sigma2 = 0.15 / target_resolution #sigma 2 (0.15um) 
+sigma1 = 0.6 # sigma 1 (0.6um) in real coordinates
+sigma2 = 0.15 # sigma 2 (0.15um) in real coordinates
 h_min = 4   # H min initialisation to ease correction
 
 
@@ -51,9 +51,9 @@ fused_file =timeNamed(fused_files,begin)  #First Fused time step
 segmentation_file = timeNamed(segmentation_files,begin) #First time step to segment
 reconstruct_file=None
 
-if Mars_method =='1':
+if Mars_method == 1:
     print "Starting with fused files..."
-if Mars_method =='2':
+if Mars_method == 2:
     print "Starting with GACE files..."
     reconstruct_file =timeNamed(reconstruct_files,begin)  
 
@@ -62,7 +62,7 @@ if Mars_method =='2':
 mars_segmentation(fused_file, segmentation_file, sigma1, h_min, sigma2, 
 				  method=Mars_method, reconstructed_image=reconstruct_file,
 				  sigma_membrane=sigma_membrane, sensitivity=sensitivity, manual=manual, manual_sigma=manual_sigma, 
-				  hard_thresholding=hard_thresholding, hard_threshold=hard_threshold, sigma_TV=sigma_TV, sigma_LF=sigma_LF, sample=sample):
+				  hard_thresholding=hard_thresholding, hard_threshold=hard_threshold, sigma_TV=sigma_TV, sigma_LF=sigma_LF, sample=sample)
 
 # MERGE Sophia - Montpellier 
 # COMMENTARY (GAEL) : POURQUOI ON A BESOIN DE SAUVER EN TIFF ICI ? C'EST LE INR QUI EST LU EN ENTREE DE 3-manualcorrection.py.....

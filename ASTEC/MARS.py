@@ -3,7 +3,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),"CommunFunctions"))
 from ImageHandling import imread, imsave,SpatialImage
 import numpy as np
 from scipy import ndimage as nd
-from cpp_wrapping import recfilter, regionalmax, connexe, watershed
+from cpp_wrapping import linearfilter, regionalext, connexe, watershed
 
 
 def mars_segmentation(image_input, segmentation_output, sigma, h_min, sigma_ws, th=0, method=1, methods={1:'Classic',2:'Ace',3:'Hybridation'}, reconstructed_image=None,
@@ -98,13 +98,13 @@ def mars_segmentation(image_input, segmentation_output, sigma, h_min, sigma_ws, 
 
 
     print 'Filter with sigma='+str(sigma)+' in ' + path_gSigma
-    recfilter(reconstructed_image, path_gSigma, sigma, lazy=True)
+    linearfilter(reconstructed_image, path_gSigma, sigma, realScale=True, type='fidrich', verbose=False, lazy=True)
     
     print 'Filter with sigma='+str(sigma_ws)+' in ' + path_g_5
-    recfilter(reconstructed_image, path_g_5, sigma_ws, lazy=True)
+    linearfilter(reconstructed_image, path_g_5, sigma_ws, realScale=True, type='fidrich', verbose=False, lazy=True)
     
     print 'Find Local minnima with h_min='+str(h_min)+' in ' + path_rm
-    regionalmax(path_gSigma, path_rm, h_min)
+    regionalext(path_gSigma, path_rm, h_min)
     
     print 'Find connex composant in ' + path_cc
     connexe(path_rm, path_cc, h_min)
