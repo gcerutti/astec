@@ -1,11 +1,11 @@
 
 # RAWDATA DEFINITION
-begin=0
-end=92 #Last Point
+begin=1
+end=4 #Last Point
 
 delta = 1 # Delta between two time points (if one does not want to fuse every single time point)
-ori = 'right' # if im2 angle - im1 angle < 0 => right
-resolution = (.17, .17, 1.) # Resolution of the raw images
+ori = 'left' # if im2 angle - im1 angle < 0 => right
+resolution = (.17, .17, 1.) # Resolution of the raw images for Karine
 delay = 0 # If the time stamps in the folder are not the actual time stamps in the global movie
 mirrors = False  #TO COMMENT
 target_resolution = .3 # Isotropic resolution of the final fused image
@@ -14,6 +14,8 @@ target_resolution = .3 # Isotropic resolution of the final fused image
 import sys,os
 
 astec_Path=os.getcwd()
+#astec_Path="/home/gmicheli/TEST_ASTEC/ASTEC/160708-Aquila-St8/ASTEC-180326"
+
 tab_Path=astec_Path.split('/')
 EN=tab_Path[len(tab_Path)-2]  #Embryo Name
 if  EN.count('-')!=2:

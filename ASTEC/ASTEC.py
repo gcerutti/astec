@@ -671,7 +671,136 @@ def outer_correction(seg_from_opt_h, exterior_correction,segmentation_file_ref,R
     return seg_from_opt_h
 
 
-def segmentation_propagation(t, fused_file_ref,segmentation_file_ref, fused_file , seeds_file_ref,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
+def segmentation_propagation_seeds_init_and_deform(t, segmentation_ref, fused_file, seeds_file, vf_file, delta_t):
+    """
+    Steps 2 to 3 of segmentation propagation:
+    create seeds from reference segmentation, then resample it by transformation application
+    -> generation of seeds_file containing the image of seeds which will be used for segmentation propagation at t+delta_t
+    """
+    print 'Create The Seeds from '+str(t)
+
+    seeds_ref=create_seeds(segmentation_ref, max_size_cell=np.inf)
+    imsave(seeds_file, SpatialImage(seeds_ref, voxelsize=seeds_ref.voxelsize))
+    
+    print 'Deform Seeds with vector fields from '+str(t)+' to '+str(t+delta_t)
+    apply_trsf(seeds_file, vf_file , path_output=seeds_file, template=fused_file,nearest=True, lazy=True)
+
+
+
+def segmentation_propagation_from_seeds(t, fused_file_ref,segmentation_file_ref, fused_file , seeds_file,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
+    RadiusOpening=20,Thau=25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200,DeltaVoxels=10**3,Volum_Min_No_Seed=100, delSeedsASAP=True):
+    """
+    Steps 4 to 9 of segmentation propagation as described in Gregoire's document
+    - initial watershed
+    - computation of h-minima (get_seeds method)
+    - optimal h selection for each cell (get_back_parameters method)
+    - build a seeds image from previous information and new segmentation by watershed (get_seeds_from_optimized_parameters)
+    - morphosnake if needed (called from volume_checking method)
+    - last corrections with a morphological opening (outer_correction method)
+    Returns seg_from_opt_h, lin_tree_information
+        seg_from_opt_h : SpatialImage of the segmentation at t+delta_t
+        lin_tree_information : updated lineage tree 
+    """
+    from copy import deepcopy
+    lin_tree=lin_tree_information.get('lin_tree', {})
+    tmp=lin_tree_information.get('volumes_information', {})
+    volumes_t_1={k%10**4: v for k, v in tmp.iteritems() if k/10**4 == t}
+    h_min_information={}
+    
+
+    print 'Perform watershed with the seeds from method "segmentation_propagation_seeds_init_and_deform"'
+    im_fused=imread(fused_file)
+    im_fused_16=deepcopy(im_fused)
+    im_fused=to_u8(im_fused)
+    segmentation=watershed(seeds_file, im_fused)
+    if delSeedsASAP:
+        cmd='rm %s'%seeds_file
+        print cmd
+        os.system(cmd)
+    cells=list(np.unique(segmentation))
+    cells.remove(1)
+    bounding_boxes=dict(zip(range(1, max(cells)+1), nd.find_objects(segmentation)))
+    treated=[]
+
+    print 'Estimation of the local h-minimas at '+str(t+delta_t)
+    nb_cells, parameters=get_seeds(segmentation, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min.replace('$SIGMA',str(sigma)), bounding_boxes, nb_proc=nb_proc)
+  
+    right_parameters, cells_with_no_seed=get_back_parameters(nb_cells, parameters, lin_tree, cells,Thau=Thau)
+    
+    print 'Applying volume correction '+str(t+delta_t)
+    seeds_from_opt_h, seg_from_opt_h, corres, exterior_corres, h_min_information, sigma_information, divided_cells, label_max = get_seeds_from_optimized_parameters(t, segmentation, cells, cells_with_no_seed, 
+        right_parameters, delta_t, bounding_boxes, im_fused, seeds, parameters, h_min_max, path_h_min, sigma,Volum_Min_No_Seed=Volum_Min_No_Seed)
+    
+    print 'Perform volume checking '+str(t+delta_t)
+    seg_from_opt_h, bigger, lower, to_look_at, too_little, corres, exterior_correction = volume_checking(t,delta_t,segmentation, seeds_from_opt_h, seg_from_opt_h, corres, divided_cells, bounding_boxes, right_parameters, 
+        im_fused, im_fused_16, seeds, nb_cells, label_max, exterior_corres, parameters, h_min_information, sigma_information, segmentation_ref, segmentation_file_ref, vf_file, path_h_min, volumes_t_1, 
+        nb_proc=nb_proc,Thau=Thau, MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,NIterations=NIterations ,DeltaVoxels=DeltaVoxels)
+
+    print 'Perform Outer Correction '+str(t+delta_t)
+    seg_from_opt_h = outer_correction(seg_from_opt_h, exterior_correction,segmentation_file_ref,RadiusOpening=RadiusOpening)
+
+    print 'Compute Volumes'+str(t+delta_t)
+    volumes=compute_volumes(seg_from_opt_h)
+    volumes_information={}
+    for k, v in volumes.iteritems():
+        volumes_information[(t+delta_t)*10**4+k]=v
+    for m, d in corres.iteritems():
+        if m!=1:
+            daughters=[]
+            for c in d:
+                if c in volumes:
+                    daughters.append(c+(t+delta_t)*10**4)
+                else:
+                    print str(c) +' is not segmented'
+            if len(daughters)>0:
+                lin_tree[m+t*10**4]=daughters
+    lin_tree_information['lin_tree']=lin_tree
+    lin_tree_information.setdefault('volumes_information', {}).update(volumes_information)
+    lin_tree_information.setdefault('h_mins_information', {}).update(h_min_information)
+    lin_tree_information.setdefault('sigmas_information', {}).update(sigma_information)
+
+    return seg_from_opt_h, lin_tree_information
+
+
+def segmentation_propagation(t, fused_file_ref,segmentation_file_ref, fused_file , seeds_file,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
+    RadiusOpening=20,Thau=25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200,DeltaVoxels=10**3,Volum_Min_No_Seed=100):
+    '''
+    Return the propagated segmentation at time t+dt and the updated lineage tree and cell informations
+    t : time t
+    fused_file_ref : path format to fused images
+    segmentation_file_ref : path format to segmentated seeds_images
+    fused_file : fused image at t+dt
+    vf_file : path format to transformation
+    path_h_min : path format to h-minima files
+    h_min_max : maximum value of the h-min value for h-minima operator
+    sigma : sigma value in voxels for gaussian filtering
+    lin_tree_information : dictionary containing the lineage tree dictionary, volume information, h_min information and sigma information for every cells
+    delta_t : value of dt (in number of time point)
+    nb_proc : number maximum of processors to allocate
+    '''
+    segmentation_ref=imread(segmentation_file_ref);
+
+
+    print 'Calcul Vector Fields from '+str(t)+' to '+str(t+delta_t)
+    non_linear_registration(fused_file_ref,\
+                        fused_file, \
+                        vf_file.replace('.inr','_affine.inr'), \
+                        vf_file.replace('.inr','_affine.trsf'),\
+                        vf_file.replace('.inr','_vector.inr'),\
+                        vf_file);
+    os.system('rm -f '+vf_file.replace('.inr','_affine.inr')+' '+vf_file.replace('.inr','_affine.trsf')+' '+vf_file.replace('.inr','_vector.inrf'))
+
+    segmentation_propagation_seeds_init_and_deform(t, segmentation_ref, fused_file, seeds_file, vf_file, delta_t)
+
+    seg_from_opt_h, lin_tree_information = segmentation_propagation_from_seeds(t, fused_file_ref,segmentation_file_ref, fused_file , seeds_file,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
+    RadiusOpening=RadiusOpening,Thau=Thau,MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,
+    NIterations=NIterations,DeltaVoxels=DeltaVoxels,Volum_Min_No_Seed=Volum_Min_No_Seed, delSeedsASAP=True)
+
+    return seg_from_opt_h, lin_tree_information
+
+
+
+def to_delete_segmentation_propagation(t, fused_file_ref,segmentation_file_ref, fused_file , seeds_file_ref,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
     RadiusOpening=20,Thau=25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200,DeltaVoxels=10**3,Volum_Min_No_Seed=100):
     """
     Return the propagated segmentation at time t+dt and the updated lineage tree and cell informations
@@ -705,7 +834,6 @@ def segmentation_propagation(t, fused_file_ref,segmentation_file_ref, fused_file
                         vf_file.replace('.inr','_vector.inr'),\
                         vf_file);
     os.system('rm -f '+vf_file.replace('.inr','_affine.inr')+' '+vf_file.replace('.inr','_affine.trsf')+' '+vf_file.replace('.inr','_vector.inrf'))
-    
     
 
     print 'Create The Seeds from '+str(t)

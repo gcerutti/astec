@@ -56,6 +56,7 @@ def recfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, lazy
     rad_min : TO REMOVE, NOT USED
     lazy : do not return the output image if True
     '''
+    print "recfilter: WARNING: This function is obsolete. The user should replace its use by function linearfilter."
     os.system(path_filters + ' ' + path_input +\
               ' ' + path_output +\
               ' -cont 10 -sigma ' + str(filter_value) +\
@@ -65,14 +66,14 @@ def recfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, lazy
         os.system('rm ' + path_output)
         return out  
 
-def linearfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, realScale=False, type=None, verbose=False, lazy=False):
+def linearfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, realScale=False, type='deriche', verbose=False, lazy=False):
     ''' Perform a gaussian filtering on an intensity image
     path_input : path to the image to filter
     path_output : path to the temporary output image
     filter_value : sigma of the gaussian filter for each axis (default is 1.0)
     rad_min : TO REMOVE, NOT USED
     realScale : scale values are in 'real' units (will be divided by the voxel size to get 'voxel' values) if this option is at True (default=False)
-    type : gaussian type, which can be ['deriche'|'fidrich'|'young-1995'|'young-2002'|'gabor-young-2002'|'convolution'] or None (default)
+    type : gaussian type, which can be ['deriche'|'fidrich'|'young-1995'|'young-2002'|'gabor-young-2002'|'convolution'] or None (default is 'deriche')
     lazy : do not return the output image if True
     '''
     opt=""
@@ -166,13 +167,15 @@ def watershed(path_seeds, path_int, path_output=None, lazy=True):
     if type(path_seeds)!=str:
         imsave("seeds.inr", path_seeds)
         path_seeds = "seeds.inr"
+        cmd+=" "+path_seeds
     if type(path_int)!=str:
         imsave("intensity.inr", path_int)
         path_int = "intensity.inr"
-
+        cmd+=" "+path_int
     if path_output is None:
         lazy = False
         path_output = 'seg.inr'
+        cmd+=" "+path_output
  
     os.system(path_watershed + ' ' + path_seeds +\
               ' ' + path_int +\
@@ -180,7 +183,9 @@ def watershed(path_seeds, path_int, path_output=None, lazy=True):
               )
     if not lazy:
         out=imread(path_output)
-        os.system('rm seeds.inr intensity.inr seg.inr')
+        if cmd:
+            cmd='rm '+cmd
+            os.system(cmd)
         return out
 
 
@@ -344,7 +349,7 @@ def apply_trsf(path_flo, path_trsf=None, path_output="tmp_seeds.inr",
         return out
 
 
-def find_local_minima(path_out, path_ref, h_min, mask=None, sigma=2):
+def find_local_minima(path_out, path_ref, h_min, mask=None, sigma=0.6):
     ''' Find local minima in an intensity image
     path_out : path to the output seeds image
     path_ref : path to the reference intensity image
@@ -357,7 +362,8 @@ def find_local_minima(path_out, path_ref, h_min, mask=None, sigma=2):
     tmp_min=path_out.replace('.inr','_local_minima_out.inr')
     tmp_filt=path_out.replace('.inr','_local_minima_filter'+str(sigma)+'.inr') 
     if not path.exists(tmp_filt) and mask==None:
-        recfilter(path_ref, tmp_filt, filter_value=sigma, lazy=True)
+        #recfilter(path_ref, tmp_filt, filter_value=sigma, lazy=True)
+        linearfilter(path_ref, tmp_filt, filter_value=sigma, realScale=True, type='deriche', lazy=True)
     if mask==None:
         if os.path.exists(path_regional_max):
             os.system(path_regional_max + ' ' + tmp_filt + ' ' +\

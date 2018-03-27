@@ -98,10 +98,10 @@ def mars_segmentation(image_input, segmentation_output, sigma, h_min, sigma_ws, 
 
 
     print 'Filter with sigma='+str(sigma)+' in ' + path_gSigma
-    linearfilter(reconstructed_image, path_gSigma, sigma, realScale=True, type='fidrich', verbose=False, lazy=True)
+    linearfilter(reconstructed_image, path_gSigma, sigma, realScale=True, type='deriche', verbose=False, lazy=True)
     
     print 'Filter with sigma='+str(sigma_ws)+' in ' + path_g_5
-    linearfilter(reconstructed_image, path_g_5, sigma_ws, realScale=True, type='fidrich', verbose=False, lazy=True)
+    linearfilter(reconstructed_image, path_g_5, sigma_ws, realScale=True, type='deriche', verbose=False, lazy=True)
     
     print 'Find Local minnima with h_min='+str(h_min)+' in ' + path_rm
     regionalext(path_gSigma, path_rm, h_min)

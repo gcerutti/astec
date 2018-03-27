@@ -32,9 +32,3 @@ print "total cells: " + str(nb_cells)
 
 imsave(segmentation_file, SpatialImage(seg_corrected, voxelsize=seg.voxelsize).astype(np.uint16)) # Save into segmentation file as inr /!\ HERE WE OVERWRITE ON THE ORIGINAL SEGMENTATION FILE (GAEL)
 
-# MERGE Sophia - Montpellier (UTILITE ?)
-# <<<<
-#imsave(segmentation_file.replace('.inr','_mars.tiff'), imread(segmentation_file))
-# <<<<
-
-
