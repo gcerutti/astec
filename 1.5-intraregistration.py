@@ -12,7 +12,7 @@ from cpp_wrapping import rigid_registration, multiple_trsfs, change_multiple_trs
 #from ASTEC import segmentation_propagation
 from REGISTRATION import compute_intra_sequence_two_by_two_registration, compute_intra_sequence_respatialization_trsfs, compute_optimized_intra_sequence_respatialization_trsfs, intra_sequence_realignment, compose_transformation_stack_with_a_transformation
 
-iso=1.0
+iso=iso_intra_registration
 
 ### Parameters:
 
@@ -40,7 +40,7 @@ if intrareg_multiple_files.count('$TIME')==2:
 else:
 	intrareg_comp_format=intrareg_multiple_files
 
-compute_optimized_intra_sequence_respatialization_trsfs(postsegment_files, intrareg_comp_format, intrareg_change_template, intrareg_change_files, begin, end, threshold=2, iso=1.0, margin=10, verbose=True)
+compute_optimized_intra_sequence_respatialization_trsfs(postsegment_files, intrareg_comp_format, intrareg_change_template, intrareg_change_files, begin, end, threshold=2, iso=iso, margin=10, verbose=True)
 
 # Resampling a sequence of segmented images in a unique referential
 
@@ -73,4 +73,4 @@ if os.path.exists(intrareg_germinal_file):
 		os.mkdir(intrareg_germinal_Path) 
 	compose_transformation_stack_with_a_transformation(intrareg_comp_format, intrareg_germinal_file, intrareg_germinal_files, begin, end, verbose=True)
 	intra_sequence_realignment(postsegment_files, "TMP/foo_germinal_t$TIME.mha", intrareg_germinal_files, 
-						   template_image=None, begin=begin, end=end, delta=delta, nearest=True, iso=1.0, threshold=2, margin=10, visu=True, verbose=True)
+						   template_image=None, begin=begin, end=end, delta=delta, nearest=True, iso=iso, threshold=2, margin=10, visu=True, verbose=True)

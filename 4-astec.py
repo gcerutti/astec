@@ -16,7 +16,7 @@ sigma1 = 0.6 #/ target_resolution   #sigma 1 (0.6um)
 
 h_min_min=2 #(in our case hmin = 2 and hmax = 18).
 h_min_max=18 #(in our case hmin = 2 and hmax = 18).
-#h_min_max=50 #(in our case hmin = 2 and hmax = 50).
+#h_min_max=50 #(in our case hmin = 2 and hmax = 18).
 RadiusOpening=20 #(using the approximation of a sphere of radius 20 voxels as a structuring element)
 Thau= 25 # s(c)=h2+(c).N2(c) >t IDENTIQUE 
 MinVolume=1000 #Miss Suppressing cells with to small volumes (not yet in supdata)

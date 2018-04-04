@@ -5,10 +5,51 @@ end=4 #Last Point
 
 delta = 1 # Delta between two time points (if one does not want to fuse every single time point)
 ori = 'left' # if im2 angle - im1 angle < 0 => right
-resolution = (.17, .17, 1.) # Resolution of the raw images for Karine
+resolution = (.17, .17, 1.) # Resolution of the raw images (here are the known values for 140317-Patrick-St8)
 delay = 0 # If the time stamps in the folder are not the actual time stamps in the global movie
 mirrors = False  #TO COMMENT
 target_resolution = .3 # Isotropic resolution of the final fused image
+
+
+# MARS PARAMETERS
+
+# modules choice
+Mars_methods=['Classic','Gace','Hybridation']
+Mars_method=1 # 1 for 'Classic' method, 2 for 'Gace' method, 3 for 'Hybridation' method 
+
+### Parameters for MARS segmentation
+sigma1_mars = 0.6 # sigma 1 (0.6um) in real coordinates
+sigma2_mars = 0.15 # sigma 2 (0.15um) in real coordinates
+h_min_mars = 4   # H min initialisation to ease correction
+
+
+### Gace Parameters (if Mars_method is set to 2 or 3):
+
+# membrane_renforcement
+sigma_membrane=0.9 # membrane enhancement parameter (in real units, a priori 0.9 um is a good choice for data like Patrick/Ralph/Aquila)
+
+# anisotropicHist /!\ critical step
+sensitivity=0.99 # membrane binarization parameter, /!\ if failure, one should enter in "manual" mode of the function anisotropicHist via activation of 'manual' option
+
+manual=False     # By default, this parameter is set to False. If failure, (meaning that thresholds are very bad, meaning that the binarized image is very bad),
+				 # set this parameter to True and relaunch the computation on the test image. If the method fails again, "play" with the value of manual_sigma... and good luck.
+manual_sigma=15  # Axial histograms fitting initialization parameter for the computation of membrane image binarization axial thresholds (this parameter is used iif manual = True).
+				 # One may need to test different values of manual_sigma. We suggest to test values between 5 and 25 in case of initial failure. Good luck.
+
+hard_thresholding=False  # If the previous membrane threshold method failed, one can force the thresholding with a "hard" threshold applied on the whole image. To do so, this option must be set to True.
+hard_threshold=1.0       # If hard_thresholding = True, the enhanced membranes image is thresholded using this parameter (value 1 seems to be ok for time-point t001 of Aquila embryo for example).
+
+# TVmembrane
+sigma_TV=3.6     # parameter which defines the voting scale for membrane structures propagation by tensor voting method (real coordinates). 
+				 # This parameter shoud be set between 3 um (little cells) and 4.5 um(big gaps in the binarized membrane image)
+sigma_LF=0.9     # Smoothing parameter for reconstructed image (in real coordinates). It seems that the default value = 0.9 um is ok for classic use.
+sample=0.2       # Parameter for tensor voting computation speed optimisation (do not touch if not bewared)
+
+
+
+
+
+
 
 #FIND PATH AND EMBRYO NAME
 import sys,os
@@ -34,11 +75,6 @@ sys.path.append(astec_Path+"ASTEC") #Add the ASTEC Function
 sys.path.append(astec_Path+'ASTEC/CommunFunctions')
 
 
-#ASTEC modules choice
-Mars_methods=['Classic','Ace','Hybridation']
-Mars_method=1 # 1 for 'Classic' method, 2 for 'Ace' method, 3 for 'Hybridation' method 
-
-
 
 #Image Path definition
 rawdata_Path=datapath+"RAWDATA/"
@@ -59,6 +95,8 @@ intrareg_step_files=intrareg_Path+EN+'_reg_t$TIMEFLO_t$TIMEREF.trsf' #  intra re
 intrareg_multiple_files=intrareg_Path+EN+'_reg_compose_t$TIME_t$TIME.trsf' #  intra registration composed trsf file names
 intrareg_change_files=intrareg_Path+EN+'_reg_compose_t$TIME.trsf' #  intra registration recentered trsf file names
 intrareg_change_template=intrareg_Path+EN+'_reg_compose_template.inr.gz' #  intra registration template file name for recentered trsfs
+iso_intra_registration=1.0
+
 #postsegment_files=datapath+"GLACE/SEG/POST/"+EN+'_glas_seg_post_t$TIME.inr' #Segmentation output files
 
 #INTRA REGISTRATION COMPOSED WITH ROTATION SO THAT GERMINAL CELLS ARE AT THE DOWN OF THE IMAGE # NOT USED NOW
@@ -73,10 +111,13 @@ reconstruct_files=reconstruct_Path+EN+'_rec_t$TIME.inr' #  reconstructed images 
 
 #SEGMENTED DATA 
 segmented_Path=fuse_Path+"SEG/" #segmented images
+mars_file=segmented_Path+EN+'_fuse_mars_t$TIME.inr' #Segmentation output files
 segmentation_files=segmented_Path+EN+'_fuse_seg_t$TIME.inr' #Segmentation output files
 lineage_tree_filename=segmented_Path+EN+'_fuse_seg_lin_tree.pkl' #The main lineage tree file output 
 lineage_tree_test_filename=segmented_Path+EN+'_fuse_seg_lin_tree.test' #The main lineage tree test file output 
 
+#MAPPING FILE
+mapping_path=segmented_Path+EN+"_fuse_seg_t$TIME.map"
 
 #POST SEGMENTED DATA 
 postsegment_Path=segmented_Path+"POST/" #post segmentation images

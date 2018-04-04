@@ -5,10 +5,11 @@ from ImageHandling import imread, imsave, SpatialImage
 from lineage import timeNamed,timesNamed
 import numpy as np
 
+mars_file = timeNamed(mars_file,begin) #First time step to segment
 segmentation_file = timeNamed(segmentation_files,begin) #First time step to segment
 
 
-seg = imread(segmentation_file)
+seg = imread(mars_file)
 
 mapping = np.arange(np.max(seg)+1)
 
@@ -21,6 +22,9 @@ mapping[29] = 23
 mapping[30] = 1   # 1 corresponds to the background label
 mapping[89] = 1	  # 1 corresponds to the background label
 '''
+
+# FAIRE UNE FONCTION "READ" de mapping_path
+
 
 seg_corrected = mapping[seg]
 
