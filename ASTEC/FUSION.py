@@ -273,7 +273,8 @@ def fusion(images_input, image_output,temporary_path,ori, mirrors=False, targetR
     
 def fusion_process(time_angles_files,output_file,temporary_path,
                    ori, resolution, target_resolution, delay,
-                   ext_im, mirrors=False, targetResolution=1.0):
+                   ext_im, mirrors=False, targetResolution=1.0,
+                   dilation_x_0=40, dilation_x_1=40, dilation_y_0=40,dilation_y_1=40, no_crop=False ):
     """Compute the fusions of a given time-series of raw data
     time_angles_files : ??
     output_file : ??
@@ -284,7 +285,17 @@ def fusion_process(time_angles_files,output_file,temporary_path,
     target_resolution : resolution of the final fused image in $\mu m$
     delay : time to add in the name of the fused files if the movie have been splited
     ext_im : extension of the image ('.inr', '.tiff', '.tif', '.h5')
-    mirrors : if True a mirror was used to correct the X-Y transformation"""
+    mirrors : if True a mirror was used to correct the X-Y transformation
+
+    # Crop options:
+      no_crop [default=False]: if True, then the resampled image is not cropped
+    # Dilation parameters: 
+      dilation_x_0 [default=40]: parameter for dilation of the bounding box computed for the cropping of the resampled image in 'left' x direction 
+      dilation_x_1 [default=40]: parameter for dilation of the bounding box computed for the cropping of the resampled image in 'right' x direction
+      dilation_y_0 [default=40]: parameter for dilation of the bounding box computed for the cropping of the resampled image in 'top' y direction
+      dilation_y_1 [default=40]: parameter for dilation of the bounding box computed for the cropping of the resampled image in 'bottom' y direction
+
+    """
     
     tozip=False #Zip files ?
     if ext_im.lower()=='.zip':
@@ -328,7 +339,7 @@ def fusion_process(time_angles_files,output_file,temporary_path,
     cropped_files=[inr_file.replace('.inr','_cropp.inr') for inr_file in inr_files]
     for inr_file,cropped_file in zip(inr_files,cropped_files):
         print 'Crop ' + inr_file
-        croping(inr_file, cropped_file,downsize)
+        croping(inr_file, cropped_file,downsize, dilation_x_0=dilation_x_0, dilation_x_1=dilation_x_1, dilation_y_0=dilation_y_0,dilation_y_1=dilation_y_1, no_crop=no_crop)
   
 
     ### Fusion process 

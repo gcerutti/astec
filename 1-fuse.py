@@ -46,6 +46,7 @@ else:
                        fused_file,  
                        temporary_time_path,
                        ori, resolution,target_resolution, delay,
-                       ext_im1, mirrors = mirrors, targetResolution=target_resolution)
+                       ext_im1, mirrors = mirrors, targetResolution=target_resolution,
+                       dilation_x_0=fusion_dilation_x_0, dilation_x_1=fusion_dilation_x_1, dilation_y_0=fusion_dilation_y_0,dilation_y_1=fusion_dilation_y_1, no_crop=fusion_no_crop )
             print "Time point " + str(time) + " takes " + str(time_process) + " to compute\n\n\n"
             os.system("rm -rf "+temporary_time_path) ### Cleaning temporary files

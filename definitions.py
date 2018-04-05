@@ -1,14 +1,28 @@
+# File for parameters and nomenclature settings
+
+begin=5 #First Point
+end=5 #Last Point
 
 # RAWDATA DEFINITION
-begin=1
-end=4 #Last Point
 
-delta = 1 # Delta between two time points (if one does not want to fuse every single time point)
-ori = 'left' # if im2 angle - im1 angle < 0 => right
+delta = 1 	 				# Delta between two time points (if one does not want to fuse every single time point)
+ori = 'left' 				# if im2 angle - im1 angle < 0 => right
 resolution = (.17, .17, 1.) # Resolution of the raw images (here are the known values for 140317-Patrick-St8)
-delay = 0 # If the time stamps in the folder are not the actual time stamps in the global movie
-mirrors = False  #TO COMMENT
-target_resolution = .3 # Isotropic resolution of the final fused image
+resolution = (.21, .21, 1.) # Resolution of the raw images for Karine
+delay = 0 					# If the time stamps in the folder are not the actual time stamps in the global movie
+mirrors = False  			# Depends on the acquisition protocol, value can be set to True or False
+							#  - the standard value of this parameter is False
+							#  - in case of axial symmetry between left and right cameras, then set to True
+
+
+# FUSION PARAMETERS
+
+target_resolution = .3   # Isotropic resolution of the final fused image
+fusion_dilation_x_0 = 120 #  dilation_x_0 [default=40]: parameter for dilation of the bounding box computed for the cropping of the resampled image in 'left' x direction 
+fusion_dilation_x_1 = 40 #  dilation_x_1 [default=40]: parameter for dilation of the bounding box computed for the cropping of the resampled image in 'right' x direction
+fusion_dilation_y_0 = 80 #  dilation_y_0 [default=40]: parameter for dilation of the bounding box computed for the cropping of the resampled image in 'top' y direction
+fusion_dilation_y_1 = 40 #  dilation_y_1 [default=40]: parameter for dilation of the bounding box computed for the cropping of the resampled image in 'bottom' y direction
+fusion_no_crop = False   #  no_crop [default=False]: if True, then the resampled image is not cropped
 
 
 # MARS PARAMETERS
@@ -18,9 +32,9 @@ Mars_methods=['Classic','Gace','Hybridation']
 Mars_method=1 # 1 for 'Classic' method, 2 for 'Gace' method, 3 for 'Hybridation' method 
 
 ### Parameters for MARS segmentation
-sigma1_mars = 0.6 # sigma 1 (0.6um) in real coordinates
+sigma1_mars = 0.6  # sigma 1 (0.6um) in real coordinates
 sigma2_mars = 0.15 # sigma 2 (0.15um) in real coordinates
-h_min_mars = 4   # H min initialisation to ease correction
+h_min_mars = 4     # H min initialisation to ease correction
 
 
 ### Gace Parameters (if Mars_method is set to 2 or 3):
@@ -56,6 +70,7 @@ import sys,os
 
 astec_Path=os.getcwd()
 #astec_Path="/home/gmicheli/TEST_ASTEC/ASTEC/160708-Aquila-St8/ASTEC-180326"
+astec_Path="/home/gmicheli/MyData/DIGEM/TEST_ASTEC/RAW/171107-Karine-St8/astec-package"
 
 tab_Path=astec_Path.split('/')
 EN=tab_Path[len(tab_Path)-2]  #Embryo Name

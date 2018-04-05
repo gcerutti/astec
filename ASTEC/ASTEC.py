@@ -4,7 +4,6 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__),"CommunFunctions"))
 from ImageHandling import imread, imsave, SpatialImage
 from scipy import ndimage as nd
-import pickle as pkl
 
 from cpp_wrapping import (non_linear_registration, apply_trsf, watershed,
                           find_local_minima, outer_detection,gradient_norm,morpho)
