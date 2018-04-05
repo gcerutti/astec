@@ -536,7 +536,10 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
             seg_c[seg[bb]==c]=c
             nb, seeds_c=extract_seeds(seg_c, c, path_seeds_not_prop, bb, accept_3_seeds=True)
             change_happen=True
-            seeds_from_opt_h[seeds_from_opt_h==corres[c]]=0
+            #addition to correct 0-boolean error when len(corres[c])>1
+            for ci in range(len(corres[c])):
+                seeds_from_opt_h[seeds_from_opt_h==corres[c][ci]]=0
+            #seeds_from_opt_h[seeds_from_opt_h==corres[c]]=0
             divided_cells.append((label_max, label_max+1))
             seeds_from_opt_h[bb][seeds_c==1]=label_max
             h_min_information[(t+delta_t)*10**4+label_max]=h

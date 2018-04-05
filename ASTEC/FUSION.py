@@ -223,14 +223,12 @@ def fusion(images_input, image_output,temporary_path,ori, mirrors=False, targetR
     registration_files=[image_input.replace('.inr','_reg.inr') for image_input in images_input];
     print 'Linear Reech in ' +registration_files[0]
     reech(references_files[0], registration_files[0], voxelsize[0])
-    #imsave((registration_files[0]).replace('.inr','.tiff'),imread(registration_files[0])) #TEMPORARY 
     
 
     trsf_files=[image_input.replace('.inr','.trsf') for image_input in images_input];
     for i in range(1, len(images_input)):
         print 'Linear Registration in ' +registration_files[i]
-        linear_registration(registration_files[0], references_files[i], rotation_files[i], registration_files[i], trsf_files[i])
-        #imsave((registration_files[i]).replace('.inr','.tiff'),imread(registration_files[i])) #TEMPORARY
+        linear_registration(registration_files[0], references_files[i], rotation_files[i], registration_files[i], trsf_files[i], py_hl=6, py_ll=3, lts_fraction=0.55)
         
     #Mask    
     mask_files=[image_input.replace('.inr','_mask.inr') for image_input in images_input];
@@ -238,10 +236,8 @@ def fusion(images_input, image_output,temporary_path,ori, mirrors=False, targetR
     mask.resolution=voxelsize
     temporary_mask=mask_files[0].replace('.inr','_temp.inr')
     imsave(temporary_mask, mask)
-    #imsave(temporary_mask.replace('.inr','.tiff'), mask) #TEMPORARY
     reech(temporary_mask, mask_files[0], voxelsize[0])
     full_mask=imread(mask_files[0])
-    #imsave((mask_files[0]).replace('.inr','.tiff'),full_mask) #TEMPORARY
     for i in range(1, len(images_input)):  
         print ' Calcul Mask in '+ mask_files[i]
         im=imread(references_files[i])
@@ -256,7 +252,6 @@ def fusion(images_input, image_output,temporary_path,ori, mirrors=False, targetR
         del mask
         apply_trsf(temporary_mask, trsf_files[i], mask_files[i], registration_files[0]) 
         full_mask+=imread(mask_files[i])
-        #imsave((mask_files[i]).replace('.inr','.tiff'),imread(mask_files[i])) #TEMPORARY 
 
     final=np.zeros_like(full_mask)
     for i in range(len(images_input)):
@@ -274,7 +269,6 @@ def fusion(images_input, image_output,temporary_path,ori, mirrors=False, targetR
     bb = nd.find_objects(comp_co)[label-1]
     bb2 = (slice(max(bb[0].start - 40, 0), min(final.shape[0], bb[0].stop + 40), None), slice(max(bb[1].start - 40, 0), min(final.shape[1], bb[1].stop + 40), None), slice(0, final.shape[2]))
     imsave(image_output, SpatialImage(final[bb2], voxelsize=(targetResolution, targetResolution, targetResolution)))
-    #imsave(image_output.replace('.inr','.tiff'), SpatialImage(final[bb2])) #TEMPORARY
 
     
 def fusion_process(time_angles_files,output_file,temporary_path,

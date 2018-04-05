@@ -274,8 +274,9 @@ def linear_registration(path_ref, path_flo, path_trsf, path_output, path_output_
               " -flo " + path_flo +
               " -res " + path_output +
               " -res-trsf " + path_output_trsf +
-              " -init-trsf " + path_trsf +
+              " -init-res-trsf " + path_trsf +
               " -trsf-type affine" +
+              " -composition-with-initial "
               " -estimator wlts" +
               " -pyramid-highest-level " + str(py_hl) +
               " -pyramid-lowest-level " + str(py_ll) +
