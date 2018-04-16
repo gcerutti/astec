@@ -1,3 +1,7 @@
+#!/usr/bin/python2.7
+
+
+
 #Fusion Process
 from definitions import *
 if not os.path.isdir(vo_Path):

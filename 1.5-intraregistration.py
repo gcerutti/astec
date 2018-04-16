@@ -1,3 +1,6 @@
+#!/usr/bin/python2.7
+
+
 # ASTEC  intra-sequence registration
 from definitions import *
 if not os.path.isdir(intrareg_Path):

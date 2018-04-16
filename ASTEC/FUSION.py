@@ -273,8 +273,8 @@ def fusion(images_input, image_output,temporary_path,ori, mirrors=False, targetR
     
 def fusion_process(time_angles_files,output_file,temporary_path,
                    ori, resolution, target_resolution, delay,
-                   ext_im, mirrors=False, targetResolution=1.0,
-                   dilation_x_0=40, dilation_x_1=40, dilation_y_0=40,dilation_y_1=40, no_crop=False ):
+                   ext_im, mirrors=False, 
+                   margin_x_0=40, margin_x_1=40, margin_y_0=40, margin_y_1=40, crop=True ):
     """Compute the fusions of a given time-series of raw data
     time_angles_files : ??
     output_file : ??
@@ -288,12 +288,12 @@ def fusion_process(time_angles_files,output_file,temporary_path,
     mirrors : if True a mirror was used to correct the X-Y transformation
 
     # Crop options:
-      no_crop [default=False]: if True, then the resampled image is not cropped
-    # Dilation parameters: 
-      dilation_x_0 [default=40]: parameter for dilation of the bounding box computed for the cropping of the resampled image in 'left' x direction 
-      dilation_x_1 [default=40]: parameter for dilation of the bounding box computed for the cropping of the resampled image in 'right' x direction
-      dilation_y_0 [default=40]: parameter for dilation of the bounding box computed for the cropping of the resampled image in 'top' y direction
-      dilation_y_1 [default=40]: parameter for dilation of the bounding box computed for the cropping of the resampled image in 'bottom' y direction
+      crop [default=True]: if False, then the resampled image is not cropped ; if True, then image is cropped
+    # Margin parameters: 
+      margin_x_0 [default=40]: parameter for margin of the bounding box computed for the cropping of the resampled image in 'left' x direction 
+      margin_x_1 [default=40]: parameter for margin of the bounding box computed for the cropping of the resampled image in 'right' x direction
+      margin_y_0 [default=40]: parameter for margin of the bounding box computed for the cropping of the resampled image in 'top' y direction
+      margin_y_1 [default=40]: parameter for margin of the bounding box computed for the cropping of the resampled image in 'bottom' y direction
 
     """
     
@@ -311,7 +311,7 @@ def fusion_process(time_angles_files,output_file,temporary_path,
      
 
     ### Pre-treatment (Unzip if necessary and conver in inr format )
-    angle_paths=[temporary_path+'ANGLE_'+str(a)+'/' for a in range(len(time_angles_files))]
+    angle_paths=[temporary_path+'/ANGLE_'+str(a)+'/' for a in range(len(time_angles_files))]
     [os.system('mkdir -p ' + angle_path) for angle_path in angle_paths] #Create Angle Temporary Directory
         
     inr_files=[]
@@ -339,7 +339,7 @@ def fusion_process(time_angles_files,output_file,temporary_path,
     cropped_files=[inr_file.replace('.inr','_cropp.inr') for inr_file in inr_files]
     for inr_file,cropped_file in zip(inr_files,cropped_files):
         print 'Crop ' + inr_file
-        croping(inr_file, cropped_file,downsize, dilation_x_0=dilation_x_0, dilation_x_1=dilation_x_1, dilation_y_0=dilation_y_0,dilation_y_1=dilation_y_1, no_crop=no_crop)
+        croping(inr_file, cropped_file,downsize, margin_x_0=margin_x_0, margin_x_1=margin_x_1, margin_y_0=margin_y_0, margin_y_1=margin_y_1, crop=crop)
   
 
     ### Fusion process 

@@ -1,19 +1,130 @@
-#Fusion Process
-from definitions import *
+#!/usr/bin/python2.7
 
-print "begin="+str(begin)
+import os, sys, imp
 
+assert os.path.isdir(os.path.join(os.path.dirname(__file__),"ASTEC"))
+sys.path.append(os.path.join(os.path.dirname(__file__),"ASTEC"))
 
+from optparse import OptionParser
+
+from nomenclature import *
 from FUSION import read_raw_data,fusion_process
 from lineage import timeNamed,timesNamed
-import os
-
-if not os.path.isdir(fuse_Path):
-    os.mkdir(fuse_Path)  
 
 
-os.system("cp -f "+astec_Path+"definitions.py "+fuse_Path )
-os.system("cp -f "+astec_Path+"1-fuse.py "+fuse_Path )
+
+### Options parsing
+
+parser = OptionParser()
+parser.add_option("-p", "--parameters", dest="p",
+                  help="python file containing parameters definition",\
+                  metavar="FILE")
+parser.add_option("-e", "--embryo-rep", dest="e",
+                  help="path to the embryo data", metavar="PATH")
+parser.add_option("-q", "--quiet",
+                  action="store_false", dest="verbose", default=True,
+                  help="don't print status messages to stdout")
+
+(options, args) = parser.parse_args()
+
+parameters_file=options.p
+
+### Parameters file
+if not parameters_file:
+    parameters_file=raw_input('Provide the parameters file: ')
+try:
+    assert os.path.isfile(parameters_file)
+except ValueError:
+    print "Provided path '%s' was not found. Exiting."%parameters_file
+    sys.exit(1)
+
+### Reading parameters from parameters_file, put in the instance p
+try:
+    p = imp.load_source('*', parameters_file) # p is a structure which contains
+                                              # all the parameters defined in
+                                              # parameters_file
+except ValueError:
+    print "Unable to load the source '%s'. Exiting."%parameters_file
+    sys.exit(1)
+
+
+### Particular options parsing: redefining p.PATH_EMBRYO
+
+if options.e:
+    if p.PATH_EMBRYO:
+        test=raw_input("Caution: parameter PATH_EMBRYO '%s' defined in '%s'\
+              will be overwritten by '%s'. Are you sure? (Y/n)"\
+              %(p.PATH_EMBRYO,parameters_file,options.e))
+        if test != 'Y' and test != 'y':
+            print "Usage: option -e should be used when PATH_EMBRYO option is\
+             kept empty in parameters file. Exiting."
+            sys.exit(1) 
+    p.PATH_EMBRYO = options.e
+
+### Embryo name from path: defining p.EN (also set if options.e is provided)
+
+if not p.EN or option.e:
+    if p.EN:
+        test=raw_input("Caution: parameter EN '%s' defined in '%s'\
+              will be overwritten by '%s'. Are you sure? (Y/n)"\
+              %(p.PATH_EMBRYO,parameters_file,\
+                options.e.rstrip(os.path.sep).split(os.path.sep)[-1] ))
+        if test != 'Y' and test != 'y':
+            print "Usage: option -e should be used when PATH_EMBRYO and EN \
+             options are kept empty in parameters file. Exiting."
+            sys.exit(1) 
+    p.EN=p.PATH_EMBRYO.rstrip(os.path.sep).split(os.path.sep)[-1] #Embryo name
+    if  p.EN.count('-')!=2:
+        print 'ERROR in embryo path '+p.PATH_EMBRYO
+        print '->  path should be /fake/path/<embryoname>'
+        print '    where embryoname=YYMMDD-SaintOfTheDays-Stage'
+        sys.exit(1)
+
+
+
+### Building paths from nomenclature.py and parameters fils
+
+print "Raw data will be searched in directory %s"%replaceFlags(path_rawdata,p)
+
+path_angle1 = replaceFlags(path_rawdata_angle1, p)
+path_angle2 = replaceFlags(path_rawdata_angle2, p)
+path_angle3 = replaceFlags(path_rawdata_angle3, p)
+path_angle4 = replaceFlags(path_rawdata_angle4, p)
+
+path_fuse = replaceFlags(path_fuse, p)
+path_fuse_exp = replaceFlags(path_fuse_exp, p)
+
+path_fuse_exp_files = replaceFlags(path_fuse_exp_files, p)
+
+
+path_log_file = replaceFlags(path_fuse_logfile, p)
+
+#Fusion Process
+
+if not os.path.isdir(path_fuse):
+    os.mkdir(path_fuse)  
+if not os.path.isdir(path_fuse_exp):
+    os.mkdir(path_fuse_exp)  
+
+
+#Log file
+if os.path.exists(os.getcwd()+os.path.sep+'.git'):
+    os.system('echo "# astec-package version: `git describe`" >> %s'\
+        %path_log_file)
+else:
+    os.system('echo "# astec-package version was not found, meaning it was not\
+     cloned from the inria forge project" >> %s'%path_log_file)
+with open(path_log_file, 'a') as log_file:
+    log_file.write('# Python executable: '+sys.executable+'\n')
+    log_file.write('# Working directory: %s\n'%os.getcwd())
+    log_file.write('# Parameters file: %s\n'% parameters_file)
+    log_file.write('# Embryo path: %s\n'% p.PATH_EMBRYO)
+    log_file.write('# Embryo name: %s\n'% p.EN)
+    log_file.write('# Command line:\n'+(' '.join(sys.argv))+'\n\n\n')
+
+
+os.system("cp -f "+parameters_file+" "+path_fuse_exp )
+#os.system("cp -f "+astec_Path+"1-fuse.py "+fuse_Path )
 
 
 #Search for image format in different angle folders
@@ -34,19 +145,29 @@ else:
     begin=begin1;end=end1;ext_im=ext_im1;
     print 'Process Fusion from ' + str(begin)+ ' to ' + str(end)
     angles_files=[path_im1, path_im2, path_im3, path_im4] #Combine Angle Path
-    temporary_path=fuse_Path+"TEMP_$TIME/" #Temporary Path
+    temporary_path=os.path.join(path_fuse_exp,"TEMP_$TIME") #Temporary Path
     #PROCESS THE FUSION
-    for time in range(begin, end+1, delta): # Interation on time steps
-        fused_file=timeNamed(fused_files,time+delay)
+    for time in range(begin, end+1, p.delta): # Interation on time steps
+
+        fused_file=replaceTIME(path_fuse_exp_files,time+p.raw_delay)
+
         if not os.path.isfile(fused_file):
-            time_angles_files=[timeNamed(angle_file + ext_im,time) for angle_file in angles_files]
-            temporary_time_path=timeNamed(temporary_path,time) #Temporary Path for this time point
+            time_angles_files=[timeNamed(angle_file + ext_im,time) \
+                               for angle_file in angles_files]
+            temporary_time_path=timeNamed(temporary_path,time) # Temporary Path
+                                                               # for this t-p
             print temporary_time_path
             time_process=fusion_process(time_angles_files,
                        fused_file,  
                        temporary_time_path,
-                       ori, resolution,target_resolution, delay,
-                       ext_im1, mirrors = mirrors, targetResolution=target_resolution,
-                       dilation_x_0=fusion_dilation_x_0, dilation_x_1=fusion_dilation_x_1, dilation_y_0=fusion_dilation_y_0,dilation_y_1=fusion_dilation_y_1, no_crop=fusion_no_crop )
-            print "Time point " + str(time) + " takes " + str(time_process) + " to compute\n\n\n"
-            os.system("rm -rf "+temporary_time_path) ### Cleaning temporary files
+                       p.raw_ori, p.raw_resolution, p.target_resolution, 
+                       p.raw_delay, ext_im1, 
+                       mirrors = p.raw_mirrors, 
+                       margin_x_0=p.fusion_margin_x_0, 
+                       margin_x_1=p.fusion_margin_x_1, 
+                       margin_y_0=p.fusion_margin_y_0, 
+                       margin_y_1=p.fusion_margin_y_1, 
+                       crop=p.fusion_crop )
+            print "Time point " + str(time) + " takes " + str(time_process) +\
+                  " to compute\n\n\n"
+            os.system("rm -rf "+temporary_time_path) # Cleaning temporary files

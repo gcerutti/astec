@@ -1,3 +1,6 @@
+#!/usr/bin/python2.7
+
+
 # Post correction of the segmentation
 from definitions import *
 if not os.path.isdir(postsegment_Path):

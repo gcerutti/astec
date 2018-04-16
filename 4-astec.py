@@ -1,3 +1,6 @@
+#!/usr/bin/python2.7
+
+
 # ASTEC  segmentation propagation
 from definitions import *
 if not os.path.isdir(segmented_Path):
