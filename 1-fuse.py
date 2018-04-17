@@ -12,7 +12,6 @@ from FUSION import read_raw_data,fusion_process
 from lineage import timeNamed,timesNamed
 
 
-
 ### Options parsing
 
 parser = OptionParser()
@@ -60,29 +59,19 @@ if options.e:
              kept empty in parameters file. Exiting."
             sys.exit(1) 
     p.PATH_EMBRYO = options.e
-
-### Embryo name from path: defining p.EN (also set if options.e is provided)
-
-if not p.EN or option.e:
+    # Embryo name from path: defining p.EN (also set if options.e is provided)
     if p.EN:
         test=raw_input("Caution: parameter EN '%s' defined in '%s'\
-              will be overwritten by '%s'. Are you sure? (Y/n)"\
-              %(p.PATH_EMBRYO,parameters_file,\
-                options.e.rstrip(os.path.sep).split(os.path.sep)[-1] ))
+              will be overwritten. Are you sure? (Y/n)"\
+              %(p.PATH_EMBRYO,parameters_file))
         if test != 'Y' and test != 'y':
-            print "Usage: option -e should be used when PATH_EMBRYO and EN \
+            print "Usage: option '-e' should be used when PATH_EMBRYO and EN \
              options are kept empty in parameters file. Exiting."
             sys.exit(1) 
-    p.EN=p.PATH_EMBRYO.rstrip(os.path.sep).split(os.path.sep)[-1] #Embryo name
-    if  p.EN.count('-')!=2:
-        print 'ERROR in embryo path '+p.PATH_EMBRYO
-        print '->  path should be /fake/path/<embryoname>'
-        print '    where embryoname=YYMMDD-SaintOfTheDays-Stage'
-        sys.exit(1)
+    p.EN='' # replaceFlags function will deal with empty p.EN field
 
 
-
-### Building paths from nomenclature.py and parameters fils
+### Building paths from nomenclature.py and parameters file
 
 print "Raw data will be searched in directory %s"%replaceFlags(path_rawdata,p)
 
@@ -99,7 +88,7 @@ path_fuse_exp_files = replaceFlags(path_fuse_exp_files, p)
 
 path_log_file = replaceFlags(path_fuse_logfile, p)
 
-#Fusion Process
+### Fusion directory and subdirectory construction
 
 if not os.path.isdir(path_fuse):
     os.mkdir(path_fuse)  
@@ -107,7 +96,8 @@ if not os.path.isdir(path_fuse_exp):
     os.mkdir(path_fuse_exp)  
 
 
-#Log file
+### Log file
+
 if os.path.exists(os.getcwd()+os.path.sep+'.git'):
     os.system('echo "# astec-package version: `git describe`" >> %s'\
         %path_log_file)
@@ -122,10 +112,13 @@ with open(path_log_file, 'a') as log_file:
     log_file.write('# Embryo name: %s\n'% p.EN)
     log_file.write('# Command line:\n'+(' '.join(sys.argv))+'\n\n\n')
 
+### Copy of parameters file
 
 os.system("cp -f "+parameters_file+" "+path_fuse_exp )
-#os.system("cp -f "+astec_Path+"1-fuse.py "+fuse_Path )
 
+############################
+### Fusion Process Stuff ###
+############################
 
 #Search for image format in different angle folders
 success1,begin1,end1,ext_im1,path_im1=read_raw_data(path_angle1) 

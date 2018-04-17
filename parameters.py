@@ -4,6 +4,7 @@
 
 PATH_EMBRYO=''	# Must be the path to the embryo data 
 				# eg: '/media/DATA/171107-Karine-St8'
+				# Can also be set by providing option '-e' in the command line
 EN=''			# Embryo Name (format YYMMDD-SaintOfTheDays-Stage)
 				# eg: '171107-Karine-St8'
 				# (automatically extracted from PATH_EMBRYO if not provided)
@@ -22,36 +23,30 @@ EXP_SEG=''	#
 EXP_POST=''	#
 
 
-#if not EN:
-
 #TIME=''		# Time-point of an embryo snapshot 
 #TIMEREF=''		# For registration, time-point of reference snapshot
 #TIMEFLO=''		# For registration, time-point of floating snapshot
 
-
-path_log_file=path_EN+"1-fuse.log"
-path_raw=path_EN+""
-
-
-
-
+##########################
 ### GENERAL PARAMETERS ###
+##########################
 
 begin=5 				 # First Point
 end=5   				 # Last Point
 delta=1     			 # Delta between two time points (if one does not want
 						 # to deal with every single time point) (default = 1)
 target_resolution = .3   # Isotropic resolution of the final fused and 
-						 # segmented images
+						 # segmented images (default = 0.3)
 
 
-
+##########################
 ### RAWDATA DEFINITION ###
+##########################
 
 raw_ori = 'left' 				# if im2 angle - im1 angle < 0 => right
 raw_resolution = (.17, .17, 1.) # Resolution of the raw images (here are the 
 								# known values for 140317-Patrick-St8)
-raw_resolution = (.21, .21, 1.) # Resolution of the raw images for Karine
+#raw_resolution = (.21, .21, 1.) # Resolution of the raw images for Karine
 raw_delay = 0 					# If the time stamps in the folder are not the
 								# actual time stamps in the global movie
 raw_mirrors = False  			# Depends on the acquisition protocol, value 
@@ -64,8 +59,10 @@ raw_mirrors = False  			# Depends on the acquisition protocol, value
 
 
 
-
+#########################
 ### FUSION PARAMETERS ###
+#########################
+
 fusion_margin_x_0 = 40 # margin_x_0 [default=40]: parameter for margin of the
 					   # bounding box computed for the cropping of the 
 					   # resampled image in 'left' x direction 
@@ -84,8 +81,10 @@ fusion_crop = True     # crop [default=True]: if False, then the resampled
 
 
 
-
+#######################
 ### MARS PARAMETERS ###
+#######################
+
 # Modules choice
 mars_method=1 			# 1 for 'Classic' method
 			  			# 2 for 'Gace' method
@@ -93,7 +92,7 @@ mars_method=1 			# 1 for 'Classic' method
 mars_sigma1 = 0.6  		# sigma 1 (0.6um) in real coordinates
 mars_sigma2 = 0.15 		# sigma 2 (0.15um) in real coordinates
 mars_h_min = 4     		# H min initialisation to ease correction
-# Gace Parameters (if mars_method is set to 2 or 3):
+# Gace Parameters (if mars_method is set to 2):
 # membrane_renforcement
 mars_sigma_membrane=0.9 # membrane enhancement parameter (in real units, a 
 						# priori 0.9 um is a good choice for data like 
@@ -141,9 +140,34 @@ mars_sample=0.2       # Parameter for tensor voting computation speed
 
 
 
+####################################
+### MANUAL CORRECTION PARAMETERS ###
+####################################
 
+mancor_mapping_file='' # path to mapping file for manual correction of the 
+					   # mars segmentation. See above the syntax of this file.
+					   # - 1 line per label association
+					   # - background label has value 1
+					   # - the character '#' denotes commented lines 
+					   # See file "mapping.txt" in the astec project to get an
+					   # example
+'''
+# EXAMPLE OF mancor_mapping_file CONTENT:
+# here the input label 8 will be mapped with new value 7, etc...
+8 7
+9 2  
+4 64 
+29 23
+# ... etc ...
+# background labels
+30 1 
+89 1 
+'''
 
+###########################################
 ### SEGMENTATION PROPAGATION PARAMETERS ###
+###########################################
+
 # Modules choice
 astec_method=1
 # Glace parameters (if astec_method is set to 2 or 3):

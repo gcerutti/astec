@@ -60,7 +60,49 @@ path_fuse_exp_files=os.path.join(path_fuse_exp,FLAG_EN+'_fuse_t$TIME.inr')
 # logfile
 path_fuse_logfile  =os.path.join(path_fuse_exp,'1-fuse.log')	
 
-#INTRA REGISTRATION DATA 
+
+
+
+### MARS DATA 
+# path mars images
+path_mars          =os.path.join(FLAG_PATH_EMBRYO,DIR_STAGE_MARS) 
+# path for mars workspace
+path_mars_exp      =os.path.join(path_mars,DIR_STAGE_MARS+'_'+FLAG_EXP_MARS)
+# mars images names
+path_mars_exp_files=os.path.join(path_mars_exp,FLAG_EN+'_mars_t$TIME.inr') 
+path_mars_exp_reconstruct=os.path.join(path_mars_exp,"RECONSTRUCTION") #path reconstructed images
+path_mars_exp_reconstruct_files=\
+os.path.join(path_mars_exp_reconstruct,FLAG_EN+'_rec_t$TIME.inr') #  reconstructed images names
+# logfile
+path_mars_logfile  =os.path.join(path_mars_exp,'2-mars.log')	
+
+#segmented_Path=os.path.join(FLAG_PATH_EMBRYO,DIR_STAGE_SEG) #segmented images
+#mars_file=segmented_Path+FLAG_EN+'_fuse_mars_t$TIME.inr' #Segmentation output files
+#segmentation_files=segmented_Path+FLAG_EN+'_fuse_seg_t$TIME.inr' #Segmentation output files
+
+
+
+
+### SEGMENTATION DATA 
+# path mars images
+path_seg          =os.path.join(FLAG_PATH_EMBRYO,DIR_STAGE_SEG) 
+# path for mars workspace
+path_seg_exp      =os.path.join(path_seg,DIR_STAGE_SEG+'_'+FLAG_EXP_SEG)
+# mars images names
+path_seg_exp_files=os.path.join(path_seg_exp,FLAG_EN+'_seg_t$TIME.inr') 
+path_seg_exp_reconstruct=os.path.join(path_seg_exp,"RECONSTRUCTION") #path reconstructed images
+path_seg_exp_reconstruct_files=\
+os.path.join(path_seg_exp_reconstruct,FLAG_EN+'_rec_t$TIME.inr') #  reconstructed images names
+# logfiles
+path_seg_logfile  =os.path.join(path_seg_exp,'4-astec.log')	
+path_mancor_logfile  =os.path.join(path_seg_exp,'3-manualcorrection.log')	
+
+
+
+
+
+
+### INTRA REGISTRATION DATA 
 path_intrareg=os.path.join(FLAG_PATH_EMBRYO,DIR_STAGE_REG) # Path intra registration data
 path_intrareg_exp=os.path.join(path_intrareg,DIR_STAGE_REG+'_'+FLAG_EXP_REG) # Path intra registration data
 path_intrareg_step_files=os.path.join(path_intrareg_exp, \
@@ -77,6 +119,21 @@ path_intrareg_change_template=os.path.join(path_intrareg, \
 										   # name for recentered trsfs
 iso_intra_registration=1.0		# Parameter for intra registration resampled 
 								# images resolution
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #postsegment_files=datapath+"GLACE/SEG/POST/"+EN+'_glas_seg_post_t$TIME.inr' #Segmentation output files
 
@@ -194,7 +251,7 @@ def replacePATH_EMBRYO(filename,path):
     Replaces all the occurences of "$EMBRYOPATH" by its value given by EN of type str
     """
     #assert path, "Specified embryo path should not be empty."
-    return filename.replace(FLAG_PATH_EMBRYO, path)
+    return filename.replace(FLAG_PATH_EMBRYO, path.rstrip(os.path.sep))
 
 #def replaceWORKSPACE(filename,path):
 #    """
@@ -232,7 +289,13 @@ def replaceFlags(filename, parameters, check_name=False):
         if flag==FLAG_PATH_EMBRYO:
             filename=replacePATH_EMBRYO(filename, parameters.PATH_EMBRYO)
         elif flag==FLAG_EN:
-            filename=replaceEN(filename, parameters.EN, check_name=check_name)
+            if not parameters.EN:
+                embryoname=\
+              parameters.PATH_EMBRYO.rstrip(os.path.sep).split(os.path.sep)[-1]
+                filename=replaceEN(filename, embryoname, check_name=check_name)
+            else:
+                filename=replaceEN(filename, parameters.EN, \
+                                   check_name=check_name)
         elif flag==FLAG_EXP_FUSE:
             filename=replaceEXP(filename, flag, parameters.EXP_FUSE)
         elif flag==FLAG_EXP_REG:

@@ -6,7 +6,7 @@ from scipy import ndimage as nd
 from cpp_wrapping import linearfilter, regionalext, connexe, watershed
 
 
-def mars_segmentation(image_input, segmentation_output, sigma, h_min, sigma_ws, th=0, method=1, methods={1:'Classic',2:'Ace',3:'Hybridation'}, reconstructed_image=None,
+def mars_segmentation(image_input, segmentation_output, sigma, h_min, sigma_ws, th=0, method=1, reconstructed_image=None,
     sigma_membrane=0.9, sensitivity=0.99, manual=False, manual_sigma=15, hard_thresholding=False, hard_threshold=1.0, sigma_TV=3.6, sigma_LF=0.9, sample=0.2):
     """ Perform the watershed segmentation of a given intensity image
     image_input : path to the input image
@@ -50,8 +50,8 @@ def mars_segmentation(image_input, segmentation_output, sigma, h_min, sigma_ws, 
     keep_reconstructed=True
     os.system('mkdir -p '+segmentation_output[:segmentation_output.rfind('/')])
     print 'Process Segmentation of '+image_input 
-    if type(methods)==dict and methods.has_key(method):
-        print "  Method '%s'"%methods[method]
+    #if type(methods)==dict and methods.has_key(method):
+    #    print "  Method '%s'"%methods[method]
 
     if image_input.split('.')[-1]=='tif' or image_input.split('.')[-1]=='tiff':
         print "%s: Warning: expectedly, input '%s' should not be in 'tif' format."%(program, image_input)
