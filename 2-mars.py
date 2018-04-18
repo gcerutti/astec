@@ -5,10 +5,6 @@ import os, sys, imp
 
 assert os.path.isdir(os.path.join(os.path.dirname(__file__),"ASTEC"))
 sys.path.append(os.path.join(os.path.dirname(__file__),"ASTEC"))
-assert os.path.isdir(os.path.join(os.path.dirname(__file__), \
-		"ASTEC","CommunFunctions"))
-sys.path.append(os.path.join(os.path.dirname(__file__), \
-		"ASTEC","CommunFunctions"))
 
 from optparse import OptionParser
 

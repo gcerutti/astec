@@ -157,24 +157,27 @@ def connexe(path_input, path_output, high_th):
               ' -labels -o 2')
 
 
-def watershed(path_seeds, path_int, path_output=None, lazy=True):
+def watershed(path_seeds, path_int, path_output=None, lazy=True, temporary_folder=''):
     ''' Perform the watershed operation
     path_seeds : path to the seeds image
     path_int : path to the intensity image
     path_output : path to the output image
     lazy : do not return the output image if True
-    '''    
+    temporary_folder : folder for temporary files 
+                       (by default, temporary files are written in the workspace)
+    ''' 
+    cmd=""   
     if type(path_seeds)!=str:
-        imsave("seeds.inr", path_seeds)
-        path_seeds = "seeds.inr"
+        imsave(os.path.join(temporary_folder,"seeds.inr"), path_seeds)
+        path_seeds = os.path.join(temporary_folder,"seeds.inr")
         cmd+=" "+path_seeds
     if type(path_int)!=str:
-        imsave("intensity.inr", path_int)
-        path_int = "intensity.inr"
+        imsave(os.path.join(temporary_folder,"intensity.inr"), path_int)
+        path_int = os.path.join(temporary_folder,"intensity.inr")
         cmd+=" "+path_int
     if path_output is None:
         lazy = False
-        path_output = 'seg.inr'
+        path_output = os.path.join(temporary_folder,"seg.inr")
         cmd+=" "+path_output
  
     os.system(path_watershed + ' ' + path_seeds +\

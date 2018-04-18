@@ -356,7 +356,7 @@ def get_seeds_from_optimized_parameters(t, seg, cells, cells_with_no_seed, right
             label_max+=1
 
     print 'Watershed '
-    seg_from_opt_h=watershed(SpatialImage(seeds_from_opt_h, voxelsize=seeds_from_opt_h.voxelsize), im_ref)
+    seg_from_opt_h=watershed(SpatialImage(seeds_from_opt_h, voxelsize=seeds_from_opt_h.voxelsize), im_ref, temporary_folder=os.path.dirname(path_h_min))
     for l in exterior_corres:
         seg_from_opt_h[seg_from_opt_h==l]=1
     corres[1]=[1]
@@ -569,7 +569,7 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
             change_happen=True
 
     if change_happen:
-        seg_from_opt_h=watershed(SpatialImage(seeds_from_opt_h,voxelsize=seeds_from_opt_h.voxelsize), im_ref)
+        seg_from_opt_h=watershed(SpatialImage(seeds_from_opt_h,voxelsize=seeds_from_opt_h.voxelsize), im_ref, temporary_folder=os.path.dirname(path_h_min))
         for l in exterior_corres:
             seg_from_opt_h[seg_from_opt_h==l]=1  
             
@@ -714,7 +714,8 @@ def segmentation_propagation_from_seeds(t, fused_file_ref,segmentation_file_ref,
     im_fused=imread(fused_file)
     im_fused_16=deepcopy(im_fused)
     im_fused=to_u8(im_fused)
-    segmentation=watershed(seeds_file, im_fused)
+    segmentation=watershed(seeds_file, im_fused, temporary_folder=os.path.dirname(vf_file))
+    seeds=imread(seeds_file)
     if delSeedsASAP:
         cmd='rm %s'%seeds_file
         print cmd
@@ -734,6 +735,7 @@ def segmentation_propagation_from_seeds(t, fused_file_ref,segmentation_file_ref,
         right_parameters, delta_t, bounding_boxes, im_fused, seeds, parameters, h_min_max, path_h_min, sigma,Volum_Min_No_Seed=Volum_Min_No_Seed)
     
     print 'Perform volume checking '+str(t+delta_t)
+    segmentation_ref=imread(segmentation_file_ref)
     seg_from_opt_h, bigger, lower, to_look_at, too_little, corres, exterior_correction = volume_checking(t,delta_t,segmentation, seeds_from_opt_h, seg_from_opt_h, corres, divided_cells, bounding_boxes, right_parameters, 
         im_fused, im_fused_16, seeds, nb_cells, label_max, exterior_corres, parameters, h_min_information, sigma_information, segmentation_ref, segmentation_file_ref, vf_file, path_h_min, volumes_t_1, 
         nb_proc=nb_proc,Thau=Thau, MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,NIterations=NIterations ,DeltaVoxels=DeltaVoxels)
@@ -783,7 +785,7 @@ def segmentation_propagation(t, fused_file_ref,segmentation_file_ref, fused_file
     segmentation_ref=imread(segmentation_file_ref);
 
 
-    print 'Calcul Vector Fields from '+str(t)+' to '+str(t+delta_t)
+    print 'Compute Vector Fields from '+str(t)+' to '+str(t+delta_t)
     non_linear_registration(fused_file_ref,\
                         fused_file, \
                         vf_file.replace('.inr','_affine.inr'), \
@@ -849,7 +851,7 @@ def to_delete_segmentation_propagation(t, fused_file_ref,segmentation_file_ref, 
     im_fused=imread(fused_file)
     im_fused_16=deepcopy(im_fused)
     im_fused=to_u8(im_fused)
-    segmentation=watershed(seeds, im_fused)
+    segmentation=watershed(seeds, im_fused, temporary_folder=os.path.dirname(vf_file))
     cells=list(np.unique(segmentation))
     cells.remove(1)
     bounding_boxes=dict(zip(range(1, max(cells)+1), nd.find_objects(segmentation)))

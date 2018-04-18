@@ -31,7 +31,7 @@ EXP_POST=''	#
 ### GENERAL PARAMETERS ###
 ##########################
 
-begin=5 				 # First Point
+begin=1 				 # First Point
 end=5   				 # Last Point
 delta=1     			 # Delta between two time points (if one does not want
 						 # to deal with every single time point) (default = 1)
@@ -144,6 +144,8 @@ mars_sample=0.2       # Parameter for tensor voting computation speed
 ### MANUAL CORRECTION PARAMETERS ###
 ####################################
 
+mancor_seg_file='' 	   # segmentation file to be manually corrected
+					   # If not provided, then looking for the output of MARS
 mancor_mapping_file='' # path to mapping file for manual correction of the 
 					   # mars segmentation. See above the syntax of this file.
 					   # - 1 line per label association
@@ -164,55 +166,106 @@ mancor_mapping_file='' # path to mapping file for manual correction of the
 89 1 
 '''
 
+
+
 ###########################################
 ### SEGMENTATION PROPAGATION PARAMETERS ###
 ###########################################
 
+
 # Modules choice
-astec_method=1
-# Glace parameters (if astec_method is set to 2 or 3):
+astec_method=1 			# 1 for 'Classic' method
+			  			# 2 for 'Glace' method
+			  			# 2 for 'Hybrid' method
+# General parameters for segmentation propagation
+astec_sigma1 = 0.6  		# sigma 1 (0.6um) in real coordinates
+astec_sigma2 = 0.15 		# sigma 2 (0.15um) in real coordinates
+astec_h_min_min = 2    		# H min initialisation to ease correction
+astec_h_min_max = 18   		# H min initialisation to ease correction
+
+# Glace Parameters (if astec_method is set to 2 or 3):
 # membrane_renforcement
-sigma_membrane=0.9 # membrane enhancement parameter (in real units, a priori
-				   # 0.9 um is a good choice for data like Patrick/Ralph/...)
+astec_sigma_membrane=0.9 # membrane enhancement parameter (in real units, a 
+						# priori 0.9 um is a good choice for data like 
+						# Patrick/Ralph/Aquila)
 # anisotropicHist /!\ critical step
-sensitivity=0.99 # membrane binarization parameter, /!\ if failure, one should
-				 # enter in "manual" mode of the function anisotropicHist via 
-				 # activation of 'manual' option
+astec_sensitivity=0.99   # membrane binarization parameter, /!\ if failure,
+						# one should enter in "manual" mode of the function
+						# anisotropicHist via activation of 'manual' option
 
-manual=False     # By default, this parameter is set to False. If failure, 
-				 # (meaning that thresholds are very bad, meaning that the 
-				 # binarized image is very bad),
-				 # set this parameter to True and relaunch the computation on
-				 # the test image. If the method fails again, "play" with the
-				 # value of manual_sigma... and good luck.
-manual_sigma=15  # Axial histograms fitting initialization parameter for the
-				 # computation of membrane image binarization axial thresholds
-				 # (this parameter is used iif manual = True).
-				 # One may need to test different values of manual_sigma. We
-				 # suggest to test values between 5 and 25 in case of initial
-				 # failure. Good luck.
+astec_manual=False     	# By default, this parameter is set to False. If 
+						# failure, (meaning that thresholds are very bad, 
+						# meaning that the binarized image is very bad),
+				 		# set this parameter to True and relaunch the 
+				 		# computation on the test image. If the method fails
+				 		# again, "play" with the value of manual_sigma... 
+				 		# and good luck.
+astec_manual_sigma=15    # Axial histograms fitting initialization parameter 
+						# for the computation of membrane image binarization
+						# axial thresholds (this parameter is used iif 
+						# manual = True).
+						# One may need to test different values of 
+						# manual_sigma. We suggest to test values between 5 and
+						# 25 in case of initial failure. Good luck.
 
-hard_thresholding=False  # If the previous membrane threshold method failed,
-						 # one can force the thresholding with a "hard" 
-						 # threshold applied on the whole image. To do so, this
-						 # option must be set to True.
-hard_threshold=1.0       # If hard_thresholding = True, the enhanced membranes
-						 # image is thresholded using this parameter (value 1
-						 # seems to be ok for time-point t001 of Aquila embryo
-						 # for example).
+astec_hard_thresholding=False  # If the previous membrane threshold method 
+							  # failed, one can force the thresholding with a
+							  # "hard" threshold applied on the whole image. 
+							  # To do so, this option must be set to True.
+astec_hard_threshold=1.0       # If hard_thresholding = True, the enhanced 
+							  # membranes image is thresholded using this 
+							  # parameter (value 1 seems to be ok for 
+							  # time-point t001 of Aquila embryo for example).
 
-# TVmembrane
-sigma_TV=3.6     # parameter which defines the voting scale for membrane 
-				 # structures propagation by tensor voting method (real 
-				 # coordinates). 
-				 # This parameter shoud be set between 3 um (little cells) and
-				 # 4.5 um(big gaps in the binarized membrane image)
-sigma_LF=0.9     # Smoothing parameter for reconstructed image (in real
-				 # coordinates). It seems that the default value = 0.9 um is ok
-				 # for classic use.
-sample=0.2       # Parameter for tensor voting computation speed optimisation
-				 # (do not touch if not bewared)
+# Tensor voting framework
+astec_sigma_TV=3.6     # parameter which defines the voting scale for membrane
+					  # structures propagation by tensor voting method (real
+					  # coordinates). 
+				 	  # This parameter shoud be set between 3 um (little cells)
+				 	  # and 4.5 um(big gaps in the binarized membrane image)
+astec_sigma_LF=0.9     # Smoothing parameter for reconstructed image (in real
+					  # coordinates). It seems that the default value = 0.9 um
+					  # is ok for classic use.
+astec_sample=0.2       # Parameter for tensor voting computation speed 
+					  # optimisation (do not touch if not bewared)
 
+# Default parameters (for classical use, default values should not be changed)
+astec_RadiusOpening=20 		# (using the approximation of a sphere of radius 20
+					   		# voxels as a structuring element)
+astec_Thau= 25 				# s(c)=h2+(c).N2(c) >t identical
+astec_MinVolume=1000 		# Miss Suppressing cells with to small volumes (not
+							# yet in supdata)
+astec_VolumeRatioBigger=0.5 # If a cell in St+1 is at least 50% bigger than its
+							# progeny in St+1, 
+astec_VolumeRatioSmaller=0.1# Cells in St+1 that are 10% or smaller than their
+							# equivalent in St+1 are tagged for correction
+astec_MorphosnakeIterations=10 #Then, an active contour algorithm is applied
+							# using the dilated shape of c, obtained by 
+							# iterating 10 times
+astec_NIterations=200 		# The algorithm is applied up to stability 
+							# (at th voxels) or after n iterations 
+							# (in our case th = 103 and n = 200). 
+astec_DeltaVoxels=10**3  	# y (at th voxels)
+astec_Volum_Min_No_Seed=100 # Then, if the volume of c is greater than 100 
+							# voxels (2.7 um3)
+astec_nb_proc=10 			# Number of processor ...
+
+
+
+
+
+##################################
+### POST-CORRECTION PARAMETERS ###
+##################################
+
+postcor_Volume_Threshold=10000 	# volume low threshold for final cells 
+								# (in voxels) 
+postcor_Soon=True 				# True if the cell life span has to be 
+								# taken into account
+postcor_ShortLifespan=25 		# (length < SL time points, in our case 
+								# SL = 10)
+postcor_PearsonThreshold=0.9; 	# If they are anticorrelated (Pearson 
+								# correlation under -0.9)
 
 
 

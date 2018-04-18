@@ -70,33 +70,57 @@ path_mars          =os.path.join(FLAG_PATH_EMBRYO,DIR_STAGE_MARS)
 path_mars_exp      =os.path.join(path_mars,DIR_STAGE_MARS+'_'+FLAG_EXP_MARS)
 # mars images names
 path_mars_exp_files=os.path.join(path_mars_exp,FLAG_EN+'_mars_t$TIME.inr') 
-path_mars_exp_reconstruct=os.path.join(path_mars_exp,"RECONSTRUCTION") #path reconstructed images
+# mars temporary images path (for reconstruction)
+path_mars_exp_reconstruct=os.path.join(path_mars_exp,"RECONSTRUCTION") 
+# mars temporary images file names (for reconstruction)
 path_mars_exp_reconstruct_files=\
-os.path.join(path_mars_exp_reconstruct,FLAG_EN+'_rec_t$TIME.inr') #  reconstructed images names
+os.path.join(path_mars_exp_reconstruct,FLAG_EN+'_rec_t$TIME.inr') 
 # logfile
 path_mars_logfile  =os.path.join(path_mars_exp,'2-mars.log')	
-
-#segmented_Path=os.path.join(FLAG_PATH_EMBRYO,DIR_STAGE_SEG) #segmented images
-#mars_file=segmented_Path+FLAG_EN+'_fuse_mars_t$TIME.inr' #Segmentation output files
-#segmentation_files=segmented_Path+FLAG_EN+'_fuse_seg_t$TIME.inr' #Segmentation output files
 
 
 
 
 ### SEGMENTATION DATA 
-# path mars images
+# path segmented images
 path_seg          =os.path.join(FLAG_PATH_EMBRYO,DIR_STAGE_SEG) 
-# path for mars workspace
+# path for segmentation workspace
 path_seg_exp      =os.path.join(path_seg,DIR_STAGE_SEG+'_'+FLAG_EXP_SEG)
-# mars images names
+# segmentated images names
 path_seg_exp_files=os.path.join(path_seg_exp,FLAG_EN+'_seg_t$TIME.inr') 
-path_seg_exp_reconstruct=os.path.join(path_seg_exp,"RECONSTRUCTION") #path reconstructed images
+# cells lineage file
+path_seg_exp_lineage=os.path.join(path_seg_exp,FLAG_EN+'_seg_lineage.pkl') 
+# segmentation temporary images path (for reconstruction)
+path_seg_exp_reconstruct=os.path.join(path_seg_exp,"RECONSTRUCTION") 
+# segmentation temporary images file name (for reconstruction)
 path_seg_exp_reconstruct_files=\
-os.path.join(path_seg_exp_reconstruct,FLAG_EN+'_rec_t$TIME.inr') #  reconstructed images names
+os.path.join(path_seg_exp_reconstruct,FLAG_EN+'_rec_t$TIME.inr') 
+# cells lineage test file
+path_seg_exp_lineage_test=os.path.join(path_seg_exp,FLAG_EN+'_seg_lineage.test') 
 # logfiles
 path_seg_logfile  =os.path.join(path_seg_exp,'4-astec.log')	
+
+### MANUAL CORRECTION DATA 
+# logfiles
 path_mancor_logfile  =os.path.join(path_seg_exp,'3-manualcorrection.log')	
 
+
+
+
+### POST CORRECTION DATA 
+# path post corrected images
+path_post          =os.path.join(FLAG_PATH_EMBRYO,DIR_STAGE_POST) 
+# path for post correction workspace
+path_post_exp      =os.path.join(path_post, DIR_STAGE_POST+'_'+FLAG_EXP_POST)
+# post corrected images names
+path_post_exp_files=os.path.join(path_post_exp,FLAG_EN+'_post_t$TIME.inr') 
+# post corrected cells lineage file
+path_post_exp_lineage=os.path.join(path_post_exp,FLAG_EN+'_post_lineage.pkl') 
+# post corrected cells lineage test file
+path_post_exp_lineage_test=os.path.join(\
+									path_post_exp,FLAG_EN+'_post_lineage.test')
+# logfile
+path_post_logfile  =os.path.join(path_post_exp,'5-postcorrection.log')	
 
 
 

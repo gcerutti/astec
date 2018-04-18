@@ -169,7 +169,6 @@ mapping[89] = 1	  # 1 corresponds to the background label
 89 1
 '''
 
-# FAIRE UNE FONCTION "READ" de p.mancor_mapping_file
 theMap={}
 if p.mancor_mapping_file:
     assert os.path.exists(p.mancor_mapping_file), "File '%s' not found."%p.mancor_mapping_file
