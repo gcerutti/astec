@@ -9,13 +9,13 @@ assert os.path.isdir(os.path.join(os.path.dirname(__file__), \
 		"ASTEC","CommunFunctions"))
 sys.path.append(os.path.join(os.path.dirname(__file__), \
 		"ASTEC","CommunFunctions"))
-assert os.path.isdir(os.path.join(os.path.dirname(__file__),"ASTEC"), \
-    "CommunFunctions","cpp"), "Unable to find the 'cpp' library link in %s,\
+assert os.path.isdir(os.path.join(os.path.dirname(__file__),"ASTEC", \
+    "CommunFunctions","cpp")), "Unable to find the 'cpp' library link in %s,\
     please install properly the library and make a logical link to its bin \
     repository at the path %s."%\
-    (os.path.isdir(os.path.join(os.path.dirname(__file__),"ASTEC"), \
+    (os.path.join(os.path.dirname(__file__),"ASTEC", \
     "CommunFunctions"), \
-    os.path.isdir(os.path.join(os.path.dirname(__file__),"ASTEC"), \
+    os.path.join(os.path.dirname(__file__),"ASTEC", \
     "CommunFunctions","cpp"))
 
 from optparse import OptionParser
