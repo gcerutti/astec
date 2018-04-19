@@ -1,6 +1,6 @@
 import os
 #path_to_bins = '/user/gmicheli/home/DIG-EM/Codes/Packages/ASTEC-170210/ASTEC/CommunFunctions/cpp/build/bin/'
-path_to_bins = os.path.join(os.path.dirname(__file__),'cpp/build/bin/')
+path_to_bins = os.path.join(os.path.dirname(__file__),'cpp')+os.path.sep
 
 path_filters = path_to_bins + 'recfilters'
 path_linearfilters = path_to_bins + 'linearFilter'

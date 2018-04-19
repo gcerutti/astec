@@ -62,18 +62,6 @@ ASTEC can run only on Linux system and was test on :
 
 	II.ii - INSTALLATION
 	--------------------
-    Previously :
-	  ------------
-		  In order to compile the necessary c folders:
-		  in a terminal:
-			  run `cd path/to/Package/ASTEC/CommunFunctions/cpp`
-			  run `mkdir build`
-			  run `cd build`
-			  run `cmake ..`
-			  run `make -j<nb proc>` where <nb proc> is the number of processor require to compile the code 
-
-    From version ASTEC-170308 :
-    ---------------------------
       You need to clone the morpheme_privat project in your computer:
         run `cd <morpheme-privat_parent_directory>`
         run `git clone git+ssh://<username>@scm.gforge.inria.fr/gitroot/morpheme-privat/morpheme-privat.git`
@@ -93,10 +81,19 @@ ASTEC can run only on Linux system and was test on :
 			  Press 'g' to generate and 'q' to quit
 			  run `make -j<nb proc>` where <nb proc> is the number of processor require to compile the code 
 			
+    Previously :
+    ------------
 	    Since the vt library is compiled, you need to create the symbolic link of the folder <morpheme-privat_parent_directory>/vt to ASTEC/CommunFunctions/cpp:
 		  in a terminal:
 			  run `cd path/to/Package/ASTEC/CommunFunctions`
         ln -s <complete_path_of_vt_folder> cpp
+
+    From version v2.0 :
+    -------------------
+	    Since the vt library is compiled, you need to create the symbolic link of the folder <morpheme-privat_parent_directory>/vt/build/bin to ASTEC/CommunFunctions/cpp:
+		  in a terminal:
+			  run `cd path/to/Package/ASTEC/CommunFunctions`
+        ln -s <complete_path_of_bin_folder> cpp
 
 	II.iii - TROUBELSHOOTING
   	-------------------------
@@ -106,6 +103,9 @@ ASTEC can run only on Linux system and was test on :
 
  III - RUNNING ASTEC
  -------------------
+
+    Previously :
+    ------------
 Different manual steps are required to process the workflow
 
 - Copy the entire folder to the dataset folder 
@@ -132,5 +132,67 @@ Different manual steps are required to process the workflow
 	with this format : <pixel id (from tiff file)>:<cell name> 
 - Launch the named : python 6-named.py
 - Upload the embryon in 4DCloudEmbryon with : python 7-virtualembryo.py 
+
+    From version v2.0 :
+    -------------------
+Data architecture 
+    <EMBRYO>
+        RAWDATA
+            LC
+                Stack0000
+                Stack0001
+            RC
+                Stack0000
+                Stack0001
+        FUSE
+            FUSE_<EXP_1>
+            FUSE_<EXP_2>
+            ...
+            FUSE_RELEASE
+        SEG
+            SEG_<EXP>
+            ...
+            SEG_RELEASE
+        POST
+            POST_<EXP>
+            ...
+            POST_RELEASE
+
+"RELEASE" sub-directories should content the "last version" validated by an expert.
+
+Particular files:
+    nomenclature.py : file fixing the set of naming rules in working directories
+      -> this file should not be modified
+    parameters.py : file defining the set of parameters useful for all the process steps (parameters are all prefixed with respect to the step they are used in).
+      -> it is a "template" file which should be duplicated and whose copy can be modified by the user to its convenience (only the parameter values should be modified, not their name...).
+
+The scripts of steps 1-fuse.py, 2-mars.py, 3-manualcorrection.py, 4-astec.py, 5-postcorrection.py are executables, so that each astec step calling can be made as described here:
+For example, in order to launch the fusion step on an embryo called "171107-Karine-St8", one should:
+
+    Duplicate the file <astec-package>/parameters.py -> new file <arbitrary-path>/parameters_karine.py
+    Edition of file <arbitrary-path>/parameters_karine.py to specify the desired value of each parameter related to the fusion step
+    In a terminal,
+        $ cd <astec-package> # in order to be in the astec directory (/media/DATA/Codes/astec-package on Hermione)
+        $ ./1-fuse.py --parameters  <arbitrary-path>/parameters_karine.py --embryo-rep /media/DATA/171107-Karine-St8/
+        (or equivalently,a shorter format)
+        $ ./1-fuse.py -p  <arbitrary-path>/parameters_karine.py -e /media/DATA/171107-Karine-St8/
+
+At each astec step execution, a copy of the parameters file as well as a log file are automatically generated in the target working directory.
+
+For each astec step, it is possible to display the help relative to the corresponding script by launching the script with the option '--help'. For example, for the fusion step:
+
+    In a terminal, launch the command line:
+        $ <astec-package>/1-fuse.py --help
+    The terminal displays the following message:
+
+    Usage: 1-fuse.py [options]
+
+    Options:
+      -h, --help            show this help message and exit
+      -p FILE, --parameters=FILE
+                                python file containing parameters definition
+      -e PATH, --embryo-rep=PATH
+                                path to the embryo data
+      -q, --quiet          don't print status messages to stdout
 
 
