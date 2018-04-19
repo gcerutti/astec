@@ -17,7 +17,6 @@ DIR_STAGE_POST	='POST'	# Post correction experiments stored in
 						# PATH_EMBRYO/DIR_STAGE_SEG/FLAG_EXP_POST
 
 
-
 # Flags to be replaced in paths
 FLAG_PATH_EMBRYO='$PATHEMBRYO'# Must be the path to the embryo data 
 FLAG_EN='$EN'				# Embryo Name (format YYMMDD-SaintOfTheDays-Stage)
@@ -207,7 +206,7 @@ named_lineage_tree_test_filename=postsegment_Path+FLAG_EN+'_fuse_seg_post_lin_tr
 #vo_login="emmanuel.faure"
 #vo_passwd="ascidie"
 #vo_lib_Path=astec_Path+"3DCloudEmbryo/" 		   # Path for scripts library
-#vo_Path=postsegment_Path+"VO/" 					   # Output path for mesh data
+#vo_Path=postsegment_Path+"VO/" 					# Output path for mesh data
 #vo_files=vo_Path+EN+'_fuse_seg_post_vo_t$TIME.obj' # Output files
 
 
@@ -251,7 +250,8 @@ def replaceTimes(filename,d,_format="%03d"):
     for k,time in d.iteritems():
         assert type(k)==str, "Unexpected non str dictionnary key '%s'"%str(k)
         if type(time)!=int:
-            print "Non int val '%s' specified for key '%s'. Trying a cast."%(str(time),k)
+            print "Non int val '%s' specified for key '%s'. Trying a cast."\
+            	  %(str(time),k)
             time=int(time)
         assert filename.find(k)>=0
         time_point=_format%time
@@ -272,21 +272,24 @@ def replaceEN(filename,embryoname, check_name=False):
 
 def replacePATH_EMBRYO(filename,path):
     """
-    Replaces all the occurences of "$EMBRYOPATH" by its value given by EN of type str
+    Replaces all the occurences of "$EMBRYOPATH" by its value given by EN of 
+    type str
     """
     #assert path, "Specified embryo path should not be empty."
     return filename.replace(FLAG_PATH_EMBRYO, path.rstrip(os.path.sep))
 
 #def replaceWORKSPACE(filename,path):
 #    """
-#    Replaces all the occurences of "$WORKSPACE" by its value given by EN of type str
+#    Replaces all the occurences of "$WORKSPACE" by its value given by EN of 
+#    type str
 #    """
 #    assert path, "Specified workspace should not be empty."
 #    return filename.replace(FLAG_WORKSPACE, path)
 
 def replaceEXP(filename,flag,path):
     """
-    Replaces all the occurences of "$FUSE" by its value given by path of type str
+    Replaces all the occurences of "$FUSE" by its value given by path of type 
+    str
 	If path is empty, "$FUSE" is replaced by "RELEASE" and a message is printed
     """
     if not path:

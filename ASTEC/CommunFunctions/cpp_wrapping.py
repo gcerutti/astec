@@ -44,6 +44,7 @@ path_associateLabels=path_to_bins + "associateLabels"
 path_boundingboxes=path_to_bins + 'boundingboxes'
 path_cropImage=path_to_bins + 'cropImage'
 path_patchLogic=path_to_bins + 'patchLogic'
+path_mc_adhocfuse=path_to_bins + 'mc-adhocFuse'
 
 import os
 from ImageHandling import imread, imsave, SpatialImage
@@ -1879,6 +1880,94 @@ def patchLogic(image_patch, image_ext, image_out, origin, Mode=None, verbose=Fal
   if len(origin)==7:
     origin=origin[-6:]
   cmd = path_patchLogic + ' ' + image_patch + " " + image_ext + " " + image_out + " -origin " + str(origin[0]) + ' ' + str(origin[1]) + ' ' + str(origin[2]) + ' -' + mode
+  if verbose:
+    print cmd
+  os.system(cmd)
+
+def mc_adhocFuse(image_fuse, image_seg, image_out, min_percentile=0.01, max_percentile=0.99, min_method='cellinterior', max_method='cellborder', sigma=5.0, verbose=False):
+  '''
+  Function for 
+  Usage: mc-adhocFuse -intensity-image|-ii %s
+   -reconstructed-image|-ri %s
+   [-minimum-mask-image|-min-mi %s]
+   [-maximum-mask-image|-max-mi %s]
+   [-segmentation-image|-si %s]
+   [-result-minimum-image|-rmini %s]
+   [-result-maximum-image|-rmaxi %s]
+   [-result-intensity-image|-rii %s]
+   [-result-fused-image|-rfi %s]
+   [-min-percentile|-min-p %f]
+   [-max-percentile|-max-p %f]
+   [-min-method|-method-min global|cell|cellborder|cellinterior|voxel]
+   [-max-method|-method-max global|cell|cellborder|cellinterior|voxel]
+   [-sigma %f]
+   [-parallel|-no-parallel] [-max-chunks %d]
+   [-parallelism-type|-parallel-type default|none|openmp|omp|pthread|thread]
+   [-omp-scheduling|-omps default|static|dynamic-one|dynamic|guided]
+   [-inv] [-swap] [output-image-type | -type s8|u8|s16|u16...]
+   [-verbose|-v] [-no-verbose|-noverbose|-nv]
+   [-debug|-D] [-no-debug|-nodebug]
+   [-allow-pipe|-pipe] [-no-allow-pipe|-no-pipe|-nopipe]
+   [-print-parameters|-param]
+   [-print-time|-time] [-no-time|-notime]
+   [-trace-memory|-memory] [-no-memory|-nomemory]
+   [-help|-h]
+  --------------------------------------------------
+    -intensity-image|-ii %s
+    -reconstructed-image|-ri %s
+    -minimum-mask-image|-min-mi %s
+    -maximum-mask-image|-max-mi %s
+    -segmentation-image|-si %s
+    -result-minimum-image|-rmini %s
+    -result-maximum-image|-rmaxi %s
+    -result-intensity-image|-rii %s
+    -result-fused-image|-rfi %s
+  # ...
+    -min-percentile|-min-p %f
+    -max-percentile|-max-p %f
+    -min-method|-method-min global|cell|cellborder|cellinterior|voxel
+    -max-method|-method-max global|cell|cellborder|cellinterior|voxel
+    -sigma %f
+  # parallelism parameters
+   -parallel|-no-parallel:
+   -max-chunks %d:
+   -parallelism-type|-parallel-type default|none|openmp|omp|pthread|thread:
+   -omp-scheduling|-omps default|static|dynamic-one|dynamic|guided:
+  # general image related parameters
+    -inv: inverse 'image-in'
+    -swap: swap 'image-in' (if encoded on 2 or 4 bytes)
+     output-image-type: -o 1    : unsigned char
+                        -o 2    : unsigned short int
+                        -o 2 -s : short int
+                        -o 4 -s : int
+                        -r      : float
+    -type s8|u8|s16|u16|... 
+     default is type of input image
+  # general parameters 
+    -verbose|-v: increase verboseness
+      parameters being read several time, use '-nv -v -v ...'
+      to set the verboseness level
+    -no-verbose|-noverbose|-nv: no verboseness at all
+    -debug|-D: increase debug level
+    -no-debug|-nodebug: no debug indication
+    -allow-pipe|-pipe: allow the use of stdin/stdout (with '-')
+    -no-allow-pipe|-no-pipe|-nopipe: do not allow the use of stdin/stdout
+    -print-parameters|-param:
+    -print-time|-time:
+    -no-time|-notime:
+    -trace-memory|-memory:
+    -no-memory|-nomemory:
+    -h: print option list
+    -help: print option list + details
+  --------------------------------------------------
+  '''
+  assert(os.path.exists(image_fuse))
+  assert(os.path.exists(image_seg))
+  arguments=[path_mc_adhocfuse, '-intensity-image ', image_fuse, '-segmentation-image', image_seg, \
+  '-min-percentile', str(min_percentile), '-max-percentile', str(max_percentile), \
+  '-min-method', min_method, '-max-method', max_method, '-sigma', str(sigma), '-result-intensity-image',\
+   image_out]
+  cmd=' '.join(arguments)
   if verbose:
     print cmd
   os.system(cmd)
