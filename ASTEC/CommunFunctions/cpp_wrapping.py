@@ -1886,7 +1886,7 @@ def patchLogic(image_patch, image_ext, image_out, origin, Mode=None, verbose=Fal
 
 def mc_adhocFuse(image_fuse, image_seg, image_out, min_percentile=0.01, max_percentile=0.99, min_method='cellinterior', max_method='cellborder', sigma=5.0, verbose=False):
   '''
-  Function for 
+  Function for fused images enhancement knowing a segmentation propagation
   Usage: mc-adhocFuse -intensity-image|-ii %s
    -reconstructed-image|-ri %s
    [-minimum-mask-image|-min-mi %s]

@@ -689,7 +689,7 @@ def segmentation_propagation_seeds_init_and_deform(t, segmentation_ref, fused_fi
 
 
 
-def segmentation_propagation_from_seeds(t, fused_file_ref,segmentation_file_ref, fused_file , seeds_file,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
+def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file , seeds_file,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
     RadiusOpening=20,Thau=25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200,DeltaVoxels=10**3,Volum_Min_No_Seed=100, delSeedsASAP=True):
     """
     Steps 4 to 9 of segmentation propagation as described in Gregoire's document
@@ -796,7 +796,7 @@ def segmentation_propagation(t, fused_file_ref,segmentation_file_ref, fused_file
 
     segmentation_propagation_seeds_init_and_deform(t, segmentation_ref, fused_file, seeds_file, vf_file, delta_t)
 
-    seg_from_opt_h, lin_tree_information = segmentation_propagation_from_seeds(t, fused_file_ref,segmentation_file_ref, fused_file , seeds_file,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
+    seg_from_opt_h, lin_tree_information = segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file , seeds_file,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
     RadiusOpening=RadiusOpening,Thau=Thau,MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,
     NIterations=NIterations,DeltaVoxels=DeltaVoxels,Volum_Min_No_Seed=Volum_Min_No_Seed, delSeedsASAP=True)
 
