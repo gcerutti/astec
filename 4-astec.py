@@ -103,7 +103,10 @@ path_seg_exp = replaceFlags(path_seg_exp, p)
 path_seg_exp_files = replaceFlags(path_seg_exp_files, p)
 path_seg_exp_lineage = replaceFlags(path_seg_exp_lineage, p)
 path_seg_exp_lineage_test = replaceFlags(path_seg_exp_lineage_test, p)
+path_seg_exp_reconstruct=replaceFlags(path_seg_exp_reconstruct,p)
 path_seg_exp_reconstruct_files=replaceFlags(path_seg_exp_reconstruct_files,p)
+if not p.astec_keep_reconstruct_files:
+    path_seg_exp_reconstruct_files = None
 path_log_file = replaceFlags(path_seg_logfile, p)
 
 
@@ -113,6 +116,9 @@ if not os.path.isdir(path_seg):
     os.mkdir(path_seg)  
 if not os.path.isdir(path_seg_exp):
     os.mkdir(path_seg_exp)  
+if p.astec_keep_reconstruct_files and not \
+   os.path.isdir(path_seg_exp_reconstruct):
+    os.mkdir(path_seg_exp_reconstruct)  
 
 
 ### Log file
@@ -204,6 +210,9 @@ for t in range(begin, end):
     fused_file=replaceTIME(path_fuse_exp_files, time_segment) #To be segmented
     segmentation_file_ref=replaceTIME(path_seg_exp_files, t) #Prev. seg file
     segmentation_file=replaceTIME(path_seg_exp_files, time_segment) #Output seg
+    if p.astec_keep_reconstruct_files:
+        reconstruct_file=replaceTIME(path_seg_exp_reconstruct_files, \
+                                     time_segment)
     #  TEMPORARY FOLDER
     temporary_folder=replaceTIME(os.path.join(path_seg_exp,'TEMP_'+FLAG_TIME),\
                                 t)
@@ -226,6 +235,9 @@ for t in range(begin, end):
         seed_file, vf_file, h_min_files,  \
         p.astec_h_min_min, p.astec_h_min_max, p.astec_sigma1,  \
         lin_tree_information, p.delta, p.astec_nb_proc, \
+        membrane_reconstruction_method=p.astec_membrane_reconstruction_method,\
+        fusion_u8_method=p.astec_fusion_u8_method, \
+        flag_hybridation=p.astec_flag_hybridation, \
         RadiusOpening=p.astec_RadiusOpening, Thau=p.astec_Thau, \
         MinVolume=p.astec_MinVolume,  \
         VolumeRatioBigger=p.astec_VolumeRatioBigger, \
@@ -247,6 +259,7 @@ for t in range(begin, end):
         max_percentile=p.astec_max_percentile, \
         min_method=p.astec_min_method, max_method=p.astec_max_method,\
         sigma_hybridation=p.astec_sigma_hybridation, \
+        path_u8_images=reconstruct_file, \
         verbose=True)
     
     #SAVE OUTPUT

@@ -174,9 +174,37 @@ mancor_mapping_file='' # path to mapping file for manual correction of the
 
 
 # Modules choice
-astec_method=1 			# 1 for 'Classic' method
-			  			# 2 for 'Glace' method
-			  			# 2 for 'Hybrid' method
+
+astec_membrane_reconstruction_method=0
+# Membrane reconstruction module choice
+# 0 for 'Classic' method
+# 1 for 'Glace' method
+# 2 for 'Gace' method
+# If not set or set to 0, the input fused image is not processed for 
+# membrane structures enhancement.
+# If set to 1, the GLACE reconstruction method is going to be called
+# If set to 2, the GACE reconstruction method is going to be called
+
+astec_fusion_u8_method=0
+# Selection of the method which converts the fused image into a 8 bits
+# images for the segmentation propagation. 
+# If set to 0 (default), calling the historical "to_u8" method
+# If set to 1, calling the mc-adhocFuse program which enhances the fused 
+# image while converting it to u8 knowing the semgnetation propagation from
+# previous time point
+
+astec_flag_hybridation=False
+# If set to True and if the membrane_reconstruction_method parameter is 
+# provided and not equal to 0, then the reconstructed gray level image
+# used for the segmentation propagation framework is goind to be ahybridation 
+# between the original fused image and the result of image reconstruction by
+# the specified method.
+
+astec_keep_reconstruct_files=False # Set it to True in order to keep a copy
+# Flag enabling to keep a copy of graylevel files provided to the watershed
+
+
+
 # General parameters for segmentation propagation
 astec_sigma1 = 0.6  		# sigma 1 (0.6um) in real coordinates
 astec_sigma2 = 0.15 		# sigma 2 (0.15um) in real coordinates
@@ -231,7 +259,7 @@ astec_sample=0.2      # Parameter for tensor voting computation speed
 astec_rayon_dil=3.6   # dilatation ray for propagated ROI from time t to t+1
 					  # (default: 3.6, in real coordinates) 
 
-# Hybridation parameters
+# Fused image conversion parameters (if astec_fusion_u8_method is set to 1)
 astec_min_percentile=0.01   # mc-adhocFuse parameter of type %f (default: 0.01)
 astec_max_percentile=0.99   # mc-adhocFuse parameter of type %f (default: 0.99)
 astec_min_method='cellinterior'# mc-adhocFuse param. (default: 'cellinterior')
@@ -261,8 +289,6 @@ astec_Volum_Min_No_Seed=100 # Then, if the volume of c is greater than 100
 							# voxels (2.7 um3)
 astec_nb_proc=10 			# Number of processor ...
 astec_nb_proc_ace=7   		# number of processors for ACE (7 is recommanded)
-
-
 
 
 

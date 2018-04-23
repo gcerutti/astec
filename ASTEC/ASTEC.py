@@ -5,6 +5,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),"CommunFunctions"))
 from ImageHandling import imread, imsave, SpatialImage
 from scipy import ndimage as nd
 
+from ACE import GLACE_from_resampled_segmentation, GACE
 from cpp_wrapping import (non_linear_registration, apply_trsf, watershed,
                           find_local_minima, outer_detection,
                           gradient_norm,morpho, copy, mc_adhocFuse, Arit)
@@ -781,7 +782,7 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
     membrane_reconstruction_method=None, fusion_u8_method=0, flag_hybridation=False, 
     RadiusOpening=20,Thau=25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200,DeltaVoxels=10**3,Volum_Min_No_Seed=100, 
     rayon_dil=3.6, sigma_membrane=0.9, manual=False, manual_sigma=7, hard_thresholding=False, hard_threshold=1.0, sensitivity=0.99, sigma_TV=3.6, sigma_LF=0.9, sample=0.2, 
-    keep_membrane=False, keep_all=False,  nb_proc_ACE=7, 
+    keep_membrane=False, keep_all=False,  path_u8_images=None, nb_proc_ACE=7, 
     min_percentile=0.01, max_percentile=0.99, min_method='cellinterior', max_method='cellborder', sigma_hybridation=5.0, 
     verbose=False):
     '''
@@ -798,16 +799,21 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
     delta_t : value of dt (in number of time point)
     nb_proc : number maximum of processors to allocate
 
+    # Modules choice
+
     membrane_reconstruction_method : if not set or set to 0, the input fused_file is not processed for membrane structures enhancement.
-                                 if set to 1, the GLACE reconstruction method is going to be called
-                                 if set to 2, the GACE reconstruction method is going to be called
+                                     if set to 1, the GLACE reconstruction method is going to be called
+                                     if set to 2, the GACE reconstruction method is going to be called
 
     fusion_u8_method : select method to convert fused_file into a 8 bits images for the segmentation propagation. 
                        if set to 0 (default), calling the historical "to_u8" method
-                       if set to 1, calling the mc_adhocFuse function which enhances the fused image while converting it to u8 knowing the semgnetation propagation from previous time point
+                       if set to 1, calling the mc_adhocFuse function which enhances the fused image while converting it to u8 
+                       knowing the semgnetation propagation from previous time point
 
-    flag_hybridation : if set to True and if the membrane_reconstruction_method parameter is provided and not equal to 0, then the reconstructed gray level image
-                       used for semgentation_propragation_from_seeds is goind to be ahybridation between the original image fused_file and the result of image reconstruction by the specified method.
+    flag_hybridation : if set to True and if the membrane_reconstruction_method parameter is provided and not equal to 0, 
+                       then the reconstructed gray level image
+                       used for semgentation_propragation_from_seeds is goind to be ahybridation between the original image
+                       fused_file and the result of image reconstruction by the specified method.
 
     '''
     segmentation_ref=imread(segmentation_file_ref);
@@ -840,10 +846,18 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
     # segmentation propagation 
     apply_trsf(segmentation_file_ref, path_trsf=vf_file, path_output=path_seg_trsf, template=fused_file, nearest=True, verbose=verbose)
 
+    # transformation file deletion
+    cmd='rm -f '+vf_file
+    if verbose:
+        print cmd
+    os.system(cmd)
+
+
     # fused file u8 vconversion if needed
     if flag_hybridation or not membrane_reconstruction_method:
         if  fusion_u8_method==1:
-            mc_adhocFuse(fused_file, path_seg_trsf, fused_file_u8, min_percentile=min_percentile, max_percentile=max_percentile, min_method=min_method, max_method=max_method, sigma=sigma_hybridation, verbose=verbose)
+            mc_adhocFuse(fused_file, path_seg_trsf, fused_file_u8, min_percentile=min_percentile, max_percentile=max_percentile, 
+                         min_method=min_method, max_method=max_method, sigma=sigma_hybridation, verbose=verbose)
         else:
             imsave(fused_file_u8, to_u8(imread(fused_file)))
 
@@ -853,43 +867,46 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
         copy(fused_file, graylevel_file, verbose=verbose)
     if membrane_reconstruction_method == 1:
         # GLACE reconstruction 
-        GLACE_from_resampled_segmentation(fused_file, path_seg_trsf, labels_of_interest='all', background=[0,1], path_output=graylevel_file, rayon_dil=rayon_dil, 
-        sigma_membrane=sigma_membrane, manual=manual, manual_sigma=manual_sigma, hard_thresholding=hard_thresholding, hard_threshold=hard_threshold, sensitivity=sensitivity, sigma_TV=sigma_TV, sigma_LF=sigma_LF, sample=sample, 
-        keep_membrane=keep_membrane, keep_all=keep_all,  nb_proc=ACE_nb_proc, verbose=verbose)   
+        GLACE_from_resampled_segmentation(fused_file, path_seg_trsf, labels_of_interest='all', background=[0,1], 
+        path_output=graylevel_file, rayon_dil=rayon_dil, 
+        sigma_membrane=sigma_membrane, manual=manual, manual_sigma=manual_sigma, hard_thresholding=hard_thresholding, 
+        hard_threshold=hard_threshold, sensitivity=sensitivity, sigma_TV=sigma_TV, sigma_LF=sigma_LF, sample=sample, 
+        keep_membrane=keep_membrane, keep_all=keep_all,  nb_proc=nb_proc_ACE, verbose=verbose)   
     if membrane_reconstruction_method == 2:
         # GACE reconstruction
         out=GACE(fused_file, binary_input=False, path_output=graylevel_file, 
-        sigma_membrane=sigma_membrane, manual=manual, manual_sigma=manual_sigma, hard_thresholding=hard_thresholding, hard_threshold=hard_threshold, sensitivity=sensitivity, sigma_TV=sigma_TV, sigma_LF=sigma_LF, sample=sample, 
-        keep_membrane=keep_membrane, keep_all=keep_all,  nb_proc=ACE_nb_proc, verbose=verbose)
+        sigma_membrane=sigma_membrane, manual=manual, manual_sigma=manual_sigma, hard_thresholding=hard_thresholding, 
+        hard_threshold=hard_threshold, sensitivity=sensitivity, sigma_TV=sigma_TV, sigma_LF=sigma_LF, sample=sample, 
+        keep_membrane=keep_membrane, keep_all=keep_all,  nb_proc=nb_proc_ACE, verbose=verbose)
 
 
 
     # reconstructed image and fused image hybridation if needed
-
     if membrane_reconstruction_method:
         if flag_hybridation:
             Arit(fused_file_u8, graylevel_file, graylevel_file, Mode='max', Type='-o 1', verbose=verbose)
-        else:
-            copy(graylevel_file, graylevel_file_u8, verbose=verbose)
+        copy(graylevel_file, graylevel_file_u8, verbose=verbose)
 
     # temporary images deletion
-
     if os.path.exists(fused_file_u8):
         cmd='rm -f '+fused_file_u8
         if verbose:
             print cmd
         os.system(cmd)
 
-
+    # u8 image copy if asked
+    if path_u8_images:
+        copy(graylevel_file_u8, path_u8_images, verbose=verbose)
 
     # segmentation propagation stuff from seeds
-
-    seg_from_opt_h, lin_tree_information = segmentation_propagation_from_seeds(t, segmentation_file_ref, graylevel_file, graylevel_file_u8, seeds_file,path_seg_trsf, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
-    RadiusOpening=RadiusOpening,Thau=Thau,MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,
-    NIterations=NIterations,DeltaVoxels=DeltaVoxels,Volum_Min_No_Seed=Volum_Min_No_Seed, delSeedsASAP=True, verbose=verbose)
+    seg_from_opt_h, lin_tree_information = segmentation_propagation_from_seeds(t, segmentation_file_ref, graylevel_file, graylevel_file_u8, seeds_file,path_seg_trsf, 
+                                                                               path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
+                                                                               RadiusOpening=RadiusOpening,Thau=Thau,MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,
+                                                                               VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,
+                                                                               NIterations=NIterations,DeltaVoxels=DeltaVoxels,Volum_Min_No_Seed=Volum_Min_No_Seed, 
+                                                                               delSeedsASAP=True, verbose=verbose)
 
     # temporary images deletion
-
     if os.path.exists(path_seg_trsf):
         cmd='rm -f '+path_seg_trsf
         if verbose:
@@ -909,8 +926,3 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
         os.system(cmd)
 
     return seg_from_opt_h, lin_tree_information
-
-#def segmentation_propagation_makegraylevel_image():
-#    '''
-#
-#    '''
