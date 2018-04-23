@@ -211,7 +211,7 @@ astec_sigma2 = 0.15 		# sigma 2 (0.15um) in real coordinates
 astec_h_min_min = 2    		# H min initialisation to ease correction
 astec_h_min_max = 18   		# H min initialisation to ease correction
 
-# Glace Parameters (if astec_method is set to 2 or 3):
+# Glace Parameters (if astec_membrane_reconstruction_method is set to 1 or 2):
 # membrane_renforcement
 astec_sigma_membrane=0.9# membrane enhancement parameter (in real units, a
 						# priori 0.9 um is a good choice for data like 

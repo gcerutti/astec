@@ -702,7 +702,7 @@ def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file,  f
     RadiusOpening=20,Thau=25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200,DeltaVoxels=10**3,Volum_Min_No_Seed=100, delSeedsASAP=True, 
     verbose=False):
     """
-    Steps 4 to 9 of segmentation propagation as described in Gregoire's document
+    Steps 4 to 9 of segmentation propagation:
     - initial watershed
     - computation of h-minima (get_seeds method)
     - optimal h selection for each cell (get_back_parameters method)
@@ -814,6 +814,60 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
                        then the reconstructed gray level image
                        used for semgentation_propragation_from_seeds is goind to be ahybridation between the original image
                        fused_file and the result of image reconstruction by the specified method.
+    
+    path_u8_images : default is None. If provided, saves a copy of the u8 image used for watershed process at the specified path.
+
+
+
+    # Glace Parameters (if membrane_reconstruction_method is set to 1 or 2):
+    # membrane_renforcement
+    sigma_membrane=0.9  # membrane enhancement parameter (in real units, a
+                        # priori 0.9 um is a good choice for data like 
+                        # Patrick/Ralph/Aquila)
+    # anisotropicHist /!\ critical step
+    sensitivity=0.99    # membrane binarization parameter, /!\ if failure,
+                        # one should enter in "manual" mode of the function
+                        # anisotropicHist via activation of 'manual' option
+
+    manual=False        # By default, this parameter is set to False. If 
+                        # failure, (meaning that thresholds are very bad, 
+                        # meaning that the binarized image is very bad),
+                        # set this parameter to True and relaunch the 
+                        # computation on the test image. If the method fails
+                        # again, "play" with the value of manual_sigma... 
+                        # and good luck.
+    manual_sigma=15     # Axial histograms fitting initialization parameter 
+                        # for the computation of membrane image binarization
+                        # axial thresholds (this parameter is used iif 
+                        # manual = True).
+                        # One may need to test different values of 
+                        # manual_sigma. We suggest to test values between 5 and
+                        # 25 in case of initial failure. Good luck.
+
+    hard_thresholding=False   # If the previous membrane threshold method 
+                              # failed, one can force the thresholding with a
+                              # "hard" threshold applied on the whole image. 
+                              # To do so, this option must be set to True.
+    hard_threshold=1.0        # If hard_thresholding = True, the enhanced 
+                              # membranes image is thresholded using this 
+                              # parameter (value 1 seems to be ok for 
+                              # time-point t001 of Aquila embryo for example).
+
+    # Tensor voting framework
+    sigma_TV=3.6    # parameter which defines the voting scale for membrane
+                    # structures propagation by tensor voting method (real
+                    # coordinates). 
+                    # This parameter shoud be set between 3 um (little cells)
+                    # and 4.5 um(big gaps in the binarized membrane image)
+    sigma_LF=0.9    # Smoothing parameter for reconstructed image (in real
+                    # coordinates). It seems that the default value = 0.9 um
+                    # is ok for classic use.
+    sample=0.2      # Parameter for tensor voting computation speed 
+                    # optimisation (do not touch if not bewared)
+    rayon_dil=3.6   # dilatation ray for propagated ROI from time t to t+1
+                    # (default: 3.6, in real coordinates) 
+
+    nb_proc_ACE=7   # number of processors for ACE (7 is recommanded)
 
     '''
     segmentation_ref=imread(segmentation_file_ref);
@@ -840,7 +894,7 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
     # defining temporary file paths 
     graylevel_file=vf_file.replace('.inr','_graylevel.inr')         # The first input gray level image for segmentation_propagation_from_seeds
     graylevel_file_u8=vf_file.replace('.inr','_graylevel_u8.inr')   # The second input gray level image for segmentation_propagation_from_seeds (must be a 8 bits image)
-    fused_file_u8=vf_file.replace('.inr','_fuse_u8.inr')             # Temporary file
+    fused_file_u8=vf_file.replace('.inr','_fuse_u8.inr')            # Temporary file
     path_seg_trsf=vf_file.replace('.inr','_seg_trsf.inr')           # Temporary file
 
     # segmentation propagation 
