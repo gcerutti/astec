@@ -6,7 +6,8 @@ from ImageHandling import imread, imsave, SpatialImage
 from scipy import ndimage as nd
 
 from cpp_wrapping import (non_linear_registration, apply_trsf, watershed,
-                          find_local_minima, outer_detection,gradient_norm,morpho)
+                          find_local_minima, outer_detection,
+                          gradient_norm,morpho, copy, mc_adhocFuse, Arit)
 
 
 def compute_volumes(im, labels = None, real = True):
@@ -157,14 +158,16 @@ def to_u8(im, lt=0):
     im : SpatialImage
     lt : if the smallest value in the intensity image can be "predicted"
     """
-    tmp=im[:,:,im.shape[2]/3]
+    from copy import deepcopy
+    imcp=deepcopy(im)
+    tmp=imcp[:,:,imcp.shape[2]/3]
     fper=np.percentile(tmp[tmp>=lt], 1)
     nper=np.percentile(tmp[tmp>=lt], 99)
-    im[im<fper]=fper
-    im[im>nper]=nper
+    imcp[imcp<fper]=fper
+    imcp[imcp>nper]=nper
     #im-=fper
-    np.subtract(im, fper, out=im, casting='unsafe')
-    return SpatialImage(np.uint8(np.linspace(0, 255, nper-fper+1), casting='unsafe')[im], voxelsize=im.voxelsize)
+    np.subtract(imcp, fper, out=imcp, casting='unsafe')
+    return SpatialImage(np.uint8(np.linspace(0, 255, nper-fper+1), casting='unsafe')[imcp], voxelsize=imcp.voxelsize)
 
 
 def get_seeds(seg, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min, bounding_boxes, nb_proc=26):
@@ -407,7 +410,7 @@ def perform_ac(parameters):
 
 
 def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, divided_cells, bounding_boxes, right_parameters, im_ref, im_ref16, seeds, nb_cells, 
-    label_max, exterior_corres, parameters, h_min_information, sigma_information, seg_origin, segmentation_file_ref, vf_file, path_h_min, volumes_t_1, 
+    label_max, exterior_corres, parameters, h_min_information, sigma_information, segmentation_file_ref, segmentation_file_trsf, path_h_min, volumes_t_1, 
     nb_proc=26,Thau= 25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200 ,DeltaVoxels=10**3):
     """
     Return corrected final segmentation based on conservation of volume in time
@@ -427,13 +430,17 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
     parameters : { cell: [[h_min, sigma], ]}: dict matching nb_cells, key: cell, values: list of parameters
     h_min_information : { cell: h_min}: dict associating to each cells the h_min that allowed its segmentation
     sigma_information : { cell: sigma}: dict associating to each cells the sigma that allowed its segmentation
-    seg_origin : original segmentation (SpatialImage)
     segmentation_file_ref : path to the segmentation at time t
+    segmentation_file_trsf : path to the segmentation at time t resampled at t+1 
     vf_file : path to the vector field that register t into t+dt
     path_h_min : format of h-minima files
     volumes_t_1 : cell volumes at t
     """
- 
+
+    # seg_origin : original segmentation (SpatialImage)
+
+    seg_origin=imread(segmentation_file_ref)
+
     volumes_from_opt_h=compute_volumes(seg_from_opt_h)
     if volumes_t_1=={}:
         volumes=compute_volumes(seg_origin)
@@ -586,7 +593,8 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
     exterior_correction=[]
     if lower!=[]:
         from copy import deepcopy
-        tmp=apply_trsf(segmentation_file_ref, vf_file, nearest=True, lazy=False)
+        #tmp=apply_trsf(segmentation_file_ref, vf_file, nearest=True, lazy=False)
+        tmp=imread(segmentation_file_trsf)
         old_bb=nd.find_objects(tmp)
         for mother_c, sisters_c in lower:
             cell_before=tmp[old_bb[mother_c-1]]==mother_c
@@ -673,7 +681,7 @@ def outer_correction(seg_from_opt_h, exterior_correction,segmentation_file_ref,R
     return seg_from_opt_h
 
 
-def segmentation_propagation_seeds_init_and_deform(t, segmentation_ref, fused_file, seeds_file, vf_file, delta_t):
+def segmentation_propagation_seeds_init_and_deform(t, segmentation_ref, fused_file, seeds_file, vf_file, delta_t, verbose=False):
     """
     Steps 2 to 3 of segmentation propagation:
     create seeds from reference segmentation, then resample it by transformation application
@@ -685,12 +693,13 @@ def segmentation_propagation_seeds_init_and_deform(t, segmentation_ref, fused_fi
     imsave(seeds_file, SpatialImage(seeds_ref, voxelsize=seeds_ref.voxelsize))
     
     print 'Deform Seeds with vector fields from '+str(t)+' to '+str(t+delta_t)
-    apply_trsf(seeds_file, vf_file , path_output=seeds_file, template=fused_file,nearest=True, lazy=True)
+    apply_trsf(seeds_file, vf_file , path_output=seeds_file, template=fused_file,nearest=True, lazy=True, verbose=verbose)
 
 
 
-def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file , seeds_file,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
-    RadiusOpening=20,Thau=25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200,DeltaVoxels=10**3,Volum_Min_No_Seed=100, delSeedsASAP=True):
+def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file,  fused_file_u8 , seeds_file,path_seg_trsf, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
+    RadiusOpening=20,Thau=25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200,DeltaVoxels=10**3,Volum_Min_No_Seed=100, delSeedsASAP=True, 
+    verbose=False):
     """
     Steps 4 to 9 of segmentation propagation as described in Gregoire's document
     - initial watershed
@@ -712,13 +721,16 @@ def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file , s
 
     print 'Perform watershed with the seeds from method "segmentation_propagation_seeds_init_and_deform"'
     im_fused=imread(fused_file)
-    im_fused_16=deepcopy(im_fused)
-    im_fused=to_u8(im_fused)
-    segmentation=watershed(seeds_file, im_fused, temporary_folder=os.path.dirname(vf_file))
+    im_fused_8=imread(fused_file_u8)
+
+
+
+    segmentation=watershed(seeds_file, im_fused_8, temporary_folder=os.path.dirname(path_seg_trsf), verbose=verbose)
     seeds=imread(seeds_file)
     if delSeedsASAP:
         cmd='rm %s'%seeds_file
-        print cmd
+        if verbose:
+            print cmd
         os.system(cmd)
     cells=list(np.unique(segmentation))
     cells.remove(1)
@@ -732,12 +744,11 @@ def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file , s
     
     print 'Applying volume correction '+str(t+delta_t)
     seeds_from_opt_h, seg_from_opt_h, corres, exterior_corres, h_min_information, sigma_information, divided_cells, label_max = get_seeds_from_optimized_parameters(t, segmentation, cells, cells_with_no_seed, 
-        right_parameters, delta_t, bounding_boxes, im_fused, seeds, parameters, h_min_max, path_h_min, sigma,Volum_Min_No_Seed=Volum_Min_No_Seed)
+        right_parameters, delta_t, bounding_boxes, im_fused_8, seeds, parameters, h_min_max, path_h_min, sigma,Volum_Min_No_Seed=Volum_Min_No_Seed)
     
     print 'Perform volume checking '+str(t+delta_t)
-    segmentation_ref=imread(segmentation_file_ref)
     seg_from_opt_h, bigger, lower, to_look_at, too_little, corres, exterior_correction = volume_checking(t,delta_t,segmentation, seeds_from_opt_h, seg_from_opt_h, corres, divided_cells, bounding_boxes, right_parameters, 
-        im_fused, im_fused_16, seeds, nb_cells, label_max, exterior_corres, parameters, h_min_information, sigma_information, segmentation_ref, segmentation_file_ref, vf_file, path_h_min, volumes_t_1, 
+        im_fused_8, im_fused, seeds, nb_cells, label_max, exterior_corres, parameters, h_min_information, sigma_information, segmentation_file_ref, path_seg_trsf, path_h_min, volumes_t_1, 
         nb_proc=nb_proc,Thau=Thau, MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,NIterations=NIterations ,DeltaVoxels=DeltaVoxels)
 
     print 'Perform Outer Correction '+str(t+delta_t)
@@ -766,8 +777,13 @@ def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file , s
     return seg_from_opt_h, lin_tree_information
 
 
-def segmentation_propagation(t, fused_file_ref,segmentation_file_ref, fused_file , seeds_file,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
-    RadiusOpening=20,Thau=25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200,DeltaVoxels=10**3,Volum_Min_No_Seed=100):
+def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_file , seeds_file,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
+    membrane_reconstruction_method=None, fusion_u8_method=0, flag_hybridation=False, 
+    RadiusOpening=20,Thau=25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200,DeltaVoxels=10**3,Volum_Min_No_Seed=100, 
+    rayon_dil=3.6, sigma_membrane=0.9, manual=False, manual_sigma=7, hard_thresholding=False, hard_threshold=1.0, sensitivity=0.99, sigma_TV=3.6, sigma_LF=0.9, sample=0.2, 
+    keep_membrane=False, keep_all=False,  nb_proc_ACE=7, 
+    min_percentile=0.01, max_percentile=0.99, min_method='cellinterior', max_method='cellborder', sigma_hybridation=5.0, 
+    verbose=False):
     '''
     Return the propagated segmentation at time t+dt and the updated lineage tree and cell informations
     t : time t
@@ -781,6 +797,18 @@ def segmentation_propagation(t, fused_file_ref,segmentation_file_ref, fused_file
     lin_tree_information : dictionary containing the lineage tree dictionary, volume information, h_min information and sigma information for every cells
     delta_t : value of dt (in number of time point)
     nb_proc : number maximum of processors to allocate
+
+    membrane_reconstruction_method : if not set or set to 0, the input fused_file is not processed for membrane structures enhancement.
+                                 if set to 1, the GLACE reconstruction method is going to be called
+                                 if set to 2, the GACE reconstruction method is going to be called
+
+    fusion_u8_method : select method to convert fused_file into a 8 bits images for the segmentation propagation. 
+                       if set to 0 (default), calling the historical "to_u8" method
+                       if set to 1, calling the mc_adhocFuse function which enhances the fused image while converting it to u8 knowing the semgnetation propagation from previous time point
+
+    flag_hybridation : if set to True and if the membrane_reconstruction_method parameter is provided and not equal to 0, then the reconstructed gray level image
+                       used for semgentation_propragation_from_seeds is goind to be ahybridation between the original image fused_file and the result of image reconstruction by the specified method.
+
     '''
     segmentation_ref=imread(segmentation_file_ref);
 
@@ -792,107 +820,97 @@ def segmentation_propagation(t, fused_file_ref,segmentation_file_ref, fused_file
                         vf_file.replace('.inr','_affine.trsf'),\
                         vf_file.replace('.inr','_vector.inr'),\
                         vf_file);
-    os.system('rm -f '+vf_file.replace('.inr','_affine.inr')+' '+vf_file.replace('.inr','_affine.trsf')+' '+vf_file.replace('.inr','_vector.inrf'))
 
-    segmentation_propagation_seeds_init_and_deform(t, segmentation_ref, fused_file, seeds_file, vf_file, delta_t)
+    cmd='rm -f '+vf_file.replace('.inr','_affine.inr')+' '+vf_file.replace('.inr','_affine.trsf')+' '+vf_file.replace('.inr','_vector.inrf')
+    if verbose:
+        print cmd
+    os.system(cmd)
 
-    seg_from_opt_h, lin_tree_information = segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file , seeds_file,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
+    segmentation_propagation_seeds_init_and_deform(t, segmentation_ref, fused_file, seeds_file, vf_file, delta_t, verbose=verbose)
+
+
+    # graylevel image construction for segmentation propagation
+
+    # defining temporary file paths 
+    graylevel_file=vf_file.replace('.inr','_graylevel.inr')         # The first input gray level image for segmentation_propagation_from_seeds
+    graylevel_file_u8=vf_file.replace('.inr','_graylevel_u8.inr')   # The second input gray level image for segmentation_propagation_from_seeds (must be a 8 bits image)
+    fused_file_u8=vf_file.replace('.inr','_fuse_u8.inr')             # Temporary file
+    path_seg_trsf=vf_file.replace('.inr','_seg_trsf.inr')           # Temporary file
+
+    # segmentation propagation 
+    apply_trsf(segmentation_file_ref, path_trsf=vf_file, path_output=path_seg_trsf, template=fused_file, nearest=True, verbose=verbose)
+
+    # fused file u8 vconversion if needed
+    if flag_hybridation or not membrane_reconstruction_method:
+        if  fusion_u8_method==1:
+            mc_adhocFuse(fused_file, path_seg_trsf, fused_file_u8, min_percentile=min_percentile, max_percentile=max_percentile, min_method=min_method, max_method=max_method, sigma=sigma_hybridation, verbose=verbose)
+        else:
+            imsave(fused_file_u8, to_u8(imread(fused_file)))
+
+    # Switch membrane_reconstruction_method
+    if not membrane_reconstruction_method:
+        copy(fused_file_u8, graylevel_file_u8, verbose=verbose)
+        copy(fused_file, graylevel_file, verbose=verbose)
+    if membrane_reconstruction_method == 1:
+        # GLACE reconstruction 
+        GLACE_from_resampled_segmentation(fused_file, path_seg_trsf, labels_of_interest='all', background=[0,1], path_output=graylevel_file, rayon_dil=rayon_dil, 
+        sigma_membrane=sigma_membrane, manual=manual, manual_sigma=manual_sigma, hard_thresholding=hard_thresholding, hard_threshold=hard_threshold, sensitivity=sensitivity, sigma_TV=sigma_TV, sigma_LF=sigma_LF, sample=sample, 
+        keep_membrane=keep_membrane, keep_all=keep_all,  nb_proc=ACE_nb_proc, verbose=verbose)   
+    if membrane_reconstruction_method == 2:
+        # GACE reconstruction
+        out=GACE(fused_file, binary_input=False, path_output=graylevel_file, 
+        sigma_membrane=sigma_membrane, manual=manual, manual_sigma=manual_sigma, hard_thresholding=hard_thresholding, hard_threshold=hard_threshold, sensitivity=sensitivity, sigma_TV=sigma_TV, sigma_LF=sigma_LF, sample=sample, 
+        keep_membrane=keep_membrane, keep_all=keep_all,  nb_proc=ACE_nb_proc, verbose=verbose)
+
+
+
+    # reconstructed image and fused image hybridation if needed
+
+    if membrane_reconstruction_method:
+        if flag_hybridation:
+            Arit(fused_file_u8, graylevel_file, graylevel_file, Mode='max', Type='-o 1', verbose=verbose)
+        else:
+            copy(graylevel_file, graylevel_file_u8, verbose=verbose)
+
+    # temporary images deletion
+
+    if os.path.exists(fused_file_u8):
+        cmd='rm -f '+fused_file_u8
+        if verbose:
+            print cmd
+        os.system(cmd)
+
+
+
+    # segmentation propagation stuff from seeds
+
+    seg_from_opt_h, lin_tree_information = segmentation_propagation_from_seeds(t, segmentation_file_ref, graylevel_file, graylevel_file_u8, seeds_file,path_seg_trsf, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
     RadiusOpening=RadiusOpening,Thau=Thau,MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,
-    NIterations=NIterations,DeltaVoxels=DeltaVoxels,Volum_Min_No_Seed=Volum_Min_No_Seed, delSeedsASAP=True)
+    NIterations=NIterations,DeltaVoxels=DeltaVoxels,Volum_Min_No_Seed=Volum_Min_No_Seed, delSeedsASAP=True, verbose=verbose)
+
+    # temporary images deletion
+
+    if os.path.exists(path_seg_trsf):
+        cmd='rm -f '+path_seg_trsf
+        if verbose:
+            print cmd
+        os.system(cmd)
+
+    if os.path.exists(graylevel_file):
+        cmd='rm -f '+graylevel_file
+        if verbose:
+            print cmd
+        os.system(cmd)
+
+    if os.path.exists(graylevel_file_u8):
+        cmd='rm -f '+graylevel_file_u8
+        if verbose:
+            print cmd
+        os.system(cmd)
 
     return seg_from_opt_h, lin_tree_information
 
-
-
-def to_delete_segmentation_propagation(t, fused_file_ref,segmentation_file_ref, fused_file , seeds_file_ref,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
-    RadiusOpening=20,Thau=25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200,DeltaVoxels=10**3,Volum_Min_No_Seed=100):
-    """
-    Return the propagated segmentation at time t+dt and the updated lineage tree and cell informations
-    t : time t
-    fused_file_ref : path format to fused images
-    segmentation_file_ref : path format to segmentated seeds_images
-    fused_file : fused image at t+dt
-    vf_file : path format to transformation
-    path_h_min : path format to h-minima files
-    h_min_max : maximum value of the h-min value for h-minima operator
-    sigma : sigma value in voxels for gaussian filtering
-    lin_tree_information : dictionary containing the lineage tree dictionary, volume information, h_min information and sigma information for every cells
-    delta_t : value of dt (in number of time point)
-    nb_proc : number maximum of processors to allocate
-    """
-    from copy import deepcopy
-    
-    lin_tree=lin_tree_information.get('lin_tree', {})
-    tmp=lin_tree_information.get('volumes_information', {})
-    volumes_t_1={k%10**4: v for k, v in tmp.iteritems() if k/10**4 == t}
-    h_min_information={}
-    
-    segmentation_ref=imread(segmentation_file_ref);
-
-
-    print 'Calcul Vector Fields from '+str(t)+' to '+str(t+delta_t)
-    non_linear_registration(fused_file_ref,\
-                        fused_file, \
-                        vf_file.replace('.inr','_affine.inr'), \
-                        vf_file.replace('.inr','_affine.trsf'),\
-                        vf_file.replace('.inr','_vector.inr'),\
-                        vf_file);
-    os.system('rm -f '+vf_file.replace('.inr','_affine.inr')+' '+vf_file.replace('.inr','_affine.trsf')+' '+vf_file.replace('.inr','_vector.inrf'))
-    
-
-    print 'Create The Seeds from '+str(t)
-    seeds_ref=create_seeds(segmentation_ref, max_size_cell=np.inf)
-    imsave(seeds_file_ref, SpatialImage(seeds_ref, voxelsize=seeds_ref.voxelsize))
-    
-    print 'Deform Seeds with vector fields from '+str(t)+' to '+str(t+delta_t)
-    seeds=apply_trsf(seeds_file_ref, vf_file , template=fused_file,nearest=True, lazy=False)
-
-    print 'Perform watershed with these transformed seeds'
-    im_fused=imread(fused_file)
-    im_fused_16=deepcopy(im_fused)
-    im_fused=to_u8(im_fused)
-    segmentation=watershed(seeds, im_fused, temporary_folder=os.path.dirname(vf_file))
-    cells=list(np.unique(segmentation))
-    cells.remove(1)
-    bounding_boxes=dict(zip(range(1, max(cells)+1), nd.find_objects(segmentation)))
-    treated=[]
-
-    print 'Estimation of the local h-minimas at '+str(t+delta_t)
-    nb_cells, parameters=get_seeds(segmentation, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min.replace('$SIGMA',str(sigma)), bounding_boxes, nb_proc=nb_proc)
-  
-    right_parameters, cells_with_no_seed=get_back_parameters(nb_cells, parameters, lin_tree, cells,Thau=Thau)
-    
-    print 'Applying volume correction '+str(t+delta_t)
-    seeds_from_opt_h, seg_from_opt_h, corres, exterior_corres, h_min_information, sigma_information, divided_cells, label_max = get_seeds_from_optimized_parameters(t, segmentation, cells, cells_with_no_seed, 
-        right_parameters, delta_t, bounding_boxes, im_fused, seeds, parameters, h_min_max, path_h_min, sigma,Volum_Min_No_Seed=Volum_Min_No_Seed)
-	
-    print 'Perform volume checking '+str(t+delta_t)
-    seg_from_opt_h, bigger, lower, to_look_at, too_little, corres, exterior_correction = volume_checking(t,delta_t,segmentation, seeds_from_opt_h, seg_from_opt_h, corres, divided_cells, bounding_boxes, right_parameters, 
-        im_fused, im_fused_16, seeds, nb_cells, label_max, exterior_corres, parameters, h_min_information, sigma_information, segmentation_ref, segmentation_file_ref, vf_file, path_h_min, volumes_t_1, 
-        nb_proc=nb_proc,Thau=Thau, MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,NIterations=NIterations ,DeltaVoxels=DeltaVoxels)
-
-    print 'Perform Outer Correction '+str(t+delta_t)
-    seg_from_opt_h = outer_correction(seg_from_opt_h, exterior_correction,segmentation_file_ref,RadiusOpening=RadiusOpening)
-
-    print 'Compute Volumes'+str(t+delta_t)
-    volumes=compute_volumes(seg_from_opt_h)
-    volumes_information={}
-    for k, v in volumes.iteritems():
-        volumes_information[(t+delta_t)*10**4+k]=v
-    for m, d in corres.iteritems():
-        if m!=1:
-            daughters=[]
-            for c in d:
-                if c in volumes:
-                    daughters.append(c+(t+delta_t)*10**4)
-                else:
-                    print str(c) +' is not segmented'
-            if len(daughters)>0:
-                lin_tree[m+t*10**4]=daughters
-    lin_tree_information['lin_tree']=lin_tree
-    lin_tree_information.setdefault('volumes_information', {}).update(volumes_information)
-    lin_tree_information.setdefault('h_mins_information', {}).update(h_min_information)
-    lin_tree_information.setdefault('sigmas_information', {}).update(sigma_information)
-
-    return seg_from_opt_h, lin_tree_information
-
+#def segmentation_propagation_makegraylevel_image():
+#    '''
+#
+#    '''

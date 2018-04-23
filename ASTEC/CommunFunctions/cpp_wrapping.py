@@ -158,7 +158,7 @@ def connexe(path_input, path_output, high_th):
               ' -labels -o 2')
 
 
-def watershed(path_seeds, path_int, path_output=None, lazy=True, temporary_folder=''):
+def watershed(path_seeds, path_int, path_output=None, lazy=True, temporary_folder='', verbose=False):
     ''' Perform the watershed operation
     path_seeds : path to the seeds image
     path_int : path to the intensity image
@@ -181,14 +181,17 @@ def watershed(path_seeds, path_int, path_output=None, lazy=True, temporary_folde
         path_output = os.path.join(temporary_folder,"seg.inr")
         cmd+=" "+path_output
  
-    os.system(path_watershed + ' ' + path_seeds +\
+    command=path_watershed + ' ' + path_seeds +\
               ' ' + path_int +\
-              ' ' + path_output \
-              )
+              ' ' + path_output
+
+    os.system(command)
+
     if not lazy:
         out=imread(path_output)
         if cmd:
             cmd='rm '+cmd
+            print cmd
             os.system(cmd)
         return out
 

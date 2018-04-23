@@ -231,7 +231,23 @@ for t in range(begin, end):
         VolumeRatioBigger=p.astec_VolumeRatioBigger, \
         VolumeRatioSmaller=p.astec_VolumeRatioSmaller, \
         MorphosnakeIterations=p.astec_MorphosnakeIterations, \
-        NIterations=p.astec_NIterations, DeltaVoxels=p.astec_DeltaVoxels)
+        NIterations=p.astec_NIterations, DeltaVoxels=p.astec_DeltaVoxels, \
+        rayon_dil=p.astec_rayon_dil, \
+        sigma_membrane=p.astec_sigma_membrane, \
+        manual=p.astec_manual, \
+        manual_sigma=p.astec_manual_sigma, \
+        hard_thresholding=p.astec_hard_thresholding, \
+        hard_threshold=p.astec_hard_threshold, \
+        sensitivity=p.astec_sensitivity, \
+        sigma_TV=p.astec_sigma_TV, \
+        sigma_LF=p.astec_sigma_LF, \
+        sample=p.astec_sample, \
+        keep_membrane=False, keep_all=False,  nb_proc_ACE=p.astec_nb_proc_ace,\
+        min_percentile=p.astec_min_percentile, \
+        max_percentile=p.astec_max_percentile, \
+        min_method=p.astec_min_method, max_method=p.astec_max_method,\
+        sigma_hybridation=p.astec_sigma_hybridation, \
+        verbose=True)
     
     #SAVE OUTPUT
     print 'Write the segmentation in ' + segmentation_file

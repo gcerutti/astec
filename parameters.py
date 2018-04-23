@@ -185,11 +185,11 @@ astec_h_min_max = 18   		# H min initialisation to ease correction
 
 # Glace Parameters (if astec_method is set to 2 or 3):
 # membrane_renforcement
-astec_sigma_membrane=0.9 # membrane enhancement parameter (in real units, a 
+astec_sigma_membrane=0.9# membrane enhancement parameter (in real units, a
 						# priori 0.9 um is a good choice for data like 
 						# Patrick/Ralph/Aquila)
 # anisotropicHist /!\ critical step
-astec_sensitivity=0.99   # membrane binarization parameter, /!\ if failure,
+astec_sensitivity=0.99  # membrane binarization parameter, /!\ if failure,
 						# one should enter in "manual" mode of the function
 						# anisotropicHist via activation of 'manual' option
 
@@ -200,7 +200,7 @@ astec_manual=False     	# By default, this parameter is set to False. If
 				 		# computation on the test image. If the method fails
 				 		# again, "play" with the value of manual_sigma... 
 				 		# and good luck.
-astec_manual_sigma=15    # Axial histograms fitting initialization parameter 
+astec_manual_sigma=15   # Axial histograms fitting initialization parameter 
 						# for the computation of membrane image binarization
 						# axial thresholds (this parameter is used iif 
 						# manual = True).
@@ -208,26 +208,37 @@ astec_manual_sigma=15    # Axial histograms fitting initialization parameter
 						# manual_sigma. We suggest to test values between 5 and
 						# 25 in case of initial failure. Good luck.
 
-astec_hard_thresholding=False  # If the previous membrane threshold method 
+astec_hard_thresholding=False # If the previous membrane threshold method 
 							  # failed, one can force the thresholding with a
 							  # "hard" threshold applied on the whole image. 
 							  # To do so, this option must be set to True.
-astec_hard_threshold=1.0       # If hard_thresholding = True, the enhanced 
+astec_hard_threshold=1.0      # If hard_thresholding = True, the enhanced 
 							  # membranes image is thresholded using this 
 							  # parameter (value 1 seems to be ok for 
 							  # time-point t001 of Aquila embryo for example).
 
 # Tensor voting framework
-astec_sigma_TV=3.6     # parameter which defines the voting scale for membrane
+astec_sigma_TV=3.6    # parameter which defines the voting scale for membrane
 					  # structures propagation by tensor voting method (real
 					  # coordinates). 
 				 	  # This parameter shoud be set between 3 um (little cells)
 				 	  # and 4.5 um(big gaps in the binarized membrane image)
-astec_sigma_LF=0.9     # Smoothing parameter for reconstructed image (in real
+astec_sigma_LF=0.9    # Smoothing parameter for reconstructed image (in real
 					  # coordinates). It seems that the default value = 0.9 um
 					  # is ok for classic use.
-astec_sample=0.2       # Parameter for tensor voting computation speed 
+astec_sample=0.2      # Parameter for tensor voting computation speed 
 					  # optimisation (do not touch if not bewared)
+astec_rayon_dil=3.6   # dilatation ray for propagated ROI from time t to t+1
+					  # (default: 3.6, in real coordinates) 
+
+# Hybridation parameters
+astec_min_percentile=0.01   # mc-adhocFuse parameter of type %f (default: 0.01)
+astec_max_percentile=0.99   # mc-adhocFuse parameter of type %f (default: 0.99)
+astec_min_method='cellinterior'# mc-adhocFuse param. (default: 'cellinterior')
+						 # taken in global|cell|cellborder|cellinterior|voxel
+astec_max_method='cellborder'# mc-adhocFuse parameter (default: 'cellborder')
+						 # taken in global|cell|cellborder|cellinterior|voxel
+astec_sigma_hybridation=5.0 # mc-adhocFuse parameter of type %f (default: 5.0)
 
 # Default parameters (for classical use, default values should not be changed)
 astec_RadiusOpening=20 		# (using the approximation of a sphere of radius 20
@@ -249,6 +260,7 @@ astec_DeltaVoxels=10**3  	# y (at th voxels)
 astec_Volum_Min_No_Seed=100 # Then, if the volume of c is greater than 100 
 							# voxels (2.7 um3)
 astec_nb_proc=10 			# Number of processor ...
+astec_nb_proc_ace=7   		# number of processors for ACE (7 is recommanded)
 
 
 
