@@ -1,7 +1,8 @@
 from os.path import exists, splitext, split as psplit, expanduser as expusr
 import os, fnmatch
 
-from scipy.misc import imsave as _imsave
+# from scipy.misc import imsave as _imsave
+# this is not used (GM)
 from struct import pack,unpack,calcsize
 from pickle import dumps,loads
 import numpy as np
