@@ -931,7 +931,7 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
         out=GACE(fused_file, binary_input=False, path_output=graylevel_file, 
         sigma_membrane=sigma_membrane, manual=manual, manual_sigma=manual_sigma, hard_thresholding=hard_thresholding, 
         hard_threshold=hard_threshold, sensitivity=sensitivity, sigma_TV=sigma_TV, sigma_LF=sigma_LF, sample=sample, 
-        keep_membrane=keep_membrane, keep_all=keep_all,  nb_proc=nb_proc_ACE, verbose=verbose)
+        keep_membrane=keep_membrane, keep_all=keep_all, verbose=verbose)
 
 
 
