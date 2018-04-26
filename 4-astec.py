@@ -210,6 +210,7 @@ for t in range(begin, end):
     fused_file=replaceTIME(path_fuse_exp_files, time_segment) #To be segmented
     segmentation_file_ref=replaceTIME(path_seg_exp_files, t) #Prev. seg file
     segmentation_file=replaceTIME(path_seg_exp_files, time_segment) #Output seg
+    reconstruct_file=None
     if p.astec_keep_reconstruct_files:
         reconstruct_file=replaceTIME(path_seg_exp_reconstruct_files, \
                                      time_segment)
