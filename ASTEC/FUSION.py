@@ -266,7 +266,7 @@ def fusion(images_input, image_output,temporary_path,ori, mirrors=False, targetR
     volumes = compute_volumes(comp_co)
     volumes.pop(0)        
     label = volumes.keys()[np.argmax(volumes.values())]
-    bb = nd.find_objects(comp_co)[label-1]
+    bb = nd.find_objects(comp_co)[int(label-1)]
     bb2 = (slice(max(bb[0].start - 40, 0), min(final.shape[0], bb[0].stop + 40), None), slice(max(bb[1].start - 40, 0), min(final.shape[1], bb[1].stop + 40), None), slice(0, final.shape[2]))
     imsave(image_output, SpatialImage(final[bb2], voxelsize=(targetResolution, targetResolution, targetResolution)))
 

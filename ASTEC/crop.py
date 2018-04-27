@@ -37,7 +37,7 @@ def croping(image_input, impage_output,downsize, margin_x_0=40, margin_x_1=40, m
         volumes = compute_volumes(comp_co)
         volumes.pop(0)
         label = volumes.keys()[np.argmax(volumes.values())]
-        bb = nd.find_objects(comp_co)[label-1]
+        bb = nd.find_objects(comp_co)[int(label-1)]
         #change 40-->120 et 40-->80 nouvelle box
         # dilation parameter:
         # 
