@@ -171,7 +171,7 @@ def to_u8(im, lt=0):
     return SpatialImage(np.uint8(np.linspace(0, 255, nper-fper+1), casting='unsafe')[imcp], voxelsize=imcp.voxelsize)
 
 
-def get_seeds(seg, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min, bounding_boxes, nb_proc=26):
+def get_seeds(seg, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min, bounding_boxes, nb_proc=26, verbose=False):
     """
     Return the number of seeds found for each cell in seg for different h_min values (from h_min_max down to 1)
     seg : Segmented image (SpatialImage)
@@ -181,6 +181,7 @@ def get_seeds(seg, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min, bo
     fused_file : path (?) towards the fused image on which to perform the local minima detection
     path_h_min : format of h minima file names
     bounding_boxes : bounding boxes of the cells in seg (to fasten the computation)
+    verbose : verbose mode (False or True)
     """
     from multiprocessing import Pool
     nb_cells={}
@@ -189,7 +190,7 @@ def get_seeds(seg, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min, bo
     mask=None
     temp_path_h_min=path_h_min.replace('$HMIN',str(h_min_max))
     if not os.path.exists(temp_path_h_min):
-        seeds_not_prop, mask=find_local_minima(temp_path_h_min, fused_file, h_min_max, sigma=sigma)
+        seeds_not_prop, mask=find_local_minima(temp_path_h_min, fused_file, h_min_max, sigma=sigma, verbose=verbose)
     else:
         seeds_not_prop=imread(temp_path_h_min)
 
@@ -220,7 +221,7 @@ def get_seeds(seg, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min, bo
         if checking :
             temp_path_h_min=path_h_min.replace('$HMIN',str(h_min))
             if not os.path.exists(temp_path_h_min):
-                seeds_not_prop, mask=find_local_minima(temp_path_h_min,fused_file, h_min, mask=mask, sigma=sigma)
+                seeds_not_prop, mask=find_local_minima(temp_path_h_min,fused_file, h_min, mask=mask, sigma=sigma, verbose=verbose)
             else:
                 seeds_not_prop=imread(temp_path_h_min)
             if seeds_not_prop is None:
@@ -262,7 +263,7 @@ def get_back_parameters(nb_cells, parameters, lin_tree, cells,Thau=25):
     return right_parameters, cells_with_no_seed
 
 
-def get_seeds_from_optimized_parameters(t, seg, cells, cells_with_no_seed, right_parameters,delta_t, bounding_boxes, im_ref, seeds, parameters, h_min_max, path_h_min, sigma,Volum_Min_No_Seed=100):
+def get_seeds_from_optimized_parameters(t, seg, cells, cells_with_no_seed, right_parameters,delta_t, bounding_boxes, im_ref, seeds, parameters, h_min_max, path_h_min, sigma,Volum_Min_No_Seed=100, verbose=False):
     """
     Return the seed image from the locally parametrized h-minima operator
     t : time
@@ -360,7 +361,7 @@ def get_seeds_from_optimized_parameters(t, seg, cells, cells_with_no_seed, right
             label_max+=1
 
     print 'Watershed '
-    seg_from_opt_h=watershed(SpatialImage(seeds_from_opt_h, voxelsize=seeds_from_opt_h.voxelsize), im_ref, temporary_folder=os.path.dirname(path_h_min))
+    seg_from_opt_h=watershed(SpatialImage(seeds_from_opt_h, voxelsize=seeds_from_opt_h.voxelsize), im_ref, temporary_folder=os.path.dirname(path_h_min), verbose=verbose)
     for l in exterior_corres:
         seg_from_opt_h[seg_from_opt_h==l]=1
     corres[1]=[1]
@@ -739,13 +740,13 @@ def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file,  f
     treated=[]
 
     print 'Estimation of the local h-minimas at '+str(t+delta_t)
-    nb_cells, parameters=get_seeds(segmentation, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min.replace('$SIGMA',str(sigma)), bounding_boxes, nb_proc=nb_proc)
+    nb_cells, parameters=get_seeds(segmentation, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min.replace('$SIGMA',str(sigma)), bounding_boxes, nb_proc=nb_proc, verbose=verbose)
   
     right_parameters, cells_with_no_seed=get_back_parameters(nb_cells, parameters, lin_tree, cells,Thau=Thau)
     
     print 'Applying volume correction '+str(t+delta_t)
     seeds_from_opt_h, seg_from_opt_h, corres, exterior_corres, h_min_information, sigma_information, divided_cells, label_max = get_seeds_from_optimized_parameters(t, segmentation, cells, cells_with_no_seed, 
-        right_parameters, delta_t, bounding_boxes, im_fused_8, seeds, parameters, h_min_max, path_h_min, sigma,Volum_Min_No_Seed=Volum_Min_No_Seed)
+        right_parameters, delta_t, bounding_boxes, im_fused_8, seeds, parameters, h_min_max, path_h_min, sigma,Volum_Min_No_Seed=Volum_Min_No_Seed, verbose=verbose)
     
     print 'Perform volume checking '+str(t+delta_t)
     seg_from_opt_h, bigger, lower, to_look_at, too_little, corres, exterior_correction = volume_checking(t,delta_t,segmentation, seeds_from_opt_h, seg_from_opt_h, corres, divided_cells, bounding_boxes, right_parameters, 

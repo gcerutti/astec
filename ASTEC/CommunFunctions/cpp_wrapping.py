@@ -185,13 +185,16 @@ def watershed(path_seeds, path_int, path_output=None, lazy=True, temporary_folde
               ' ' + path_int +\
               ' ' + path_output
 
+    if verbose:
+      print command
     os.system(command)
 
     if not lazy:
         out=imread(path_output)
         if cmd:
             cmd='rm '+cmd
-            print cmd
+            if verbose:
+                print cmd
             os.system(cmd)
         return out
 
@@ -357,7 +360,7 @@ def apply_trsf(path_flo, path_trsf=None, path_output="tmp_seeds.inr",
         return out
 
 
-def find_local_minima(path_out, path_ref, h_min, mask=None, sigma=0.6):
+def find_local_minima(path_out, path_ref, h_min, mask=None, sigma=0.6, verbose=False):
     ''' Find local minima in an intensity image
     path_out : path to the output seeds image
     path_ref : path to the reference intensity image
@@ -371,48 +374,66 @@ def find_local_minima(path_out, path_ref, h_min, mask=None, sigma=0.6):
     tmp_filt=path_out.replace('.inr','_local_minima_filter'+str(sigma)+'.inr') 
     if not path.exists(tmp_filt) and mask==None:
         #recfilter(path_ref, tmp_filt, filter_value=sigma, lazy=True)
-        linearfilter(path_ref, tmp_filt, filter_value=sigma, realScale=True, type='deriche', lazy=True)
+        linearfilter(path_ref, tmp_filt, filter_value=sigma, realScale=True, type='deriche', lazy=True, verbose=verbose)
     if mask==None:
         if os.path.exists(path_regional_max):
-            os.system(path_regional_max + ' ' + tmp_filt + ' ' +\
+          cmd=path_regional_max + ' ' + tmp_filt + ' ' +\
                   ' -diff ' + path_mask_out + ' ' +\
                   tmp_min + ' ' +\
                   '-h ' + str(h_min) + ' ' +\
-                  '-inv')
+                  '-inv'
+          if verbose:
+            print cmd
+          os.system(cmd)
         else :
           if os.path.exists(path_regional_ext):
-            os.system(path_regional_ext + ' ' + tmp_filt + ' ' +\
+            cmd=path_regional_ext + ' ' + tmp_filt + ' ' +\
                   ' -diff ' + path_mask_out + ' ' +\
                   tmp_min + ' ' +\
                   '-h ' + str(h_min) + ' ' +\
-                  '-min')
+                  '-min'
+            if verbose:
+              print cmd
+            os.system(cmd)
           else: 
             print "Error : did not found " + path_regional_max + " neither "+ path_regional_ext + " binary functions. Exiting."
             return
     else:
         if os.path.exists(path_regional_max):
-            os.system(path_regional_max + ' ' + mask + ' ' +
-                  '-diff ' + path_mask_out + ' ' +
-                  tmp_min + ' ' +
-                  '-h ' + str(h_min))
+            cmd=path_regional_max + ' ' + mask + ' ' + \
+                  '-diff ' + path_mask_out + ' ' +\
+                  tmp_min + ' ' +\
+                  '-h ' + str(h_min)
+            if verbose:
+              print cmd
+            os.system(cmd)
         else:
           if os.path.exists(path_regional_ext):
-            os.system(path_regional_ext + ' ' + mask + ' ' +
-                  '-diff ' + path_mask_out + ' ' +
-                  tmp_min + ' ' +
-                  '-h ' + str(h_min) + '-max')
+            cmd=path_regional_ext + ' ' + mask + ' ' +\
+                  '-diff ' + path_mask_out + ' ' +\
+                  tmp_min + ' ' +\
+                  '-h ' + str(h_min) + ' -max'
+            if verbose:
+              print cmd
+            os.system(cmd)
           else: 
             print "Error : did not found " + path_regional_max + " neither "+ path_regional_ext + " binary functions. Exiting."
             return
-    os.system(path_connexe + ' ' + path_mask_out + ' ' +
-              path_out + ' ' +
-              '-sb 1 -sh ' + str(h_min) +
-              ' -labels -o 2')
+    cmd=path_connexe + ' ' + path_mask_out + ' ' +\
+              path_out + ' ' +\
+              '-sb 1 -sh ' + str(h_min) +\
+              ' -labels -o 2'
+    if verbose:
+      print cmd
+    os.system(cmd)
     try:
         im=imread(path_out.replace('\\', ''))
     except:
         im=None
-    os.system('rm -f '+tmp_filt+' '+tmp_min);
+    cmd='rm -f '+tmp_filt+' '+tmp_min
+    if verbose:
+      print cmd
+    os.system(cmd);
     return im, path_mask_out
 
 def morpho(image_input,image_output,paramstre,verbose=False):
