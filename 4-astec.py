@@ -86,8 +86,14 @@ if options.e:
             sys.exit(1) 
     p.EN='' # replaceFlags function will deal with empty p.EN field
 
-### Creating p.astec_keep_reconstruct_files if missing (for retrocompatibility)
+### Creating some p attributes if missing (for retrocompatibility)
 
+if not hasattr(p, 'astec_membrane_reconstruction_method'):
+    p.astec_membrane_reconstruction_method = 0
+if not hasattr(p, 'astec_fusion_u8_method'):
+    p.astec_fusion_u8_method = 0
+if not hasattr(p, 'astec_flag_hybridation'):
+    p.astec_flag_hybridation = False
 if not hasattr(p, 'astec_keep_reconstruct_files'):
     p.astec_keep_reconstruct_files = False
 
