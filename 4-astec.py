@@ -98,6 +98,8 @@ if not hasattr(p, 'astec_keep_reconstruct_files'):
     p.astec_keep_reconstruct_files = False
 if not hasattr(p, 'astec_rayon_dil'):
     p.astec_rayon_dil = 3.6
+if not hasattr(p, 'astec_nb_proc_ace'):
+    p.astec_nb_proc_ace = 7
 
 ### Building paths from nomenclature.py and parameters file
 
