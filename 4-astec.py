@@ -101,6 +101,17 @@ if not hasattr(p, 'astec_rayon_dil'):
 if not hasattr(p, 'astec_nb_proc_ace'):
     p.astec_nb_proc_ace = 7
 
+if not hasattr(p, 'astec_min_percentile'):
+    p.astec_min_percentile=0.01   
+if not hasattr(p, 'astec_max_percentile'):
+    p.astec_max_percentile=0.99   
+if not hasattr(p, 'astec_min_method'):
+    p.astec_min_method='cellinterior'
+if not hasattr(p, 'astec_max_method'):
+    p.astec_max_method='cellborder'
+if not hasattr(p, 'astec_sigma_hybridation'):
+    p.astec_sigma_hybridation=5.0 
+
 ### Building paths from nomenclature.py and parameters file
 
 path_fuse_exp = replaceFlags(path_fuse_exp, p)
