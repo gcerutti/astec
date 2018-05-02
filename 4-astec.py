@@ -96,6 +96,8 @@ if not hasattr(p, 'astec_flag_hybridation'):
     p.astec_flag_hybridation = False
 if not hasattr(p, 'astec_keep_reconstruct_files'):
     p.astec_keep_reconstruct_files = False
+if not hasattr(p, 'astec_rayon_dil'):
+    p.astec_rayon_dil = 3.6
 
 ### Building paths from nomenclature.py and parameters file
 
