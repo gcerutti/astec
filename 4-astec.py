@@ -86,10 +86,12 @@ if options.e:
             sys.exit(1) 
     p.EN='' # replaceFlags function will deal with empty p.EN field
 
+### Creating p.astec_keep_reconstruct_files if missing (for retrocompatibility)
 
+if not hasattr(p, 'astec_keep_reconstruct_files'):
+    p.astec_keep_reconstruct_files = False
 
 ### Building paths from nomenclature.py and parameters file
-
 
 path_fuse_exp = replaceFlags(path_fuse_exp, p)
 print "Fused data will be searched in directory %s"%replaceFlags(path_fuse_exp,
@@ -211,6 +213,7 @@ for t in range(begin, end):
     segmentation_file_ref=replaceTIME(path_seg_exp_files, t) #Prev. seg file
     segmentation_file=replaceTIME(path_seg_exp_files, time_segment) #Output seg
     reconstruct_file=None
+
     if p.astec_keep_reconstruct_files:
         reconstruct_file=replaceTIME(path_seg_exp_reconstruct_files, \
                                      time_segment)
