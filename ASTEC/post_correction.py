@@ -1,3 +1,7 @@
+assert os.path.isdir(os.path.join(os.path.dirname(__file__),"CommunFunctions"))
+sys.path.append(os.path.join(os.path.dirname(__file__),"CommunFunctions"))
+
+
 from scipy import ndimage as nd
 import numpy as np
 from copy import copy,deepcopy
