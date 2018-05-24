@@ -1,34 +1,55 @@
+#
 # File defining the nomenclature for ASTEC experiments
+#
 
 import sys, os
 
+
 #
 #
+# General definition
 #
 #
+
+
+#
+# main path = path to embryo directory
+# - rawdata have to be a sub-directory of it
+# - results will be sub-directories also
 #
 
+FLAG_PATH_EMBRYO='$PATHEMBRYO'
+
+#
+# Embryo Name
+# CRBM convention is: YYMMDD-SaintOfTheDays-Stage
+#
+FLAG_EN='$EN'
 
 
-# Definition of main stage directories of ASTEC package:
-DIR_STAGE_RAW 	='RAWDATA'# RAW DATA stored in PATH_EMBRYO/DIR_STAGE_RAW
-DIR_STAGE_FUSE	='FUSE'	# Fusion experiments stored in 
-						# PATH_EMBRYO/DIR_STAGE_FUSE/FLAG_EXP_FUSE
-DIR_STAGE_REG	='REG'	# Registration experiments stored in 
-						# PATH_EMBRYO/DIR_STAGE_REG/FLAG_EXP_REG
-DIR_STAGE_MARS	='SEG'	# Mars experiments stored in
-						# PATH_EMBRYO/DIR_STAGE_MARS/FLAG_EXP_MARS
-DIR_STAGE_SEG	='SEG'	# Segmentation propagation experiments stored in
-						# PATH_EMBRYO/DIR_STAGE_SEG/FLAG_EXP_SEG
-DIR_STAGE_POST	='POST'	# Post correction experiments stored in
-						# PATH_EMBRYO/DIR_STAGE_SEG/FLAG_EXP_POST
+#
+# Definition of main sub-directories of the embryo directory
+# apart the directory containing the raw data
+# they are created by the ASTEC stages/utilities
+#
+# - RAW DATA are stored in [FLAG_PATH_EMBRYO]/[FLAG_PATH_RAWDATA]
+# - Fusion experiments stored in
+#   [FLAG_PATH_EMBRYO]/[DIR_STAGE_FUSE]/[DIR_STAGE_FUSE]_[FLAG_EXP_FUSE]
+# - Registration experiments stored in
+#   [FLAG_PATH_EMBRYO]/[DIR_STAGE_REG]/[DIR_STAGE_REG]_[FLAG_EXP_REG]
+# - Mars experiments (segmentation of first time point) stored in
+#   [FLAG_PATH_EMBRYO]/[DIR_STAGE_MARS]/[DIR_STAGE_MARS]_[FLAG_EXP_MARS]
+# - Segmentation propagation experiments stored in
+#   [FLAG_PATH_EMBRYO]/[DIR_STAGE_SEG]/[DIR_STAGE_SEG]_[FLAG_EXP_SEG]
+# - Post correction experiments stored in
+#   [FLAG_PATH_EMBRYO]/[DIR_STAGE_SEG]/[DIR_STAGE_SEG]_[FLAG_EXP_POST]
 
-
-# Flags to be replaced in paths
-FLAG_PATH_EMBRYO='$PATHEMBRYO'# Must be the path to the embryo data 
-FLAG_EN='$EN'				# Embryo Name (format YYMMDD-SaintOfTheDays-Stage)
-
-FLAG_TIMESTAMP='$TIMESTAMP' # time stamp of the experiment
+FLAG_PATH_RAWDATA='$PATHRAWDATA'
+DIR_STAGE_FUSE	='FUSE'
+DIR_STAGE_REG	='REG'
+DIR_STAGE_MARS	='SEG'
+DIR_STAGE_SEG	='SEG'
+DIR_STAGE_POST	='POST'
 
 FLAG_EXP_FUSE='$FUSE'		# defining fusion experiments subdirectory
 FLAG_EXP_REG='$REG'			# defining registration experiments subdirectory
@@ -36,37 +57,77 @@ FLAG_EXP_MARS='$MARS'		# defining mars experiments subdirectory
 FLAG_EXP_SEG='$SEG'			# defining seg propagation experiments subdirectory
 FLAG_EXP_POST='$POST'		# defining post correction experiments subdirectory
 
+
+#
+# Flags relative to file name
+#
+
+FLAG_TIMESTAMP='$TIMESTAMP' # time stamp of the experiment
+
 FLAG_TIME='$TIME'			# Time-point of an embryo snapshot
 FLAG_TIMEREF='$TIMEREF'		# For registration,time-point of reference snapshot
 FLAG_TIMEFLO='$TIMEFLO'		# For registration,time-point of floating snapshot
 
-#FLAG_WORKSPACE='$WORKSPACE'# Workspace for the considered step; this workspace
-						# is included in the repository corresponding to the
-						# ASTEC step ([FUSE|SEG|POST]) and prefixed by this
-						# repository name (eg. FUSE_EXP_NO_CROP or SEG_RELEASE)
 
 
-### RAW DATA 
-path_rawdata=os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_RAW)
+#
+# raw data specific definitions: FLAGS
+#
+# definitions of sub-directories in [PATHEMBRYO]/[FLAG_PATH_RAWDATA]
+#
+# if not defined, they will be
+# LC/Stack0000
+# LC/Stack0001
+# RC/Stack0000
+# RC/Stack0001
+#
+
+FLAG_PATH_LEFT_STACK_ZERO ='$PATHLEFTCAMSTACKZERO'
+FLAG_PATH_LEFT_STACK_ONE  ='$PATHLEFTCAMSTACKONE'
+FLAG_PATH_RIGHT_STACK_ZERO='$PATHRIGHTCAMSTACKZERO'
+FLAG_PATH_RIGHT_STACK_ONE ='$PATHRIGHTCAMSTACKONE'
+
+FLAG_NAME_LEFT_RAW_IMAGE='$NAMELEFTRAWIMAGE'
+FLAG_NAME_RIGHT_RAW_IMAGE='$NAMERIGHTRAWIMAGE'
+
+#
+# raw data specific definitions: variables
+#
+
+path_rawdata=os.path.join(FLAG_PATH_EMBRYO, FLAG_PATH_RAWDATA)
+
 # 1st image from the left camera, good quality image at the beginning
-path_rawdata_angle1=os.path.join(path_rawdata,"LC"+os.path.sep+"Stack0000") 
+path_rawdata_angle1=os.path.join(path_rawdata,FLAG_PATH_LEFT_STACK_ZERO)
+
 # 1st image from the right camera
-path_rawdata_angle2=os.path.join(path_rawdata,"RC"+os.path.sep+"Stack0000") 
+path_rawdata_angle2=os.path.join(path_rawdata,FLAG_PATH_RIGHT_STACK_ZERO)
+
 # 2nd image from the left camera
-path_rawdata_angle3=os.path.join(path_rawdata,"LC"+os.path.sep+"Stack0001") 
+path_rawdata_angle3=os.path.join(path_rawdata,FLAG_PATH_LEFT_STACK_ONE)
+
 # 2nd from the right camera
-path_rawdata_angle4=os.path.join(path_rawdata,"RC"+os.path.sep+"Stack0001") 
+path_rawdata_angle4=os.path.join(path_rawdata,FLAG_PATH_RIGHT_STACK_ONE)
+
+
+path_rawdata_angle1_files=FLAG_NAME_LEFT_RAW_IMAGE+'$TIME'
+path_rawdata_angle2_files=FLAG_NAME_RIGHT_RAW_IMAGE+'$TIME'
+path_rawdata_angle3_files=FLAG_NAME_LEFT_RAW_IMAGE+'$TIME'
+path_rawdata_angle4_files=FLAG_NAME_RIGHT_RAW_IMAGE+'$TIME'
+
 
 
 #
 ### FUSION DATA
 #
+
+FLAG_IMAGESUFFIX_FUSE='$IMAGESUFFIXFUSE'
+
 # path fused images
 path_fuse          =os.path.join(FLAG_PATH_EMBRYO,DIR_STAGE_FUSE) 
 # path for fusion workspace
 path_fuse_exp      =os.path.join(path_fuse,DIR_STAGE_FUSE+'_'+FLAG_EXP_FUSE)
 # fused images generic name
-path_fuse_exp_files=os.path.join(path_fuse_exp,FLAG_EN+'_fuse_t$TIME.inr') 
+path_fuse_exp_files=os.path.join(path_fuse_exp,FLAG_EN+'_fuse_t$TIME.'+FLAG_IMAGESUFFIX_FUSE)
 # log files
 path_fuse_historyfile  =os.path.join(path_fuse_exp,'1-fuse-history.log')
 path_fuse_logfile  =os.path.join(path_fuse_exp,'1-fuse-'+FLAG_TIMESTAMP+'.log')
@@ -229,29 +290,29 @@ named_lineage_tree_test_filename=postsegment_Path+FLAG_EN+'_fuse_seg_post_lin_tr
 ################ FUNCTIONS FOR FLAGS REPLACEMENT #############
 ##############################################################
 
-def replaceTIME(filename,time,_format="%03d"):
+def replaceTIME(filename,time,timeDigits=3):
     """
     Replaces all the occurrences of "$TIME" by its value given by time of 
     type int at the format specified by _format argument (default="%03d")
     """
-    time_point=_format%time #Format time on 3 digit
+    time_point='{:0{width}d}'.format( time, width=timeDigits)
     return filename.replace(FLAG_TIME, time_point)
 
-def replaceTIMEFLO(filename,time,_format="%03d"):
-    """
-    Replaces all the occurrences of "$TIMEFLO" by its value given by time of 
-    type int at the format specified by _format argument (default="%03d")
-    """
-    time_point=_format%time #Format time on 3 digit
-    return filename.replace(FLAG_TIMEFLO, time_point)
+#def replaceTIMEFLO(filename,time,_format="%03d"):
+#    """
+#    Replaces all the occurrences of "$TIMEFLO" by its value given by time of
+#    type int at the format specified by _format argument (default="%03d")
+#    """
+#    time_point=_format%time #Format time on 3 digit
+#    return filename.replace(FLAG_TIMEFLO, time_point)
 
-def replaceTIMEREF(filename,time,_format="%03d"):
-    """
-    Replaces all the occurrences of "$TIMEREF" by its value given by time of 
-    type int at the format specified by _format argument (default="%03d")
-    """
-    time_point=_format%time #Format time on 3 digit
-    return filename.replace(FLAG_TIMEREF, time_point)
+#def replaceTIMEREF(filename,time,_format="%03d"):
+#    """
+#    Replaces all the occurrences of "$TIMEREF" by its value given by time of
+#    type int at the format specified by _format argument (default="%03d")
+#    """
+#    time_point=_format%time #Format time on 3 digit
+#    return filename.replace(FLAG_TIMEREF, time_point)
 
 def replaceTimes(filename,d,_format="%03d"):
     """
@@ -286,34 +347,13 @@ def replaceEN(filename,embryoname, check_name=False):
 
 
 
-def replacePATH_EMBRYO(filename,path):
+def replacePATH(filename,path):
     """
-    Replaces all the occurrences of "$EMBRYOPATH" by its value given by EN of 
+    Replaces all the occurrences of "$EMBRYOPATH" by its value given by path of
     type str
     """
     #assert path, "Specified embryo path should not be empty."
     return filename.replace(FLAG_PATH_EMBRYO, path.rstrip(os.path.sep))
-
-#def replaceWORKSPACE(filename,path):
-#    """
-#    Replaces all the occurrences of "$WORKSPACE" by its value given by EN of 
-#    type str
-#    """
-#    assert path, "Specified workspace should not be empty."
-#    return filename.replace(FLAG_WORKSPACE, path)
-
-
-
-def replaceEXP(filename,flag,path):
-    """
-    Replaces all the occurrences of "$EXP" by its value given by path of type
-    str
-	If path is empty, "$EXP" is replaced by "RELEASE" and a message is printed
-    """
-    if not path:
-        print ""
-        path='RELEASE'
-    return filename.replace(flag, path)
 
 
 
@@ -329,6 +369,16 @@ def replaceTIMESTAMP( filename, timestamp ):
     return filename.replace(FLAG_TIMESTAMP, d )
 
 
+
+def _genericReplaceFlag( name, flag, parameters, attributeName, defaultValue ):
+    attributeValue=getattr( parameters, attributeName, defaultValue )
+    return name.replace(flag, attributeValue)
+
+
+
+#
+#
+#
 
 
 def replaceFlags(filename, parameters, timestamp=None, check_name=False):
@@ -347,11 +397,12 @@ def replaceFlags(filename, parameters, timestamp=None, check_name=False):
     proc=replaceFlags
     import re
     found=re.findall(r'\$[A-Z]*',filename)
+
     for flag in found:
 
         if flag==FLAG_PATH_EMBRYO:
             if hasattr(parameters, 'PATH_EMBRYO'):
-                filename=replacePATH_EMBRYO(filename, parameters.PATH_EMBRYO)
+                filename=replacePATH(filename, parameters.PATH_EMBRYO)
             else:
                 print( proc+": flag 'PATH_EMBRYO' not found in parameter file" )
                 sys.exit(1)
@@ -368,35 +419,51 @@ def replaceFlags(filename, parameters, timestamp=None, check_name=False):
                     sys.exit(1)
                 filename=replaceEN(filename, embryoname, check_name=check_name)
 
+        elif flag == FLAG_PATH_RAWDATA:
+            filename = _genericReplaceFlag(filename, flag, parameters, 'DIR_RAWDATA', "RAWDATA")
+
+        elif flag==FLAG_PATH_LEFT_STACK_ZERO:
+            d = "LC" + os.path.sep + "Stack0000"
+            filename = _genericReplaceFlag(filename, flag, parameters, 'DIR_LEFTCAM_STACKZERO', d)
+
+        elif flag==FLAG_PATH_LEFT_STACK_ONE:
+            d="LC"+os.path.sep+"Stack0001"
+            filename = _genericReplaceFlag(filename, flag, parameters, 'DIR_LEFTCAM_STACKONE', d)
+
+        elif flag==FLAG_PATH_RIGHT_STACK_ZERO:
+            d = "RC" + os.path.sep + "Stack0000"
+            filename = _genericReplaceFlag(filename, flag, parameters, 'DIR_RIGHTCAM_STACKZERO', d)
+
+        elif flag==FLAG_PATH_RIGHT_STACK_ONE:
+            d = "RC" + os.path.sep + "Stack0001"
+            filename = _genericReplaceFlag(filename, flag, parameters, 'DIR_RIGHTCAM_STACKONE', d)
+
+
+        elif flag == FLAG_NAME_LEFT_RAW_IMAGE:
+            filename = _genericReplaceFlag(filename, flag, parameters, 'fusion_leftcam_image_prefix', 'Cam_Left_00' )
+
+        elif flag == FLAG_NAME_RIGHT_RAW_IMAGE:
+            filename = _genericReplaceFlag(filename, flag, parameters, 'fusion_rightcam_image_prefix', 'Cam_Right_00' )
+
+
         elif flag==FLAG_EXP_FUSE:
-            if hasattr(parameters, 'EXP_FUSE'):
-                filename=replaceEXP(filename, flag, parameters.EXP_FUSE)
-            else:
-                filename = replaceEXP(filename, flag, "RELEASE")
+            filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_FUSE', 'RELEASE' )
 
         elif flag==FLAG_EXP_REG:
-            if hasattr(parameters, 'EXP_REG'):
-                filename=replaceEXP(filename, flag, parameters.EXP_REG)
-            else:
-                filename = replaceEXP(filename, flag, "RELEASE")
+            filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_REG', 'RELEASE')
 
         elif flag==FLAG_EXP_MARS:
-            if hasattr(parameters, 'EXP_MARS'):
-                filename=replaceEXP(filename, flag, parameters.EXP_MARS)
-            else:
-                filename = replaceEXP(filename, flag, "RELEASE")
+            filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_MARS', 'RELEASE')
 
         elif flag==FLAG_EXP_SEG:
-            if hasattr(parameters, 'FLAG_EXP_SEG'):
-                filename=replaceEXP(filename, flag, parameters.FLAG_EXP_SEG)
-            else:
-                filename = replaceEXP(filename, flag, "RELEASE")
+            filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_SEG', 'RELEASE')
 
         elif flag==FLAG_EXP_POST:
-            if hasattr(parameters, 'EXP_POST'):
-                filename=replaceEXP(filename, flag, parameters.EXP_POST)
-            else:
-                filename = replaceEXP(filename, flag, "RELEASE")
+            filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_POST', 'RELEASE')
+
+
+        elif flag==FLAG_IMAGESUFFIX_FUSE:
+            filename = _genericReplaceFlag(filename, flag, parameters, 'fusion_image_suffixe', 'inr')
 
         elif flag==FLAG_TIMESTAMP:
             filename = replaceTIMESTAMP(filename, timestamp)

@@ -13,6 +13,11 @@ EN=''
 				# (automatically extracted from PATH_EMBRYO if not provided)
 
 
+DIR_TO_LEFTCAM_STACKZERO=''
+DIR_TO_LEFTCAM_STACKONE=''
+DIR_TO_RIGHTCAM_STACKZERO=''
+DIR_TO_RIGHTCAM_STACKONE=''
+
 EXP_FUSE=''	
             # Workspace for the considered step; this workspace
 			# is included in the repository corresponding to the

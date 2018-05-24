@@ -1,9 +1,8 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/python2.7
 
 import os, sys
 import time
 from argparse import ArgumentParser
-
 
 
 #
@@ -110,10 +109,9 @@ if __name__ == '__main__':
     #
     # make fusion directory and subdirectory if required
     #
-    if not os.path.isdir( environment.path_fuse ):
-        os.mkdir( environment.path_fuse )
     if not os.path.isdir( environment.path_fuse_exp ):
-        os.mkdir( environment.path_fuse_exp )
+        os.makedirs( environment.path_fuse_exp )
+
 
 
     #
@@ -147,6 +145,7 @@ if __name__ == '__main__':
     #
     # processing
     #
+    XFUSION.fusionProcess(experiment, environment, parameters)
 
 
     #
