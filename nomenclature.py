@@ -1,6 +1,13 @@
 # File defining the nomenclature for ASTEC experiments
 
-import sys,os
+import sys, os
+
+#
+#
+#
+#
+#
+
 
 
 # Definition of main stage directories of ASTEC package:
@@ -21,13 +28,15 @@ DIR_STAGE_POST	='POST'	# Post correction experiments stored in
 FLAG_PATH_EMBRYO='$PATHEMBRYO'# Must be the path to the embryo data 
 FLAG_EN='$EN'				# Embryo Name (format YYMMDD-SaintOfTheDays-Stage)
 
+FLAG_TIMESTAMP='$TIMESTAMP' # time stamp of the experiment
+
 FLAG_EXP_FUSE='$FUSE'		# defining fusion experiments subdirectory
 FLAG_EXP_REG='$REG'			# defining registration experiments subdirectory
 FLAG_EXP_MARS='$MARS'		# defining mars experiments subdirectory
 FLAG_EXP_SEG='$SEG'			# defining seg propagation experiments subdirectory
 FLAG_EXP_POST='$POST'		# defining post correction experiments subdirectory
 
-FLAG_TIME='$TIME'			# Time-point of an embryo snapshot 
+FLAG_TIME='$TIME'			# Time-point of an embryo snapshot
 FLAG_TIMEREF='$TIMEREF'		# For registration,time-point of reference snapshot
 FLAG_TIMEFLO='$TIMEFLO'		# For registration,time-point of floating snapshot
 
@@ -49,15 +58,18 @@ path_rawdata_angle3=os.path.join(path_rawdata,"LC"+os.path.sep+"Stack0001")
 path_rawdata_angle4=os.path.join(path_rawdata,"RC"+os.path.sep+"Stack0001") 
 
 
-### FUSION DATA 
+#
+### FUSION DATA
+#
 # path fused images
 path_fuse          =os.path.join(FLAG_PATH_EMBRYO,DIR_STAGE_FUSE) 
 # path for fusion workspace
 path_fuse_exp      =os.path.join(path_fuse,DIR_STAGE_FUSE+'_'+FLAG_EXP_FUSE)
-# fused images names
+# fused images generic name
 path_fuse_exp_files=os.path.join(path_fuse_exp,FLAG_EN+'_fuse_t$TIME.inr') 
-# logfile
-path_fuse_logfile  =os.path.join(path_fuse_exp,'1-fuse.log')	
+# log files
+path_fuse_historyfile  =os.path.join(path_fuse_exp,'1-fuse-history.log')
+path_fuse_logfile  =os.path.join(path_fuse_exp,'1-fuse-'+FLAG_TIMESTAMP+'.log')
 
 
 
@@ -219,7 +231,7 @@ named_lineage_tree_test_filename=postsegment_Path+FLAG_EN+'_fuse_seg_post_lin_tr
 
 def replaceTIME(filename,time,_format="%03d"):
     """
-    Replaces all the occurences of "$TIME" by its value given by time of 
+    Replaces all the occurrences of "$TIME" by its value given by time of 
     type int at the format specified by _format argument (default="%03d")
     """
     time_point=_format%time #Format time on 3 digit
@@ -227,7 +239,7 @@ def replaceTIME(filename,time,_format="%03d"):
 
 def replaceTIMEFLO(filename,time,_format="%03d"):
     """
-    Replaces all the occurences of "$TIMEFLO" by its value given by time of 
+    Replaces all the occurrences of "$TIMEFLO" by its value given by time of 
     type int at the format specified by _format argument (default="%03d")
     """
     time_point=_format%time #Format time on 3 digit
@@ -235,7 +247,7 @@ def replaceTIMEFLO(filename,time,_format="%03d"):
 
 def replaceTIMEREF(filename,time,_format="%03d"):
     """
-    Replaces all the occurences of "$TIMEREF" by its value given by time of 
+    Replaces all the occurrences of "$TIMEREF" by its value given by time of 
     type int at the format specified by _format argument (default="%03d")
     """
     time_point=_format%time #Format time on 3 digit
@@ -243,7 +255,7 @@ def replaceTIMEREF(filename,time,_format="%03d"):
 
 def replaceTimes(filename,d,_format="%03d"):
     """
-    Replaces all the occurences of each key from the dictionnary d given in 
+    Replaces all the occurrences of each key from the dictionnary d given in 
     parameter with its corresponding value of type int at the format 
     specified by _format argument (default="%03d")
     """
@@ -258,11 +270,13 @@ def replaceTimes(filename,d,_format="%03d"):
         filename=filename.replace(k, time_point)
     return filename
 
+
+
 def replaceEN(filename,embryoname, check_name=False):
     """
-    Replaces all the occurences of "$EN" by its value given by EN of type str
+    Replaces all the occurrences of "$EN" by its value given by EN of type str
     check_name: parameter enabling to check the EN name composition wrt the
-    			nomenclature (default=False)
+    			CRBM nomenclature (default=False)
     """
     if check_name:
         assert embryoname.count('-')!=2, 'ERROR in embryo name %s\n\
@@ -270,9 +284,11 @@ def replaceEN(filename,embryoname, check_name=False):
             %embryoname
     return filename.replace(FLAG_EN, embryoname)
 
+
+
 def replacePATH_EMBRYO(filename,path):
     """
-    Replaces all the occurences of "$EMBRYOPATH" by its value given by EN of 
+    Replaces all the occurrences of "$EMBRYOPATH" by its value given by EN of 
     type str
     """
     #assert path, "Specified embryo path should not be empty."
@@ -280,24 +296,42 @@ def replacePATH_EMBRYO(filename,path):
 
 #def replaceWORKSPACE(filename,path):
 #    """
-#    Replaces all the occurences of "$WORKSPACE" by its value given by EN of 
+#    Replaces all the occurrences of "$WORKSPACE" by its value given by EN of 
 #    type str
 #    """
 #    assert path, "Specified workspace should not be empty."
 #    return filename.replace(FLAG_WORKSPACE, path)
 
+
+
 def replaceEXP(filename,flag,path):
     """
-    Replaces all the occurences of "$FUSE" by its value given by path of type 
+    Replaces all the occurrences of "$EXP" by its value given by path of type
     str
-	If path is empty, "$FUSE" is replaced by "RELEASE" and a message is printed
+	If path is empty, "$EXP" is replaced by "RELEASE" and a message is printed
     """
     if not path:
         print ""
         path='RELEASE'
     return filename.replace(flag, path)
 
-def replaceFlags(filename, parameters, check_name=False):
+
+
+def replaceTIMESTAMP( filename, timestamp ):
+    """
+    Replaces all the occurrences of "$TIMESTAMP" by its value given by EN of
+    type str
+    """
+    import time
+    if timestamp == None:
+        timestamp=time.localtime()
+    d=time.strftime("%Y-%m-%d-%H:%M:%S", timestamp)
+    return filename.replace(FLAG_TIMESTAMP, d )
+
+
+
+
+def replaceFlags(filename, parameters, timestamp=None, check_name=False):
     """
     Function that replaces in the specified str filename the flags found
     (which verify the regular expression r'\$[A-Z]*', e.g. '$EN' or $EXP_SEG)
@@ -310,29 +344,71 @@ def replaceFlags(filename, parameters, check_name=False):
     	FLAG_EXP_SEG -> parameters.EXP_SEG
     	FLAG_EXP_POST -> parameters.EXP_POST
     """
+    proc=replaceFlags
     import re
     found=re.findall(r'\$[A-Z]*',filename)
     for flag in found:
+
         if flag==FLAG_PATH_EMBRYO:
-            filename=replacePATH_EMBRYO(filename, parameters.PATH_EMBRYO)
-        elif flag==FLAG_EN:
-            if not parameters.EN:
-                embryoname=\
-              parameters.PATH_EMBRYO.rstrip(os.path.sep).split(os.path.sep)[-1]
-                filename=replaceEN(filename, embryoname, check_name=check_name)
+            if hasattr(parameters, 'PATH_EMBRYO'):
+                filename=replacePATH_EMBRYO(filename, parameters.PATH_EMBRYO)
             else:
-                filename=replaceEN(filename, parameters.EN, \
-                                   check_name=check_name)
+                print( proc+": flag 'PATH_EMBRYO' not found in parameter file" )
+                sys.exit(1)
+
+        elif flag==FLAG_EN:
+            if hasattr(parameters, 'EN'):
+                filename = replaceEN( filename, parameters.EN, \
+                                      check_name=check_name )
+            else:
+                if hasattr(parameters, 'PATH_EMBRYO'):
+                    embryoname= parameters.PATH_EMBRYO.rstrip(os.path.sep).split(os.path.sep)[-1]
+                else:
+                    print(proc + ": unable to set embryo name" )
+                    sys.exit(1)
+                filename=replaceEN(filename, embryoname, check_name=check_name)
+
         elif flag==FLAG_EXP_FUSE:
-            filename=replaceEXP(filename, flag, parameters.EXP_FUSE)
+            if hasattr(parameters, 'EXP_FUSE'):
+                filename=replaceEXP(filename, flag, parameters.EXP_FUSE)
+            else:
+                filename = replaceEXP(filename, flag, "RELEASE")
+
         elif flag==FLAG_EXP_REG:
-            filename=replaceEXP(filename, flag, parameters.EXP_REG)
+            if hasattr(parameters, 'EXP_REG'):
+                filename=replaceEXP(filename, flag, parameters.EXP_REG)
+            else:
+                filename = replaceEXP(filename, flag, "RELEASE")
+
         elif flag==FLAG_EXP_MARS:
-            filename=replaceEXP(filename, flag, parameters.EXP_MARS)
+            if hasattr(parameters, 'EXP_MARS'):
+                filename=replaceEXP(filename, flag, parameters.EXP_MARS)
+            else:
+                filename = replaceEXP(filename, flag, "RELEASE")
+
         elif flag==FLAG_EXP_SEG:
-            filename=replaceEXP(filename, flag, parameters.EXP_SEG)
+            if hasattr(parameters, 'FLAG_EXP_SEG'):
+                filename=replaceEXP(filename, flag, parameters.FLAG_EXP_SEG)
+            else:
+                filename = replaceEXP(filename, flag, "RELEASE")
+
         elif flag==FLAG_EXP_POST:
-            filename=replaceEXP(filename, flag, parameters.EXP_POST)
+            if hasattr(parameters, 'EXP_POST'):
+                filename=replaceEXP(filename, flag, parameters.EXP_POST)
+            else:
+                filename = replaceEXP(filename, flag, "RELEASE")
+
+        elif flag==FLAG_TIMESTAMP:
+            filename = replaceTIMESTAMP(filename, timestamp)
+
+        elif flag==FLAG_TIME:
+            #
+            # just not to get the default message
+            # $TIME may be replaced later
+            #
+            pass
+
         else:
-        	print "replaceFlags: flag '%s' was not replaced"%flag
+        	print ("replaceFlags: flag '"+str(flag)+"' was not replaced")
+
     return filename

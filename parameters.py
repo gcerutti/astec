@@ -80,6 +80,29 @@ raw_mirrors = False
 ### FUSION PARAMETERS ###
 #########################
 
+
+raw_margin_x_0 = 40 
+                       # margin_x_0 [default=40]: parameter for margin of the
+					   # bounding box computed for the cropping of the 
+					   # raw acquisition image in 'left' x direction 
+raw_margin_x_1 = 40 
+                       # margin_x_1 [default=40]: parameter for margin of the
+				       # bounding box computed for the cropping of the 
+				       # raw acquisition image in 'right' x direction
+raw_margin_y_0 = 40 
+                       # margin_y_0 [default=40]: parameter for margin of the
+					   # bounding box computed for the cropping of the 
+					   # raw acquisition image in 'top' y direction
+raw_margin_y_1 = 40 
+                       # margin_y_1 [default=40]: parameter for margin of the
+					   # bounding box computed for the cropping of the 
+					   # raw acquisition image in 'bottom' y direction
+raw_crop = True     
+                       # crop [default=True]: 
+                       # if False, then the resampled image is not cropped ; 
+					   # if raw acquisition, then image is cropped
+
+
 fusion_margin_x_0 = 40 
                        # margin_x_0 [default=40]: parameter for margin of the
 					   # bounding box computed for the cropping of the 
@@ -249,7 +272,7 @@ astec_sigma1 = 0.6
                             # sigma 1 (0.6um) in real coordinates
 astec_sigma2 = 0.15 		
                             # sigma 2 (0.15um) in real coordinates
-astec_h_min_min = 2    		
+astec_h_min_min = 4
                             # H min initialisation to ease correction
 astec_h_min_max = 18   		
                             # H min initialisation to ease correction

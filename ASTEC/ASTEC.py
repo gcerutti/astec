@@ -779,13 +779,14 @@ def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file,  f
     return seg_from_opt_h, lin_tree_information
 
 
-def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_file , seeds_file,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
+def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_file , seeds_file,vf_file, path_h_min,
+                             h_min_min, h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
     membrane_reconstruction_method=None, fusion_u8_method=0, flag_hybridation=False, 
     RadiusOpening=20,Thau=25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200,DeltaVoxels=10**3,Volum_Min_No_Seed=100, 
     rayon_dil=3.6, sigma_membrane=0.9, manual=False, manual_sigma=7, hard_thresholding=False, hard_threshold=1.0, sensitivity=0.99, sigma_TV=3.6, sigma_LF=0.9, sample=0.2, 
     keep_membrane=False, keep_all=False,  path_u8_images=None, nb_proc_ACE=7, 
     min_percentile=0.01, max_percentile=0.99, min_method='cellinterior', max_method='cellborder', sigma_hybridation=5.0, 
-    verbose=False):
+    verbose=False, keepTemporaryFiles=False ):
     '''
     Return the propagated segmentation at time t+dt and the updated lineage tree and cell informations
     t : time t
@@ -902,10 +903,11 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
     apply_trsf(segmentation_file_ref, path_trsf=vf_file, path_output=path_seg_trsf, template=fused_file, nearest=True, verbose=verbose)
 
     # transformation file deletion
-    cmd='rm -f '+vf_file
-    if verbose:
-        print cmd
-    os.system(cmd)
+    if keepTemporaryFiles == False:
+        cmd='rm -f '+vf_file
+        if verbose:
+            print cmd
+        os.system(cmd)
 
 
     # fused file u8 vconversion if needed
@@ -943,11 +945,12 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
         copy(graylevel_file, graylevel_file_u8, verbose=verbose)
 
     # temporary images deletion
-    if os.path.exists(fused_file_u8):
-        cmd='rm -f '+fused_file_u8
-        if verbose:
-            print cmd
-        os.system(cmd)
+    if keepTemporaryFiles == False:
+        if os.path.exists(fused_file_u8):
+            cmd='rm -f '+fused_file_u8
+            if verbose:
+                print cmd
+            os.system(cmd)
 
     # u8 image copy if asked
     if path_u8_images:
@@ -962,22 +965,23 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
                                                                                delSeedsASAP=True, verbose=verbose)
 
     # temporary images deletion
-    if os.path.exists(path_seg_trsf):
-        cmd='rm -f '+path_seg_trsf
-        if verbose:
-            print cmd
-        os.system(cmd)
+    if keepTemporaryFiles == False:
+        if os.path.exists(path_seg_trsf):
+            cmd='rm -f '+path_seg_trsf
+            if verbose:
+                print cmd
+            os.system(cmd)
 
-    if os.path.exists(graylevel_file):
-        cmd='rm -f '+graylevel_file
-        if verbose:
-            print cmd
-        os.system(cmd)
+        if os.path.exists(graylevel_file):
+            cmd='rm -f '+graylevel_file
+            if verbose:
+                print cmd
+            os.system(cmd)
 
-    if os.path.exists(graylevel_file_u8):
-        cmd='rm -f '+graylevel_file_u8
-        if verbose:
-            print cmd
-        os.system(cmd)
+        if os.path.exists(graylevel_file_u8):
+            cmd='rm -f '+graylevel_file_u8
+            if verbose:
+                print cmd
+            os.system(cmd)
 
     return seg_from_opt_h, lin_tree_information

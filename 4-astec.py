@@ -40,9 +40,15 @@ parser.add_option("-q", "--quiet",
                   action="store_false", dest="verbose", default=True,
                   help="don't print status messages to stdout")
 
+parser.add_option("-k", "--keep-all",
+                  action="store_true", dest="keepTemporaryFiles", default=False,
+                  help="keep temporary file")
+
 (options, args) = parser.parse_args()
 
 parameters_file=options.p
+
+print 'verbose ['+str(options.keepTemporaryFiles)+']'
 
 ### Parameters file
 if not parameters_file:
@@ -285,14 +291,16 @@ for t in range(begin, end):
         min_method=p.astec_min_method, max_method=p.astec_max_method,\
         sigma_hybridation=p.astec_sigma_hybridation, \
         path_u8_images=reconstruct_file, \
-        verbose=True)
+        verbose=True,
+        keepTemporaryFiles=options.keepTemporaryFiles)
     
     #SAVE OUTPUT
     print 'Write the segmentation in ' + segmentation_file
     imsave(segmentation_file, seg_from_opt_h)
     #Save the current lineage tree
-    write_lineage_tree(path_seg_exp_lineage,lin_tree_information) 
-    os.system("rm -rf  " + temporary_folder ) #delete temporary folder
+    write_lineage_tree(path_seg_exp_lineage,lin_tree_information)
+    if options.keepTemporaryFiles==False:
+        os.system("rm -rf  " + temporary_folder ) #delete temporary folder
 
 print 'ASTEC SEGMENTATION DONE'
 
