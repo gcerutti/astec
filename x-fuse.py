@@ -51,6 +51,11 @@ def _setOptions( parser ):
                         default=False, const=True,
                         help='keep temporary files' )
 
+    parser.add_argument('-f', '--force',
+                        action='store_const', dest='forceResultsToBeBuilt',
+                        default=False, const=True,
+                        help='force building of results' )
+
     parser.add_argument( '-v', '--verbose',
                          action='count', dest='verbose', default=1,
                          help='incrementation of verboseness' )
@@ -108,6 +113,8 @@ if __name__ == '__main__':
 
     #
     # make fusion directory and subdirectory if required
+    # => allows to write log and history files
+    #    and to copy parameter file
     #
     if not os.path.isdir( environment.path_fuse_exp ):
         os.makedirs( environment.path_fuse_exp )
@@ -115,7 +122,7 @@ if __name__ == '__main__':
 
 
     #
-    # write information in history file
+    # write history information in history file
     #
     commonTools.writeHistoryInformation( environment.path_history_file,
                                          experiment,
@@ -124,22 +131,22 @@ if __name__ == '__main__':
                                          os.path.dirname(__file__) )
 
     #
-    # write log file
+    # define log file
+    # and write some information
     #
-    experiment.writeParameters( environment.path_log_file )
-    environment.writeParameters( environment.path_log_file )
-    parameters.writeParameters( environment.path_log_file )
+    monitoring.logfile = environment.path_log_file
+    XFUSION.monitoring.copy(monitoring)
+
+    experiment.writeParameters( monitoring.logfile )
+    environment.writeParameters( monitoring.logfile )
+    parameters.writeParameters( monitoring.logfile )
 
     #
     # copy parameter file
     #
     commonTools.copyDateStampedFile( parameterFile, environment.path_fuse_exp, starttime )
 
-    #
-    # prepare processing
-    #
-    XFUSION.monitoring.copy( monitoring )
-    XFUSION.monitoring.logfile = environment.path_log_file
+
 
 
     #

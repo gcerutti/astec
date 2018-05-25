@@ -1,4 +1,6 @@
 import os
+import subprocess
+
 #path_to_bins = '/user/gmicheli/home/DIG-EM/Codes/Packages/ASTEC-170210/ASTEC/CommunFunctions/cpp/build/bin/'
 path_to_bins = os.path.join(os.path.dirname(__file__),'cpp')+os.path.sep
 
@@ -48,6 +50,90 @@ path_mc_adhocfuse=path_to_bins + 'mc-adhocFuse'
 
 import os
 from ImageHandling import imread, imsave, SpatialImage
+
+
+
+
+
+def findExec( commandLine ):
+    cmd='which '+str(commandLine)
+    path_to_exec=''
+    try:
+        path_to_exec = subprocess.check_output( cmd, shell=True )
+    except subprocess.CalledProcessError:
+        file=os.path.join( os.path.dirname(__file__), 'cpp', 'vt', 'build', 'bin', str(commandLine) )
+        if os.path.isfile( file ):
+            return file
+        file=os.path.join( os.path.dirname(__file__), 'cpp', str(commandLine) )
+        if os.path.isfile( file ):
+            return file
+        print( "findExec: can not find executable '"+str(commandLine)+"'")
+        print( "Exiting")
+        sys.exit(1)
+    return path_to_exec
+
+
+
+
+
+def applyTrsfCLI( theImage, resImage, theTrsf=None,
+                  templateImage=None,
+                  voxelsize=None,
+                  dimensions=None,
+                  nearest=False,
+                  monitoring=None ):
+    ''' Apply a transformation to a given image
+    theImage: path to the image to be resampled
+    theTrsf: path to the transformation
+    resImage: path to the output image
+    templateImage: path to the template image (used to specify result image geometry)
+    voxelsize: to specify the output voxelsize(s)
+    dimensions: dimensions of the result image
+    nearest: do not interpolate (take the nearest value)
+             if True, to use when applying on label images (default = True)
+    '''
+
+    path_to_exec = findExec( 'applyTrsf' )
+    print path_to_exec
+    return
+    command_line = path_to_exec + " " + theImage + " " + resImage
+    if theTrsf:
+        command_line += " -trsf " + theTrsf
+    if not templateImage is None:
+        command_line += " -template " + templateImage
+    if not nearest is None:
+        command_line += " -nearest"
+    if voxelsize:
+
+      assert type(voxelsize)==tuple or type(voxelsize)==list
+      assert len(voxelsize)==3
+      command_line += " -vs %f %f %f"%(voxelsize[0], voxelsize[1], voxelsize[2])
+    if iso:
+      command_line += " -iso %f"%float(iso)
+    if dimensions:
+      assert type(dimensions)==tuple or type(dimensions)==list
+      assert len(dimensions)==3
+      command_line += " -dim %d %d %d"%(int(dimensions[0]), int(dimensions[1]), int(dimensions[2]))
+    if verbose:
+      print command_line
+    os.system(command_line)
+    if not lazy:
+        out=imread(path_output)
+        if path_output=='tmp_seeds.inr':
+            os.system('rm -f tmp_seeds.inr')
+        return out
+
+
+
+
+
+
+
+
+
+
+
+
 
 def recfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, lazy=False):
     ''' Perform a gaussian filtering on an intensity image

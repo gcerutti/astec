@@ -1,11 +1,12 @@
 
-import os, imp
+import os, imp, sys
 import time
 import subprocess
 
 import commonTools
 import nomenclature
 from CommunFunctions.ImageHandling import SpatialImage, imread, imsave
+import CommunFunctions.cpp_wrapping as cpp_wrapping
 
 
 #
@@ -106,25 +107,25 @@ class FusionEnvironment( object ):
         return
 
     def printParameters( self ):
-        print("\n")
-        print('FusionEnvironment\n')
-        print('- path_angle1 = ' + str(self.path_angle1)+'\n')
-        print('- path_angle2 = ' + str(self.path_angle2)+'\n')
-        print('- path_angle3 = ' + str(self.path_angle3)+'\n')
-        print('- path_angle4 = ' + str(self.path_angle4)+'\n')
+        print("")
+        print('FusionEnvironment')
+        print('- path_angle1 = ' + str(self.path_angle1))
+        print('- path_angle2 = ' + str(self.path_angle2))
+        print('- path_angle3 = ' + str(self.path_angle3))
+        print('- path_angle4 = ' + str(self.path_angle4))
 
-        print('- path_angle1_files = ' + str(self.path_angle1_files)+'\n')
-        print('- path_angle2_files = ' + str(self.path_angle2_files)+'\n')
-        print('- path_angle3_files = ' + str(self.path_angle3_files)+'\n')
-        print('- path_angle4_files = ' + str(self.path_angle4_files)+'\n')
+        print('- path_angle1_files = ' + str(self.path_angle1_files))
+        print('- path_angle2_files = ' + str(self.path_angle2_files))
+        print('- path_angle3_files = ' + str(self.path_angle3_files))
+        print('- path_angle4_files = ' + str(self.path_angle4_files))
 
-        print('- path_fuse = ' + str(self.path_fuse)+'\n')
-        print('- path_fuse_exp = ' + str(self.path_fuse_exp)+'\n')
-        print('- path_fuse_exp_files = ' + str(self.path_fuse_exp_files)+'\n')
+        print('- path_fuse = ' + str(self.path_fuse))
+        print('- path_fuse_exp = ' + str(self.path_fuse_exp))
+        print('- path_fuse_exp_files = ' + str(self.path_fuse_exp_files))
 
-        print('- path_history_file = ' + str(self.path_history_file)+'\n')
-        print('- path_log_file = ' + str(self.path_log_file)+'\n')
-        print("\n")
+        print('- path_history_file = ' + str(self.path_history_file))
+        print('- path_log_file = ' + str(self.path_log_file))
+        print("")
 
 
 
@@ -193,24 +194,24 @@ class FusionParameters( object ):
         return
 
     def printParameters( self ):
-        print("\n")
-        print( 'FusionParameters\n')
-        print( '- acquisition_orientation = '+str(self.acquisition_orientation)+'\n' )
-        print( '- acquisition_mirrors     = '+str(self.acquisition_mirrors)+'\n' )
-        print( '- acquisition_resolution  = '+str(self.acquisition_resolution)+'\n' )
-        print( '- acquisition_delay       = ' + str(self.acquisition_delay)+'\n' )
-        print( '- target_resolution  = '+str(self.target_resolution)+'\n' )
-        print( '- acquisition_cropping = '+str(self.acquisition_cropping)+'\n' )
-        print( '- acquisition_cropping_margin_x_0 = '+str(self.acquisition_cropping_margin_x_0)+'\n' )
-        print( '- acquisition_cropping_margin_x_1 = '+str(self.acquisition_cropping_margin_x_1)+'\n' )
-        print( '- acquisition_cropping_margin_y_0 = '+str(self.acquisition_cropping_margin_y_0)+'\n' )
-        print( '- acquisition_cropping_margin_y_1 = '+str(self.acquisition_cropping_margin_y_1)+'\n' )
-        print( '- fusion_cropping = '+str(self.fusion_cropping)+'\n' )
-        print( '- fusion_cropping_margin_x_0 = '+str(self.fusion_cropping_margin_x_0)+'\n' )
-        print( '- fusion_cropping_margin_x_1 = '+str(self.fusion_cropping_margin_x_1)+'\n' )
-        print( '- fusion_cropping_margin_y_0 = '+str(self.fusion_cropping_margin_y_0)+'\n' )
-        print( '- fusion_cropping_margin_y_1 = '+str(self.fusion_cropping_margin_y_1)+'\n' )
-        print("\n")
+        print("")
+        print( 'FusionParameters')
+        print( '- acquisition_orientation = '+str(self.acquisition_orientation) )
+        print( '- acquisition_mirrors     = '+str(self.acquisition_mirrors) )
+        print( '- acquisition_resolution  = '+str(self.acquisition_resolution) )
+        print( '- acquisition_delay       = ' + str(self.acquisition_delay) )
+        print( '- target_resolution  = '+str(self.target_resolution) )
+        print( '- acquisition_cropping = '+str(self.acquisition_cropping) )
+        print( '- acquisition_cropping_margin_x_0 = '+str(self.acquisition_cropping_margin_x_0) )
+        print( '- acquisition_cropping_margin_x_1 = '+str(self.acquisition_cropping_margin_x_1) )
+        print( '- acquisition_cropping_margin_y_0 = '+str(self.acquisition_cropping_margin_y_0) )
+        print( '- acquisition_cropping_margin_y_1 = '+str(self.acquisition_cropping_margin_y_1) )
+        print( '- fusion_cropping = '+str(self.fusion_cropping) )
+        print( '- fusion_cropping_margin_x_0 = '+str(self.fusion_cropping_margin_x_0) )
+        print( '- fusion_cropping_margin_x_1 = '+str(self.fusion_cropping_margin_x_1) )
+        print( '- fusion_cropping_margin_y_0 = '+str(self.fusion_cropping_margin_y_0) )
+        print( '- fusion_cropping_margin_y_1 = '+str(self.fusion_cropping_margin_y_1) )
+        print("")
 
     def updateFromFile( self, parameterFile ):
         if ( parameterFile == None ):
@@ -295,11 +296,46 @@ class FusionParameters( object ):
 #
 ########################################################################################
 
-extensionToBeConverted=['h5','tif','tiff','TIF','TIFF']
+
+recognizedExtensions = [ '.zip', '.h5','.tif','.tiff','.TIF','.TIFF', '.inr', '.inr.gz', '.mha', '.mha.gz' ]
+
+def _getExtension( filename ):
+    for e in recognizedExtensions:
+        if len( filename ) < len( e ):
+            continue
+        if filename[len(filename)-len(e):len(filename)] == e:
+            return e
+    return None
+
+
+
+
+
+def _addSuffix( filename, suffix, extension=None ):
+    e = _getExtension( filename )
+    if e == None:
+        print( "_addSuffix: file extension of '"+str(filename)+"' was not recognized")
+        print( "Exiting" )
+        sys.exit( 1 )
+    newname=filename[0:len(filename)-len(e)]
+    newname += suffix
+    if extension==None:
+        newname += e
+    else:
+        newname += extension
+    return( newname )
+
+
+
+
+
+extensionToBeConverted=['.h5','.tif','.tiff','.TIF','.TIFF']
 
 def _readImageName( datapath, temporary_path, prefix, resolution ):
 
     proc=_readImageName
+    defaultExtension = '.inr'
+
     fileNames=[]
     for f in os.listdir(datapath):
         if len( f ) <= len( prefix ):
@@ -322,22 +358,20 @@ def _readImageName( datapath, temporary_path, prefix, resolution ):
     # test whether the extension is zip
     #
     f=fileNames[0]
-    extension = f[len(prefix)+1:len(f)]
+    extension = f[len(prefix):len(f)]
+    fullName = os.path.join( datapath, f )
 
-    if extension == 'zip':
+    if extension == '.zip':
+
         #
         # unzipping
         #
-        if ( monitoring.verbose > 1):
-            print( "    unzipping '"+str(f)+ "'")
+        if monitoring.verbose >= 2:
+            print( "    .. unzipping '"+str(f)+ "'")
         cmd='unzip '+os.path.join( datapath, f )+' -d '+str(temporary_path)
-        pipe = subprocess.Popen( cmd, shell=True, stdout=subprocess.PIPE ).stdout;
-        output = pipe.next()
-        # print output.split('\n')
-        pipe.close
-        #
-        # find the file
-        #
+
+        subprocess.call(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
         fileNames = []
         for f in os.listdir(temporary_path):
             if len(f) <= len(prefix):
@@ -358,27 +392,82 @@ def _readImageName( datapath, temporary_path, prefix, resolution ):
         #
         #
         f = fileNames[0]
+        fullName = os.path.join(temporary_path, f)
 
     #
     #
     #
-    extension = f[len(prefix) + 1:len(f)]
-    print('extension = ' + str(extension))
+    extension = f[len(prefix):len(f)]
 
     #
     # test whether the file has to be converted into a more 'readable' format
     #
     if extension in extensionToBeConverted:
-        if ( monitoring.verbose > 1):
-            print( "    converting '"+str(f)+ "'")
+        if monitoring.verbose >= 2:
+            print( "    .. converting '"+str(f)+ "'")
         image = imread( os.path.join( temporary_path, f) )
         image.resolution = resolution
-        image_tobewritten = os.path.join( temporary_path, prefix)+".inr"
-        imsave(image_tobewritten, image)
-        f = image_tobewritten
+        fullName = os.path.join( temporary_path, prefix)+defaultExtension
+        imsave(fullName, image)
 
-    return f
+    return fullName
 
+
+
+
+
+def fusionImages( inputImages, fusedImage, temporary_paths, environment, parameters ):
+
+    proc = 'fusionImages';
+    print( 'fusionImages was called with')
+    print( '- inputImages='+str(inputImages) )
+    print( '- fusedImage=' + str(fusedImage))
+    print( '- temporary_paths=' + str(temporary_paths))
+
+    theImages = inputImages
+    print( 'theImages ='+str(theImages))
+    #
+    # to do: correct for planes
+    #
+
+    #
+    # to do: linear filtering to compensate for resolution change
+    # for a change of voxel size from x0 to x1
+    # smooth with a Gaussian of sigma = \sqrt(2)^( ln(x0/x1) / ln(2) )
+    #
+
+    #
+    # first change of resolution
+    # - for X and Y: target resolution (supposed to be larger than original)
+    # - for Z: original resolution (supposed to be larger than target)
+    #
+
+    resImages = []
+    for i in range(0, len(inputImages)):
+        print( "_addSuffix to '"+inputImages[i]+"'")
+        resImages.append( _addSuffix( inputImages[i], "_resample1" ) )
+
+    for i in range(0, len(inputImages)):
+        im = imread( theImages[i] )
+
+        if type(parameters.target_resolution)==int or type(parameters.target_resolution)==float:
+            resampling_resolution = [parameters.target_resolution, parameters.target_resolution, im.voxelsize[2]]
+        elif (type(parameters.target_resolution)==list or type(parameters.target_resolution)==tuple) and len(parameters.target_resolution) == 3:
+            resampling_resolution = [parameters.target_resolution[0], parameters.target_resolution[1], im.voxelsize[2]]
+        else:
+            print( proc+': unable to set target resolution for first resampling')
+            print( "\t target resolution was '"+str(parameters.target_resolution)+"'")
+            print( "\t image resolution was '" + str(im.voxelsize) + "'")
+            print( "Exiting.")
+            sys.exit( 1 )
+
+        if monitoring.verbose >= 2:
+            print( "    .. resampling '"+theImages[i].split(os.path.sep)[-1]+ "' at "+str(resampling_resolution))
+        cpp_wrapping.applyTrsfCLI(theImages[i], resImages[i], theTrsf=None, templateImage=None,
+                                  voxelsize=resampling_resolution, nearest=False, monitoring=monitoring )
+
+
+    pass
 
 
 
@@ -387,10 +476,38 @@ def _readImageName( datapath, temporary_path, prefix, resolution ):
 def fusionProcess( experiment, environment, parameters ):
 
     #
+    # make sure that the result directory exists
+    #
+
+    if not os.path.isdir( environment.path_fuse_exp ):
+        os.makedirs( environment.path_fuse_exp )
+
+    if (monitoring.verbose > 1):
+        print('')
+
+    #
     # loop over acquisitions
     #
 
     for timePoint in range( experiment.firstTimePoint, experiment.lastTimePoint+1, experiment.deltaTimePoint):
+
+        #
+        # result image
+        #
+
+        fusedImage = nomenclature.replaceTIME(environment.path_fuse_exp_files, timePoint)
+
+        if (monitoring.verbose > 1):
+            print('... fusion of time ' + str(timePoint))
+
+        if os.path.isfile(fusedImage):
+            if not monitoring.forceResultsToBeBuilt:
+                if (monitoring.verbose > 1):
+                    print('    already existing')
+                continue
+            else:
+                if (monitoring.verbose > 1):
+                    print('    already existing, but forced')
 
         #
         # start processing
@@ -398,60 +515,72 @@ def fusionProcess( experiment, environment, parameters ):
 
         starttime = time.time()
 
-        if (monitoring.verbose > 1):
-            print('... fusion of time ' + str(timePoint))
 
         #
         # directory for auxiliary files
         #
-        temporary_path = os.path.join(environment.path_fuse_exp, "TEMP_$TIME")
-        temporary_path1 = os.path.join( temporary_path, "ANGLE_1" )
-        temporary_path2 = os.path.join( temporary_path, "ANGLE_2" )
-        temporary_path3 = os.path.join( temporary_path, "ANGLE_3" )
-        temporary_path4 = os.path.join( temporary_path, "ANGLE_4" )
+        temporary_paths = []
 
-        temporary_path = nomenclature.replaceTIME( temporary_path, timePoint)
-        temporary_path1 = nomenclature.replaceTIME( temporary_path1, timePoint)
-        temporary_path2 = nomenclature.replaceTIME( temporary_path2, timePoint)
-        temporary_path3 = nomenclature.replaceTIME( temporary_path3, timePoint)
-        temporary_path4 = nomenclature.replaceTIME( temporary_path4, timePoint)
 
-        if not os.path.isdir(temporary_path1):
-            os.makedirs(temporary_path1)
-        if not os.path.isdir(temporary_path2):
-            os.makedirs(temporary_path2)
-        if not os.path.isdir(temporary_path3):
-            os.makedirs(temporary_path3)
-        if not os.path.isdir(temporary_path4):
-            os.makedirs(temporary_path4)
+        temporary_paths.append( os.path.join( environment.path_fuse_exp, "TEMP_$TIME", "ANGLE_1" ) )
+        temporary_paths.append( os.path.join( environment.path_fuse_exp, "TEMP_$TIME", "ANGLE_2" ) )
+        temporary_paths.append( os.path.join( environment.path_fuse_exp, "TEMP_$TIME", "ANGLE_3" ) )
+        temporary_paths.append( os.path.join( environment.path_fuse_exp, "TEMP_$TIME", "ANGLE_4" ) )
+        temporary_paths.append(os.path.join(environment.path_fuse_exp, "TEMP_$TIME"))
+
+        for i in range( 0, len(temporary_paths) ):
+            temporary_paths[i] = nomenclature.replaceTIME( temporary_paths[i], timePoint )
+            if not os.path.isdir(temporary_paths[i]):
+                os.makedirs(temporary_paths[i])
 
 
         #
-        # find files
+        # get image file names
+        # - may involve unzipping and conversion
         #
-        _readImageName( environment.path_angle1, temporary_path1,
-                        nomenclature.replaceTIME(environment.path_angle1_files,timePoint), parameters.acquisition_resolution )
-        _readImageName( environment.path_angle2, temporary_path2,
-                        nomenclature.replaceTIME(environment.path_angle2_files,timePoint), parameters.acquisition_resolution )
-        _readImageName( environment.path_angle3, temporary_path3,
-                        nomenclature.replaceTIME(environment.path_angle3_files,timePoint), parameters.acquisition_resolution )
-        _readImageName( environment.path_angle4, temporary_path4,
-                        nomenclature.replaceTIME(environment.path_angle4_files,timePoint), parameters.acquisition_resolution )
+        if (monitoring.verbose > 1):
+            print('    get original images' )
+        images=[]
+
+        images.append( _readImageName( environment.path_angle1, temporary_paths[0],
+                        nomenclature.replaceTIME(environment.path_angle1_files,timePoint), parameters.acquisition_resolution ) )
+        images.append( _readImageName( environment.path_angle2, temporary_paths[1],
+                        nomenclature.replaceTIME(environment.path_angle2_files,timePoint), parameters.acquisition_resolution ) )
+        images.append( _readImageName( environment.path_angle3, temporary_paths[2],
+                        nomenclature.replaceTIME(environment.path_angle3_files,timePoint), parameters.acquisition_resolution ) )
+        images.append( _readImageName( environment.path_angle4, temporary_paths[3],
+                        nomenclature.replaceTIME(environment.path_angle4_files,timePoint), parameters.acquisition_resolution ) )
+
+        print images
+
+
+        #
+        #
+        #
+        if (monitoring.verbose > 1):
+            print('    fuse images' )
+
+        fusionImages( images, fusedImage, temporary_paths, environment, parameters )
 
 
 
 
 
 
-        if ( monitoring.keepTemporaryFiles == False):
+
+
+
+
+        if monitoring.keepTemporaryFiles == False:
             os.rmdir(temporary_path)
         #
         # end processing
         #
 
         endtime = time.time()
-        if ( monitoring.verbose > 1):
+        if monitoring.verbose > 1:
             print( '    computation time = '+str(endtime-starttime)+ 'sec')
+            print( '' )
 
 
     return

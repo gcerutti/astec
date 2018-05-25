@@ -19,11 +19,13 @@ class Monitoring(object):
         self.debug = 0
         self.logfile = None
         self.keepTemporaryFiles = False;
+        self.forceResultsToBeBuilt = False
 
     def updateFromArgs( self, args ):
         self.verbose = args.verbose
         self.debug = args.debug
         self.keepTemporaryFiles = args.keepTemporaryFiles
+        self.forceResultsToBeBuilt = args.forceResultsToBeBuilt
 
     def writeParameters( self, logfileName ):
         with open(logfileName, 'a') as logfile:
@@ -33,23 +35,26 @@ class Monitoring(object):
             logfile.write( '- debug is ' + str(self.debug )+'\n' )
             logfile.write( '- logfile is ' + str(self.logfile)+'\n' )
             logfile.write( '- keepTemporaryFiles is ' + str(self.keepTemporaryFiles )+'\n' )
+            logfile.write( '- forceResultsToBeBuilt is ' + str(self.forceResultsToBeBuilt )+'\n' )
             logfile.write("\n")
             return
 
     def printParameters( self ):
-        print("\n")
-        print( 'Monitoring parameters\n')
-        print( '- verbose is ' + str(self.verbose )+'\n' )
-        print( '- debug is ' + str(self.debug )+'\n' )
-        print( '- logfile is ' + str(self.logfile)+'\n' )
-        print( '- keepTemporaryFiles is ' + str(self.keepTemporaryFiles )+'\n' )
-        print("\n")
+        print("")
+        print( 'Monitoring parameters')
+        print( '- verbose is ' + str(self.verbose ) )
+        print( '- debug is ' + str(self.debug ) )
+        print( '- logfile is ' + str(self.logfile) )
+        print( '- keepTemporaryFiles is ' + str(self.keepTemporaryFiles ) )
+        print( '- forceResultsToBeBuilt is ' + str(self.forceResultsToBeBuilt ) )
+        print("")
 
     def copy(self, m):
         self.verbose = m.verbose
         self.debug = m.debug
         self.logfile = m.logfile
-        self.keepTemporaryFiles = m.keepTemporaryFiles;
+        self.keepTemporaryFiles = m.keepTemporaryFiles
+        self.forceResultsToBeBuilt = m.forceResultsToBeBuilt
 
 
 
@@ -135,14 +140,14 @@ class Experiment(object):
         return
 
     def printParameters(self ):
-        print("\n")
-        print( 'Experiment parameters\n')
-        print( '- embryoPath is ' + str(self.embryoPath)+'\n' )
-        print( '- embryoName is ' + str(self.embryoName)+'\n' )
-        print( '- firstTimePoint is ' + str(self.firstTimePoint)+'\n' )
-        print( '- lastTimePoint is ' + str(self.lastTimePoint)+'\n' )
-        print( '- deltaTimePoint is ' + str(self.deltaTimePoint)+'\n' )
-        print("\n")
+        print("")
+        print( 'Experiment parameters')
+        print( '- embryoPath is ' + str(self.embryoPath) )
+        print( '- embryoName is ' + str(self.embryoName) )
+        print( '- firstTimePoint is ' + str(self.firstTimePoint) )
+        print( '- lastTimePoint is ' + str(self.lastTimePoint) )
+        print( '- deltaTimePoint is ' + str(self.deltaTimePoint) )
+        print("")
 
 
 
