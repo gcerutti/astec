@@ -57,7 +57,7 @@ def _setOptions( parser ):
                         help='force building of results' )
 
     parser.add_argument( '-v', '--verbose',
-                         action='count', dest='verbose', default=1,
+                         action='count', dest='verbose', default=2,
                          help='incrementation of verboseness' )
     parser.add_argument( '-nv', '--no-verbose',
                          action='store_const', dest='verbose', const=0,
@@ -118,6 +118,8 @@ if __name__ == '__main__':
     #
     if not os.path.isdir( environment.path_fuse_exp ):
         os.makedirs( environment.path_fuse_exp )
+    if not os.path.isdir( environment.path_logdir ):
+        os.makedirs( environment.path_logdir )
 
 
 
@@ -144,7 +146,7 @@ if __name__ == '__main__':
     #
     # copy parameter file
     #
-    commonTools.copyDateStampedFile( parameterFile, environment.path_fuse_exp, starttime )
+    commonTools.copyDateStampedFile( parameterFile, environment.path_logdir, starttime )
 
 
 

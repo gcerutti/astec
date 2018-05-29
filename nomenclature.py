@@ -129,8 +129,9 @@ path_fuse_exp      =os.path.join(path_fuse,DIR_STAGE_FUSE+'_'+FLAG_EXP_FUSE)
 # fused images generic name
 path_fuse_exp_files=os.path.join(path_fuse_exp,FLAG_EN+'_fuse_t$TIME.'+FLAG_IMAGESUFFIX_FUSE)
 # log files
-path_fuse_historyfile  =os.path.join(path_fuse_exp,'1-fuse-history.log')
-path_fuse_logfile  =os.path.join(path_fuse_exp,'1-fuse-'+FLAG_TIMESTAMP+'.log')
+path_fuse_logdir = os.path.join(path_fuse_exp, 'LOGS' )
+path_fuse_historyfile  =os.path.join(path_fuse_logdir,'1-fuse-history.log')
+path_fuse_logfile  =os.path.join(path_fuse_logdir,'1-fuse-'+FLAG_TIMESTAMP+'.log')
 
 
 

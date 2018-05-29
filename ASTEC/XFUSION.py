@@ -1,7 +1,11 @@
 
 import os, imp, sys
 import time
+import math
+import copy
 import subprocess
+import numpy as np
+from scipy import ndimage as nd
 
 import commonTools
 import nomenclature
@@ -21,11 +25,19 @@ monitoring = commonTools.Monitoring()
 
 
 
+
+
+
+
+
+########################################################################################
 #
+# classes
+# - computation environment
+# - computation parameters
 #
-#
-#
-#
+########################################################################################
+
 
 class FusionEnvironment( object ):
 
@@ -53,6 +65,7 @@ class FusionEnvironment( object ):
         #
         #
         #
+        self.path_logdir = None
         self.path_history_file = None
         self.path_log_file = None
 
@@ -80,6 +93,7 @@ class FusionEnvironment( object ):
 
         self.path_fuse_exp_files = nomenclature.replaceFlags(nomenclature.path_fuse_exp_files, parameters)
 
+        self.path_logdir = nomenclature.replaceFlags(nomenclature.path_fuse_logdir, parameters)
         self.path_history_file = nomenclature.replaceFlags(nomenclature.path_fuse_historyfile, parameters)
         self.path_log_file = nomenclature.replaceFlags(nomenclature.path_fuse_logfile, parameters, starttime )
 
@@ -101,6 +115,7 @@ class FusionEnvironment( object ):
             logfile.write('- path_fuse_exp = ' + str(self.path_fuse_exp)+'\n')
             logfile.write('- path_fuse_exp_files = ' + str(self.path_fuse_exp_files)+'\n')
 
+            logfile.write('- path_logdir = ' + str(self.path_logdir) + '\n')
             logfile.write('- path_history_file = ' + str(self.path_history_file)+'\n')
             logfile.write('- path_log_file = ' + str(self.path_log_file)+'\n')
             logfile.write("\n")
@@ -123,6 +138,7 @@ class FusionEnvironment( object ):
         print('- path_fuse_exp = ' + str(self.path_fuse_exp))
         print('- path_fuse_exp_files = ' + str(self.path_fuse_exp_files))
 
+        print('- path_logdir = ' + str(self.path_logdir))
         print('- path_history_file = ' + str(self.path_history_file))
         print('- path_log_file = ' + str(self.path_log_file))
         print("")
@@ -163,6 +179,15 @@ class FusionParameters( object ):
         self.acquisition_cropping_margin_y_1 = 40
 
         #
+        # Registration parameters
+        #
+        self.registration_transformation_type = 'affine'
+        self.registration_transformation_estimation_type = 'wlts'
+        self.registration_lts_fraction = 0.55
+        self.registration_pyramid_highest_level = 6
+        self.registration_pyramid_lowest_level = 3
+
+        #
         # Cropping of fused image (after fusion)
         #
         self.fusion_cropping = True
@@ -175,16 +200,25 @@ class FusionParameters( object ):
         with open(logfileName, 'a') as logfile:
             logfile.write("\n")
             logfile.write( 'FusionParameters\n')
+
             logfile.write( '- acquisition_orientation = '+str(self.acquisition_orientation)+'\n' )
             logfile.write( '- acquisition_mirrors     = '+str(self.acquisition_mirrors)+'\n' )
             logfile.write( '- acquisition_resolution  = '+str(self.acquisition_resolution)+'\n' )
             logfile.write( '- acquisition_delay       = ' + str(self.acquisition_delay)+'\n' )
             logfile.write( '- target_resolution  = '+str(self.target_resolution)+'\n' )
+
             logfile.write( '- acquisition_cropping = '+str(self.acquisition_cropping)+'\n' )
             logfile.write( '- acquisition_cropping_margin_x_0 = '+str(self.acquisition_cropping_margin_x_0)+'\n' )
             logfile.write( '- acquisition_cropping_margin_x_1 = '+str(self.acquisition_cropping_margin_x_1)+'\n' )
             logfile.write( '- acquisition_cropping_margin_y_0 = '+str(self.acquisition_cropping_margin_y_0)+'\n' )
             logfile.write( '- acquisition_cropping_margin_y_1 = '+str(self.acquisition_cropping_margin_y_1)+'\n' )
+
+            logfile.write( '- registration_transformation_type = ' + str(self.registration_transformation_type) + '\n')
+            logfile.write( '- registration_transformation_estimation_type = ' + str(self.registration_transformation_estimation_type) + '\n')
+            logfile.write( '- registration_lts_fraction = ' + str(self.registration_lts_fraction) + '\n')
+            logfile.write( '- registration_pyramid_highest_level = ' + str(self.registration_pyramid_highest_level) + '\n')
+            logfile.write( '- registration_pyramid_lowest_level = ' + str(self.registration_pyramid_lowest_level) + '\n')
+
             logfile.write( '- fusion_cropping = '+str(self.fusion_cropping)+'\n' )
             logfile.write( '- fusion_cropping_margin_x_0 = '+str(self.fusion_cropping_margin_x_0)+'\n' )
             logfile.write( '- fusion_cropping_margin_x_1 = '+str(self.fusion_cropping_margin_x_1)+'\n' )
@@ -196,16 +230,25 @@ class FusionParameters( object ):
     def printParameters( self ):
         print("")
         print( 'FusionParameters')
+
         print( '- acquisition_orientation = '+str(self.acquisition_orientation) )
         print( '- acquisition_mirrors     = '+str(self.acquisition_mirrors) )
         print( '- acquisition_resolution  = '+str(self.acquisition_resolution) )
         print( '- acquisition_delay       = ' + str(self.acquisition_delay) )
         print( '- target_resolution  = '+str(self.target_resolution) )
+
         print( '- acquisition_cropping = '+str(self.acquisition_cropping) )
         print( '- acquisition_cropping_margin_x_0 = '+str(self.acquisition_cropping_margin_x_0) )
         print( '- acquisition_cropping_margin_x_1 = '+str(self.acquisition_cropping_margin_x_1) )
         print( '- acquisition_cropping_margin_y_0 = '+str(self.acquisition_cropping_margin_y_0) )
         print( '- acquisition_cropping_margin_y_1 = '+str(self.acquisition_cropping_margin_y_1) )
+
+        print( '- registration_transformation_type = ' + str(self.registration_transformation_type))
+        print( '- registration_transformation_estimation_type = ' + str(self.registration_transformation_estimation_type))
+        print( '- registration_lts_fraction = ' + str(self.registration_lts_fraction))
+        print( '- registration_pyramid_highest_level = ' + str(self.registration_pyramid_highest_level))
+        print( '- registration_pyramid_lowest_level = ' + str(self.registration_pyramid_lowest_level))
+
         print( '- fusion_cropping = '+str(self.fusion_cropping) )
         print( '- fusion_cropping_margin_x_0 = '+str(self.fusion_cropping_margin_x_0) )
         print( '- fusion_cropping_margin_x_1 = '+str(self.fusion_cropping_margin_x_1) )
@@ -290,9 +333,14 @@ class FusionParameters( object ):
 
 
 
+
+
+
+
+
 ########################################################################################
 #
-#
+# some internal procedures
 #
 ########################################################################################
 
@@ -300,6 +348,11 @@ class FusionParameters( object ):
 recognizedExtensions = [ '.zip', '.h5','.tif','.tiff','.TIF','.TIFF', '.inr', '.inr.gz', '.mha', '.mha.gz' ]
 
 def _getExtension( filename ):
+    """ Return the file extension. Must be in the set of recognized extensions.
+    :param filename:
+    :return: None in case of unrecognized extension,
+             else the recognized extension (begins with '.')
+    """
     for e in recognizedExtensions:
         if len( filename ) < len( e ):
             continue
@@ -311,19 +364,32 @@ def _getExtension( filename ):
 
 
 
-def _addSuffix( filename, suffix, extension=None ):
-    e = _getExtension( filename )
+def _addSuffix( filename, suffix, newDirname=None, newExtension=None ):
+    """ Add a suffix to a filenename (ie before the extension)
+    :param filename:
+    :param suffix: suffix to be added
+    :param newDirname: change the dirname of the fil
+    :param newExtension: change the extension of the file
+    :return: the transformed filename
+    """
+    b=os.path.basename(filename)
+    d=os.path.dirname(filename)
+    e = _getExtension( b )
     if e == None:
-        print( "_addSuffix: file extension of '"+str(filename)+"' was not recognized")
-        print( "Exiting" )
+        monitoring.toLogAndConsole( "_addSuffix: file extension of '"+str(filename)+"' was not recognized", 0 )
+        monitoring.toLogAndConsole( "\t Exiting", 0 )
         sys.exit( 1 )
-    newname=filename[0:len(filename)-len(e)]
-    newname += suffix
-    if extension==None:
-        newname += e
+    newBasename=b[0:len(b)-len(e)]
+    newBasename += suffix
+    if newExtension==None:
+        newBasename += e
     else:
-        newname += extension
-    return( newname )
+        newBasename += newExtension
+    if newDirname == None:
+        resName = os.path.join(d, newBasename)
+    else:
+        resName = os.path.join(newDirname, newBasename)
+    return resName
 
 
 
@@ -344,14 +410,14 @@ def _readImageName( datapath, temporary_path, prefix, resolution ):
             fileNames.append(f)
 
     if len(fileNames)==0:
-        print( proc+": no image with name '"+str(prefix)+"' was found in '"+str(datapath)+"'")
-        print( "\t Exiting")
+        monitoring.toLogAndConsole( proc+": no image with name '"+str(prefix)+"' was found in '"+str(datapath)+"'", 0)
+        monitoring.toLogAndConsole( "\t Exiting", 0)
         sys.exit(1)
 
     if len(fileNames) > 1:
-        print(proc + ": several images with name '" + str(prefix) + "' were found in '" + str(datapath) + "'")
-        print( "\t "+str(fileNames) )
-        print("\t Exiting")
+        monitoring.toLogAndConsole(proc + ": several images with name '" + str(prefix) + "' were found in '" + str(datapath) + "'")
+        monitoring.toLogAndConsole( "\t "+str(fileNames) )
+        monitoring.toLogAndConsole("\t Exiting")
         sys.exit(1)
 
     #
@@ -366,8 +432,7 @@ def _readImageName( datapath, temporary_path, prefix, resolution ):
         #
         # unzipping
         #
-        if monitoring.verbose >= 2:
-            print( "    .. unzipping '"+str(f)+ "'")
+        monitoring.toLogAndConsole( "    .. unzipping '"+str(f)+ "'", 2 )
         cmd='unzip '+os.path.join( datapath, f )+' -d '+str(temporary_path)
 
         subprocess.call(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -379,14 +444,14 @@ def _readImageName( datapath, temporary_path, prefix, resolution ):
             if f[0:len(prefix)] == prefix:
                 fileNames.append(f)
         if len(fileNames) == 0:
-            print(proc + ": no image with name '" + str(prefix) + "' was found in '" + str(temporary_path) + "'")
-            print("\t Exiting")
+            monitoring.toLogAndConsole(proc + ": no image with name '" + str(prefix) + "' was found in '" + str(temporary_path) + "'")
+            monitoring.toLogAndConsole("\t Exiting")
             sys.exit(1)
 
         if len(fileNames) > 1:
-            print(proc + ": several images with name '" + str(prefix) + "' were found in '" + str(temporary_path) + "'")
-            print("\t " + str(fileNames))
-            print("\t Exiting")
+            monitoring.toLogAndConsole(proc + ": several images with name '" + str(prefix) + "' were found in '" + str(temporary_path) + "'")
+            monitoring.toLogAndConsole("\t " + str(fileNames))
+            monitoring.toLogAndConsole("\t Exiting")
             sys.exit(1)
         #
         #
@@ -403,8 +468,7 @@ def _readImageName( datapath, temporary_path, prefix, resolution ):
     # test whether the file has to be converted into a more 'readable' format
     #
     if extension in extensionToBeConverted:
-        if monitoring.verbose >= 2:
-            print( "    .. converting '"+str(f)+ "'")
+        monitoring.toLogAndConsole( "    .. converting '"+str(f)+ "'", 2 )
         image = imread( os.path.join( temporary_path, f) )
         image.resolution = resolution
         fullName = os.path.join( temporary_path, prefix)+defaultExtension
@@ -415,17 +479,286 @@ def _readImageName( datapath, temporary_path, prefix, resolution ):
 
 
 
+def _cropNdImage( image, margin_x_0=40, margin_x_1=40, margin_y_0=40, margin_y_1=40 ):
+
+    #
+    # MIP projection
+    #
+    mipImage = image.max(axis=2)
+
+    #
+    # get a threshold = image mean of the MIP image
+    #
+    threshold = np.mean(mipImage)
+
+    #
+    # create a binary image and apply the threshold
+    # the get the connected component (4-connectivity)
+    #
+    binImage = np.zeros((mipImage.shape[0], mipImage.shape[1], 1), dtype=np.uint8)
+    binImage[mipImage > threshold] = 1
+    ccImage, nCC = nd.label(binImage)
+
+    #
+    # compute the volumes of each connected component
+    # and create a dictionary of tuples (label, volume)
+    #
+    labels = np.unique( ccImage )
+    volumes = nd.sum(np.ones_like(ccImage), ccImage, index=np.int16(labels))
+    dictVolumes = dict(zip(labels, volumes))
+
+    #
+    # remove the background
+    # then get the label associated to the largest connected component
+    dictVolumes.pop(0)
+    maxLabel = dictVolumes.keys()[np.argmax(dictVolumes.values())]
+
+    #
+    # get the bounding boxes for all objects
+    # it is not necessary to searched for all labels
+    # seems that there is no bounding box computed for label #0
+    #
+    # boundingBoxes = nd.find_objects(ccImage, max_label=maxLabel)
+    # maxBox = boundingBoxes[int(maxLabel)-1]
+    #
+    maxBox = nd.find_objects(ccImage, max_label=maxLabel)[int(maxLabel)-1]
+    xmin = max(maxBox[0].start - margin_x_0, 0)
+    xmax = min(image.shape[0], maxBox[0].stop + margin_x_1)
+    ymin = max(maxBox[1].start - margin_y_0, 0)
+    ymax = min(image.shape[1], maxBox[1].stop + margin_y_1)
+    newBox = (slice(xmin, xmax, None),
+               slice(ymin, ymax, None),
+               slice(0, image.shape[2]))
+
+    newImage = SpatialImage(image[newBox])
+    newImage._set_resolution( image._get_resolution() )
+
+    monitoring.toLogAndConsole("       crop from [0,"+str(image.shape[0])+"]x[0,"+str(image.shape[1])+"] to ["+
+                               str(xmin)+","+str(xmax)+"]x["+str(ymin)+","+str(ymax)+"]", 2)
+
+
+    return newImage
+
+
+
+def _cropDiskImage( theImage, resImage, margin_x_0=40, margin_x_1=40, margin_y_0=40, margin_y_1=40 ):
+
+    #
+    # read input image
+    #
+    image = imread( theImage )
+
+    newImage = _cropNdImage( image, margin_x_0, margin_x_1, margin_y_0, margin_y_1 )
+
+    # imsave(resImage, newImage.astype(np.uint16))
+    imsave(resImage, newImage )
+
+
+
+
+
+def _axis_rotation_matrix(axis, angle, min_space=None, max_space=None):
+    """ Return the transformation matrix from the axis and angle necessary
+    axis : axis of rotation ("X", "Y" or "Z")
+    angle : angle of rotation (in degree)
+    min_space : coordinates of the bottom point (usually (0, 0, 0))
+    max_space : coordinates of the top point (usually im shape)
+    """
+    I = np.linalg.inv
+    D = np.dot
+    if axis not in ["X", "Y", "Z"]:
+        raise Exception("Unknown axis : "+ str(axis))
+    rads = math.radians(angle)
+    s = math.sin(rads)
+    c = math.cos(rads)
+
+    centering = np.identity(4)
+    if min_space is None and max_space is not None:
+        min_space = np.array([0.,0.,0.])
+
+    if max_space is not None:
+        space_center = (max_space-min_space)/2.
+        offset = -1.*space_center
+        centering[:3,3] = offset
+
+    rot = np.identity(4)
+    if axis=="X":
+        rot = np.array([ [1., 0., 0., 0.],
+                            [0., c, -s,  0.],
+                            [0., s,  c,  0.],
+                            [0., 0., 0., 1.] ])
+    elif axis=="Y":
+        rot = np.array([ [c,   0., s,  0.],
+                            [0.,  1., 0., 0.],
+                            [-s,  0., c,  0.],
+                            [0.,  0., 0., 1.] ])
+
+    elif axis=="Z":
+        rot = np.array([ [c, -s,  0., 0.],
+                            [s,  c,  0., 0.],
+                            [0., 0., 1., 0.],
+                            [0., 0., 0., 1.] ])
+
+    return D(I(centering), D(rot, centering))
+
+
+
+
+
+def _histogram(image, nbins=256):
+    """Return histogram of image.
+
+        Unlike `np.histogram`, this function returns the centers of bins and
+        does not rebin integer arrays. For integer arrays, each integer value has
+        its own bin, which improves speed and intensity-resolution.
+
+        Parameters
+        ----------
+        image : array
+        Input image.
+        nbins : int
+        Number of bins used to calculate histogram. This value is ignored for
+        integer arrays.
+
+        Returns
+        -------
+        hist : array
+        The values of the histogram.
+        bin_centers : array
+        The values at the center of the bins.
+        """
+
+    # For integer types, histogramming with bincount is more efficient.
+    if np.issubdtype(image.dtype, np.integer):
+        offset = 0
+        if np.min(image) < 0:
+            offset = np.min(image)
+        hist = np.bincount(image.ravel() - offset)
+        bin_centers = np.arange(len(hist)) + offset
+
+        # clip histogram to start with a non-zero bin
+        idx = np.nonzero(hist)[0][0]
+        return hist[idx:], bin_centers[idx:]
+    else:
+        hist, bin_edges = np.histogram(image.flat, nbins)
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2.
+        return hist, bin_centers
+
+
+
+
+
+def _threshold_otsu(image, nbins=256):
+    """Return threshold value based on Otsu's method.
+
+        Parameters
+        ----------
+        image : array
+        Input image.
+        nbins : int
+        Number of bins used to calculate histogram. This value is ignored for
+        integer arrays.
+
+        Returns
+        -------
+        threshold : float
+        Threshold value.
+
+        References
+        ----------
+        .. [1] Wikipedia, http://en.wikipedia.org/wiki/Otsu's_Method
+
+        Examples
+        --------
+        >>> from skimage.data import camera
+        >>> image = camera()
+        >>> thresh = threshold_otsu(image)
+        >>> binary = image > thresh
+        """
+    hist, bin_centers = _histogram(image, nbins)
+    hist = hist.astype(float)
+
+    # class probabilities for all possible thresholds
+    weight1 = np.cumsum(hist)
+    weight2 = np.cumsum(hist[::-1])[::-1]
+    # class means for all possible thresholds
+    mean1 = np.cumsum(hist * bin_centers) / weight1
+    mean2 = (np.cumsum((hist * bin_centers)[::-1]) / weight2[::-1])[::-1]
+
+    # Clip ends to align class 1 and class 2 variables:
+    # The last value of `weight1`/`mean1` should pair with zero values in
+    # `weight2`/`mean2`, which do not exist.
+    variance12 = weight1[:-1] * weight2[1:] * (mean1[:-1] - mean2[1:]) ** 2
+
+    idx = np.argmax(variance12)
+    threshold = bin_centers[:-1][idx]
+    return threshold
+
+
+
+
+
+def _exp_func(x, length=500, speed=5):
+    """ Decay function used to take into account the remotness to the camera
+    x : value to compute
+    length : lenght of the function
+    speed : speed of the function
+    """
+
+    return .1+np.exp(-((np.float32(x)*speed/length)))
+
+
+
+
+def _build_mask(im, direction):
+    """Return the mask on a given image from the decay function
+    im : intensity image (SpatialImage)
+    direction : if True the camera is in the side of the first slices in Z
+    """
+    th = _threshold_otsu(im)
+    im_th=np.zeros_like(im)
+    im_th[im>th]=1
+    if direction==False:
+        im_th=im_th[:,:,-1::-1]
+    im_th_sum=np.cumsum(im_th, axis=2)
+    if direction==False:
+        im_th_sum=im_th_sum[:,:,-1::-1]
+    mask = _exp_func(im_th_sum, np.max(im_th_sum))
+    return mask
+
+
+
+
+
+
+
+
+
+
+########################################################################################
+#
+#
+#
+########################################################################################
+
 
 def fusionImages( inputImages, fusedImage, temporary_paths, environment, parameters ):
 
     proc = 'fusionImages';
-    print( 'fusionImages was called with')
-    print( '- inputImages='+str(inputImages) )
-    print( '- fusedImage=' + str(fusedImage))
-    print( '- temporary_paths=' + str(temporary_paths))
 
-    theImages = inputImages
-    print( 'theImages ='+str(theImages))
+    #
+    # nothing to do if the fused image exists
+    #
+    if os.path.isfile(fusedImage) and monitoring.forceResultsToBeBuilt == False:
+        return
+
+    #
+    # copie de liste
+    # NB: 'theImages = inputImages' acts like pointers
+    #
+    theImages = inputImages[:]
+    resImages = []
+
     #
     # to do: correct for planes
     #
@@ -442,32 +775,231 @@ def fusionImages( inputImages, fusedImage, temporary_paths, environment, paramet
     # - for Z: original resolution (supposed to be larger than target)
     #
 
-    resImages = []
-    for i in range(0, len(inputImages)):
-        print( "_addSuffix to '"+inputImages[i]+"'")
-        resImages.append( _addSuffix( inputImages[i], "_resample1" ) )
+    for i in range(0, len(theImages)):
+        resImages.append( _addSuffix( inputImages[i], "_resample", newDirname=temporary_paths[i] ) )
 
-    for i in range(0, len(inputImages)):
+    for i in range(0, len(theImages)):
+
         im = imread( theImages[i] )
-
         if type(parameters.target_resolution)==int or type(parameters.target_resolution)==float:
             resampling_resolution = [parameters.target_resolution, parameters.target_resolution, im.voxelsize[2]]
         elif (type(parameters.target_resolution)==list or type(parameters.target_resolution)==tuple) and len(parameters.target_resolution) == 3:
             resampling_resolution = [parameters.target_resolution[0], parameters.target_resolution[1], im.voxelsize[2]]
         else:
-            print( proc+': unable to set target resolution for first resampling')
-            print( "\t target resolution was '"+str(parameters.target_resolution)+"'")
-            print( "\t image resolution was '" + str(im.voxelsize) + "'")
-            print( "Exiting.")
+            monitoring.toLogAndConsole( proc+': unable to set target resolution for first resampling', 0)
+            monitoring.toLogAndConsole( "\t target resolution was '"+str(parameters.target_resolution)+"'", 0)
+            monitoring.toLogAndConsole( "\t image resolution was '" + str(im.voxelsize) + "'", 0)
+            monitoring.toLogAndConsole( "Exiting.", 0)
             sys.exit( 1 )
+        del im
 
-        if monitoring.verbose >= 2:
-            print( "    .. resampling '"+theImages[i].split(os.path.sep)[-1]+ "' at "+str(resampling_resolution))
-        cpp_wrapping.applyTrsfCLI(theImages[i], resImages[i], theTrsf=None, templateImage=None,
-                                  voxelsize=resampling_resolution, nearest=False, monitoring=monitoring )
+        monitoring.toLogAndConsole( "    .. resampling '"+theImages[i].split(os.path.sep)[-1]+ "' at "+str(resampling_resolution), 2)
+        if not os.path.isfile( resImages[i] ) or monitoring.forceResultsToBeBuilt == True:
+            cpp_wrapping.applyTrsfCLI(theImages[i], resImages[i], theTrsf=None, templateImage=None,
+                                      voxelsize=resampling_resolution, nearest=False, monitoring=monitoring )
+        else:
+            monitoring.toLogAndConsole("       already existing", 2 )
+
+    #
+    # 2D crop of resampled acquisition images
+    #
 
 
-    pass
+    if parameters.acquisition_cropping == True:
+        theImages = resImages[:]
+        resImages = []
+        for i in range(0, len(theImages)):
+            resImages.append(_addSuffix(inputImages[i], "_crop", newDirname=temporary_paths[i]))
+
+        for i in range(0, len(theImages)):
+            monitoring.toLogAndConsole("    .. cropping '" + theImages[i].split(os.path.sep)[-1], 2)
+            if not os.path.isfile(resImages[i]) or monitoring.forceResultsToBeBuilt == True:
+                _cropDiskImage( theImages[i], resImages[i],
+                                parameters.acquisition_cropping_margin_x_0,
+                                parameters.acquisition_cropping_margin_x_1,
+                                parameters.acquisition_cropping_margin_y_0,
+                                parameters.acquisition_cropping_margin_y_1)
+            else:
+                monitoring.toLogAndConsole("       already existing", 2)
+
+    #
+    # Mirroring of 'right' images if required
+    #
+
+    if parameters.acquisition_mirrors == False:
+        theImages = resImages[:]
+        resImages = []
+        for i in range(0, len(theImages)):
+            if i == 0 or i == 2:
+                resImages.append( theImages[i] )
+            else:
+                resImages.append(_addSuffix(inputImages[i], "_mirror", newDirname=temporary_paths[i]))
+
+        for i in range(0, len(theImages)):
+            if i == 0 or i == 2:
+                continue
+            monitoring.toLogAndConsole("    .. mirroring '" + theImages[i].split(os.path.sep)[-1], 2)
+            if not os.path.isfile(resImages[i]) or monitoring.forceResultsToBeBuilt == True:
+                theIm = imread( theImages[i] )
+                resIm = SpatialImage(theIm.copy())[-1::-1, :, :]
+                resIm._set_resolution(theIm._get_resolution())
+                imsave( resImages[i], resIm )
+            else:
+                monitoring.toLogAndConsole("       already existing", 2)
+
+    #
+    # 1. Putting all images in a common reference
+    # - resampling of first image in an isotropic grid = reference image
+    # - co-registration of other images
+    # 2. Compute weights with an ad-hoc method
+    #
+    theImages = resImages[:]
+    resImages = []
+    initTrsfs = []
+    resTrsfs = []
+    unregWeightImages = []
+    weightImages = []
+
+    for i in range(0, len(theImages)):
+        resImages.append(_addSuffix(inputImages[i], "_reg", newDirname=temporary_paths[i]))
+        initTrsfs.append(_addSuffix(inputImages[i], "_init", newDirname=temporary_paths[i], newExtension=".trsf"))
+        resTrsfs.append(_addSuffix(inputImages[i], "_reg", newDirname=temporary_paths[i], newExtension=".trsf"))
+        unregWeightImages.append(_addSuffix(inputImages[i], "_initweight", newDirname=temporary_paths[i]))
+        weightImages.append(_addSuffix(inputImages[i], "_weight", newDirname=temporary_paths[i]))
+
+    if parameters.acquisition_orientation == 'left':
+        defaultAngle = 270.0
+    else:
+        defaultAngle = 90.0
+
+    for i in range(0, len(theImages)):
+
+        if i==0:
+            #
+            # resampling first image
+            #
+            monitoring.toLogAndConsole( "    .. resampling '" + theImages[i].split(os.path.sep)[-1] + "' at " + str(parameters.target_resolution), 2)
+            if not os.path.isfile(resImages[i]) or monitoring.forceResultsToBeBuilt == True:
+                cpp_wrapping.applyTrsfCLI(theImages[i], resImages[i], theTrsf=None, templateImage=None,
+                                          voxelsize=parameters.target_resolution, nearest=False, monitoring=monitoring)
+            else:
+                monitoring.toLogAndConsole("       already existing", 2)
+        else:
+            #
+            # other images:
+            # - set initial rotation
+            # - register images
+            #
+            monitoring.toLogAndConsole("    .. co-registering '" + theImages[i].split(os.path.sep)[-1], 2 )
+
+            if i==1:
+                angle = 0.0
+            else:
+                angle =defaultAngle
+            monitoring.toLogAndConsole("       angle used for '" + initTrsfs[i].split(os.path.sep)[-1]+"' is "+str(angle), 2)
+
+            im = imread(theImages[i])
+            rotationMatrix = _axis_rotation_matrix(axis="Y", angle=angle, min_space=(0, 0, 0),
+                                       max_space=np.multiply(im.shape[:3], im.resolution))
+            del im
+
+            np.savetxt(initTrsfs[i], rotationMatrix)
+
+            if not os.path.isfile(resImages[i]) or monitoring.forceResultsToBeBuilt == True:
+                #
+                # a tow-fold registration, translation then affine, could be preferable
+                #
+                cpp_wrapping.singleRegistrationCLI( resImages[0], theImages[i], resImages[i], resTrsfs[i], initTrsfs[i],
+                                                    py_hl=parameters.registration_pyramid_highest_level,
+                                                    py_ll=parameters.registration_pyramid_lowest_level,
+                                                    trsf_type=parameters.registration_transformation_type,
+                                                    trsf_estimator=parameters.registration_transformation_estimation_type,
+                                                    lts_fraction=parameters.registration_lts_fraction,
+                                                    monitoring=monitoring)
+            else:
+                monitoring.toLogAndConsole("       already existing", 2)
+
+        #
+        # compute weighting masks
+        # - mask is computed on an untransformed image
+        #   however, resolution may have changes, or it can be cropped
+        #   or it can be mirrored
+        # - mask are then transformed with the computed transformation
+        #
+        if i%2==1:
+            direction=False
+        else:
+            direction=True
+
+        im = imread(theImages[i])
+        unRegMask = _build_mask(im, direction)
+        unRegMask._set_resolution(im._get_resolution())
+        imsave( unregWeightImages[i], unRegMask )
+        del im
+
+        monitoring.toLogAndConsole("    .. resampling '" + unregWeightImages[i].split(os.path.sep)[-1], 2)
+        if i==0:
+            if not os.path.isfile(weightImages[i]) or monitoring.forceResultsToBeBuilt == True:
+                cpp_wrapping.applyTrsfCLI(unregWeightImages[i], weightImages[i], theTrsf=None, templateImage=None,
+                                          voxelsize=parameters.target_resolution, nearest=False, monitoring=monitoring)
+            else:
+                monitoring.toLogAndConsole("       already existing", 2)
+        else:
+            if not os.path.isfile(weightImages[i]) or monitoring.forceResultsToBeBuilt == True:
+                cpp_wrapping.applyTrsfCLI(unregWeightImages[i], weightImages[i], theTrsf=resTrsfs[i], templateImage=resImages[0],
+                                          voxelsize=None, nearest=False, monitoring=monitoring)
+            else:
+                monitoring.toLogAndConsole("       already existing", 2)
+
+        if i == 0:
+            fullMask = imread( weightImages[i] )
+        else:
+            fullMask += imread( weightImages[i] )
+
+    #
+    # compute fused image as a linear combination of co-registered images
+    # the sun of weights have been precomputed to mimic historical behavior
+    #
+    # do not forget to cast the result on 16 bits
+    #
+    if monitoring.debug > 0:
+        tmpMaskImage = _addSuffix(fusedImage, "_mask_sum", newDirname=temporary_paths[4])
+        imsave(tmpMaskImage, fullMask)
+
+    monitoring.toLogAndConsole("    .. combining images", 2)
+    for i in range(0, len(theImages)):
+        if i==0:
+            fullImage = ( imread(weightImages[i]) * imread(resImages[i]) ) / fullMask
+        else:
+            fullImage += ( imread(weightImages[i]) * imread(resImages[i]) ) / fullMask
+
+    del fullMask
+
+    fullImage = fullImage.astype(np.uint16)
+
+    if monitoring.debug > 0:
+        tmpFusedImage = _addSuffix(fusedImage, "_uncropped_fusion", newDirname=temporary_paths[4])
+        imsave(tmpFusedImage, fullImage)
+
+    #
+    # fused image can be cropped as well
+    #
+    if parameters.fusion_cropping == True:
+        monitoring.toLogAndConsole("    .. cropping '" + fusedImage.split(os.path.sep)[-1], 2)
+        fullImage= _cropNdImage( fullImage,
+                                  parameters.fusion_cropping_margin_x_0,
+                                  parameters.fusion_cropping_margin_x_1,
+                                  parameters.fusion_cropping_margin_y_0,
+                                  parameters.fusion_cropping_margin_y_1)
+
+    imsave(fusedImage, fullImage)
+    del fullImage
+
+    return
+
+
+
+
 
 
 
@@ -482,8 +1014,10 @@ def fusionProcess( experiment, environment, parameters ):
     if not os.path.isdir( environment.path_fuse_exp ):
         os.makedirs( environment.path_fuse_exp )
 
-    if (monitoring.verbose > 1):
-        print('')
+    if not os.path.isdir( environment.path_logdir ):
+        os.makedirs( environment.path_logdir )
+
+    monitoring.toLogAndConsole('', 1)
 
     #
     # loop over acquisitions
@@ -497,17 +1031,14 @@ def fusionProcess( experiment, environment, parameters ):
 
         fusedImage = nomenclature.replaceTIME(environment.path_fuse_exp_files, timePoint)
 
-        if (monitoring.verbose > 1):
-            print('... fusion of time ' + str(timePoint))
+        monitoring.toLogAndConsole('... fusion of time ' + str(timePoint), 1)
 
         if os.path.isfile(fusedImage):
             if not monitoring.forceResultsToBeBuilt:
-                if (monitoring.verbose > 1):
-                    print('    already existing')
+                monitoring.toLogAndConsole('    already existing', 2 )
                 continue
             else:
-                if (monitoring.verbose > 1):
-                    print('    already existing, but forced')
+                monitoring.toLogAndConsole('    already existing, but forced', 2)
 
         #
         # start processing
@@ -522,10 +1053,10 @@ def fusionProcess( experiment, environment, parameters ):
         temporary_paths = []
 
 
+        temporary_paths.append( os.path.join( environment.path_fuse_exp, "TEMP_$TIME", "ANGLE_0" ) )
         temporary_paths.append( os.path.join( environment.path_fuse_exp, "TEMP_$TIME", "ANGLE_1" ) )
         temporary_paths.append( os.path.join( environment.path_fuse_exp, "TEMP_$TIME", "ANGLE_2" ) )
         temporary_paths.append( os.path.join( environment.path_fuse_exp, "TEMP_$TIME", "ANGLE_3" ) )
-        temporary_paths.append( os.path.join( environment.path_fuse_exp, "TEMP_$TIME", "ANGLE_4" ) )
         temporary_paths.append(os.path.join(environment.path_fuse_exp, "TEMP_$TIME"))
 
         for i in range( 0, len(temporary_paths) ):
@@ -538,8 +1069,8 @@ def fusionProcess( experiment, environment, parameters ):
         # get image file names
         # - may involve unzipping and conversion
         #
-        if (monitoring.verbose > 1):
-            print('    get original images' )
+        monitoring.toLogAndConsole('    get original images', 2 )
+
         images=[]
 
         images.append( _readImageName( environment.path_angle1, temporary_paths[0],
@@ -551,14 +1082,11 @@ def fusionProcess( experiment, environment, parameters ):
         images.append( _readImageName( environment.path_angle4, temporary_paths[3],
                         nomenclature.replaceTIME(environment.path_angle4_files,timePoint), parameters.acquisition_resolution ) )
 
-        print images
-
 
         #
         #
         #
-        if (monitoring.verbose > 1):
-            print('    fuse images' )
+        monitoring.toLogAndConsole('    fuse images', 2 )
 
         fusionImages( images, fusedImage, temporary_paths, environment, parameters )
 
@@ -578,9 +1106,8 @@ def fusionProcess( experiment, environment, parameters ):
         #
 
         endtime = time.time()
-        if monitoring.verbose > 1:
-            print( '    computation time = '+str(endtime-starttime)+ 'sec')
-            print( '' )
+        monitoring.toLogAndConsole('    computation time = '+str(endtime-starttime)+ ' s', 1)
+        monitoring.toLogAndConsole('', 1)
 
 
     return

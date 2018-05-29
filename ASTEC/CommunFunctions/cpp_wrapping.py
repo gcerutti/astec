@@ -1,4 +1,4 @@
-import os
+import os, sys
 import subprocess
 
 #path_to_bins = '/user/gmicheli/home/DIG-EM/Codes/Packages/ASTEC-170210/ASTEC/CommunFunctions/cpp/build/bin/'
@@ -55,11 +55,22 @@ from ImageHandling import imread, imsave, SpatialImage
 
 
 
-def findExec( commandLine ):
+def _writeErrorMsg( str, monitoring):
+    if not monitoring is None:
+        monitoring.toLogAndConsole( str, 0 )
+    else:
+        print( str )
+
+
+
+
+
+def findExec( commandLine, monitoring=None ):
     cmd='which '+str(commandLine)
     path_to_exec=''
     try:
-        path_to_exec = subprocess.check_output( cmd, shell=True )
+        which_exec = subprocess.check_output( cmd, shell=True )
+        path_to_exec = which_exec.split('\n')[0]
     except subprocess.CalledProcessError:
         file=os.path.join( os.path.dirname(__file__), 'cpp', 'vt', 'build', 'bin', str(commandLine) )
         if os.path.isfile( file ):
@@ -67,9 +78,12 @@ def findExec( commandLine ):
         file=os.path.join( os.path.dirname(__file__), 'cpp', str(commandLine) )
         if os.path.isfile( file ):
             return file
-        print( "findExec: can not find executable '"+str(commandLine)+"'")
-        print( "Exiting")
+
+        _writeErrorMsg( "findExec: can not find executable '"+str(commandLine)+"'", monitoring )
+        _writeErrorMsg( "\t Exiting", monitoring )
+
         sys.exit(1)
+
     return path_to_exec
 
 
@@ -81,7 +95,8 @@ def applyTrsfCLI( theImage, resImage, theTrsf=None,
                   voxelsize=None,
                   dimensions=None,
                   nearest=False,
-                  monitoring=None ):
+                  monitoring=None,
+                  returnImage=False ):
     ''' Apply a transformation to a given image
     theImage: path to the image to be resampled
     theTrsf: path to the transformation
@@ -92,43 +107,106 @@ def applyTrsfCLI( theImage, resImage, theTrsf=None,
     nearest: do not interpolate (take the nearest value)
              if True, to use when applying on label images (default = True)
     '''
+    proc="applyTrsfCLI"
 
     path_to_exec = findExec( 'applyTrsf' )
-    print path_to_exec
-    return
+
     command_line = path_to_exec + " " + theImage + " " + resImage
+
     if theTrsf:
         command_line += " -trsf " + theTrsf
+
     if not templateImage is None:
         command_line += " -template " + templateImage
-    if not nearest is None:
-        command_line += " -nearest"
-    if voxelsize:
 
-      assert type(voxelsize)==tuple or type(voxelsize)==list
-      assert len(voxelsize)==3
-      command_line += " -vs %f %f %f"%(voxelsize[0], voxelsize[1], voxelsize[2])
-    if iso:
-      command_line += " -iso %f"%float(iso)
-    if dimensions:
-      assert type(dimensions)==tuple or type(dimensions)==list
-      assert len(dimensions)==3
-      command_line += " -dim %d %d %d"%(int(dimensions[0]), int(dimensions[1]), int(dimensions[2]))
-    if verbose:
-      print command_line
-    os.system(command_line)
-    if not lazy:
-        out=imread(path_output)
-        if path_output=='tmp_seeds.inr':
-            os.system('rm -f tmp_seeds.inr')
+    if nearest == True:
+        command_line += " -nearest"
+
+    if not voxelsize is None:
+        if type(voxelsize)==int or type(voxelsize)==float:
+            command_line += " -iso "+str(voxelsize)
+        elif type(voxelsize)==tuple or type(voxelsize)==list:
+            if len(voxelsize)==3:
+                command_line += " -vs "+str(voxelsize[0])+" "+str(voxelsize[1])+" "+str(voxelsize[2])
+            else:
+                _writeErrorMsg( proc+": unhandled length for voxelsize '"+str(len(voxelsize))+"'", monitoring )
+                _writeErrorMsg( "\t Exiting", monitoring )
+                sys.exit(1)
+        else:
+            _writeErrorMsg( proc + ": unhandled type for voxelsize '" + str(type(voxelsize)) + "'", monitoring )
+            _writeErrorMsg( "\t Exiting", monitoring )
+            sys.exit(1)
+
+    if not dimensions is None:
+        if type(dimensions) == tuple or type(dimensions) == list:
+            if len(dimensions) == 3:
+                command_line += " -vs " + str(dimensions[0]) + " " + str(dimensions[1]) + " " + str(dimensions[2])
+            else:
+                _writeErrorMsg( proc + ": unhandled length for dimensions '" + str(len(dimensions)) + "'", monitoring )
+                _writeErrorMsg( "\t Exiting", monitoring )
+                sys.exit(1)
+        else:
+            _writeErrorMsg( proc + ": unhandled type for dimensions '" + str(type(dimensions)) + "'", monitoring )
+            _writeErrorMsg( "\t Exiting", monitoring )
+            sys.exit(1)
+
+    if not monitoring is None:
+        monitoring.toLogAndConsole( "* Launch: "+command_line, 3 )
+
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    if returnImage is True:
+        out=imread(resImage)
         return out
 
+    return
 
 
 
 
 
+def singleRegistrationCLI( path_ref, path_flo, path_output, path_output_trsf, path_init_trsf=None,
+                           py_hl=6, py_ll=3,
+                           trsf_type='affine',
+                           trsf_estimator='wlts', lts_fraction=0.55,
+                           otherOptions=None,
+                           monitoring=None ):
+    ''' Compute the linear transformation that register the floating image onto the reference image
+    path_flo : path to the floating image
+    path_ref : path to the reference image
+    path_output : path to the floating image after affine registration
+    path_output_trsf : path to the affine transformation
+    path_init_trsf : path to the initial registration
+    trsf_type
+    py_hl : pyramid highest level (default = 6)
+    py_ll : pyramid lowest level (default = 3)
+    lts_fraction : least trimmed squares fraction (default = 0.55)
+    '''
+    proc = "singleRegistrationCLI"
 
+    path_to_exec = findExec('blockmatching')
+
+    command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo + " -res " + path_output
+    if not path_init_trsf is None:
+        command_line += " -init-res-trsf " + path_init_trsf + " -composition-with-initial"
+    command_line += " -res-trsf " + path_output_trsf
+
+    command_line += " -pyramid-highest-level " + str(py_hl) + " -pyramid-lowest-level " + str(py_ll)
+
+    command_line += " -trsf-type "+trsf_type
+
+    command_line += " -estimator " +trsf_estimator;
+    command_line += " -lts-fraction " + str(lts_fraction)
+
+    if not otherOptions is None:
+        command_line += " " + otherOptions
+
+    if not monitoring is None:
+        monitoring.toLogAndConsole("* Launch: " + command_line, 3)
+
+    subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    return
 
 
 
@@ -285,7 +363,7 @@ def watershed(path_seeds, path_int, path_output=None, lazy=True, temporary_folde
         return out
 
 
-def reech3d(im_path, output_shape):
+def _reech3d(im_path, output_shape):
     ''' Perform a resampling operation
     im_path : path to the image to resample
     output_shape : desired output shape
@@ -299,7 +377,7 @@ def reech3d(im_path, output_shape):
     os.system('rm '+tmp_file)
     return  out
 
-def reech(path_flo, path_output, voxelsize):
+def _reech(path_flo, path_output, voxelsize):
     ''' Perform a resampling operation
     path_flo : path to the image to resample
     path_output : path to the output image
@@ -354,7 +432,7 @@ def non_linear_registration(image_file_flo,image_file_ref, affine_image, affine_
     os.system(cmd)
     
 
-def linear_registration(path_ref, path_flo, path_trsf, path_output, path_output_trsf, py_hl=6, py_ll=3, lts_fraction=0.55):
+def _linear_registration(path_ref, path_flo, path_trsf, path_output, path_output_trsf, py_hl=6, py_ll=3, lts_fraction=0.55):
     ''' Compute the linear transformation that register the floating image onto the reference image
     path_flo : path to the floating image
     path_ref : path to the reference image
