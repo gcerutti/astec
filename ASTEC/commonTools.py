@@ -174,8 +174,8 @@ class Experiment(object):
 def get_parameter_file(parameter_file):
     """
     check if the given parameter file is valid, otherwise ask for a file name
-    :param parameter_file:
-    :return:
+    :param parameter_file: the parameter file name to be tested
+    :return: the parameter file name
     """
     if parameter_file is not None and os.path.isfile(parameter_file):
         return parameter_file
@@ -192,26 +192,43 @@ def get_parameter_file(parameter_file):
 #
 
 
-def write_history_information(logfile_name, experiment, parameter_file, start_time, path_to_exe):
+def write_history_information(logfile_name,
+                              experiment=None,
+                              parameter_file=None,
+                              start_time=None,
+                              path_to_exe=None):
+    """
+    Write history information
+    :param logfile_name: file where to write information
+    :param experiment: experiment values (class)
+    :param parameter_file: name of the parameter file
+    :param start_time: start time
+    :param path_to_exe: path to Astec repository
+    :return:
+    """
     with open(logfile_name, 'a') as logfile:
         logfile.write("\n")
-        logfile.write("# "+time.strftime("%a, %d %b %Y %H:%M:%S", start_time)+"\n")
-        logfile.write("# Embryo path: '"+str(experiment.embryoPath)+"'\n")
-        logfile.write("# Embryo name: '"+str(experiment.embryoName)+"'\n")
-        logfile.write("# Parameter file: '" + str(parameter_file) + "'\n")
+        if start_time is not None:
+            logfile.write("# "+time.strftime("%a, %d %b %Y %H:%M:%S", start_time)+"\n")
+        if experiment is not None:
+            logfile.write("# Embryo path: '"+str(experiment.embryoPath)+"'\n")
+            logfile.write("# Embryo name: '"+str(experiment.embryoName)+"'\n")
+        if parameter_file is not None:
+            logfile.write("# Parameter file: '" + str(parameter_file) + "'\n")
         logfile.write("# Command line: '"+" ".join(sys.argv) + "'\n")
         logfile.write("# Working directory: '"+str(os.getcwd())+"'\n")
         logfile.write("# User: '" + str(getpass.getuser()) + "'\n")
         logfile.write("# Python executable: " + sys.executable + "\n")
-        logfile.write("# ASTEC version: ")
-        if not os.path.exists(path_to_exe+os.path.sep+'.git'):
-            logfile.write("not found\n")
-        else:
-            pipe = subprocess.Popen("cd "+path_to_exe+"; git describe; cd "+str(os.getcwd()),
-                                    shell=True, stdout=subprocess.PIPE).stdout
-            o = pipe.next()
-            v = o.split('\n')
-            logfile.write(str(v[0]+"\n"))
+        if path_to_exe is not None:
+            logfile.write("# ASTEC version: ")
+            if not os.path.exists(path_to_exe+os.path.sep+'.git'):
+                logfile.write("not found\n")
+            else:
+                pipe = subprocess.Popen("cd "+path_to_exe+"; git describe; cd "+str(os.getcwd()),
+                                        shell=True, stdout=subprocess.PIPE).stdout
+                o = pipe.next()
+                v = o.split('\n')
+                logfile.write(str(v[0]+"\n"))
         logfile.write("# \n")
     return
 
@@ -223,6 +240,13 @@ def write_history_information(logfile_name, experiment, parameter_file, start_ti
 
 
 def copy_date_stamped_file(thefile, directory, timestamp):
+    """
+    Copy a file to the designated directory while adding a time stamp to its name
+    :param thefile:
+    :param directory:
+    :param timestamp:
+    :return:
+    """
     d = time.strftime("%Y-%m-%d-%H:%M:%S", timestamp)
     resfile = directory+os.path.sep+re.sub(r'(\.*).py', r'\1', thefile.split(os.path.sep)[-1])+'-'+d+'.py'
     shutil.copy2(thefile, resfile)

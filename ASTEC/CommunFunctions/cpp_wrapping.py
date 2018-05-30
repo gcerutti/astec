@@ -1,14 +1,20 @@
-import os, sys
+
+import os
+import sys
 import subprocess
 
-#path_to_bins = '/user/gmicheli/home/DIG-EM/Codes/Packages/ASTEC-170210/ASTEC/CommunFunctions/cpp/build/bin/'
-path_to_bins = os.path.join(os.path.dirname(__file__),'cpp')+os.path.sep
+from ImageHandling import imread, imsave, SpatialImage
+
+#
+# path_to_bins = '/user/gmicheli/home/DIG-EM/Codes/Packages/ASTEC-170210/ASTEC/CommunFunctions/cpp/build/bin/'
+#
+path_to_bins = os.path.join(os.path.dirname(__file__), 'cpp')+os.path.sep
 
 path_filters = path_to_bins + 'recfilters'
 path_linearfilters = path_to_bins + 'linearFilter'
 path_reech3d = path_to_bins + 'reech3d'
 path_apply_trsf = path_to_bins + "applyTrsf"
-path_block = path_to_bins + "blockmatching"
+path_block = path_to_bins + 'blockmatching'
 path_morpho = path_to_bins + "morpho"
 path_regional_max = path_to_bins + 'regionalmax'
 path_regional_ext = path_to_bins + 'regionalext'
@@ -21,188 +27,208 @@ path_membrane = path_to_bins + 'membrane'
 path_anisotropicHist = path_to_bins + 'anisotropicHist'
 path_TVmembrane = path_to_bins + 'TVmembrane'
 path_seuillage = path_to_bins + 'seuillage'
-path_Arit= path_to_bins + 'Arit'
-path_Logic= path_to_bins + 'Logic'
-path_create_image= path_to_bins + 'createImage'
-path_linearFilter= path_to_bins + 'linearFilter'
-path_copy= path_to_bins + 'copy'
-path_symmetryPlane=path_to_bins + 'symmetryPlane'
-path_dice=path_to_bins + 'dice'
-path_diceMaximisation=path_to_bins + 'diceMaximisation'
-path_directionHistogram=path_to_bins + 'directionHistogram'
-path_directionHistogramMaxima=path_to_bins + 'directionHistogramMaxima'
-path_planeRegistration=path_to_bins + 'planeRegistration'
-path_pointCloudRegistration=path_to_bins + 'pointCloudRegistration'
-path_setvoxelsize=path_to_bins + 'setVoxelSize'
-path_compose_trsf=path_to_bins + 'composeTrsf'
-path_multiple_trsfs=path_to_bins + 'multipleTrsfs'
-path_change_multiple_trsfs=path_to_bins + 'changeMultipleTrsfs'
-path_non_zeros_image=path_to_bins + 'nonZerosImage'
-path_setvoxelvalue=path_to_bins + 'setVoxelValue'
-path_fuselabels=path_to_bins + "fuseLabels"
-path_labelborders=path_to_bins + "labelBorders"
-path_associateLabels=path_to_bins + "associateLabels"
+path_Arit = path_to_bins + 'Arit'
+path_Logic = path_to_bins + 'Logic'
+path_create_image = path_to_bins + 'createImage'
+path_linearFilter = path_to_bins + 'linearFilter'
+path_copy = path_to_bins + 'copy'
+path_symmetryPlane = path_to_bins + 'symmetryPlane'
+path_dice = path_to_bins + 'dice'
+path_diceMaximisation = path_to_bins + 'diceMaximisation'
+path_directionHistogram = path_to_bins + 'directionHistogram'
+path_directionHistogramMaxima = path_to_bins + 'directionHistogramMaxima'
+path_planeRegistration = path_to_bins + 'planeRegistration'
+path_pointCloudRegistration = path_to_bins + 'pointCloudRegistration'
+path_setvoxelsize = path_to_bins + 'setVoxelSize'
+path_compose_trsf = path_to_bins + 'composeTrsf'
+path_multiple_trsfs = path_to_bins + 'multipleTrsfs'
+path_change_multiple_trsfs = path_to_bins + 'changeMultipleTrsfs'
+path_non_zeros_image = path_to_bins + 'nonZerosImage'
+path_setvoxelvalue = path_to_bins + 'setVoxelValue'
+path_fuselabels = path_to_bins + "fuseLabels"
+path_labelborders = path_to_bins + "labelBorders"
+path_associateLabels = path_to_bins + "associateLabels"
 
-path_boundingboxes=path_to_bins + 'boundingboxes'
-path_cropImage=path_to_bins + 'cropImage'
-path_patchLogic=path_to_bins + 'patchLogic'
-path_mc_adhocfuse=path_to_bins + 'mc-adhocFuse'
-
-import os
-from ImageHandling import imread, imsave, SpatialImage
+path_boundingboxes = path_to_bins + 'boundingboxes'
+path_cropImage = path_to_bins + 'cropImage'
+path_patchLogic = path_to_bins + 'patchLogic'
+path_mc_adhocfuse = path_to_bins + 'mc-adhocFuse'
 
 
+############################################################
+#
+#
+#
+############################################################
 
 
-
-def _writeErrorMsg( str, monitoring):
-    if not monitoring is None:
-        monitoring.toLogAndConsole( str, 0 )
+def _write_error_msg(text, monitoring):
+    """
+    Write an error message
+    :param text:
+    :param monitoring:
+    :return:
+    """
+    if monitoring is not None:
+        monitoring.to_log_and_console(text, 0)
     else:
-        print( str )
+        print(str)
 
 
-
-
-
-def findExec( commandLine, monitoring=None ):
-    cmd='which '+str(commandLine)
-    path_to_exec=''
+def _find_exec(executable_file, monitoring=None):
+    """
+    Try to find the executable file 'executable_file'
+    :param executable_file:
+    :param monitoring:
+    :return:
+    """
+    cmd = 'which' + str(executable_file)
+    path_to_exec = ""
     try:
-        which_exec = subprocess.check_output( cmd, shell=True )
+        which_exec = subprocess.check_output(cmd, shell=True)
         path_to_exec = which_exec.split('\n')[0]
     except subprocess.CalledProcessError:
-        file=os.path.join( os.path.dirname(__file__), 'cpp', 'vt', 'build', 'bin', str(commandLine) )
-        if os.path.isfile( file ):
+        file = os.path.join(os.path.dirname(__file__), 'cpp', 'vt', 'build', 'bin', str(executable_file))
+        if os.path.isfile(file):
             return file
-        file=os.path.join( os.path.dirname(__file__), 'cpp', str(commandLine) )
-        if os.path.isfile( file ):
+        file = os.path.join(os.path.dirname(__file__), 'cpp', str(executable_file))
+        if os.path.isfile(file):
             return file
 
-        _writeErrorMsg( "findExec: can not find executable '"+str(commandLine)+"'", monitoring )
-        _writeErrorMsg( "\t Exiting", monitoring )
+        _write_error_msg("findExec: can not find executable '" + str(executable_file) + "'", monitoring)
+        _write_error_msg("\t Exiting", monitoring)
 
         sys.exit(1)
 
     return path_to_exec
 
 
+def applyTrsfCLI(the_image, res_image, the_transformation=None,
+                 template_image=None,
+                 voxel_size=None,
+                 dimensions=None,
+                 nearest=False,
+                 monitoring=None,
+                 return_image=False):
+    """
 
+    :param the_image: path to the image to be resampled
+    :param res_image: path to the resampled image (ie result)
+    :param the_transformation: path to the transformation to be used
+    :param template_image: path to the template image (used to specify result image geometry)
+    :param voxel_size: to specify the output voxel size(s); may be used to change image
+                resolution by resampling
+    :param dimensions: dimensions of the result image; may be used to change image
+                resolution by resampling
+    :param nearest: do not interpolate (take the nearest value)
+             to be used when applying on label images (default = False)
+    :param monitoring: control structure (for verboseness and log informations)
+    :param return_image: if True, return the result image as an spatial image
+                  (default = False; nothing is returned)
+    :return: no returned value if return_image = False
+            if return_image = True, return the result image as an spatial image
+    """
 
+    proc = "applyTrsfCLI"
 
-def applyTrsfCLI( theImage, resImage, theTrsf=None,
-                  templateImage=None,
-                  voxelsize=None,
-                  dimensions=None,
-                  nearest=False,
-                  monitoring=None,
-                  returnImage=False ):
-    ''' Apply a transformation to a given image
-    theImage: path to the image to be resampled
-    theTrsf: path to the transformation
-    resImage: path to the output image
-    templateImage: path to the template image (used to specify result image geometry)
-    voxelsize: to specify the output voxelsize(s)
-    dimensions: dimensions of the result image
-    nearest: do not interpolate (take the nearest value)
-             if True, to use when applying on label images (default = True)
-    '''
-    proc="applyTrsfCLI"
+    path_to_exec = findExec('applyTrsf')
 
-    path_to_exec = findExec( 'applyTrsf' )
+    command_line = path_to_exec + " " + the_image + " " + res_image
 
-    command_line = path_to_exec + " " + theImage + " " + resImage
+    if the_transformation is not None:
+        command_line += " -trsf " + the_transformation
 
-    if theTrsf:
-        command_line += " -trsf " + theTrsf
+    if template_image is not None:
+        command_line += " -template " + template_image
 
-    if not templateImage is None:
-        command_line += " -template " + templateImage
-
-    if nearest == True:
+    if nearest is True:
         command_line += " -nearest"
 
-    if not voxelsize is None:
-        if type(voxelsize)==int or type(voxelsize)==float:
+    if voxel_size is not None:
+        if type(voxel_size) == int or type(voxelsize) == float:
             command_line += " -iso "+str(voxelsize)
-        elif type(voxelsize)==tuple or type(voxelsize)==list:
-            if len(voxelsize)==3:
-                command_line += " -vs "+str(voxelsize[0])+" "+str(voxelsize[1])+" "+str(voxelsize[2])
+        elif type(voxel_size) == tuple or type(voxel_size) == list:
+            if len(voxel_size) == 3:
+                command_line += " -vs "+str(voxel_size[0]) + " " + str(voxel_size[1]) + " " + str(voxel_size[2])
             else:
-                _writeErrorMsg( proc+": unhandled length for voxelsize '"+str(len(voxelsize))+"'", monitoring )
-                _writeErrorMsg( "\t Exiting", monitoring )
+                _write_error_msg(proc + ": unhandled length for voxel_size '" + str(len(voxel_size)) + "'", monitoring)
+                _write_error_msg("\t Exiting", monitoring)
                 sys.exit(1)
         else:
-            _writeErrorMsg( proc + ": unhandled type for voxelsize '" + str(type(voxelsize)) + "'", monitoring )
-            _writeErrorMsg( "\t Exiting", monitoring )
+            _write_error_msg(proc + ": unhandled type for voxel_size '" + str(type(voxel_size)) + "'", monitoring)
+            _write_error_msg("\t Exiting", monitoring)
             sys.exit(1)
 
-    if not dimensions is None:
+    if dimensions is not None:
         if type(dimensions) == tuple or type(dimensions) == list:
             if len(dimensions) == 3:
                 command_line += " -vs " + str(dimensions[0]) + " " + str(dimensions[1]) + " " + str(dimensions[2])
             else:
-                _writeErrorMsg( proc + ": unhandled length for dimensions '" + str(len(dimensions)) + "'", monitoring )
-                _writeErrorMsg( "\t Exiting", monitoring )
+                _write_error_msg(proc + ": unhandled length for dimensions '" + str(len(dimensions)) + "'", monitoring)
+                _write_error_msg("\t Exiting", monitoring)
                 sys.exit(1)
         else:
-            _writeErrorMsg( proc + ": unhandled type for dimensions '" + str(type(dimensions)) + "'", monitoring )
-            _writeErrorMsg( "\t Exiting", monitoring )
+            _write_error_msg(proc + ": unhandled type for dimensions '" + str(type(dimensions)) + "'", monitoring)
+            _write_error_msg("\t Exiting", monitoring)
             sys.exit(1)
 
-    if not monitoring is None:
-        monitoring.toLogAndConsole( "* Launch: "+command_line, 3 )
+    if monitoring is not None:
+        monitoring.to_log_and_console("* Launch: "+command_line, 3)
 
         subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-    if returnImage is True:
-        out=imread(resImage)
+    if return_image is True:
+        out = imread(res_image)
         return out
 
     return
 
 
-
-
-
-def singleRegistrationCLI( path_ref, path_flo, path_output, path_output_trsf, path_init_trsf=None,
-                           py_hl=6, py_ll=3,
-                           trsf_type='affine',
-                           trsf_estimator='wlts', lts_fraction=0.55,
-                           otherOptions=None,
-                           monitoring=None ):
-    ''' Compute the linear transformation that register the floating image onto the reference image
-    path_flo : path to the floating image
-    path_ref : path to the reference image
-    path_output : path to the floating image after affine registration
-    path_output_trsf : path to the affine transformation
-    path_init_trsf : path to the initial registration
-    trsf_type
-    py_hl : pyramid highest level (default = 6)
-    py_ll : pyramid lowest level (default = 3)
-    lts_fraction : least trimmed squares fraction (default = 0.55)
-    '''
-    proc = "singleRegistrationCLI"
+def singleRegistrationCLI(path_ref, path_flo, path_output,
+                          path_output_trsf, path_init_trsf=None,
+                          py_hl=6, py_ll=3,
+                          transformation_type='affine',
+                          transformation_estimator='wlts',
+                          lts_fraction=0.55,
+                          other_options=None,
+                          monitoring=None):
+    """
+    Compute the transformation that register the floating image onto the reference image
+    :param path_ref: path to the reference image
+    :param path_flo: path to the floating image
+    :param path_output: path to the floating image after registration and resampling
+    :param path_output_trsf: path to the computed transformation
+    :param path_init_trsf: path to the initial registration (default=None)
+    :param py_hl: pyramid highest level (default = 6)
+    :param py_ll: pyramid lowest level (default = 3)
+    :param transformation_type: type of transformation to be computed (default is 'affine')
+    :param transformation_estimator: transformation estimator (default is 'wlts')
+    :param lts_fraction: least trimmed squares fraction (default = 0.55)
+    :param other_options: other options to be passed to 'blockmatching'
+           see blockmatching options for details
+    :param monitoring: control structure (for verboseness and log informations)
+    :return: no returned value
+    """
 
     path_to_exec = findExec('blockmatching')
 
     command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo + " -res " + path_output
-    if not path_init_trsf is None:
+    if path_init_trsf is not None:
         command_line += " -init-res-trsf " + path_init_trsf + " -composition-with-initial"
     command_line += " -res-trsf " + path_output_trsf
 
     command_line += " -pyramid-highest-level " + str(py_hl) + " -pyramid-lowest-level " + str(py_ll)
 
-    command_line += " -trsf-type "+trsf_type
+    command_line += " -trsf-type "+transformation_type
 
-    command_line += " -estimator " +trsf_estimator;
+    command_line += " -estimator " +transformation_estimator;
     command_line += " -lts-fraction " + str(lts_fraction)
 
-    if not otherOptions is None:
-        command_line += " " + otherOptions
+    if other_options is not None:
+        command_line += " " + other_options
 
     if not monitoring is None:
-        monitoring.toLogAndConsole("* Launch: " + command_line, 3)
+        monitoring.to_log_and_console("* Launch: " + command_line, 3)
 
     subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -210,6 +236,11 @@ def singleRegistrationCLI( path_ref, path_flo, path_output, path_output_trsf, pa
 
 
 
+############################################################
+#
+#
+#
+############################################################
 
 
 
@@ -758,7 +789,7 @@ def anisotropicHist(path_input="temp_membrane.ext.inr", path_output='tmp_membran
       assert(os.path.exists(path_mask))
       mask_option = ' -mask ' + str(path_mask)
 
-    assert(os.path.dirname(path_output) == '' or os.path.exists(os.path.dirname(path_output) ))
+    assert(os.path.dirname(path_output) == '' or os.path.exists(os.path.dirname(path_output)))
 
     path_theta = ".".join(path_input.rstrip('.gz').split('.')[0:-2])+".theta.inr"
     path_phi = ".".join(path_input.rstrip('.gz').split('.')[0:-2])+".phi.inr"
@@ -855,7 +886,7 @@ def TVmembrane(path_input="temp_membrane.bin.inr", path_output='tmp_TVmembrane.V
       mask_option = ' -mask ' + str(path_mask)
 
     assert(os.path.exists(path_input))
-    assert(os.path.exists(os.path.dirname(path_output) ))
+    assert(os.path.exists(os.path.dirname(path_output)))
 
     if nonZerosImage(path_input):
       # Tensor Voting
@@ -1627,7 +1658,7 @@ def setVoxelSize(path_input, vx, vy, vz):
     ''' Set the voxel resolution of specified image
     '''
     os.system(path_setvoxelsize + ' ' + path_input + ' ' + str(vx) +\
-              ' ' +str(vy) + ' ' + str(vz) )
+              ' ' +str(vy) + ' ' + str(vz))
     
 def connexe_with_options(path_input, path_output='tmp_threshold', path_seeds=None, sb=None, sh=None, tcc=None, ncc=None, connectivity=None, binary=False, label=False, size=False, sort=False, twoD=False, lazy=True):
     ''' Manual Connected Component with threshold
