@@ -82,18 +82,18 @@ def _find_exec(executable_file, monitoring=None):
     :param monitoring:
     :return:
     """
-    cmd = 'which' + str(executable_file)
+    cmd = 'which' + ' ' + str(executable_file)
     path_to_exec = ""
     try:
         which_exec = subprocess.check_output(cmd, shell=True)
         path_to_exec = which_exec.split('\n')[0]
     except subprocess.CalledProcessError:
-        file = os.path.join(os.path.dirname(__file__), 'cpp', 'vt', 'build', 'bin', str(executable_file))
-        if os.path.isfile(file):
-            return file
-        file = os.path.join(os.path.dirname(__file__), 'cpp', str(executable_file))
-        if os.path.isfile(file):
-            return file
+        try_file = os.path.join(os.path.dirname(__file__), 'cpp', 'vt', 'build', 'bin', str(executable_file))
+        if os.path.isfile(try_file):
+            return try_file
+        try_file = os.path.join(os.path.dirname(__file__), 'cpp', str(executable_file))
+        if os.path.isfile(try_file):
+            return try_file
 
         _write_error_msg("findExec: can not find executable '" + str(executable_file) + "'", monitoring)
         _write_error_msg("\t Exiting", monitoring)
@@ -103,13 +103,20 @@ def _find_exec(executable_file, monitoring=None):
     return path_to_exec
 
 
-def applyTrsfCLI(the_image, res_image, the_transformation=None,
-                 template_image=None,
-                 voxel_size=None,
-                 dimensions=None,
-                 nearest=False,
-                 monitoring=None,
-                 return_image=False):
+############################################################
+#
+#
+#
+############################################################
+
+
+def apply_transformation(the_image, res_image, the_transformation=None,
+                         template_image=None,
+                         voxel_size=None,
+                         dimensions=None,
+                         nearest=False,
+                         monitoring=None,
+                         return_image=False):
     """
 
     :param the_image: path to the image to be resampled
@@ -131,7 +138,7 @@ def applyTrsfCLI(the_image, res_image, the_transformation=None,
 
     proc = "applyTrsfCLI"
 
-    path_to_exec = findExec('applyTrsf')
+    path_to_exec = _find_exec('applyTrsf')
 
     command_line = path_to_exec + " " + the_image + " " + res_image
 
@@ -145,8 +152,8 @@ def applyTrsfCLI(the_image, res_image, the_transformation=None,
         command_line += " -nearest"
 
     if voxel_size is not None:
-        if type(voxel_size) == int or type(voxelsize) == float:
-            command_line += " -iso "+str(voxelsize)
+        if type(voxel_size) == int or type(voxel_size) == float:
+            command_line += " -iso "+str(voxel_size)
         elif type(voxel_size) == tuple or type(voxel_size) == list:
             if len(voxel_size) == 3:
                 command_line += " -vs "+str(voxel_size[0]) + " " + str(voxel_size[1]) + " " + str(voxel_size[2])
@@ -184,14 +191,14 @@ def applyTrsfCLI(the_image, res_image, the_transformation=None,
     return
 
 
-def singleRegistrationCLI(path_ref, path_flo, path_output,
-                          path_output_trsf, path_init_trsf=None,
-                          py_hl=6, py_ll=3,
-                          transformation_type='affine',
-                          transformation_estimator='wlts',
-                          lts_fraction=0.55,
-                          other_options=None,
-                          monitoring=None):
+def linear_registration(path_ref, path_flo, path_output,
+                        path_output_trsf, path_init_trsf=None,
+                        py_hl=6, py_ll=3,
+                        transformation_type='affine',
+                        transformation_estimator='wlts',
+                        lts_fraction=0.55,
+                        other_options=None,
+                        monitoring=None):
     """
     Compute the transformation that register the floating image onto the reference image
     :param path_ref: path to the reference image
@@ -210,7 +217,7 @@ def singleRegistrationCLI(path_ref, path_flo, path_output,
     :return: no returned value
     """
 
-    path_to_exec = findExec('blockmatching')
+    path_to_exec = _find_exec('blockmatching')
 
     command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo + " -res " + path_output
     if path_init_trsf is not None:
@@ -219,15 +226,15 @@ def singleRegistrationCLI(path_ref, path_flo, path_output,
 
     command_line += " -pyramid-highest-level " + str(py_hl) + " -pyramid-lowest-level " + str(py_ll)
 
-    command_line += " -trsf-type "+transformation_type
+    command_line += " -trsf-type " + transformation_type
 
-    command_line += " -estimator " +transformation_estimator;
+    command_line += " -estimator " + transformation_estimator
     command_line += " -lts-fraction " + str(lts_fraction)
 
     if other_options is not None:
         command_line += " " + other_options
 
-    if not monitoring is None:
+    if monitoring is not None:
         monitoring.to_log_and_console("* Launch: " + command_line, 3)
 
     subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -235,13 +242,11 @@ def singleRegistrationCLI(path_ref, path_flo, path_output,
     return
 
 
-
 ############################################################
 #
 #
 #
 ############################################################
-
 
 
 def recfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, lazy=False):

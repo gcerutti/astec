@@ -1,6 +1,6 @@
 #!/usr/bin/python2.7
 
-import os, sys
+import os
 import time
 from argparse import ArgumentParser
 
@@ -19,60 +19,57 @@ import ASTEC.commonTools as commonTools
 import ASTEC.XFUSION as XFUSION
 
 
-
-
 #
 #
 #
 #
 #
 
-def _setOptions( parser ):
-    if not isinstance( parser, ArgumentParser ):
-        print ( 'not an ArgumentParser' )
+
+def _set_options(my_parser):
+    proc = "_set_options"
+    if not isinstance(my_parser, ArgumentParser):
+        print proc + ": argument is not of type ArgumentParser"
         return
     #
     # common parameters
     #
 
-    parser.add_argument( '-p', '--parameters',
-                         action='store', dest='parameterFile', const=None,
-                         help='python file containing parameters definition' )
-    parser.add_argument('-e', '--embryo-rep',
-                        action='store', dest='embryoPath', const=None,
-                        help='path to the embryo data' )
+    my_parser.add_argument('-p', '--parameters',
+                           action='store', dest='parameterFile', const=None,
+                           help='python file containing parameters definition')
+    my_parser.add_argument('-e', '--embryo-rep',
+                           action='store', dest='embryoPath', const=None,
+                           help='path to the embryo data')
 
     #
     # control parameters
     #
 
-    parser.add_argument('-k', '--keep-temporary-files',
-                        action='store_const', dest='keepTemporaryFiles',
-                        default=False, const=True,
-                        help='keep temporary files' )
+    my_parser.add_argument('-k', '--keep-temporary-files',
+                           action='store_const', dest='keepTemporaryFiles',
+                           default=False, const=True,
+                           help='keep temporary files')
 
-    parser.add_argument('-f', '--force',
-                        action='store_const', dest='forceResultsToBeBuilt',
-                        default=False, const=True,
-                        help='force building of results' )
+    my_parser.add_argument('-f', '--force',
+                           action='store_const', dest='forceResultsToBeBuilt',
+                           default=False, const=True,
+                           help='force building of results')
 
-    parser.add_argument( '-v', '--verbose',
-                         action='count', dest='verbose', default=2,
-                         help='incrementation of verboseness' )
-    parser.add_argument( '-nv', '--no-verbose',
-                         action='store_const', dest='verbose', const=0,
-                         help='no verbose at all')
-    parser.add_argument( '-d', '--debug',
-                         action='count', dest='debug', default=0,
-                         help='incrementation of debug level' )
-    parser.add_argument( '-nd', '--no-debug',
-                         action='store_const', dest='debug', const=0,
-                         help='no debug information' )
+    my_parser.add_argument('-v', '--verbose',
+                           action='count', dest='verbose', default=2,
+                           help='incrementation of verboseness')
+    my_parser.add_argument('-nv', '--no-verbose',
+                           action='store_const', dest='verbose', const=0,
+                           help='no verbose at all')
+    my_parser.add_argument('-d', '--debug',
+                           action='count', dest='debug', default=0,
+                           help='incrementation of debug level')
+    my_parser.add_argument('-nd', '--no-debug',
+                           action='store_const', dest='debug', const=0,
+                           help='no debug information')
 
     return
-
-
-
 
 
 #
@@ -80,13 +77,14 @@ def _setOptions( parser ):
 # main 
 #
 #
-if __name__ == '__main__':
 
+
+if __name__ == '__main__':
 
     #
     # initialization
     #
-    starttime = time.localtime()
+    start_time = time.localtime()
     monitoring = commonTools.Monitoring()
     experiment = commonTools.Experiment()
     parameters = XFUSION.FusionParameters()
@@ -95,42 +93,40 @@ if __name__ == '__main__':
     #
     # reading command line arguments
     #
-    parser = ArgumentParser( description = 'Fusion of multiple acquisitions' )
-    _setOptions( parser )
+    parser = ArgumentParser(description='Fusion of multiple acquisitions')
+    _set_options(parser)
     args = parser.parse_args()
 
-    monitoring.updateFromArgs( args )
-    experiment.updateFromArgs( args )
+    monitoring.update_from_args(args)
+    experiment.update_from_args(args)
 
     #
     # reading parameter files
     # and updating parameters
     #
-    parameterFile= commonTools.getParameterFile( args.parameterFile )
-    experiment.updateFromFile( parameterFile )
-    parameters.updateFromFile( parameterFile )
-    environment.updateFromFile( parameterFile, starttime )
+    parameterFile = commonTools.get_parameter_file(args.parameterFile)
+    experiment.update_from_file(parameterFile)
+    parameters.update_from_file(parameterFile)
+    environment.update_from_file(parameterFile, start_time)
 
     #
     # make fusion directory and subdirectory if required
     # => allows to write log and history files
     #    and to copy parameter file
     #
-    if not os.path.isdir( environment.path_fuse_exp ):
-        os.makedirs( environment.path_fuse_exp )
-    if not os.path.isdir( environment.path_logdir ):
-        os.makedirs( environment.path_logdir )
-
-
+    if not os.path.isdir(environment.path_fuse_exp):
+        os.makedirs(environment.path_fuse_exp)
+    if not os.path.isdir(environment.path_logdir):
+        os.makedirs(environment.path_logdir)
 
     #
     # write history information in history file
     #
-    commonTools.writeHistoryInformation( environment.path_history_file,
-                                         experiment,
-                                         parameterFile,
-                                         starttime,
-                                         os.path.dirname(__file__) )
+    commonTools.write_history_information(environment.path_history_file,
+                                          experiment,
+                                          parameterFile,
+                                          start_time,
+                                          os.path.dirname(__file__))
 
     #
     # define log file
@@ -139,23 +135,19 @@ if __name__ == '__main__':
     monitoring.logfile = environment.path_log_file
     XFUSION.monitoring.copy(monitoring)
 
-    experiment.writeParameters( monitoring.logfile )
-    environment.writeParameters( monitoring.logfile )
-    parameters.writeParameters( monitoring.logfile )
+    experiment.write_parameters(monitoring.logfile)
+    environment.write_parameters(monitoring.logfile)
+    parameters.write_parameters(monitoring.logfile)
 
     #
     # copy parameter file
     #
-    commonTools.copyDateStampedFile( parameterFile, environment.path_logdir, starttime )
-
-
-
+    commonTools.copy_date_stamped_file(parameterFile, environment.path_logdir, start_time)
 
     #
     # processing
     #
-    XFUSION.fusionProcess(experiment, environment, parameters)
-
+    XFUSION.fusion_process(experiment, environment, parameters)
 
     #
     # end of execution
@@ -164,9 +156,9 @@ if __name__ == '__main__':
     endtime = time.localtime()
     with open(environment.path_log_file, 'a') as logfile:
         logfile.write("\n")
-        logfile.write('Total execution time = '+str(time.mktime(endtime)-time.mktime(starttime))+' sec\n')
+        logfile.write('Total execution time = '+str(time.mktime(endtime)-time.mktime(start_time))+' sec\n')
         logfile.write("\n")
 
     with open(environment.path_history_file, 'a') as logfile:
-        logfile.write('# Total execution time = '+str(time.mktime(endtime)-time.mktime(starttime))+' sec\n')
+        logfile.write('# Total execution time = '+str(time.mktime(endtime)-time.mktime(start_time))+' sec\n')
         logfile.write("\n\n")

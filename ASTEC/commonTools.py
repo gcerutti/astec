@@ -106,10 +106,12 @@ class Experiment(object):
     #
     def update_from_file(self, parameter_file):
 
+        proc = "Experiment.updateFromFile"
         if parameter_file is None:
             return
         if not os.path.isfile(parameter_file):
-            print ("Experiment.updateFromFile: '" + parameter_file + "' is not a valid file. Exiting.")
+            print proc + ": '" + parameter_file + "' is not a valid file."
+            print "\t Exiting."
             sys.exit(1)
 
         parameters = imp.load_source('*', parameter_file)
@@ -121,18 +123,40 @@ class Experiment(object):
                            + "' is not a valid directory. Exiting.")
                     sys.exit(1)
                 self.embryoPath = parameters.PATH_EMBRYO
+            else:
+                self.embryoPath = os.getcwd()
 
         if hasattr(parameters, 'EN'):
             if parameters.EN is not None:
                 self.embryoName = parameters.EN
+            else:
+                if hasattr(parameters, 'PATH_EMBRYO'):
+                    embryo_path = parameters.PATH_EMBRYO
+                else:
+                    embryo_path = os.getcwd()
+                self.embryoName = embryo_path.split(os.path.sep)[-1]
+        else:
+            if hasattr(parameters, 'PATH_EMBRYO'):
+                embryo_path = parameters.PATH_EMBRYO
+            else:
+                embryo_path = os.getcwd()
+            self.embryoName = embryo_path.split(os.path.sep)[-1]
 
         if hasattr(parameters, 'begin'):
             if parameters.begin is not None:
                 self.firstTimePoint = parameters.begin
+            else:
+                print proc + ": it is mandatory to specify the first time point"
+                print "\t Exiting."
+                sys.exit(1)
 
         if hasattr(parameters, 'end'):
             if parameters.end is not None:
                 self.lastTimePoint = parameters.end
+            else:
+                print proc + ": it is mandatory to specify the last time point"
+                print "\t Exiting."
+                sys.exit(1)
 
         if hasattr(parameters, 'delta'):
             if parameters.delta is not None:

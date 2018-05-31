@@ -2,7 +2,8 @@
 # File defining the nomenclature for ASTEC experiments
 #
 
-import sys, os
+import sys
+import os
 
 
 #
@@ -18,13 +19,13 @@ import sys, os
 # - results will be sub-directories also
 #
 
-FLAG_PATH_EMBRYO='$PATHEMBRYO'
+FLAG_PATH_EMBRYO = '$PATHEMBRYO'
 
 #
 # Embryo Name
 # CRBM convention is: YYMMDD-SaintOfTheDays-Stage
 #
-FLAG_EN='$EN'
+FLAG_EN = '$EN'
 
 
 #
@@ -44,30 +45,31 @@ FLAG_EN='$EN'
 # - Post correction experiments stored in
 #   [FLAG_PATH_EMBRYO]/[DIR_STAGE_SEG]/[DIR_STAGE_SEG]_[FLAG_EXP_POST]
 
-FLAG_PATH_RAWDATA='$PATHRAWDATA'
-DIR_STAGE_FUSE	='FUSE'
-DIR_STAGE_REG	='REG'
-DIR_STAGE_MARS	='SEG'
-DIR_STAGE_SEG	='SEG'
-DIR_STAGE_POST	='POST'
+FLAG_PATH_RAWDATA = '$PATHRAWDATA'
+DIR_STAGE_FUSE = 'FUSE'
+DIR_STAGE_REG = 'REG'
+DIR_STAGE_MARS = 'SEG'
+DIR_STAGE_SEG = 'SEG'
+DIR_STAGE_POST = 'POST'
 
-FLAG_EXP_FUSE='$FUSE'		# defining fusion experiments subdirectory
-FLAG_EXP_REG='$REG'			# defining registration experiments subdirectory
-FLAG_EXP_MARS='$MARS'		# defining mars experiments subdirectory
-FLAG_EXP_SEG='$SEG'			# defining seg propagation experiments subdirectory
-FLAG_EXP_POST='$POST'		# defining post correction experiments subdirectory
+FLAG_EXP_FUSE = '$FUSE'		# defining fusion experiments subdirectory
+FLAG_EXP_REG = '$REG'			# defining registration experiments subdirectory
+FLAG_EXP_MARS = '$MARS'		# defining mars experiments subdirectory
+FLAG_EXP_SEG = '$SEG'			# defining seg propagation experiments subdirectory
+FLAG_EXP_POST = '$POST'		# defining post correction experiments subdirectory
 
 
 #
 # Flags relative to file name
 #
 
-FLAG_TIMESTAMP='$TIMESTAMP' # time stamp of the experiment
 
-FLAG_TIME='$TIME'			# Time-point of an embryo snapshot
-FLAG_TIMEREF='$TIMEREF'		# For registration,time-point of reference snapshot
-FLAG_TIMEFLO='$TIMEFLO'		# For registration,time-point of floating snapshot
+FLAG_TIMESTAMP = '$TIMESTAMP'  # time stamp of the experiment
 
+
+FLAG_TIME = '$TIME'			# Time-point of an embryo snapshot
+FLAG_TIMEREF = '$TIMEREF'		# For registration,time-point of reference snapshot
+FLAG_TIMEFLO = '$TIMEFLO'		# For registration,time-point of floating snapshot
 
 
 #
@@ -82,136 +84,144 @@ FLAG_TIMEFLO='$TIMEFLO'		# For registration,time-point of floating snapshot
 # RC/Stack0001
 #
 
-FLAG_PATH_LEFT_STACK_ZERO ='$PATHLEFTCAMSTACKZERO'
-FLAG_PATH_LEFT_STACK_ONE  ='$PATHLEFTCAMSTACKONE'
-FLAG_PATH_RIGHT_STACK_ZERO='$PATHRIGHTCAMSTACKZERO'
-FLAG_PATH_RIGHT_STACK_ONE ='$PATHRIGHTCAMSTACKONE'
+FLAG_PATH_LEFT_STACK_ZERO = '$PATHLEFTCAMSTACKZERO'
+FLAG_PATH_LEFT_STACK_ONE = '$PATHLEFTCAMSTACKONE'
+FLAG_PATH_RIGHT_STACK_ZERO = '$PATHRIGHTCAMSTACKZERO'
+FLAG_PATH_RIGHT_STACK_ONE = '$PATHRIGHTCAMSTACKONE'
 
-FLAG_NAME_LEFT_RAW_IMAGE='$NAMELEFTRAWIMAGE'
-FLAG_NAME_RIGHT_RAW_IMAGE='$NAMERIGHTRAWIMAGE'
+FLAG_NAME_LEFT_RAW_IMAGE = '$NAMELEFTRAWIMAGE'
+FLAG_NAME_RIGHT_RAW_IMAGE = '$NAMERIGHTRAWIMAGE'
 
 #
 # raw data specific definitions: variables
 #
 
-path_rawdata=os.path.join(FLAG_PATH_EMBRYO, FLAG_PATH_RAWDATA)
+path_rawdata = os.path.join(FLAG_PATH_EMBRYO, FLAG_PATH_RAWDATA)
 
 # 1st image from the left camera, good quality image at the beginning
-path_rawdata_angle1=os.path.join(path_rawdata,FLAG_PATH_LEFT_STACK_ZERO)
+path_rawdata_angle1 = os.path.join(path_rawdata, FLAG_PATH_LEFT_STACK_ZERO)
 
 # 1st image from the right camera
-path_rawdata_angle2=os.path.join(path_rawdata,FLAG_PATH_RIGHT_STACK_ZERO)
+path_rawdata_angle2 = os.path.join(path_rawdata, FLAG_PATH_RIGHT_STACK_ZERO)
 
 # 2nd image from the left camera
-path_rawdata_angle3=os.path.join(path_rawdata,FLAG_PATH_LEFT_STACK_ONE)
+path_rawdata_angle3 = os.path.join(path_rawdata, FLAG_PATH_LEFT_STACK_ONE)
 
 # 2nd from the right camera
-path_rawdata_angle4=os.path.join(path_rawdata,FLAG_PATH_RIGHT_STACK_ONE)
+path_rawdata_angle4 = os.path.join(path_rawdata, FLAG_PATH_RIGHT_STACK_ONE)
 
 
-path_rawdata_angle1_files=FLAG_NAME_LEFT_RAW_IMAGE+'$TIME'
-path_rawdata_angle2_files=FLAG_NAME_RIGHT_RAW_IMAGE+'$TIME'
-path_rawdata_angle3_files=FLAG_NAME_LEFT_RAW_IMAGE+'$TIME'
-path_rawdata_angle4_files=FLAG_NAME_RIGHT_RAW_IMAGE+'$TIME'
-
+path_rawdata_angle1_files = FLAG_NAME_LEFT_RAW_IMAGE + '$TIME'
+path_rawdata_angle2_files = FLAG_NAME_RIGHT_RAW_IMAGE + '$TIME'
+path_rawdata_angle3_files = FLAG_NAME_LEFT_RAW_IMAGE + '$TIME'
+path_rawdata_angle4_files = FLAG_NAME_RIGHT_RAW_IMAGE + '$TIME'
 
 
 #
-### FUSION DATA
+# FUSION DATA
 #
 
-FLAG_IMAGESUFFIX_FUSE='$IMAGESUFFIXFUSE'
+
+FLAG_IMAGESUFFIX_FUSE = '$IMAGESUFFIXFUSE'
 
 # path fused images
-path_fuse          =os.path.join(FLAG_PATH_EMBRYO,DIR_STAGE_FUSE) 
+path_fuse = os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_FUSE)
 # path for fusion workspace
-path_fuse_exp      =os.path.join(path_fuse,DIR_STAGE_FUSE+'_'+FLAG_EXP_FUSE)
+path_fuse_exp = os.path.join(path_fuse, DIR_STAGE_FUSE + '_' + FLAG_EXP_FUSE)
 # fused images generic name
-path_fuse_exp_files=os.path.join(path_fuse_exp,FLAG_EN+'_fuse_t$TIME.'+FLAG_IMAGESUFFIX_FUSE)
+path_fuse_exp_files = os.path.join(path_fuse_exp, FLAG_EN + '_fuse_t$TIME.' + FLAG_IMAGESUFFIX_FUSE)
 # log files
-path_fuse_logdir = os.path.join(path_fuse_exp, 'LOGS' )
-path_fuse_historyfile  =os.path.join(path_fuse_logdir,'1-fuse-history.log')
-path_fuse_logfile  =os.path.join(path_fuse_logdir,'1-fuse-'+FLAG_TIMESTAMP+'.log')
+path_fuse_logdir = os.path.join(path_fuse_exp, 'LOGS')
+path_fuse_historyfile = os.path.join(path_fuse_logdir, '1-fuse-history.log')
+path_fuse_logfile = os.path.join(path_fuse_logdir, '1-fuse-' + FLAG_TIMESTAMP + '.log')
 
 
+#
+# MARS DATA
+#
 
 
-### MARS DATA 
 # path mars images
-path_mars          =os.path.join(FLAG_PATH_EMBRYO,DIR_STAGE_MARS) 
+path_mars = os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_MARS) 
 # path for mars workspace
-path_mars_exp      =os.path.join(path_mars,DIR_STAGE_MARS+'_'+FLAG_EXP_MARS)
+path_mars_exp = os.path.join(path_mars, DIR_STAGE_MARS + '_' + FLAG_EXP_MARS)
 # mars images names
-path_mars_exp_files=os.path.join(path_mars_exp,FLAG_EN+'_mars_t$TIME.inr') 
+path_mars_exp_files = os.path.join(path_mars_exp, FLAG_EN + '_mars_t$TIME.inr')
 # mars temporary images path (for reconstruction)
-path_mars_exp_reconstruct=os.path.join(path_mars_exp,"RECONSTRUCTION") 
+path_mars_exp_reconstruct = os.path.join(path_mars_exp, "RECONSTRUCTION")
 # mars temporary images file names (for reconstruction)
-path_mars_exp_reconstruct_files=\
-os.path.join(path_mars_exp_reconstruct,FLAG_EN+'_rec_t$TIME.inr') 
+path_mars_exp_reconstruct_files = os.path.join(path_mars_exp_reconstruct, FLAG_EN + '_rec_t$TIME.inr')
 # logfile
-path_mars_logfile  =os.path.join(path_mars_exp,'2-mars.log')	
+path_mars_logfile = os.path.join(path_mars_exp, '2-mars.log')
 
 
+#
+# SEGMENTATION DATA
+#
 
 
-### SEGMENTATION DATA 
 # path segmented images
-path_seg          =os.path.join(FLAG_PATH_EMBRYO,DIR_STAGE_SEG) 
+path_seg = os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_SEG) 
 # path for segmentation workspace
-path_seg_exp      =os.path.join(path_seg,DIR_STAGE_SEG+'_'+FLAG_EXP_SEG)
+path_seg_exp = os.path.join(path_seg, DIR_STAGE_SEG + '_' + FLAG_EXP_SEG)
 # segmentated images names
-path_seg_exp_files=os.path.join(path_seg_exp,FLAG_EN+'_seg_t$TIME.inr') 
+path_seg_exp_files = os.path.join(path_seg_exp, FLAG_EN + '_seg_t$TIME.inr')
 # cells lineage file
-path_seg_exp_lineage=os.path.join(path_seg_exp,FLAG_EN+'_seg_lineage.pkl') 
+path_seg_exp_lineage = os.path.join(path_seg_exp, FLAG_EN + '_seg_lineage.pkl')
 # segmentation temporary images path (for reconstruction)
-path_seg_exp_reconstruct=os.path.join(path_seg_exp,"RECONSTRUCTION") 
+path_seg_exp_reconstruct = os.path.join(path_seg_exp, "RECONSTRUCTION")
 # segmentation temporary images file name (for reconstruction)
-path_seg_exp_reconstruct_files=\
-os.path.join(path_seg_exp_reconstruct,FLAG_EN+'_rec_t$TIME.inr') 
+path_seg_exp_reconstruct_files = os.path.join(path_seg_exp_reconstruct, FLAG_EN + '_rec_t$TIME.inr')
 # cells lineage test file
-path_seg_exp_lineage_test=os.path.join(path_seg_exp,FLAG_EN+'_seg_lineage.test') 
+path_seg_exp_lineage_test = os.path.join(path_seg_exp, FLAG_EN + '_seg_lineage.test')
 # logfiles
-path_seg_logfile  =os.path.join(path_seg_exp,'4-astec.log')	
+path_seg_logfile = os.path.join(path_seg_exp, '4-astec.log')
 
-### MANUAL CORRECTION DATA 
+
+#
+# MANUAL CORRECTION DATA
+#
+
+
 # logfiles
-path_mancor_logfile  =os.path.join(path_seg_exp,'3-manualcorrection.log')	
+path_mancor_logfile = os.path.join(path_seg_exp, '3-manualcorrection.log')
+
+#
+# POST CORRECTION DATA
+#
 
 
-
-
-### POST CORRECTION DATA 
 # path post corrected images
-path_post          =os.path.join(FLAG_PATH_EMBRYO,DIR_STAGE_POST) 
+path_post = os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_POST)
 # path for post correction workspace
-path_post_exp      =os.path.join(path_post, DIR_STAGE_POST+'_'+FLAG_EXP_POST)
+path_post_exp = os.path.join(path_post, DIR_STAGE_POST + '_' + FLAG_EXP_POST)
 # post corrected images names
-path_post_exp_files=os.path.join(path_post_exp,FLAG_EN+'_post_t$TIME.inr') 
+path_post_exp_files = os.path.join(path_post_exp, FLAG_EN + '_post_t$TIME.inr')
 # post corrected cells lineage file
-path_post_exp_lineage=os.path.join(path_post_exp,FLAG_EN+'_post_lineage.pkl') 
+path_post_exp_lineage = os.path.join(path_post_exp, FLAG_EN + '_post_lineage.pkl')
 # post corrected cells lineage test file
-path_post_exp_lineage_test=os.path.join(\
-									path_post_exp,FLAG_EN+'_post_lineage.test')
+path_post_exp_lineage_test = os.path.join(path_post_exp, FLAG_EN + '_post_lineage.test')
 # logfile
-path_post_logfile  =os.path.join(path_post_exp,'5-postcorrection.log')	
+path_post_logfile = os.path.join(path_post_exp, '5-postcorrection.log')
 
 
+#
+# INTRA REGISTRATION DATA
+#
 
 
-
-### INTRA REGISTRATION DATA 
-path_intrareg=os.path.join(FLAG_PATH_EMBRYO,DIR_STAGE_REG) # Path intra registration data
-path_intrareg_exp=os.path.join(path_intrareg,DIR_STAGE_REG+'_'+FLAG_EXP_REG) # Path intra registration data
-path_intrareg_step_files=os.path.join(path_intrareg_exp, \
+path_intrareg= os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_REG) # Path intra registration data
+path_intrareg_exp= os.path.join(path_intrareg, DIR_STAGE_REG+'_'+FLAG_EXP_REG) # Path intra registration data
+path_intrareg_step_files= os.path.join(path_intrareg_exp, \
 		FLAG_EN+'_reg_t$TIMEFLO_t$TIMEREF.trsf') # Intra registration step-by-step
 											# trsf file names
-path_intrareg_multiple_files=os.path.join(path_intrareg, \
+path_intrareg_multiple_files= os.path.join(path_intrareg, \
 		FLAG_EN+'_reg_compose_t$TIME_t$TIME.trsf') # Intra registration composed 
 											  #trsf file names
-path_intrareg_change_files=os.path.join(path_intrareg, \
+path_intrareg_change_files= os.path.join(path_intrareg, \
 		FLAG_EN+'_reg_compose_t$TIME.trsf') # Intra registration recentered trsf 
 									   # file names
-path_intrareg_change_template=os.path.join(path_intrareg, \
+path_intrareg_change_template= os.path.join(path_intrareg, \
 		FLAG_EN+'_reg_compose_template.inr.gz') # Intra registration template file
 										   # name for recentered trsfs
 iso_intra_registration=1.0		# Parameter for intra registration resampled 
@@ -244,13 +254,13 @@ intrareg_germinal_template=intrareg_germinal_Path+FLAG_EN+'_germinal_template.in
 
 
 #RECONSTRUCTION DATA 
-reconstruct_Path=os.path.join(path_fuse_exp,"RECONSTRUCTION") #path reconstructed images
-reconstruct_files=os.path.join(reconstruct_Path,FLAG_EN+'_rec_t$TIME.inr') #  reconstructed images names
+reconstruct_Path= os.path.join(path_fuse_exp,"RECONSTRUCTION") #path reconstructed images
+reconstruct_files= os.path.join(reconstruct_Path, FLAG_EN+'_rec_t$TIME.inr') #  reconstructed images names
 
 
 
 #SEGMENTED DATA 
-segmented_Path=os.path.join(FLAG_PATH_EMBRYO,DIR_STAGE_SEG) #segmented images
+segmented_Path= os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_SEG) #segmented images
 mars_file=segmented_Path+FLAG_EN+'_fuse_mars_t$TIME.inr' #Segmentation output files
 segmentation_files=segmented_Path+FLAG_EN+'_fuse_seg_t$TIME.inr' #Segmentation output files
 lineage_tree_filename=segmented_Path+FLAG_EN+'_fuse_seg_lin_tree.pkl' #The main lineage tree file output 
@@ -267,7 +277,7 @@ post_lineage_tree_test_filename=postsegment_Path+FLAG_EN+'_fuse_seg_post_lin_tre
 
 
 #CELL NAMES
-name_file=os.path.join(FLAG_PATH_EMBRYO,FLAG_EN+"-names.txt")
+name_file= os.path.join(FLAG_PATH_EMBRYO, FLAG_EN+"-names.txt")
 named_lineage_tree_filename=postsegment_Path+FLAG_EN+'_fuse_seg_post_lin_tree_named.pkl' #The main lineage tree file output 
 named_lineage_tree_test_filename=postsegment_Path+FLAG_EN+'_fuse_seg_post_lin_tree_named.test' #The main lineage tree test file output 
 
@@ -291,13 +301,15 @@ named_lineage_tree_test_filename=postsegment_Path+FLAG_EN+'_fuse_seg_post_lin_tr
 ################ FUNCTIONS FOR FLAGS REPLACEMENT #############
 ##############################################################
 
+
 def replaceTIME(filename,time,timeDigits=3):
     """
     Replaces all the occurrences of "$TIME" by its value given by time of 
     type int at the format specified by _format argument (default="%03d")
     """
-    time_point='{:0{width}d}'.format( time, width=timeDigits)
+    time_point= '{:0{width}d}'.format( time, width=timeDigits)
     return filename.replace(FLAG_TIME, time_point)
+
 
 #def replaceTIMEFLO(filename,time,_format="%03d"):
 #    """
@@ -315,7 +327,8 @@ def replaceTIME(filename,time,timeDigits=3):
 #    time_point=_format%time #Format time on 3 digit
 #    return filename.replace(FLAG_TIMEREF, time_point)
 
-def replaceTimes(filename,d,_format="%03d"):
+
+def replaceTimes(filename, D,_format="%03d"):
     """
     Replaces all the occurrences of each key from the dictionnary d given in 
     parameter with its corresponding value of type int at the format 
@@ -331,7 +344,6 @@ def replaceTimes(filename,d,_format="%03d"):
         time_point=_format%time
         filename=filename.replace(k, time_point)
     return filename
-
 
 
 def replaceEN(filename,embryoname, check_name=False):
@@ -358,7 +370,7 @@ def replacePATH(filename,path):
 
 
 
-def replaceTIMESTAMP( filename, timestamp ):
+def replaceTIMESTAMP( filename, timestamp):
     """
     Replaces all the occurrences of "$TIMESTAMP" by its value given by EN of
     type str
@@ -367,12 +379,12 @@ def replaceTIMESTAMP( filename, timestamp ):
     if timestamp == None:
         timestamp=time.localtime()
     d=time.strftime("%Y-%m-%d-%H:%M:%S", timestamp)
-    return filename.replace(FLAG_TIMESTAMP, d )
+    return filename.replace(FLAG_TIMESTAMP, d)
 
 
 
-def _genericReplaceFlag( name, flag, parameters, attributeName, defaultValue ):
-    attributeValue=getattr( parameters, attributeName, defaultValue )
+def _genericReplaceFlag( name, flag, parameters, attributeName, defaultValue):
+    attributeValue=getattr( parameters, attributeName, defaultValue)
     return name.replace(flag, attributeValue)
 
 
@@ -401,75 +413,74 @@ def replaceFlags(filename, parameters, timestamp=None, check_name=False):
 
     for flag in found:
 
-        if flag==FLAG_PATH_EMBRYO:
+        if flag == FLAG_PATH_EMBRYO:
             if hasattr(parameters, 'PATH_EMBRYO'):
-                filename=replacePATH(filename, parameters.PATH_EMBRYO)
+                embryo_path = parameters.PATH_EMBRYO
             else:
-                print( proc+": flag 'PATH_EMBRYO' not found in parameter file" )
-                sys.exit(1)
+                embryo_path = os.getcwd()
+            filename=replacePATH(filename, embryo_path)
 
-        elif flag==FLAG_EN:
+        elif flag == FLAG_EN:
             if hasattr(parameters, 'EN'):
-                filename = replaceEN( filename, parameters.EN, \
-                                      check_name=check_name )
+                embryo_name = parameters.EN
             else:
                 if hasattr(parameters, 'PATH_EMBRYO'):
-                    embryoname= parameters.PATH_EMBRYO.rstrip(os.path.sep).split(os.path.sep)[-1]
+                    embryo_path = parameters.PATH_EMBRYO
                 else:
-                    print(proc + ": unable to set embryo name" )
-                    sys.exit(1)
-                filename=replaceEN(filename, embryoname, check_name=check_name)
+                    embryo_path = os.getcwd()
+                embryo_name = embryo_path.split(os.path.sep)[-1]
+            filename = replaceEN( filename, embryo_name, check_name=check_name)
 
         elif flag == FLAG_PATH_RAWDATA:
             filename = _genericReplaceFlag(filename, flag, parameters, 'DIR_RAWDATA', "RAWDATA")
 
-        elif flag==FLAG_PATH_LEFT_STACK_ZERO:
+        elif flag == FLAG_PATH_LEFT_STACK_ZERO:
             d = "LC" + os.path.sep + "Stack0000"
             filename = _genericReplaceFlag(filename, flag, parameters, 'DIR_LEFTCAM_STACKZERO', d)
 
-        elif flag==FLAG_PATH_LEFT_STACK_ONE:
+        elif flag == FLAG_PATH_LEFT_STACK_ONE:
             d="LC"+os.path.sep+"Stack0001"
             filename = _genericReplaceFlag(filename, flag, parameters, 'DIR_LEFTCAM_STACKONE', d)
 
-        elif flag==FLAG_PATH_RIGHT_STACK_ZERO:
+        elif flag == FLAG_PATH_RIGHT_STACK_ZERO:
             d = "RC" + os.path.sep + "Stack0000"
             filename = _genericReplaceFlag(filename, flag, parameters, 'DIR_RIGHTCAM_STACKZERO', d)
 
-        elif flag==FLAG_PATH_RIGHT_STACK_ONE:
+        elif flag == FLAG_PATH_RIGHT_STACK_ONE:
             d = "RC" + os.path.sep + "Stack0001"
             filename = _genericReplaceFlag(filename, flag, parameters, 'DIR_RIGHTCAM_STACKONE', d)
 
 
         elif flag == FLAG_NAME_LEFT_RAW_IMAGE:
-            filename = _genericReplaceFlag(filename, flag, parameters, 'fusion_leftcam_image_prefix', 'Cam_Left_00' )
+            filename = _genericReplaceFlag(filename, flag, parameters, 'fusion_leftcam_image_prefix', 'Cam_Left_00')
 
         elif flag == FLAG_NAME_RIGHT_RAW_IMAGE:
-            filename = _genericReplaceFlag(filename, flag, parameters, 'fusion_rightcam_image_prefix', 'Cam_Right_00' )
+            filename = _genericReplaceFlag(filename, flag, parameters, 'fusion_rightcam_image_prefix', 'Cam_Right_00')
 
 
-        elif flag==FLAG_EXP_FUSE:
-            filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_FUSE', 'RELEASE' )
+        elif flag == FLAG_EXP_FUSE:
+            filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_FUSE', 'RELEASE')
 
-        elif flag==FLAG_EXP_REG:
+        elif flag == FLAG_EXP_REG:
             filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_REG', 'RELEASE')
 
-        elif flag==FLAG_EXP_MARS:
+        elif flag == FLAG_EXP_MARS:
             filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_MARS', 'RELEASE')
 
-        elif flag==FLAG_EXP_SEG:
+        elif flag == FLAG_EXP_SEG:
             filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_SEG', 'RELEASE')
 
-        elif flag==FLAG_EXP_POST:
+        elif flag == FLAG_EXP_POST:
             filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_POST', 'RELEASE')
 
 
-        elif flag==FLAG_IMAGESUFFIX_FUSE:
+        elif flag == FLAG_IMAGESUFFIX_FUSE:
             filename = _genericReplaceFlag(filename, flag, parameters, 'fusion_image_suffixe', 'inr')
 
-        elif flag==FLAG_TIMESTAMP:
+        elif flag == FLAG_TIMESTAMP:
             filename = replaceTIMESTAMP(filename, timestamp)
 
-        elif flag==FLAG_TIME:
+        elif flag == FLAG_TIME:
             #
             # just not to get the default message
             # $TIME may be replaced later
@@ -477,6 +488,6 @@ def replaceFlags(filename, parameters, timestamp=None, check_name=False):
             pass
 
         else:
-        	print ("replaceFlags: flag '"+str(flag)+"' was not replaced")
+            print "replaceFlags: flag '" + str(flag) + "' was not replaced"
 
     return filename
