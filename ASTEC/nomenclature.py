@@ -302,7 +302,7 @@ named_lineage_tree_test_filename=postsegment_Path+FLAG_EN+'_fuse_seg_post_lin_tr
 ##############################################################
 
 
-def replaceTIME(filename,time,timeDigits=3):
+def replaceTIME(filename, time, timeDigits=3):
     """
     Replaces all the occurrences of "$TIME" by its value given by time of 
     type int at the format specified by _format argument (default="%03d")
@@ -328,7 +328,7 @@ def replaceTIME(filename,time,timeDigits=3):
 #    return filename.replace(FLAG_TIMEREF, time_point)
 
 
-def replaceTimes(filename, D,_format="%03d"):
+def replaceTimes(filename, D, _format="%03d"):
     """
     Replaces all the occurrences of each key from the dictionnary d given in 
     parameter with its corresponding value of type int at the format 
@@ -439,7 +439,7 @@ def replaceFlags(filename, parameters, timestamp=None, check_name=False):
             filename = _genericReplaceFlag(filename, flag, parameters, 'DIR_LEFTCAM_STACKZERO', d)
 
         elif flag == FLAG_PATH_LEFT_STACK_ONE:
-            d="LC"+os.path.sep+"Stack0001"
+            d = "LC" + os.path.sep + "Stack0001"
             filename = _genericReplaceFlag(filename, flag, parameters, 'DIR_LEFTCAM_STACKONE', d)
 
         elif flag == FLAG_PATH_RIGHT_STACK_ZERO:
@@ -452,10 +452,10 @@ def replaceFlags(filename, parameters, timestamp=None, check_name=False):
 
 
         elif flag == FLAG_NAME_LEFT_RAW_IMAGE:
-            filename = _genericReplaceFlag(filename, flag, parameters, 'fusion_leftcam_image_prefix', 'Cam_Left_00')
+            filename = _genericReplaceFlag(filename, flag, parameters, 'acquisition_leftcam_image_prefix', 'Cam_Left_00')
 
         elif flag == FLAG_NAME_RIGHT_RAW_IMAGE:
-            filename = _genericReplaceFlag(filename, flag, parameters, 'fusion_rightcam_image_prefix', 'Cam_Right_00')
+            filename = _genericReplaceFlag(filename, flag, parameters, 'acquisition_rightcam_image_prefix', 'Cam_Right_00')
 
 
         elif flag == FLAG_EXP_FUSE:

@@ -1,176 +1,164 @@
 #!/usr/bin/python2.7
 
-import os, sys, imp
-
-assert os.path.isdir(os.path.join(os.path.dirname(__file__),"ASTEC"))
-sys.path.append(os.path.join(os.path.dirname(__file__),"ASTEC"))
-assert os.path.isdir(os.path.join(os.path.dirname(__file__),"ASTEC", \
-    "CommunFunctions"))
-assert os.path.isdir(os.path.join(os.path.dirname(__file__),"ASTEC", \
-    "CommunFunctions","cpp")), "Unable to find the 'cpp' library link in %s,\
-    please install properly the library and make a logical link to its bin \
-    repository at the path %s."%\
-    (os.path.join(os.path.dirname(__file__),"ASTEC", \
-    "CommunFunctions"), \
-    os.path.join(os.path.dirname(__file__),"ASTEC", \
-    "CommunFunctions","cpp"))
-
-from optparse import OptionParser
-
-from nomenclature import *
-from FUSION import read_raw_data,fusion_process
-from lineage import timeNamed,timesNamed
+import os
+import time
+from argparse import ArgumentParser
 
 
-### Options parsing
+#
+# local imports
+# add ASTEC subdirectory
+#
 
-parser = OptionParser()
-parser.add_option("-p", "--parameters", dest="p",
-                  help="python file containing parameters definition",\
-                  metavar="FILE")
-parser.add_option("-e", "--embryo-rep", dest="e",
-                  help="path to the embryo data", metavar="PATH")
-parser.add_option("-q", "--quiet",
-                  action="store_false", dest="verbose", default=True,
-                  help="don't print status messages to stdout")
-
-(options, args) = parser.parse_args()
-
-parameters_file=options.p
-
-### Parameters file
-if not parameters_file:
-    parameters_file=raw_input('Provide the parameters file: ')
-try:
-    assert os.path.isfile(parameters_file)
-except ValueError:
-    print "Provided path '%s' was not found. Exiting."%parameters_file
-    sys.exit(1)
-
-### Reading parameters from parameters_file, put in the instance p
-try:
-    p = imp.load_source('*', parameters_file) # p is a structure which contains
-                                              # all the parameters defined in
-                                              # parameters_file
-except ValueError:
-    print "Unable to load the source '%s'. Exiting."%parameters_file
-    sys.exit(1)
+# assert os.path.isdir(os.path.join(os.path.dirname(__file__),"ASTEC")), \
+#    'ASTEC directory not found'
+# sys.path.append(os.path.join(os.path.dirname(__file__),"ASTEC"))
 
 
-### Particular options parsing: redefining p.PATH_EMBRYO
-
-if options.e:
-    if p.PATH_EMBRYO:
-        test=raw_input("Caution: parameter PATH_EMBRYO '%s' defined in '%s'\
-              will be overwritten by '%s'. Are you sure? (Y/n)"\
-              %(p.PATH_EMBRYO,parameters_file,options.e))
-        if test != 'Y' and test != 'y':
-            print "Usage: option -e should be used when PATH_EMBRYO option is\
-             kept empty in parameters file. Exiting."
-            sys.exit(1) 
-    p.PATH_EMBRYO = options.e
-    # Embryo name from path: defining p.EN (also set if options.e is provided)
-    if p.EN:
-        test=raw_input("Caution: parameter EN '%s' defined in '%s'\
-              will be overwritten. Are you sure? (Y/n)"\
-              %(p.PATH_EMBRYO,parameters_file))
-        if test != 'Y' and test != 'y':
-            print "Usage: option '-e' should be used when PATH_EMBRYO and EN \
-             options are kept empty in parameters file. Exiting."
-            sys.exit(1) 
-    p.EN='' # replaceFlags function will deal with empty p.EN field
+import ASTEC.commonTools as commonTools
+import ASTEC.FUSION as FUSION
 
 
-### Building paths from nomenclature.py and parameters file
-
-print "Raw data will be searched in directory %s"%replaceFlags(path_rawdata,p)
-
-path_angle1 = replaceFlags(path_rawdata_angle1, p)
-path_angle2 = replaceFlags(path_rawdata_angle2, p)
-path_angle3 = replaceFlags(path_rawdata_angle3, p)
-path_angle4 = replaceFlags(path_rawdata_angle4, p)
-
-path_fuse = replaceFlags(path_fuse, p)
-path_fuse_exp = replaceFlags(path_fuse_exp, p)
-
-path_fuse_exp_files = replaceFlags(path_fuse_exp_files, p)
+#
+#
+#
+#
+#
 
 
-path_log_file = replaceFlags(path_fuse_logfile, p)
+def _set_options(my_parser):
+    proc = "_set_options"
+    if not isinstance(my_parser, ArgumentParser):
+        print proc + ": argument is not of type ArgumentParser"
+        return
+    #
+    # common parameters
+    #
 
-### Fusion directory and subdirectory construction
+    my_parser.add_argument('-p', '--parameters',
+                           action='store', dest='parameterFile', const=None,
+                           help='python file containing parameters definition')
+    my_parser.add_argument('-e', '--embryo-rep',
+                           action='store', dest='embryoPath', const=None,
+                           help='path to the embryo data')
 
-if not os.path.isdir(path_fuse):
-    os.mkdir(path_fuse)  
-if not os.path.isdir(path_fuse_exp):
-    os.mkdir(path_fuse_exp)  
+    #
+    # control parameters
+    #
+
+    my_parser.add_argument('-k', '--keep-temporary-files',
+                           action='store_const', dest='keepTemporaryFiles',
+                           default=False, const=True,
+                           help='keep temporary files')
+
+    my_parser.add_argument('-f', '--force',
+                           action='store_const', dest='forceResultsToBeBuilt',
+                           default=False, const=True,
+                           help='force building of results')
+
+    my_parser.add_argument('-v', '--verbose',
+                           action='count', dest='verbose', default=2,
+                           help='incrementation of verboseness')
+    my_parser.add_argument('-nv', '--no-verbose',
+                           action='store_const', dest='verbose', const=0,
+                           help='no verbose at all')
+    my_parser.add_argument('-d', '--debug',
+                           action='count', dest='debug', default=0,
+                           help='incrementation of debug level')
+    my_parser.add_argument('-nd', '--no-debug',
+                           action='store_const', dest='debug', const=0,
+                           help='no debug information')
+
+    return
 
 
-### Log file
+#
+#
+# main 
+#
+#
 
-if os.path.exists(os.getcwd()+os.path.sep+'.git'):
-    os.system('echo "# astec-package version: `git describe`" >> %s'\
-        %path_log_file)
-else:
-    os.system('echo "# astec-package version was not found, meaning it was not\
-     cloned from the inria forge project" >> %s'%path_log_file)
-with open(path_log_file, 'a') as log_file:
-    log_file.write('# Python executable: '+sys.executable+'\n')
-    log_file.write('# Working directory: %s\n'%os.getcwd())
-    log_file.write('# Parameters file: %s\n'% parameters_file)
-    log_file.write('# Embryo path: %s\n'% p.PATH_EMBRYO)
-    log_file.write('# Embryo name: %s\n'% p.EN)
-    log_file.write('# Command line:\n'+(' '.join(sys.argv))+'\n\n\n')
 
-### Copy of parameters file
+if __name__ == '__main__':
 
-os.system("cp -f "+parameters_file+" "+path_fuse_exp )
+    #
+    # initialization
+    #
+    start_time = time.localtime()
+    monitoring = commonTools.Monitoring()
+    experiment = commonTools.Experiment()
+    parameters = FUSION.FusionParameters()
+    environment = FUSION.FusionEnvironment()
 
-############################
-### Fusion Process Stuff ###
-############################
+    #
+    # reading command line arguments
+    #
+    parser = ArgumentParser(description='Fusion of multiple acquisitions')
+    _set_options(parser)
+    args = parser.parse_args()
 
-#Search for image format in different angle folders
-success1,begin1,end1,ext_im1,path_im1=read_raw_data(path_angle1) 
-success2,begin2,end2,ext_im2,path_im2=read_raw_data(path_angle2)
-success3,begin3,end3,ext_im3,path_im3=read_raw_data(path_angle3) 
-success4,begin4,end4,ext_im4,path_im4=read_raw_data(path_angle4) 
+    monitoring.update_from_args(args)
+    experiment.update_from_args(args)
 
-if not success1==success2==success3==success4==1 :
-     print 'Error in your files, please double check your path files '
-elif not begin1==begin2==begin3==begin4:
-     print 'Error in your angles file do not start at the same time point'
-elif not end1==end2==end3==end4:
-    print 'Error in your angles file do not end at the same time point'
-elif not ext_im1==ext_im2==ext_im3==ext_im4 :
-    print 'Error in your angles file do not have the same extension'
-else:
-    begin=begin1;end=end1;ext_im=ext_im1;
-    print 'Process Fusion from ' + str(begin)+ ' to ' + str(end)
-    angles_files=[path_im1, path_im2, path_im3, path_im4] #Combine Angle Path
-    temporary_path=os.path.join(path_fuse_exp,"TEMP_$TIME") #Temporary Path
-    #PROCESS THE FUSION
-    for time in range(begin, end+1, p.delta): # Interation on time steps
+    #
+    # reading parameter files
+    # and updating parameters
+    #
+    parameterFile = commonTools.get_parameter_file(args.parameterFile)
+    experiment.update_from_file(parameterFile)
+    parameters.update_from_file(parameterFile)
+    environment.update_from_file(parameterFile, start_time)
 
-        fused_file=replaceTIME(path_fuse_exp_files,time+p.raw_delay)
+    #
+    # make fusion directory and subdirectory if required
+    # => allows to write log and history files
+    #    and to copy parameter file
+    #
+    if not os.path.isdir(environment.path_fuse_exp):
+        os.makedirs(environment.path_fuse_exp)
+    if not os.path.isdir(environment.path_logdir):
+        os.makedirs(environment.path_logdir)
 
-        if not os.path.isfile(fused_file):
-            time_angles_files=[timeNamed(angle_file + ext_im,time) \
-                               for angle_file in angles_files]
-            temporary_time_path=timeNamed(temporary_path,time) # Temporary Path
-                                                               # for this t-p
-            print temporary_time_path
-            time_process=fusion_process(time_angles_files,
-                       fused_file,  
-                       temporary_time_path,
-                       p.raw_ori, p.raw_resolution, p.target_resolution, 
-                       p.raw_delay, ext_im1, 
-                       mirrors = p.raw_mirrors, 
-                       margin_x_0=p.fusion_margin_x_0, 
-                       margin_x_1=p.fusion_margin_x_1, 
-                       margin_y_0=p.fusion_margin_y_0, 
-                       margin_y_1=p.fusion_margin_y_1, 
-                       crop=p.fusion_crop )
-            print "Time point " + str(time) + " takes " + str(time_process) +\
-                  " to compute\n\n\n"
-            os.system("rm -rf "+temporary_time_path) # Cleaning temporary files
+    #
+    # write history information in history file
+    #
+    commonTools.write_history_information(environment.path_history_file,
+                                          experiment,
+                                          parameterFile,
+                                          start_time,
+                                          os.path.dirname(__file__))
+
+    #
+    # define log file
+    # and write some information
+    #
+    monitoring.logfile = environment.path_log_file
+    FUSION.monitoring.copy(monitoring)
+
+    experiment.write_parameters(monitoring.logfile)
+    environment.write_parameters(monitoring.logfile)
+    parameters.write_parameters(monitoring.logfile)
+
+    #
+    # copy parameter file
+    #
+    commonTools.copy_date_stamped_file(parameterFile, environment.path_logdir, start_time)
+
+    #
+    # processing
+    #
+    FUSION.fusion_control(experiment, environment, parameters)
+
+    #
+    # end of execution
+    # write execution time in both log and history file
+    #
+    endtime = time.localtime()
+    with open(environment.path_log_file, 'a') as logfile:
+        logfile.write("\n")
+        logfile.write('Total execution time = '+str(time.mktime(endtime)-time.mktime(start_time))+' sec\n')
+        logfile.write("\n")
+
+    with open(environment.path_history_file, 'a') as logfile:
+        logfile.write('# Total execution time = '+str(time.mktime(endtime)-time.mktime(start_time))+' sec\n')
+        logfile.write("\n\n")

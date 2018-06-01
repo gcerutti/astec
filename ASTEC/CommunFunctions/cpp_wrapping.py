@@ -107,6 +107,7 @@ def _find_exec(executable_file, monitoring=None):
 #
 #
 #
+#
 ############################################################
 
 
@@ -136,7 +137,7 @@ def apply_transformation(the_image, res_image, the_transformation=None,
             if return_image = True, return the result image as an spatial image
     """
 
-    proc = "applyTrsfCLI"
+    proc = "apply_transformation"
 
     path_to_exec = _find_exec('applyTrsf')
 
@@ -182,11 +183,36 @@ def apply_transformation(the_image, res_image, the_transformation=None,
     if monitoring is not None:
         monitoring.to_log_and_console("* Launch: "+command_line, 3)
 
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     if return_image is True:
         out = imread(res_image)
         return out
+
+    return
+
+
+def line_correction(the_image, res_image, other_options=None, monitoring=None):
+    """
+
+    :param the_image:
+    :param res_image:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('mc-removeLine')
+
+    command_line = path_to_exec + " " + the_image + " " + res_image
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    if monitoring is not None:
+        monitoring.to_log_and_console("* Launch: "+command_line, 3)
+
+    subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     return
 

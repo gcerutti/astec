@@ -2,133 +2,308 @@
 
 # File for parameters and nomenclature settings
 
-PATH_EMBRYO=''	
-                # Must be the path to the embryo data 
-				# eg: '/media/DATA/171107-Karine-St8'
-				# Can also be set by providing option '-e' in the command line
-EN=''			
-                # Embryo Name 
-                # CRBM naming format is YYMMDD-SaintOfTheDays-Stage
-				# eg: '171107-Karine-St8'
-				# (automatically extracted from PATH_EMBRYO if not provided)
+# ##### explanation #####
+#
+# path to the embryo data
+# e.g. '/media/DATA/171107-Karine-St8'
+# Can also be set by providing option '-e' in the command line
+# if not present, the cuurent directory is used
+#
+
+PATH_EMBRYO = ''
 
 
-DIR_TO_LEFTCAM_STACKZERO=''
-DIR_TO_LEFTCAM_STACKONE=''
-DIR_TO_RIGHTCAM_STACKZERO=''
-DIR_TO_RIGHTCAM_STACKONE=''
+# ##### explanation #####
+#
+# Embryo Name
+# CRBM naming format is YYMMDD-SaintOfTheDays-Stage
+# eg: '171107-Karine-St8'
+# (automatically extracted from PATH_EMBRYO if not provided)
+#
 
-EXP_FUSE=''	
-            # Workspace for the considered step; this workspace
-			# is included in the repository corresponding to the
-			# ASTEC step ([FUSE|SEG|POST]) and prefixed by this
-			# repository name (eg. FUSE_EXP_NO_CROP or SEG_RELEASE)
-			# ----> use replaceDIR_EXP_FUSE(path_fuse_exp[...], EXP_FUSE) 
-			# method from <astec-package>/nomenclature.py to get the right
-			# path for the given fusion experience
-EXP_REG=''	
-            #
-EXP_MARS=''	
-            #
-EXP_SEG=''	
-            #
-EXP_POST=''	
-            #
+EN = ''
 
 
-#TIME=''		# Time-point of an embryo snapshot 
-#TIMEREF=''		# For registration, time-point of reference snapshot
-#TIMEFLO=''		# For registration, time-point of floating snapshot
+######################################################################
+#
+# paths
+#
+######################################################################
 
-##########################
-### GENERAL PARAMETERS ###
-##########################
+# ##### explanation #####
+#
+# allows to specify paths to the raw (eq acquisition) data
+# the 4 paths are built as follows
+# 'PATH_EMBRYO'/'DIR_RAWDATA'/'DIR_TO_LEFTCAM_STACKZERO'
+# 'PATH_EMBRYO'/'DIR_RAWDATA'/'DIR_TO_RIGHTCAM_STACKZERO'
+# 'PATH_EMBRYO'/'DIR_RAWDATA'/'DIR_TO_LEFTCAM_STACKONE'
+# 'PATH_EMBRYO'/'DIR_RAWDATA/'DIR_TO_RIGHTCAM_STACKONE'
+#
+# default values are
+#
+# DIR_RAWDATA = 'RAWDATA'
+# DIR_TO_LEFTCAM_STACKZERO = 'LC/Stack0000'
+# DIR_TO_RIGHTCAM_STACKZERO = 'RC/Stack0000'
+# DIR_TO_LEFTCAM_STACKONE = 'LC/Stack0001'
+# DIR_TO_RIGHTCAM_STACKONE = 'RC/Stack0001'
+#
 
-begin=1 				 
-                         # First time point
-end=5   				 
-                         # Last time point
-delta=1     			 
-                         # Delta between two time points (if one does not want
-						 # to deal with every single time point) (default = 1)
-target_resolution = .3   
-                         # Isotropic resolution of the final fused and 
-						 # segmented images (default = 0.3)
-
-
-##########################
-### RAWDATA DEFINITION ###
-##########################
-
-raw_ori = 'left' 				
-                                # if im2 angle - im1 angle < 0 => right
-raw_resolution = (.17, .17, 1.) 
-                                # Resolution of the raw images (here are the 
-								# known values for 140317-Patrick-St8)
-#raw_resolution = (.21, .21, 1.) 
-                                # Resolution of the raw images for Karine
-raw_delay = 0 					
-                                # If the time stamps in the folder are not the
-								# actual time stamps in the global movie
-raw_mirrors = False  			
-                                # Depends on the acquisition protocol, value 
-								# can be set to True or False
-								#  - the standard value of this parameter is 
-								#    False
-								#  - in case of axial symmetry between left 
-								#    and right cameras, then set to True
+# DIR_RAWDATA = ''
+# DIR_TO_LEFTCAM_STACKZERO = ''
+# DIR_TO_RIGHTCAM_STACKZERO = ''
+# DIR_TO_LEFTCAM_STACKONE = ''
+# DIR_TO_RIGHTCAM_STACKONE = ''
 
 
+# ##### explanation #####
+#
+# allows to specify prefix name of the raw data
+# may be useful when several camera acquisitions are stored into
+# the same directory. Eg, if one has set
+#   DIR_RAWDATA='raw_data'
+#   DIR_LEFTCAM_STACKZERO = 'Stack_0_Channel_0'
+#   DIR_RIGHTCAM_STACKZERO = 'Stack_0_Channel_0'
+#   DIR_LEFTCAM_STACKONE = 'Stack_1_Channel_0'
+#   DIR_RIGHTCAM_STACKONE = 'Stack_1_Channel_0'
+# meaning that stacks #0 of both left and right cameras are stored into the
+# same directory 'raw_data/Stack_0_Channel_0'
+#
+# File names for the left camera acquisition are then built with
+#   'PATH_EMBRYO'/'DIR_RAWDATA'/'DIR_TO_LEFTCAM_STACKZERO'/'acquisition_leftcam_image_prefix'+'TIME'
+#   'PATH_EMBRYO'/'DIR_RAWDATA'/'DIR_TO_LEFTCAM_STACKONE'/'acquisition_leftcam_image_prefix'+'TIME'
+# where 'TIME' is a 3-digit number (left-filled with 0's). The same for the right camera
+# acquisition files. Default values are
+#
+# acquisition_leftcam_image_prefix = 'Cam_Left_00'
+# acquisition_rightcam_image_prefix = 'Cam_Right_00'
+#
+
+# acquisition_leftcam_image_prefix = ''
+# acquisition_rightcam_image_prefix = ''
 
 
-#########################
-### FUSION PARAMETERS ###
-#########################
+# ##### explanation #####
+#
+# allows to specify path to the results
+#
+# Workspace for the considered step; this workspace
+# is included in the repository corresponding to the
+# ASTEC step ([FUSE|SEG|POST]) and prefixed by this
+# repository name (eg. FUSE_EXP_NO_CROP or SEG_RELEASE)
+# ----> use replaceDIR_EXP_FUSE(path_fuse_exp[...], EXP_FUSE)
+# method from <astec-package>/nomenclature.py to get the right
+# path for the given fusion experience
+#
 
 
-raw_margin_x_0 = 40 
-                       # margin_x_0 [default=40]: parameter for margin of the
-					   # bounding box computed for the cropping of the 
-					   # raw acquisition image in 'left' x direction 
-raw_margin_x_1 = 40 
-                       # margin_x_1 [default=40]: parameter for margin of the
-				       # bounding box computed for the cropping of the 
-				       # raw acquisition image in 'right' x direction
-raw_margin_y_0 = 40 
-                       # margin_y_0 [default=40]: parameter for margin of the
-					   # bounding box computed for the cropping of the 
-					   # raw acquisition image in 'top' y direction
-raw_margin_y_1 = 40 
-                       # margin_y_1 [default=40]: parameter for margin of the
-					   # bounding box computed for the cropping of the 
-					   # raw acquisition image in 'bottom' y direction
-raw_crop = True     
-                       # crop [default=True]: 
-                       # if False, then the resampled image is not cropped ; 
-					   # if raw acquisition, then image is cropped
+# ##### explanation #####
+#
+# Fusion results will be stored in 'PATH_EMBRYO'/FUSE/FUSE_'EXP_FUSE'
+# default value is
+# EXP_FUSE = 'RELEASE'
+#
+
+# EXP_FUSE = ''
 
 
-fusion_margin_x_0 = 40 
-                       # margin_x_0 [default=40]: parameter for margin of the
-					   # bounding box computed for the cropping of the 
-					   # resampled image in 'left' x direction 
-fusion_margin_x_1 = 40 
-                       # margin_x_1 [default=40]: parameter for margin of the
-				       # bounding box computed for the cropping of the 
-				       # resampled image in 'right' x direction
-fusion_margin_y_0 = 40 
-                       # margin_y_0 [default=40]: parameter for margin of the
-					   # bounding box computed for the cropping of the 
-					   # resampled image in 'top' y direction
-fusion_margin_y_1 = 40 
-                       # margin_y_1 [default=40]: parameter for margin of the
-					   # bounding box computed for the cropping of the 
-					   # resampled image in 'bottom' y direction
-fusion_crop = True     
-                       # crop [default=True]: 
-                       # if False, then the resampled image is not cropped ; 
-					   # if True, then image is cropped
+#
+#
+#
 
+# EXP_REG = ''
+
+
+# ##### explanation #####
+#
+# Mars segmentation results will be stored in 'PATH_EMBRYO'/SEG/SEG_'EXP_MARS'
+# default value is
+# EXP_MARS = 'RELEASE'
+#
+
+# EXP_MARS=''
+
+
+# ##### explanation #####
+#
+# Segmentation (Astec) results will be stored in 'PATH_EMBRYO'/SEG/SEG_'EXP_SEG'
+# default value is
+# EXP_SEG = 'RELEASE'
+#
+
+# EXP_SEG = ''
+
+
+# ##### explanation #####
+#
+# Post-segmentation results will be stored in 'PATH_EMBRYO'/POST/POST_'EXP_POST'
+# default value is
+# EXP_POST = 'RELEASE'
+#
+
+# EXP_POST=''
+
+
+#
+#
+#
+
+# TIME=''		# Time-point of an embryo snapshot
+# TIMEREF=''		# For registration, time-point of reference snapshot
+# TIMEFLO=''		# For registration, time-point of floating snapshot
+
+
+######################################################################
+#
+# general control parameters
+#
+######################################################################
+
+# ##### explanation #####
+#
+# defines the acquisition time points to be processed
+# begin: first time point
+# end: last time point
+# delta: Delta between two time points (if one does not want
+#        to deal with every single time point) (default = 1)
+#
+# For the fusion step, not giving the 'begin' and 'end' values
+# causes the fusion of all found data in raw data directories
+# according these 4 directories are different
+#
+
+begin = 1
+
+end = 5
+
+# delta = 1
+
+
+######################################################################
+#
+# raw data definition
+#
+######################################################################
+
+# ##### explanation #####
+#
+# raw_ori: image orientation
+#   if im2 angle - im1 angle < 0 => raw_ori = 'right'
+# raw_resolution: acquisition voxel size
+#   e.g. raw_resolution = (.21, .21, 1.)
+# raw_delay: increment to to be added to the time values
+#   (values in range [begin,end]) when generating the
+#   fused image names (default is 0)
+# raw_mirrors: epends on the acquisition protocol, value
+# 	can be set to True or False
+# 	- the standard value of this parameter is False
+# 	- in case of axial symmetry between left
+# 	  and right cameras, then set to True
+#
+
+raw_ori = 'left'
+
+raw_resolution = (.17, .17, 1.)
+
+# raw_delay = 0
+
+raw_mirrors = False
+
+
+######################################################################
+#
+# fusion parameters
+#
+######################################################################
+
+# ##### explanation #####
+#
+# the fusion of the 4 acquisitions follows a number of steps
+#
+# 1. a change of resolution in the X and Y directions only (Z remains unchanged)
+#    it allows to decrease the data volume if the new pixel size is larger
+#    than the acquisition one
+# 2. Optionally, a crop of the resampled acquisitions
+#    it allows to decrease the volume of data
+#    the crop is based on the analysis of a MIP view (in the Z direction) of
+#    the volume
+# 3. Optionally, a slit line correction.
+#    Some Y lines may appear brighter in the acquisition and causes artifacts in the
+#    reconstructed (ie fused) image.
+# 4. Optionally, a mirroring of the 'right' image
+#    depends of the 'raw_mirrors' value (see supra)
+# 5. Linear registration of the 3 last images on the first one (considered as the reference)
+#    The reference image is resmapled again, to get an isotropic voxel
+#    (same voxel size in the 3 directions: X, Y, Z)
+# 6. Linear combination of images, weighted by an ad-hoc function
+# 7. Crop of the fused image
+#    still based on the analysis of a MIP view (in the Z direction)
+#
+
+#
+# step 1. parameters (also used in step 5.)
+# Isotropic resolution of the final fused image
+#
+
+target_resolution = .3
+
+
+#
+# step 2. parameters
+#
+# raw_crop: if False, then the acquisition images are not cropped
+#   (default is True)
+# raw_margin_x_0: parameter for margin of the bounding box computed
+#   for the cropping of the  raw acquisition image in 'left' X direction
+#   (default is 40)
+# raw_margin_x_1: parameter for margin of the bounding box computed
+#   for the cropping of the  raw acquisition image in 'right' X direction
+#   (default is 40)
+# raw_margin_y_0: parameter for margin of the bounding box computed
+#   for the cropping of the  raw acquisition image in 'left' Y direction
+#   (default is 40)
+# raw_margin_y_1: parameter for margin of the bounding box computed
+#   for the cropping of the  raw acquisition image in 'right' Y direction
+#   (default is 40)
+#
+
+# raw_crop = True
+# raw_margin_x_0 = 40
+# raw_margin_x_1 = 40
+# raw_margin_y_0 = 40
+# raw_margin_y_1 = 40
+
+
+#
+# step 7. parameters
+#
+# fusion_crop: if False, then the acquisition images are not cropped
+#   (default is True)
+# fusion_margin_x_0: parameter for margin of the bounding box computed
+#   for the cropping of the  raw acquisition image in 'left' X direction
+#   (default is 40)
+# fusion_margin_x_1: parameter for margin of the bounding box computed
+#   for the cropping of the  raw acquisition image in 'right' X direction
+#   (default is 40)
+# fusion_margin_y_0: parameter for margin of the bounding box computed
+#   for the cropping of the  raw acquisition image in 'left' Y direction
+#   (default is 40)
+# fusion_margin_y_1: parameter for margin of the bounding box computed
+#   for the cropping of the  raw acquisition image in 'right' Y direction
+#   (default is 40)
+#
+
+# fusion_crop = True
+# fusion_margin_x_0 = 40
+# fusion_margin_x_1 = 40
+# fusion_margin_y_0 = 40
+# fusion_margin_y_1 = 40
+
+
+######################################################################
+#
+#
+#
+######################################################################
 
 
 
