@@ -157,6 +157,11 @@ class FusionParameters(object):
         self.acquisition_delay = 0
 
         #
+        # Correction of slit lines
+        #
+        self.acquisition_slit_line_correction = False
+
+        #
         # fused image parameters
         #
         self.target_resolution = (0.3, 0.3, 0.3)
@@ -169,11 +174,6 @@ class FusionParameters(object):
         self.acquisition_cropping_margin_x_1 = 40
         self.acquisition_cropping_margin_y_0 = 40
         self.acquisition_cropping_margin_y_1 = 40
-
-        #
-        # Correction of slit lines
-        #
-        self.acquisition_slit_line_correction = False
 
         #
         # Registration parameters
@@ -290,6 +290,13 @@ class FusionParameters(object):
                 self.acquisition_delay = parameters.raw_delay
 
         #
+        # correction of slit lines
+        #
+        if hasattr(parameters, 'acquisition_slit_line_correction'):
+            if parameters.acquisition_slit_line_correction is not None:
+                self.acquisition_slit_line_correction = parameters.acquisition_slit_line_correction
+
+        #
         # fused image parameters
         #
         if hasattr(parameters, 'target_resolution'):
@@ -314,13 +321,6 @@ class FusionParameters(object):
         if hasattr(parameters, 'raw_margin_y_1'):
             if parameters.raw_margin_y_1 is not None:
                 self.acquisition_cropping_margin_y_1 = parameters.raw_margin_y_1
-
-        #
-        # correction of slit lines
-        #
-        if hasattr(parameters, 'acquisition_slit_line_correction'):
-            if parameters.acquisition_slit_line_correction is not None:
-                self.acquisition_slit_line_correction = parameters.acquisition_slit_line_correction
 
         #
         # Cropping of fused image (after fusion)
@@ -921,10 +921,27 @@ def fusion_process(input_images, fused_image, temporary_paths, parameters):
 
     #
     # how to copy a list:
-    # NB: 'the_images = inputImages' acts like pointers
+    # NB: 'res_images = inputImages' acts like pointers
     #
-    the_images = input_images[:]
-    res_images = []
+    res_images = input_images[:]
+
+    #
+    # slit line correction
+    # this correction has to be done on original data (without resampling)
+    # Crop could be done beforehand to reduce the computational burden
+    #
+    if parameters.acquisition_slit_line_correction is True:
+        the_images = res_images[:]
+        res_images = []
+        for i in range(0, len(the_images)):
+            res_images.append(_add_suffix(input_images[i], "_line_corrected", new_dirname=temporary_paths[i]))
+
+        for i in range(0, len(the_images)):
+            monitoring.to_log_and_console("    .. correcting slit lines of '" + the_images[i].split(os.path.sep)[-1], 2)
+            if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                cpp_wrapping.line_correction(the_images[i], res_images[i])
+            else:
+                monitoring.to_log_and_console("       already existing", 2)
 
     #
     # to do: linear filtering to compensate for resolution change
@@ -938,6 +955,8 @@ def fusion_process(input_images, fused_image, temporary_paths, parameters):
     # - for Z: original resolution (supposed to be larger than target)
     #
 
+    the_images = res_images[:]
+    res_images = []
     for i in range(0, len(the_images)):
         res_images.append(_add_suffix(input_images[i], "_resample", new_dirname=temporary_paths[i]))
 
@@ -987,21 +1006,6 @@ def fusion_process(input_images, fused_image, temporary_paths, parameters):
             else:
                 monitoring.to_log_and_console("       already existing", 2)
 
-    #
-    #
-    #
-    if parameters.acquisition_slit_line_correction is True:
-        the_images = res_images[:]
-        res_images = []
-        for i in range(0, len(the_images)):
-            res_images.append(_add_suffix(input_images[i], "_line_corrected", new_dirname=temporary_paths[i]))
-
-        for i in range(0, len(the_images)):
-            monitoring.to_log_and_console("    .. correcting slit lines of '" + the_images[i].split(os.path.sep)[-1], 2)
-            if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                cpp_wrapping.line_correction(the_images[i], res_images[i])
-            else:
-                monitoring.to_log_and_console("       already existing", 2)
 
     #
     # Mirroring of 'right' images if required
@@ -1019,7 +1023,7 @@ def fusion_process(input_images, fused_image, temporary_paths, parameters):
         for i in range(0, len(the_images)):
             if i == 0 or i == 2:
                 continue
-            monitoring.to_log_and_console("    .. mirroring '" + the_images[i].split(os.path.sep)[-1], 2)
+            monitoring.to_log_and_console("    .. mirroring  #" + str(i) + " '" + the_images[i].split(os.path.sep)[-1], 2)
             if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
                 the_im = imread(the_images[i])
                 res_im = SpatialImage(the_im.copy())[-1::-1, :, :]
@@ -1225,6 +1229,7 @@ def fusion_preprocess(input_images, fused_image, time_point, environment, parame
     if os.path.isfile(fused_image):
         if not monitoring.forceResultsToBeBuilt:
             monitoring.to_log_and_console('    already existing', 2)
+            return
         else:
             monitoring.to_log_and_console('    already existing, but forced', 2)
 
@@ -1237,6 +1242,12 @@ def fusion_preprocess(input_images, fused_image, time_point, environment, parame
     #
     # directory for auxiliary files
     #
+    # ANGLE_0: LC/Stack0000
+    # ANGLE_1: RC/Stack0000
+    # ANGLE_2: LC/Stack0001
+    # ANGLE_3: LR/Stack0001
+    #
+
     temporary_paths = list()
 
     temporary_paths.append(os.path.join(environment.path_fuse_exp, "TEMP_$TIME", "ANGLE_0"))

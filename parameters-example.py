@@ -7,7 +7,7 @@
 # path to the embryo data
 # e.g. '/media/DATA/171107-Karine-St8'
 # Can also be set by providing option '-e' in the command line
-# if not present, the cuurent directory is used
+# if not present, the current directory is used
 #
 
 PATH_EMBRYO = ''
@@ -219,16 +219,16 @@ raw_mirrors = False
 #
 # the fusion of the 4 acquisitions follows a number of steps
 #
-# 1. a change of resolution in the X and Y directions only (Z remains unchanged)
+# 1. Optionally, a slit line correction.
+#    Some Y lines may appear brighter in the acquisition and causes artifacts in the
+#    reconstructed (ie fused) image.
+# 2. a change of resolution in the X and Y directions only (Z remains unchanged)
 #    it allows to decrease the data volume if the new pixel size is larger
 #    than the acquisition one
-# 2. Optionally, a crop of the resampled acquisitions
+# 3. Optionally, a crop of the resampled acquisitions
 #    it allows to decrease the volume of data
 #    the crop is based on the analysis of a MIP view (in the Z direction) of
 #    the volume
-# 3. Optionally, a slit line correction.
-#    Some Y lines may appear brighter in the acquisition and causes artifacts in the
-#    reconstructed (ie fused) image.
 # 4. Optionally, a mirroring of the 'right' image
 #    depends of the 'raw_mirrors' value (see supra)
 # 5. Linear registration of the 3 last images on the first one (considered as the reference)
@@ -244,11 +244,18 @@ raw_mirrors = False
 # Isotropic resolution of the final fused image
 #
 
+# acquisition_slit_line_correction = True
+
+#
+# step 2. parameters (also used in step 5.)
+# Isotropic resolution of the final fused image
+#
+
 target_resolution = .3
 
 
 #
-# step 2. parameters
+# step 3. parameters
 #
 # raw_crop: if False, then the acquisition images are not cropped
 #   (default is True)
