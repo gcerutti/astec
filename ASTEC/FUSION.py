@@ -937,9 +937,10 @@ def fusion_process(input_images, fused_image, temporary_paths, parameters):
             res_images.append(_add_suffix(input_images[i], "_line_corrected", new_dirname=temporary_paths[i]))
 
         for i in range(0, len(the_images)):
-            monitoring.to_log_and_console("    .. correcting slit lines of '" + the_images[i].split(os.path.sep)[-1], 2)
+            monitoring.to_log_and_console("    .. correcting slit lines of '"
+                                          + the_images[i].split(os.path.sep)[-1] + "'", 2)
             if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                cpp_wrapping.line_correction(the_images[i], res_images[i])
+                cpp_wrapping.slitline_correction(the_images[i], res_images[i])
             else:
                 monitoring.to_log_and_console("       already existing", 2)
 

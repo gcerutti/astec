@@ -192,7 +192,7 @@ def apply_transformation(the_image, res_image, the_transformation=None,
     return
 
 
-def line_correction(the_image, res_image, other_options=None, monitoring=None):
+def slitline_correction(the_image, res_image, other_options=None, monitoring=None):
     """
 
     :param the_image:
@@ -204,7 +204,15 @@ def line_correction(the_image, res_image, other_options=None, monitoring=None):
 
     path_to_exec = _find_exec('mc-removeLine')
 
-    command_line = path_to_exec + " " + the_image + " " + res_image
+    #
+    # global method
+    # -xz 0.5: 50% of y lines are used to compute slit line to be corrected
+    #         the ones with the smallest intensity average (assumed to be background)
+    # -y 0.1: robust mean (with 10% outliers) is computed along selected y lines
+    # -c 0.2: lines that contains more than 20% of outliers are subject to correction
+    #
+
+    command_line = path_to_exec + " " + the_image + " " + res_image + " -method g -xz 0.5 -y 0.1 -c 0.2"
 
     if other_options is not None:
         command_line += " " + other_options
