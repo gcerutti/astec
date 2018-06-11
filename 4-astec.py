@@ -23,7 +23,7 @@ from optparse import OptionParser
 
 from nomenclature import *
 from ImageHandling import imread, imsave, SpatialImage
-from ASTEC import segmentation_propagation
+from ASTEC.ASTEC import segmentation_propagation
 from lineage import read_lineage_tree,write_lineage_tree,timeNamed,timesNamed
 from lineage_test import pkl_lineage_test, imageDict
 

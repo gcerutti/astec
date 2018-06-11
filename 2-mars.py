@@ -137,7 +137,9 @@ os.system("cp -f "+parameters_file+" "+path_mars_exp )
 ##########################
 
 #Mars first time point segmentation
-
+#
+# GM: attribute raw_delay to be tested
+#
 fused_file = replaceTIME(path_fuse_exp_files,p.begin+p.raw_delay) # fused file
 mars_file = replaceTIME(path_mars_exp_files,p.begin+p.raw_delay) # result
 reconstruct_file = None

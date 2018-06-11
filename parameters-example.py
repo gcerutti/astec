@@ -188,25 +188,25 @@ end = 5
 #
 # raw_ori: image orientation
 #   if im2 angle - im1 angle < 0 => raw_ori = 'right'
-# raw_resolution: acquisition voxel size
-#   e.g. raw_resolution = (.21, .21, 1.)
-# raw_delay: increment to to be added to the time values
-#   (values in range [begin,end]) when generating the
-#   fused image names (default is 0)
 # raw_mirrors: epends on the acquisition protocol, value
 # 	can be set to True or False
 # 	- the standard value of this parameter is False
 # 	- in case of axial symmetry between left
 # 	  and right cameras, then set to True
+# raw_resolution: acquisition voxel size
+#   e.g. raw_resolution = (.21, .21, 1.)
+# raw_delay: increment to to be added to the time values
+#   (values in range [begin,end]) when generating the
+#   fused image names (default is 0)
 #
 
 raw_ori = 'left'
 
+raw_mirrors = False
+
 raw_resolution = (.17, .17, 1.)
 
-# raw_delay = 0
-
-raw_mirrors = False
+raw_delay = 0
 
 
 ######################################################################
@@ -278,6 +278,19 @@ target_resolution = .3
 # raw_margin_x_1 = 40
 # raw_margin_y_0 = 40
 # raw_margin_y_1 = 40
+
+#
+# step 5. parameters
+#
+# fusion_registration_pyramid_highest_level: highest level of the pyramid image for registration
+#   registration is done hierarchically with a pyramid of images at each level, image dimensions are divided by 2.
+#   'fusion_registration_pyramid_highest_level = 6' means that registration starts with images whose dimensions
+#   are 1/64th of the original image
+# fusion_registration_pyramid_lowest_level: lowest level of the pyramid image for registration
+#
+
+# fusion_registration_pyramid_highest_level = 6
+# fusion_registration_pyramid_lowest_level = 3
 
 
 #

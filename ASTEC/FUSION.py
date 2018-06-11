@@ -202,6 +202,9 @@ class FusionParameters(object):
             logfile.write('- acquisition_mirrors     = '+str(self.acquisition_mirrors)+'\n')
             logfile.write('- acquisition_resolution  = '+str(self.acquisition_resolution)+'\n')
             logfile.write('- acquisition_delay       = ' + str(self.acquisition_delay)+'\n')
+
+            logfile.write('- acquisition_slit_line_correction = '+str(self.acquisition_slit_line_correction)+'\n')
+
             logfile.write('- target_resolution  = '+str(self.target_resolution)+'\n')
 
             logfile.write('- acquisition_cropping = '+str(self.acquisition_cropping)+'\n')
@@ -209,8 +212,6 @@ class FusionParameters(object):
             logfile.write('- acquisition_cropping_margin_x_1 = '+str(self.acquisition_cropping_margin_x_1)+'\n')
             logfile.write('- acquisition_cropping_margin_y_0 = '+str(self.acquisition_cropping_margin_y_0)+'\n')
             logfile.write('- acquisition_cropping_margin_y_1 = '+str(self.acquisition_cropping_margin_y_1)+'\n')
-
-            logfile.write('- acquisition_slit_line_correction = '+str(self.acquisition_slit_line_correction)+'\n')
 
             logfile.write('- registration_transformation_type = ' + str(self.registration_transformation_type) + '\n')
             logfile.write('- registration_transformation_estimation_type = '
@@ -237,6 +238,9 @@ class FusionParameters(object):
         print('- acquisition_mirrors     = '+str(self.acquisition_mirrors))
         print('- acquisition_resolution  = '+str(self.acquisition_resolution))
         print('- acquisition_delay       = ' + str(self.acquisition_delay))
+
+        print('- acquisition_slit_line_correction = '+str(self.acquisition_slit_line_correction))
+
         print('- target_resolution  = '+str(self.target_resolution))
 
         print('- acquisition_cropping = '+str(self.acquisition_cropping))
@@ -244,8 +248,6 @@ class FusionParameters(object):
         print('- acquisition_cropping_margin_x_1 = '+str(self.acquisition_cropping_margin_x_1))
         print('- acquisition_cropping_margin_y_0 = '+str(self.acquisition_cropping_margin_y_0))
         print('- acquisition_cropping_margin_y_1 = '+str(self.acquisition_cropping_margin_y_1))
-
-        print('- acquisition_slit_line_correction = '+str(self.acquisition_slit_line_correction))
 
         print('- registration_transformation_type = ' + str(self.registration_transformation_type))
         print('- registration_transformation_estimation_type = '
@@ -321,6 +323,15 @@ class FusionParameters(object):
         if hasattr(parameters, 'raw_margin_y_1'):
             if parameters.raw_margin_y_1 is not None:
                 self.acquisition_cropping_margin_y_1 = parameters.raw_margin_y_1
+
+        #
+        # registration parameters
+        if hasattr(parameters, 'fusion_registration_pyramid_highest_level'):
+            if parameters.fusion_registration_pyramid_highest_level is not None:
+                self.registration_pyramid_highest_level = parameters.fusion_registration_pyramid_highest_level
+        if hasattr(parameters, 'fusion_registration_pyramid_lowest_level'):
+            if parameters.fusion_registration_pyramid_lowest_level is not None:
+                self.registration_pyramid_lowest_level = parameters.fusion_registration_pyramid_lowest_level
 
         #
         # Cropping of fused image (after fusion)
@@ -1055,10 +1066,15 @@ def fusion_process(input_images, fused_image, temporary_paths, parameters):
         unreg_weight_images.append(_add_suffix(input_images[i], "_init_weight", new_dirname=temporary_paths[i]))
         weight_images.append(_add_suffix(input_images[i], "_weight", new_dirname=temporary_paths[i]))
 
-    if parameters.acquisition_orientation == 'left':
+    if parameters.acquisition_orientation.lower() == 'left':
         default_angle = 270.0
-    else:
+    elif parameters.acquisition_orientation.lower() == 'right':
         default_angle = 90.0
+    else:
+        monitoring.to_log_and_console(proc + ": unknown acquisition orientation '"
+                                      + str(parameters.acquisition_orientation) + "'", 0)
+        monitoring.to_log_and_console("Exiting.", 0)
+        sys.exit(1)
 
     for i in range(0, len(the_images)):
 
