@@ -153,7 +153,7 @@ class FusionParameters(object):
         #
         self.acquisition_orientation = 'left'
         self.acquisition_mirrors = False
-        self.acquisition_resolution = (0.17, 0.17, 1.0)
+        self.acquisition_resolution = None
         self.acquisition_delay = 0
 
         #
@@ -267,7 +267,7 @@ class FusionParameters(object):
         if parameter_file is None:
             return
         if not os.path.isfile(parameter_file):
-            print ("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
             sys.exit(1)
 
         parameters = imp.load_source('*', parameter_file)
@@ -285,7 +285,21 @@ class FusionParameters(object):
 
         if hasattr(parameters, 'raw_resolution'):
             if parameters.raw_resolution is not None:
-                self.acquisition_resolution = parameters.raw_resolution
+                if type(parameters.raw_resolution) is tuple or type(parameters.raw_resolution) is list:
+                    if len(parameters.raw_resolution) == 3:
+                        self.acquisition_resolution = parameters.raw_resolution
+                    else:
+                        print("Error in'" + parameter_file + "'")
+                        print("\t 'raw_resolution' has length " + str(len(parameters.raw_resolution))
+                              + " instead of 3.")
+                        print("\t Exiting.")
+                        sys.exit(1)
+                else:
+                    print("Error in'" + parameter_file + "'")
+                    print("\t type of 'raw_resolution' (" + str(type(parameters.raw_resolution))
+                          + ") is not handled")
+                    print("\t Exiting.")
+                    sys.exit(1)
 
         if hasattr(parameters, 'raw_delay'):
             if parameters.raw_delay is not None:
@@ -353,8 +367,6 @@ class FusionParameters(object):
                 self.fusion_cropping_margin_y_1 = parameters.fusion_margin_y_1
 
 
-
-
 ########################################################################################
 #
 # some internal procedures
@@ -363,6 +375,8 @@ class FusionParameters(object):
 
 
 __recognized_extensions__ = ['.zip', '.h5', '.tif', '.tiff', '.TIF', '.TIFF', '.inr', '.inr.gz', '.mha', '.mha.gz']
+
+
 __extension_to_be_converted__ = ['.h5', '.tif', '.tiff', '.TIF', '.TIFF']
 
 
@@ -467,16 +481,46 @@ def _read_image_name(data_path, temporary_path, file_name, resolution):
 
     #
     # test whether the file has to be converted into a more 'readable' format
+    # if yes, set the resolution if required
     #
+
+    file_has_been_converted = False
     for extension in __extension_to_be_converted__:
         if f[len(f)-len(extension):len(f)] == extension:
             prefix = f[0:len(f) - len(extension)]
             monitoring.to_log_and_console("    .. converting '" + str(f) + "'", 2)
             image = imread(full_name)
-            image.resolution = resolution
+            if type(resolution) is tuple and len(resolution) == 3:
+                image.resolution = resolution
+                monitoring.to_log("    * resolution of '" + full_name + "' has been set to " + str(image.resolution))
+            elif type(resolution) is list and len(resolution) == 3:
+                image.resolution = (resolution(0), resolution(1), resolution(2))
+                monitoring.to_log("    * resolution of '" + full_name + "' has been set to " + str(image.resolution))
+            else:
+                monitoring.to_log("    * resolution of '" + full_name + "' is " + str(image.resolution)
+                                  + "(default/read values)")
             full_name = os.path.join(temporary_path, prefix) + default_extension
             imsave(full_name, image)
+            file_has_been_converted = True
             break
+
+    #
+    # if no conversion occurs, the resolution has not been set yet
+    #
+
+    if file_has_been_converted is False:
+        if (type(resolution) is tuple or type(resolution) is list) and len(resolution) == 3:
+            monitoring.to_log_and_console("    .. changing resolution '" + str(f) + "'", 2)
+            image = imread(full_name)
+            if type(resolution) is tuple and len(resolution) == 3:
+                image.resolution = resolution
+                monitoring.to_log("    * resolution of '" + full_name + "' has been set to " + str(image.resolution))
+            elif type(resolution) is list and len(resolution) == 3:
+                image.resolution = (resolution(0), resolution(1), resolution(2))
+                monitoring.to_log("    * resolution of '" + full_name + "' has been set to " + str(image.resolution))
+            imsave(full_name, image)
+        else:
+            monitoring.to_log("    * resolution of '" + full_name + "' is left unchanged")
 
     return full_name
 
@@ -1018,7 +1062,6 @@ def fusion_process(input_images, fused_image, temporary_paths, parameters):
             else:
                 monitoring.to_log_and_console("       already existing", 2)
 
-
     #
     # Mirroring of 'right' images if required
     #
@@ -1035,7 +1078,8 @@ def fusion_process(input_images, fused_image, temporary_paths, parameters):
         for i in range(0, len(the_images)):
             if i == 0 or i == 2:
                 continue
-            monitoring.to_log_and_console("    .. mirroring  #" + str(i) + " '" + the_images[i].split(os.path.sep)[-1], 2)
+            monitoring.to_log_and_console("    .. mirroring  #" + str(i) + " '"
+                                          + the_images[i].split(os.path.sep)[-1], 2)
             if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
                 the_im = imread(the_images[i])
                 res_im = SpatialImage(the_im.copy())[-1::-1, :, :]
