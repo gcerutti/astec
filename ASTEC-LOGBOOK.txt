@@ -136,7 +136,30 @@ importe de usr/lib/python2.7/dist-packages
   		      + relabelled_growth_ratios # Returns the dictionnary of ratios of 
   		        volumes volume_t/volume_ of the specified relabelled cell between 
   		        its birth and its death.
-            M birth, death                          
-              
-  
+            M birth, death
+
+180613 G. Malandain
+    1. Update of 1-fuse.py and ASTEC/FUSION.py
+        - different management of options
+	- classes for fusion parameters and environment
+	- allows alternative data management
+	- add XZ-plane intensity correction
+        ...
+     2. Update astec-package and morpheme-privat
+         previous git commit were
+         - astec-package
+	    commit 5c6bf9c6ccb3620a236bb7333a11a959d4f59078
+            Date:   Fri May 4 16:22:30 2018 +0200
+         - morpheme-privat
+	    commit 2ee4405bcebfad14010c6d9b40d06771b499a9a4
+            Date:   Thu May 3 09:33:04 2018 +0200
+
+         new git commit are 
+           - astec-package
+	    commit 587db98e8ce868ad66013bb5495e2e844fc8a215
+            Date:   Tue Jun 12 11:03:12 2018 +0200
+         - morpheme-privat
+	    commit e128a2e43d3763d433d275f5f7fbc20a636382f4
+            Date:   Fri Jun 8 16:42:13 2018 +0200
+
 
