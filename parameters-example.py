@@ -188,7 +188,7 @@ end = 5
 #
 # raw_ori: image orientation
 #   if im2 angle - im1 angle < 0 => raw_ori = 'right'
-# raw_mirrors: epends on the acquisition protocol, value
+# raw_mirrors: depends on the acquisition protocol, value
 # 	can be set to True or False
 # 	- the standard value of this parameter is False
 # 	- in case of axial symmetry between left
