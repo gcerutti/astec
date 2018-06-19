@@ -661,35 +661,30 @@ def _analyze_data_directory(data_dir):
 ########################################################################################
 
 
-def _crop_spatial_image(image, margin_x_0=40, margin_x_1=40, margin_y_0=40, margin_y_1=40):
+def _crop_bounding_box(the_image):
     """
-    Crop a spatial image in XY plane
-    :param image:
-    :param margin_x_0:
-    :param margin_x_1:
-    :param margin_y_0:
-    :param margin_y_1:
+    Crop an image on disk
+    :param the_image:
     :return:
     """
 
     #
-    # MIP projection
+    # build a 2D binary image from the MIP projection
     #
-    mip_image = image.max(axis=2)
+
+    the_selection = _add_suffix(the_image, "_cropselection")
+    cpp_wrapping.mip_projection_for_crop(the_image, the_selection, None, monitoring)
 
     #
-    # get a threshold = image mean of the MIP image
+    # read input image
     #
-    threshold = np.mean(mip_image)
+    selection = imread(the_selection)
 
     #
-    # create a binary image and apply the threshold
     # the get the connected component (4-connectivity)
+    # there should have only two components: the background and the selected component
     #
-    bin_image = np.zeros((mip_image.shape[0], mip_image.shape[1], 1), dtype=np.uint8)
-    bin_image[mip_image > threshold] = 1
-    del mip_image
-    cc_image, cc_n = nd.label(bin_image)
+    cc_image, cc_n = nd.label(selection)
 
     #
     # compute the volumes of each connected component
@@ -714,28 +709,16 @@ def _crop_spatial_image(image, margin_x_0=40, margin_x_1=40, margin_y_0=40, marg
     # maxBox = boundingBoxes[int(maxLabel)-1]
     #
     max_box = nd.find_objects(cc_image, max_label=max_label)[int(max_label)-1]
+
     del cc_image
-    xmin = max(max_box[0].start - margin_x_0, 0)
-    xmax = min(image.shape[0], max_box[0].stop + margin_x_1)
-    ymin = max(max_box[1].start - margin_y_0, 0)
-    ymax = min(image.shape[1], max_box[1].stop + margin_y_1)
-    new_box = (slice(xmin, xmax, None),
-               slice(ymin, ymax, None),
-               slice(0, image.shape[2]))
 
-    new_image = SpatialImage(image[new_box])
-    new_image._set_resolution(image._get_resolution())
-
-    monitoring.to_log_and_console("       crop from [0," + str(image.shape[0]) + "]x[0,"
-                                  + str(image.shape[1]) + "] to [" + str(xmin) + ","
-                                  + str(xmax) + "]x[" + str(ymin) + "," + str(ymax) + "]", 2)
-
-    return new_image
+    return max_box
 
 
-def _crop_disk_image(the_image, res_image, margin_x_0=40, margin_x_1=40, margin_y_0=40, margin_y_1=40):
+def _crop_disk_image(the_image, res_image, the_max_box=None,
+                     margin_x_0=40, margin_x_1=40, margin_y_0=40, margin_y_1=40):
     """
-    Crop an image on disk
+    Crop an image on disk in XY plane
     :param the_image:
     :param res_image:
     :param margin_x_0:
@@ -744,17 +727,36 @@ def _crop_disk_image(the_image, res_image, margin_x_0=40, margin_x_1=40, margin_
     :param margin_y_1:
     :return:
     """
-    #
-    # read input image
-    #
+
     image = imread(the_image)
 
-    new_image = _crop_spatial_image(image, margin_x_0, margin_x_1, margin_y_0, margin_y_1)
-    del image
+    #
+    # 2D bounding box
+    #
+    if the_max_box is None:
+        max_box = _crop_bounding_box(the_image)
+    else:
+        max_box = the_max_box
 
-    # imsave(resImage, newImage.astype(np.uint16))
+    xmin = max(max_box[0].start - margin_x_0, 0)
+    xmax = min(image.shape[0], max_box[0].stop + margin_x_1)
+    ymin = max(max_box[1].start - margin_y_0, 0)
+    ymax = min(image.shape[1], max_box[1].stop + margin_y_1)
+
+    new_box = (slice(xmin, xmax, None),
+               slice(ymin, ymax, None),
+               slice(0, image.shape[2]))
+
+
+    new_image = SpatialImage(image[new_box])
+    new_image._set_resolution(image._get_resolution())
+
     imsave(res_image, new_image)
-    del new_image
+
+    monitoring.to_log_and_console("       crop from [0," + str(image.shape[0]) + "]x[0,"
+                                  + str(image.shape[1]) + "] to [" + str(xmin) + ","
+                                  + str(xmax) + "]x[" + str(ymin) + "," + str(ymax) + "]", 2)
+
     return
 
 
@@ -1054,7 +1056,7 @@ def fusion_process(input_images, fused_image, temporary_paths, parameters):
         for i in range(0, len(the_images)):
             monitoring.to_log_and_console("    .. cropping '" + the_images[i].split(os.path.sep)[-1], 2)
             if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                _crop_disk_image(the_images[i], res_images[i],
+                _crop_disk_image(the_images[i], res_images[i], None,
                                  parameters.acquisition_cropping_margin_x_0,
                                  parameters.acquisition_cropping_margin_x_1,
                                  parameters.acquisition_cropping_margin_y_0,
@@ -1236,22 +1238,23 @@ def fusion_process(input_images, fused_image, temporary_paths, parameters):
 
     full_image = full_image.astype(np.uint16)
 
-    if monitoring.debug > 0:
+    #
+    # save image if fusion is required
+    #
+    if parameters.fusion_cropping is True:
+
         tmp_fused_image = _add_suffix(fused_image, "_uncropped_fusion", new_dirname=temporary_paths[4])
         imsave(tmp_fused_image, full_image)
 
-    #
-    # fused image can be cropped as well
-    #
-    if parameters.fusion_cropping is True:
         monitoring.to_log_and_console("    .. cropping '" + fused_image.split(os.path.sep)[-1], 2)
-        full_image = _crop_spatial_image(full_image,
-                                         parameters.fusion_cropping_margin_x_0,
-                                         parameters.fusion_cropping_margin_x_1,
-                                         parameters.fusion_cropping_margin_y_0,
-                                         parameters.fusion_cropping_margin_y_1)
+        _crop_disk_image(tmp_fused_image, fused_image, None,
+                         parameters.fusion_cropping_margin_x_0,
+                         parameters.fusion_cropping_margin_x_1,
+                         parameters.fusion_cropping_margin_y_0,
+                         parameters.fusion_cropping_margin_y_1)
+    else:
+        imsave(fused_image, full_image)
 
-    imsave(fused_image, full_image)
     del full_image
 
     return
