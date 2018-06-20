@@ -72,7 +72,7 @@ def _write_error_msg(text, monitoring):
     if monitoring is not None:
         monitoring.to_log_and_console(text, 0)
     else:
-        print(str)
+        print(text)
 
 
 def _find_exec(executable_file, monitoring=None):
@@ -96,7 +96,7 @@ def _find_exec(executable_file, monitoring=None):
             return try_file
 
         _write_error_msg("findExec: can not find executable '" + str(executable_file) + "'", monitoring)
-        _write_error_msg("\t Exiting", monitoring)
+        _write_error_msg("... Exiting", monitoring)
 
         sys.exit(1)
 
@@ -181,7 +181,7 @@ def apply_transformation(the_image, res_image, the_transformation=None,
             sys.exit(1)
 
     if monitoring is not None:
-        monitoring.to_log_and_console("* Launch: "+command_line, 3)
+        monitoring.to_log_and_console("* Launch: " + command_line, 3)
 
     subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -192,11 +192,15 @@ def apply_transformation(the_image, res_image, the_transformation=None,
     return
 
 
-def slitline_correction(the_image, res_image, other_options=None, monitoring=None):
+def slitline_correction(the_image, res_image,
+                        output_corrections=None, input_corrections=None,
+                        other_options=None, monitoring=None):
     """
 
     :param the_image:
     :param res_image:
+    :param output_corrections
+    :param input_corrections
     :param other_options:
     :param monitoring:
     :return:
@@ -212,13 +216,19 @@ def slitline_correction(the_image, res_image, other_options=None, monitoring=Non
     # -c 0.2: lines that contains more than 20% of outliers are subject to correction
     #
 
-    command_line = path_to_exec + " " + the_image + " " + res_image + " -method g -xz 0.5 -y 0.1 -c 0.2"
+    command_line = path_to_exec + " " + the_image + " " + res_image
+    if input_corrections is None:
+        command_line += " -method g -xz 0.5 -y 0.1 -c 0.2"
+        if output_corrections is not None:
+            command_line += " -output-corrections " + output_corrections
+    else:
+        command_line += " -input-corrections " + input_corrections
 
     if other_options is not None:
         command_line += " " + other_options
 
     if monitoring is not None:
-        monitoring.to_log_and_console("* Launch: "+command_line, 3)
+        monitoring.to_log_and_console("* Launch: " + command_line, 3)
 
     subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -243,7 +253,7 @@ def mip_projection_for_crop(the_image, res_image, other_options=None, monitoring
         command_line += " " + other_options
 
     if monitoring is not None:
-        monitoring.to_log_and_console("* Launch: "+command_line, 3)
+        monitoring.to_log_and_console("* Launch: " + command_line, 3)
 
     subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 

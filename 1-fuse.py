@@ -90,6 +90,9 @@ if __name__ == '__main__':
     parameters = FUSION.FusionParameters()
     environment = FUSION.FusionEnvironment()
 
+    main_channel = FUSION.FusionChannel()
+    environment.channel.append(main_channel)
+
     #
     # reading command line arguments
     #
@@ -114,8 +117,10 @@ if __name__ == '__main__':
     # => allows to write log and history files
     #    and to copy parameter file
     #
-    if not os.path.isdir(environment.path_fuse_exp):
-        os.makedirs(environment.path_fuse_exp)
+    for i in range(0,len(environment.channel)):
+        if not os.path.isdir(environment.channel[i].path_fuse_exp):
+            os.makedirs(environment.channel[i].path_fuse_exp)
+
     if not os.path.isdir(environment.path_logdir):
         os.makedirs(environment.path_logdir)
 

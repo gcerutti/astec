@@ -83,6 +83,16 @@ FLAG_TIMEFLO = '$TIMEFLO'		# For registration,time-point of floating snapshot
 # RC/Stack0000
 # RC/Stack0001
 #
+# else
+# - LC/Stack0000 images are in PATHEMBRYO]/[FLAG_PATH_RAWDATA]/[FLAG_PATH_LEFT_STACK_ZERO]
+# - LC/Stack0001 images are in PATHEMBRYO]/[FLAG_PATH_RAWDATA]/[FLAG_PATH_LEFT_STACK_ONE]
+# - RC/Stack0000 images are in PATHEMBRYO]/[FLAG_PATH_RAWDATA]/[FLAG_PATH_RIGHT_STACK_ZERO]
+# - RC/Stack0001 images are in PATHEMBRYO]/[FLAG_PATH_RAWDATA]/[FLAG_PATH_RIGHT_STACK_ONE]
+#
+# Images names are defined by
+# [FLAG_NAME_LEFT_RAW_IMAGE]${TIME} and [FLAG_NAME_RIGHT_RAW_IMAGE]${TIME}
+# default are 'Cam_Left_00' and 'Cam_Right_00' (time is assumed to be encoded on 3 bytes)
+#
 
 FLAG_PATH_LEFT_STACK_ZERO = '$PATHLEFTCAMSTACKZERO'
 FLAG_PATH_LEFT_STACK_ONE = '$PATHLEFTCAMSTACKONE'
@@ -129,7 +139,7 @@ path_fuse = os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_FUSE)
 # path for fusion workspace
 path_fuse_exp = os.path.join(path_fuse, DIR_STAGE_FUSE + '_' + FLAG_EXP_FUSE)
 # fused images generic name
-path_fuse_exp_files = os.path.join(path_fuse_exp, FLAG_EN + '_fuse_t$TIME.' + FLAG_IMAGESUFFIX_FUSE)
+path_fuse_exp_files = FLAG_EN + '_fuse_t$TIME.' + FLAG_IMAGESUFFIX_FUSE
 # log files
 path_fuse_logdir = os.path.join(path_fuse_exp, 'LOGS')
 path_fuse_historyfile = os.path.join(path_fuse_logdir, '1-fuse-history.log')

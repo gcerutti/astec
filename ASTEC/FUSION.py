@@ -27,33 +27,113 @@ monitoring = commonTools.Monitoring()
 ########################################################################################
 #
 # classes
+# - channel environment
 # - computation environment
 # - computation parameters
 #
 ########################################################################################
 
 
-class FusionEnvironment(object):
+class FusionChannel(object):
 
     def __init__(self):
         #
-        # raw data
+        # raw data directories
         #
         self.path_angle1 = None
         self.path_angle2 = None
         self.path_angle3 = None
         self.path_angle4 = None
 
+        #
+        # fused data paths
+        #
+        self.path_fuse_exp = None
+
+        #
+        # temporary_paths
+        #
+        self.temporary_paths = list()
+
+    def update_main_channel_from_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print ("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+
+        self.path_angle1 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle1, parameters)
+        self.path_angle2 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle2, parameters)
+        self.path_angle3 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle3, parameters)
+        self.path_angle4 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle4, parameters)
+
+        self.path_fuse_exp = nomenclature.replaceFlags(nomenclature.path_fuse_exp, parameters)
+
+    def write_parameters(self, log_file_name, desc=None):
+        with open(log_file_name, 'a') as logfile:
+
+            logfile.write("\n")
+            if desc is not None:
+                logfile.write("- " + str(desc) + " =\n")
+
+            logfile.write('  FusionChannel\n')
+            logfile.write('  - path_angle1 = ' + str(self.path_angle1)+'\n')
+            logfile.write('  - path_angle2 = ' + str(self.path_angle2)+'\n')
+            logfile.write('  - path_angle3 = ' + str(self.path_angle3)+'\n')
+            logfile.write('  - path_angle4 = ' + str(self.path_angle4)+'\n')
+
+            logfile.write('  - path_fuse_exp = ' + str(self.path_fuse_exp)+'\n')
+
+            for j in range(0, len(self.temporary_paths)):
+                logfile.write('  - temporary path #' + str(j) + ' = ' + str(self.temporary_paths[j]) + '\n')
+
+            logfile.write("\n")
+        return
+
+    def print_parameters(self, desc=None):
+
+        print("")
+        if desc is not None:
+            print("- " + str(desc) + " =")
+
+        print('  FusionChannel')
+        print('  - path_angle1 = ' + str(self.path_angle1))
+        print('  - path_angle2 = ' + str(self.path_angle2))
+        print('  - path_angle3 = ' + str(self.path_angle3))
+        print('  - path_angle4 = ' + str(self.path_angle4))
+
+        print('  - path_fuse_exp = ' + str(self.path_fuse_exp))
+
+        for j in range(0, len(self.temporary_paths)):
+            print('  - temporary path #' + str(j) + ' = ' + str(self.temporary_paths[j]))
+
+        print("")
+
+
+class FusionEnvironment(object):
+
+    def __init__(self):
+
+        #
+        # Channels
+        #
+        self.channel = list()
+
+        #
+        # raw data file names
+        # assumed to be the same for all channels
+        #
         self.path_angle1_files = None
         self.path_angle2_files = None
         self.path_angle3_files = None
         self.path_angle4_files = None
 
         #
-        # fused data
+        # fused data paths
         #
         self.path_fuse = None
-        self.path_fuse_exp = None
         self.path_fuse_exp_files = None
 
         #
@@ -72,10 +152,7 @@ class FusionEnvironment(object):
 
         parameters = imp.load_source('*', parameter_file)
 
-        self.path_angle1 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle1, parameters)
-        self.path_angle2 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle2, parameters)
-        self.path_angle3 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle3, parameters)
-        self.path_angle4 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle4, parameters)
+        self.channel[0].update_main_channel_from_file(parameter_file)
 
         self.path_angle1_files = nomenclature.replaceFlags(nomenclature.path_rawdata_angle1_files, parameters)
         self.path_angle2_files = nomenclature.replaceFlags(nomenclature.path_rawdata_angle2_files, parameters)
@@ -83,7 +160,6 @@ class FusionEnvironment(object):
         self.path_angle4_files = nomenclature.replaceFlags(nomenclature.path_rawdata_angle4_files, parameters)
 
         self.path_fuse = nomenclature.replaceFlags(nomenclature.path_fuse, parameters)
-        self.path_fuse_exp = nomenclature.replaceFlags(nomenclature.path_fuse_exp, parameters)
 
         self.path_fuse_exp_files = nomenclature.replaceFlags(nomenclature.path_fuse_exp_files, parameters)
 
@@ -95,10 +171,9 @@ class FusionEnvironment(object):
         with open(log_file_name, 'a') as logfile:
             logfile.write("\n")
             logfile.write('FusionEnvironment\n')
-            logfile.write('- path_angle1 = ' + str(self.path_angle1)+'\n')
-            logfile.write('- path_angle2 = ' + str(self.path_angle2)+'\n')
-            logfile.write('- path_angle3 = ' + str(self.path_angle3)+'\n')
-            logfile.write('- path_angle4 = ' + str(self.path_angle4)+'\n')
+
+            for c in range(0, len(self.channel)):
+                self.channel[c].write_parameters(log_file_name, 'channel #' + str(c))
 
             logfile.write('- path_angle1_files = ' + str(self.path_angle1_files)+'\n')
             logfile.write('- path_angle2_files = ' + str(self.path_angle2_files)+'\n')
@@ -106,7 +181,6 @@ class FusionEnvironment(object):
             logfile.write('- path_angle4_files = ' + str(self.path_angle4_files)+'\n')
 
             logfile.write('- path_fuse = ' + str(self.path_fuse)+'\n')
-            logfile.write('- path_fuse_exp = ' + str(self.path_fuse_exp)+'\n')
             logfile.write('- path_fuse_exp_files = ' + str(self.path_fuse_exp_files)+'\n')
 
             logfile.write('- path_logdir = ' + str(self.path_logdir) + '\n')
@@ -118,10 +192,9 @@ class FusionEnvironment(object):
     def print_parameters(self):
         print("")
         print('FusionEnvironment')
-        print('- path_angle1 = ' + str(self.path_angle1))
-        print('- path_angle2 = ' + str(self.path_angle2))
-        print('- path_angle3 = ' + str(self.path_angle3))
-        print('- path_angle4 = ' + str(self.path_angle4))
+
+        for c in range(0, len(self.channel)):
+            self.channel[c].print_parameters('channel #' + str(c))
 
         print('- path_angle1_files = ' + str(self.path_angle1_files))
         print('- path_angle2_files = ' + str(self.path_angle2_files))
@@ -129,7 +202,6 @@ class FusionEnvironment(object):
         print('- path_angle4_files = ' + str(self.path_angle4_files))
 
         print('- path_fuse = ' + str(self.path_fuse))
-        print('- path_fuse_exp = ' + str(self.path_fuse_exp))
         print('- path_fuse_exp_files = ' + str(self.path_fuse_exp_files))
 
         print('- path_logdir = ' + str(self.path_logdir))
@@ -663,7 +735,7 @@ def _analyze_data_directory(data_dir):
 
 def _crop_bounding_box(the_image):
     """
-    Crop an image on disk
+    Compute a bounding box to crop an image (ie extract a subimage)
     :param the_image:
     :return:
     """
@@ -721,14 +793,13 @@ def _crop_disk_image(the_image, res_image, the_max_box=None,
     Crop an image on disk in XY plane
     :param the_image:
     :param res_image:
+    :param the_max_box:
     :param margin_x_0:
     :param margin_x_1:
     :param margin_y_0:
     :param margin_y_1:
     :return:
     """
-
-    image = imread(the_image)
 
     #
     # 2D bounding box
@@ -738,6 +809,11 @@ def _crop_disk_image(the_image, res_image, the_max_box=None,
     else:
         max_box = the_max_box
 
+    #
+    # 2D bounding box + margin
+    #
+    image = imread(the_image)
+
     xmin = max(max_box[0].start - margin_x_0, 0)
     xmax = min(image.shape[0], max_box[0].stop + margin_x_1)
     ymin = max(max_box[1].start - margin_y_0, 0)
@@ -746,7 +822,6 @@ def _crop_disk_image(the_image, res_image, the_max_box=None,
     new_box = (slice(xmin, xmax, None),
                slice(ymin, ymax, None),
                slice(0, image.shape[2]))
-
 
     new_image = SpatialImage(image[new_box])
     new_image._set_resolution(image._get_resolution())
@@ -951,55 +1026,140 @@ def _build_mask(image, direction):
 ########################################################################################
 
 
-def fusion_process(input_images, fused_image, temporary_paths, parameters):
+def fusion_process(input_image_list, fused_image, channel, parameters):
     """
     
-    :param input_images:
-    :param fused_image:
-    :param temporary_paths:
+    :param input_image_list: a list of list of images to be fused. One list per channel
+    :param fused_image: a generic name for the fusion result
+    :param channel:
     :param parameters:
     :return:
     """
+
     proc = 'fusion_process'
 
     if monitoring.debug > 1:
         print ""
         print proc + " was called with:"
-        print "- input_images = " + str(input_images)
+        print "- input_image_list = " + str(input_image_list)
         print "- fused_image = " + str(fused_image)
-        print "- temporary_paths = " + str(temporary_paths)
+        for c in range(0, len(channel)):
+            channel[c].print_parameters('channel #' + str(c))
         print ""
 
     #
     # nothing to do if the fused image exists
     #
-    if os.path.isfile(fused_image) and monitoring.forceResultsToBeBuilt is False:
+
+    do_something = False
+    for c in range(0, len(channel)):
+        if os.path.isfile(os.path.join(channel[c].path_fuse_exp, fused_image)):
+            if monitoring.forceResultsToBeBuilt is False:
+                monitoring.to_log_and_console('    fused channel #' + str(c) + ' already existing', 2)
+            else:
+                monitoring.to_log_and_console('    fused channel #' + str(c) + ' already existing, but forced', 2)
+                do_something = True
+        else:
+            print 'coucou' + str( os.path.join(channel[c].path_fuse_exp, fused_image) )
+            do_something = True
+
+    if do_something is False:
         return
 
     #
     # how to copy a list:
     # NB: 'res_images = inputImages' acts like pointers
     #
-    res_images = input_images[:]
+
+    res_image_list = input_image_list[:]
 
     #
     # slit line correction
-    # this correction has to be done on original data (without resampling)
+    # these corrections are done on original data (without resampling) on channel[0]
+    # the compute corrections are then used for the other channels
     # Crop could be done beforehand to reduce the computational burden
     #
-    if parameters.acquisition_slit_line_correction is True:
-        the_images = res_images[:]
-        res_images = []
-        for i in range(0, len(the_images)):
-            res_images.append(_add_suffix(input_images[i], "_line_corrected", new_dirname=temporary_paths[i]))
 
-        for i in range(0, len(the_images)):
-            monitoring.to_log_and_console("    .. correcting slit lines of '"
-                                          + the_images[i].split(os.path.sep)[-1] + "'", 2)
-            if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                cpp_wrapping.slitline_correction(the_images[i], res_images[i])
-            else:
-                monitoring.to_log_and_console("       already existing", 2)
+    if parameters.acquisition_slit_line_correction is True:
+
+        the_image_list = res_image_list[:]
+        res_image_list = list()
+        corrections = list()
+
+        #
+        # build the file names
+        #
+
+        for c in range(0, len(channel)):
+
+            the_images = the_image_list[c]
+            res_images = []
+
+            for i in range(0, len(the_images)):
+                res_images.append(_add_suffix(input_image_list[c][i], "_line_corrected",
+                                              new_dirname=channel[c].temporary_paths[i]))
+                if c == 0:
+                    corrections.append(_add_suffix(input_image_list[c][i], "_line_corrected",
+                                                   new_dirname=channel[c].temporary_paths[i],
+                                                   new_extension='.txt'))
+            res_image_list.append(res_images)
+
+        #
+        # is there something to do ?
+        # check whether one corrected line image is missing
+        # for channel #0, check also whether the correction file is missing
+        #
+
+        do_something = list()
+        for _ in range(0, len(input_image_list[0])):
+            do_something.append(False)
+
+        for c in range(0, len(channel)):
+
+            the_images = the_image_list[c]
+            res_images = res_image_list[c]
+
+            for i in range(0, len(the_images)):
+                if os.path.isfile(res_images[i]):
+                    if monitoring.forceResultsToBeBuilt is True:
+                        do_something[i] = True
+                else:
+                    do_something[i] = True
+                if c == 0:
+                    if os.path.isfile(corrections[i]):
+                        if monitoring.forceResultsToBeBuilt is True:
+                            do_something[i] = True
+                    else:
+                        do_something[i] = True
+
+        #
+        # process
+        # corrections are computed on channel #0
+        # and are used for other channels
+        #
+
+        for c in range(0, len(channel)):
+
+            the_images = the_image_list[c]
+            res_images = res_image_list[c]
+
+            for i in range(0, len(the_images)):
+
+                monitoring.to_log_and_console("    .. correcting slit lines of '"
+                                              + the_images[i].split(os.path.sep)[-1] + "'", 2)
+
+                if do_something[i] is False:
+                    monitoring.to_log_and_console("       nothing to do", 2)
+                    continue
+
+                if c == 0:
+                    cpp_wrapping.slitline_correction(the_images[i], res_images[i],
+                                                     output_corrections=corrections[i],
+                                                     monitoring=monitoring)
+                else:
+                    cpp_wrapping.slitline_correction(the_images[i], res_images[i],
+                                                     input_corrections=corrections[i],
+                                                     monitoring=monitoring)
 
     #
     # to do: linear filtering to compensate for resolution change
@@ -1013,84 +1173,186 @@ def fusion_process(input_images, fused_image, temporary_paths, parameters):
     # - for Z: original resolution (supposed to be larger than target)
     #
 
-    the_images = res_images[:]
-    res_images = []
-    for i in range(0, len(the_images)):
-        res_images.append(_add_suffix(input_images[i], "_resample", new_dirname=temporary_paths[i]))
+    the_image_list = res_image_list[:]
+    res_image_list = list()
 
-    for i in range(0, len(the_images)):
+    for c in range(0, len(channel)):
 
-        im = imread(the_images[i])
-        if type(parameters.target_resolution) == int or type(parameters.target_resolution) == float:
-            resampling_resolution = [parameters.target_resolution, parameters.target_resolution, im.voxelsize[2]]
-        elif (type(parameters.target_resolution) == list or type(parameters.target_resolution) == tuple) \
-                and len(parameters.target_resolution) == 3:
-            resampling_resolution = [parameters.target_resolution[0], parameters.target_resolution[1], im.voxelsize[2]]
-        else:
-            monitoring.to_log_and_console(proc+': unable to set target resolution for first resampling', 0)
-            monitoring.to_log_and_console("\t target resolution was '"+str(parameters.target_resolution)+"'", 0)
-            monitoring.to_log_and_console("\t image resolution was '" + str(im.voxelsize) + "'", 0)
-            monitoring.to_log_and_console("Exiting.", 0)
-            sys.exit(1)
-        del im
+        the_images = the_image_list[c]
+        res_images = []
 
-        monitoring.to_log_and_console("    .. resampling '" + the_images[i].split(os.path.sep)[-1]
-                                      + "' at " + str(resampling_resolution), 2)
-        if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
-            cpp_wrapping.apply_transformation(the_images[i], res_images[i], the_transformation=None,
-                                              template_image=None,
-                                              voxel_size=resampling_resolution, nearest=False, monitoring=monitoring)
-        else:
-            monitoring.to_log_and_console("       already existing", 2)
+        #
+        # build the file names
+        #
+
+        for i in range(0, len(the_images)):
+            res_images.append(_add_suffix(input_image_list[c][i], "_resample",
+                                          new_dirname=channel[c].temporary_paths[i]))
+        res_image_list.append(res_images)
+
+        #
+        # process
+        #
+
+        for i in range(0, len(the_images)):
+
+            im = imread(the_images[i])
+            if type(parameters.target_resolution) == int or type(parameters.target_resolution) == float:
+                resampling_resolution = [parameters.target_resolution, parameters.target_resolution, im.voxelsize[2]]
+            elif (type(parameters.target_resolution) == list or type(parameters.target_resolution) == tuple) \
+                    and len(parameters.target_resolution) == 3:
+                resampling_resolution = [parameters.target_resolution[0],
+                                         parameters.target_resolution[1], im.voxelsize[2]]
+            else:
+                monitoring.to_log_and_console(proc+': unable to set target resolution for first resampling', 0)
+                monitoring.to_log_and_console("\t target resolution was '"+str(parameters.target_resolution)+"'", 0)
+                monitoring.to_log_and_console("\t image resolution was '" + str(im.voxelsize) + "'", 0)
+                monitoring.to_log_and_console("Exiting.", 0)
+                sys.exit(1)
+            del im
+
+            monitoring.to_log_and_console("    .. resampling '" + the_images[i].split(os.path.sep)[-1]
+                                          + "' at " + str(resampling_resolution), 2)
+            if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                cpp_wrapping.apply_transformation(the_images[i], res_images[i], the_transformation=None,
+                                                  template_image=None,
+                                                  voxel_size=resampling_resolution, nearest=False,
+                                                  monitoring=monitoring)
+            else:
+                monitoring.to_log_and_console("       already existing", 2)
 
     #
     # 2D crop of resampled acquisition images
     #
 
     if parameters.acquisition_cropping is True:
-        the_images = res_images[:]
-        res_images = []
-        for i in range(0, len(the_images)):
-            res_images.append(_add_suffix(input_images[i], "_crop", new_dirname=temporary_paths[i]))
 
-        for i in range(0, len(the_images)):
-            monitoring.to_log_and_console("    .. cropping '" + the_images[i].split(os.path.sep)[-1], 2)
-            if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                _crop_disk_image(the_images[i], res_images[i], None,
-                                 parameters.acquisition_cropping_margin_x_0,
-                                 parameters.acquisition_cropping_margin_x_1,
-                                 parameters.acquisition_cropping_margin_y_0,
-                                 parameters.acquisition_cropping_margin_y_1)
-            else:
-                monitoring.to_log_and_console("       already existing", 2)
+        the_image_list = res_image_list[:]
+        res_image_list = list()
+
+        #
+        # build the file names
+        #
+
+        for c in range(0, len(channel)):
+
+            the_images = the_image_list[c]
+            res_images = []
+
+            for i in range(0, len(the_images)):
+                res_images.append(_add_suffix(input_image_list[c][i], "_crop",
+                                              new_dirname=channel[c].temporary_paths[i]))
+            res_image_list.append(res_images)
+
+        #
+        # is there something to do ?
+        # check whether one cropped image is missing
+        #
+
+        do_something = list()
+        for _ in range(0, len(input_image_list[0])):
+            do_something.append(False)
+
+        for c in range(0, len(channel)):
+
+            the_images = the_image_list[c]
+            res_images = res_image_list[c]
+
+            for i in range(0, len(the_images)):
+                if os.path.isfile(res_images[i]):
+                    if monitoring.forceResultsToBeBuilt is True:
+                        do_something[i] = True
+                else:
+                    do_something[i] = True
+
+        #
+        # process
+        # bounding box are computed on channel #0
+        # and are used for other channels
+        #
+
+        box_list = list()
+
+        for c in range(0, len(channel)):
+
+            the_images = the_image_list[c]
+            res_images = res_image_list[c]
+
+            for i in range(0, len(the_images)):
+
+                monitoring.to_log_and_console("    .. cropping '"
+                                              + the_images[i].split(os.path.sep)[-1] + "'", 2)
+
+                if do_something[i] is False:
+                    monitoring.to_log_and_console("       nothing to do", 2)
+                    continue
+
+                if c == 0:
+                    box = _crop_bounding_box(the_images[i])
+                    box_list.append(box)
+                    if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                        _crop_disk_image(the_images[i], res_images[i], box,
+                                         parameters.acquisition_cropping_margin_x_0,
+                                         parameters.acquisition_cropping_margin_x_1,
+                                         parameters.acquisition_cropping_margin_y_0,
+                                         parameters.acquisition_cropping_margin_y_1)
+                    else:
+                        monitoring.to_log_and_console("       already existing", 2)
+                else:
+                    if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                        _crop_disk_image(the_images[i], res_images[i], box_list[i],
+                                         parameters.acquisition_cropping_margin_x_0,
+                                         parameters.acquisition_cropping_margin_x_1,
+                                         parameters.acquisition_cropping_margin_y_0,
+                                         parameters.acquisition_cropping_margin_y_1)
+                    else:
+                        monitoring.to_log_and_console("       already existing", 2)
 
     #
     # Mirroring of 'right' images if required
     #
 
     if parameters.acquisition_mirrors is False:
-        the_images = res_images[:]
-        res_images = []
-        for i in range(0, len(the_images)):
-            if i == 0 or i == 2:
-                res_images.append(the_images[i])
-            else:
-                res_images.append(_add_suffix(input_images[i], "_mirror", new_dirname=temporary_paths[i]))
 
-        for i in range(0, len(the_images)):
-            if i == 0 or i == 2:
-                continue
-            monitoring.to_log_and_console("    .. mirroring  #" + str(i) + " '"
-                                          + the_images[i].split(os.path.sep)[-1], 2)
-            if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                the_im = imread(the_images[i])
-                res_im = SpatialImage(the_im.copy())[-1::-1, :, :]
-                res_im._set_resolution(the_im._get_resolution())
-                imsave(res_images[i], res_im)
-                del the_im
-                del res_im
-            else:
-                monitoring.to_log_and_console("       already existing", 2)
+        the_image_list = res_image_list[:]
+        res_image_list = list()
+
+        for c in range(0, len(channel)):
+
+            the_images = the_image_list[c]
+            res_images = []
+
+            #
+            # build the file names
+            #
+
+            for i in range(0, len(the_images)):
+                if i == 0 or i == 2:
+                    res_images.append(the_images[i])
+                else:
+                    res_images.append(_add_suffix(input_images[i], "_mirror",
+                                                  new_dirname=temporary_paths[i]))
+            res_image_list.append(res_images)
+
+            #
+            # process
+            #
+
+            for i in range(0, len(the_images)):
+
+                if i == 0 or i == 2:
+                    continue
+                monitoring.to_log_and_console("    .. mirroring  #" + str(i) + " '"
+                                              + the_images[i].split(os.path.sep)[-1], 2)
+                if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                    the_im = imread(the_images[i])
+                    res_im = SpatialImage(the_im.copy())[-1::-1, :, :]
+                    res_im._set_resolution(the_im._get_resolution())
+                    imsave(res_images[i], res_im)
+                    del the_im
+                    del res_im
+                else:
+                    monitoring.to_log_and_console("       already existing", 2)
 
     #
     # 1. Putting all images in a common reference
@@ -1098,19 +1360,69 @@ def fusion_process(input_images, fused_image, temporary_paths, parameters):
     # - co-registration of other images
     # 2. Compute weights with an ad-hoc method
     #
-    the_images = res_images[:]
-    res_images = []
+
+    the_image_list = res_image_list[:]
+    res_image_list = list()
     init_trsfs = []
     res_trsfs = []
     unreg_weight_images = []
     weight_images = []
 
-    for i in range(0, len(the_images)):
-        res_images.append(_add_suffix(input_images[i], "_reg", new_dirname=temporary_paths[i]))
-        init_trsfs.append(_add_suffix(input_images[i], "_init", new_dirname=temporary_paths[i], new_extension=".trsf"))
-        res_trsfs.append(_add_suffix(input_images[i], "_reg", new_dirname=temporary_paths[i], new_extension=".trsf"))
-        unreg_weight_images.append(_add_suffix(input_images[i], "_init_weight", new_dirname=temporary_paths[i]))
-        weight_images.append(_add_suffix(input_images[i], "_weight", new_dirname=temporary_paths[i]))
+    #
+    # build the file names
+    #
+
+    for c in range(0, len(channel)):
+
+        the_images = the_image_list[c]
+        res_images = []
+
+        for i in range(0, len(the_images)):
+            res_images.append(_add_suffix(input_image_list[c][i], "_reg",
+                                          new_dirname=channel[c].temporary_paths[i]))
+            if c == 0:
+                init_trsfs.append(
+                    _add_suffix(input_image_list[c][i], "_init",
+                                new_dirname=channel[c].temporary_paths[i], new_extension=".trsf"))
+                res_trsfs.append(_add_suffix(input_image_list[c][i], "_reg",
+                                             new_dirname=channel[c].temporary_paths[i], new_extension=".trsf"))
+                unreg_weight_images.append(_add_suffix(input_image_list[c][i], "_init_weight",
+                                                       new_dirname=channel[c].temporary_paths[i]))
+                weight_images.append(_add_suffix(input_image_list[c][i], "_weight",
+                                                 new_dirname=channel[c].temporary_paths[i]))
+
+        res_image_list.append(res_images)
+
+    #
+    # is there something to do ?
+    # check whether fused images are missing
+    # if one image is missing, re-process channel #0 to get weights and sum of weights
+    #
+
+    do_something = list()
+    for _ in range(0, len(input_image_list[0])):
+        do_something.append(False)
+
+    for c in range(0, len(channel)):
+
+        the_images = the_image_list[c]
+        res_images = res_image_list[c]
+
+        for i in range(0, len(the_images)):
+            if os.path.isfile(res_images[i]):
+                if monitoring.forceResultsToBeBuilt is True:
+                    do_something[i] = True
+            else:
+                do_something[i] = True
+
+    for _ in range(1, len(input_image_list[0])):
+        if do_something[i] is True:
+            do_something[0] = True
+
+
+    #
+    # default angle for initial rotation matrix
+    #
 
     if parameters.acquisition_orientation.lower() == 'left':
         default_angle = 270.0
@@ -1122,147 +1434,202 @@ def fusion_process(input_images, fused_image, temporary_paths, parameters):
         monitoring.to_log_and_console("Exiting.", 0)
         sys.exit(1)
 
-    for i in range(0, len(the_images)):
+    #
+    # process
+    # transformations and weights are computed on channel #0
+    # and are used for other channels
+    # - first image is just resampled to the destination resolution
+    # - other images are co-registered with the first image
+    #
 
-        if i == 0:
+    for c in range(0, len(channel)):
+
+        the_images = the_image_list[c]
+        res_images = res_image_list[c]
+
+        for i in range(0, len(the_images)):
+
+            monitoring.to_log_and_console("    .. process '"
+                                          + the_images[i].split(os.path.sep)[-1] + "' for fusion", 2)
+
+            if do_something[i] is False:
+                monitoring.to_log_and_console("       nothing to do", 2)
+                continue
+
             #
-            # resampling first image
+            # first image: resampling only
             #
-            monitoring.to_log_and_console("    .. resampling '" + the_images[i].split(os.path.sep)[-1]
-                                          + "' at " + str(parameters.target_resolution), 2)
-            if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                cpp_wrapping.apply_transformation(the_images[i], res_images[i], the_transformation=None,
-                                                  template_image=None,
-                                                  voxel_size=parameters.target_resolution, nearest=False,
-                                                  monitoring=monitoring)
-            else:
-                monitoring.to_log_and_console("       already existing", 2)
-        else:
+            if i == 0:
+                #
+                # resampling first image
+                #
+                monitoring.to_log_and_console("       resampling '" + the_images[i].split(os.path.sep)[-1]
+                                              + "' at " + str(parameters.target_resolution), 2)
+                if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                    cpp_wrapping.apply_transformation(the_images[i], res_images[i], the_transformation=None,
+                                                      template_image=None,
+                                                      voxel_size=parameters.target_resolution, nearest=False,
+                                                      monitoring=monitoring)
+                else:
+                    monitoring.to_log_and_console("       already existing", 2)
+
             #
             # other images:
-            # - set initial rotation
-            # - register images
+            # - channel #0: co-registration
+            # - other channels: resampling with transformation of channel #0
             #
-            monitoring.to_log_and_console("    .. co-registering '" + the_images[i].split(os.path.sep)[-1], 2)
-
-            if i == 1:
-                angle = 0.0
             else:
-                angle = default_angle
-            monitoring.to_log_and_console("       angle used for '" + init_trsfs[i].split(os.path.sep)[-1]
-                                          + "' is " + str(angle), 2)
 
-            im = imread(the_images[i])
-            rotation_matrix = _axis_rotation_matrix(axis="Y", angle=angle, min_space=(0, 0, 0),
-                                                    max_space=np.multiply(im.shape[:3], im.resolution))
-            del im
+                if c == 0:
 
-            np.savetxt(init_trsfs[i], rotation_matrix)
-            del rotation_matrix
+                    monitoring.to_log_and_console("       co-registering '" + the_images[i].split(os.path.sep)[-1]
+                                                  + "'", 2)
 
-            if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                    #
+                    # initial transformation
+                    #
+                    if not os.path.isfile(init_trsfs[i]) or monitoring.forceResultsToBeBuilt is True:
+                        if i == 1:
+                            angle = 0.0
+                        else:
+                            angle = default_angle
+                        monitoring.to_log_and_console("       angle used for '" + init_trsfs[i].split(os.path.sep)[-1]
+                                                      + "' is " + str(angle), 2)
+                        im = imread(the_images[i])
+                        rotation_matrix = _axis_rotation_matrix(axis="Y", angle=angle, min_space=(0, 0, 0),
+                                                                max_space=np.multiply(im.shape[:3], im.resolution))
+                        del im
+                        np.savetxt(init_trsfs[i], rotation_matrix)
+                        del rotation_matrix
+
+                    #
+                    # a two-fold registration, translation then affine, could be preferable
+                    #
+                    if not os.path.isfile(res_images[i]) or not os.path.isfile(res_trsfs[i]) \
+                            or monitoring.forceResultsToBeBuilt is True:
+                        cpp_wrapping.linear_registration(res_images[0], the_images[i], res_images[i],
+                                                         res_trsfs[i], init_trsfs[i],
+                                                         py_hl=parameters.registration_pyramid_highest_level,
+                                                         py_ll=parameters.registration_pyramid_lowest_level,
+                                                         transformation_type=parameters.registration_transformation_type,
+                                                         transformation_estimator=parameters.registration_transformation_estimation_type,
+                                                         lts_fraction=parameters.registration_lts_fraction,
+                                                         monitoring=monitoring)
+
+                    else:
+                        monitoring.to_log_and_console("       already existing", 2)
                 #
-                # a tow-fold registration, translation then affine, could be preferable
+                # other channels
                 #
-                cpp_wrapping.linear_registration(res_images[0], the_images[i], res_images[i],
-                                                 res_trsfs[i], init_trsfs[i],
-                                                 py_hl=parameters.registration_pyramid_highest_level,
-                                                 py_ll=parameters.registration_pyramid_lowest_level,
-                                                 transformation_type=parameters.registration_transformation_type,
-                                                 transformation_estimator=parameters.registration_transformation_estimation_type,
-                                                 lts_fraction=parameters.registration_lts_fraction,
-                                                 monitoring=monitoring)
+                else:
 
-            else:
-                monitoring.to_log_and_console("       already existing", 2)
+                    monitoring.to_log_and_console("       resampling '" + the_images[i].split(os.path.sep)[-1] + "'", 2)
+                    if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                        cpp_wrapping.apply_transformation(the_images[i], res_images[i],
+                                                          the_transformation=res_trsfs[i], template_image=res_images[0],
+                                                          voxel_size=None, nearest=False, monitoring=monitoring)
+                    else:
+                        monitoring.to_log_and_console("       already existing", 2)
+
+            #
+            # compute weighting masks on channel #0
+            # - mask is computed on an untransformed image
+            #   however, resolution may have changes, or it can be cropped
+            #   or it can be mirrored
+            # - mask are then transformed with the computed transformation
+            #
+            if c == 0:
+
+                monitoring.to_log_and_console("       computing weights for fusion", 2)
+
+                if i % 2 == 1:
+                    direction = False
+                else:
+                    direction = True
+
+                if not os.path.isfile(unreg_weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                    im = imread(the_images[i])
+                    unreg_weight = _build_mask(im, direction)
+                    unreg_weight._set_resolution(im._get_resolution())
+                    imsave(unreg_weight_images[i], unreg_weight)
+                    del im
+                    del unreg_weight
+                else:
+                    monitoring.to_log_and_console("       already existing", 2)
+
+                monitoring.to_log_and_console("       resampling '" + unreg_weight_images[i].split(os.path.sep)[-1]
+                                              + "'", 2)
+                if i == 0:
+                    if not os.path.isfile(weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                        cpp_wrapping.apply_transformation(unreg_weight_images[i], weight_images[i],
+                                                          the_transformation=None, template_image=None,
+                                                          voxel_size=parameters.target_resolution,
+                                                          nearest=False, monitoring=monitoring)
+                    else:
+                        monitoring.to_log_and_console("       already existing", 2)
+                else:
+                    if not os.path.isfile(weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                        cpp_wrapping.apply_transformation(unreg_weight_images[i], weight_images[i],
+                                                          the_transformation=res_trsfs[i], template_image=res_images[0],
+                                                          voxel_size=None, nearest=False, monitoring=monitoring)
+                    else:
+                        monitoring.to_log_and_console("       already existing", 2)
+
+                if i == 0:
+                    full_mask = imread(weight_images[i])
+                else:
+                    full_mask += imread(weight_images[i])
 
         #
-        # compute weighting masks
-        # - mask is computed on an untransformed image
-        #   however, resolution may have changes, or it can be cropped
-        #   or it can be mirrored
-        # - mask are then transformed with the computed transformation
+        # compute fused image as a linear combination of co-registered images
+        # the sun of weights have been precomputed to mimic historical behavior
         #
-        if i % 2 == 1:
-            direction = False
-        else:
-            direction = True
+        # do not forget to cast the result on 16 bits
+        #
+        if monitoring.debug > 0:
+            tmp_mask_image = _add_suffix(fused_image, "_mask_sum", new_dirname=channel[c].temporary_paths[4])
+            imsave(tmp_mask_image, full_mask)
 
-        im = imread(the_images[i])
-        unreg_weight = _build_mask(im, direction)
-        unreg_weight._set_resolution(im._get_resolution())
-        imsave(unreg_weight_images[i], unreg_weight)
-        del im
-        del unreg_weight
 
-        monitoring.to_log_and_console("    .. resampling '" + unreg_weight_images[i].split(os.path.sep)[-1], 2)
-        if i == 0:
-            if not os.path.isfile(weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                cpp_wrapping.apply_transformation(unreg_weight_images[i], weight_images[i],
-                                                  the_transformation=None, template_image=None,
-                                                  voxel_size=parameters.target_resolution,
-                                                  nearest=False, monitoring=monitoring)
+        monitoring.to_log_and_console("    .. combining images", 2)
+        for i in range(0, len(the_images)):
+            if i == 0:
+                full_image = (imread(weight_images[i]) * imread(res_images[i])) / full_mask
             else:
-                monitoring.to_log_and_console("       already existing", 2)
+                full_image += (imread(weight_images[i]) * imread(res_images[i])) / full_mask
+
+
+
+        full_image = full_image.astype(np.uint16)
+
+        #
+        # save image if fusion is required
+        #
+        if parameters.fusion_cropping is True:
+
+            tmp_fused_image = _add_suffix(fused_image, "_uncropped_fusion", new_dirname=channel[c].temporary_paths[4])
+            imsave(tmp_fused_image, full_image)
+
+            monitoring.to_log_and_console("    .. cropping '" + fused_image.split(os.path.sep)[-1], 2)
+            _crop_disk_image(tmp_fused_image, os.path.join(channel[c].path_fuse_exp, fused_image), None,
+                             parameters.fusion_cropping_margin_x_0,
+                             parameters.fusion_cropping_margin_x_1,
+                             parameters.fusion_cropping_margin_y_0,
+                             parameters.fusion_cropping_margin_y_1)
         else:
-            if not os.path.isfile(weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                cpp_wrapping.apply_transformation(unreg_weight_images[i], weight_images[i],
-                                                  the_transformation=res_trsfs[i], template_image=res_images[0],
-                                                  voxel_size=None, nearest=False, monitoring=monitoring)
-            else:
-                monitoring.to_log_and_console("       already existing", 2)
+            imsave(os.path.join(channel[c].path_fuse_exp, fused_image), full_image)
 
-        if i == 0:
-            full_mask = imread(weight_images[i])
-        else:
-            full_mask += imread(weight_images[i])
+        del full_image
 
-    #
-    # compute fused image as a linear combination of co-registered images
-    # the sun of weights have been precomputed to mimic historical behavior
-    #
-    # do not forget to cast the result on 16 bits
-    #
-    if monitoring.debug > 0:
-        tmp_mask_image = _add_suffix(fused_image, "_mask_sum", new_dirname=temporary_paths[4])
-        imsave(tmp_mask_image, full_mask)
-
-    monitoring.to_log_and_console("    .. combining images", 2)
-    for i in range(0, len(the_images)):
-        if i == 0:
-            full_image = (imread(weight_images[i]) * imread(res_images[i])) / full_mask
-        else:
-            full_image += (imread(weight_images[i]) * imread(res_images[i])) / full_mask
-
-    del full_mask
-
-    full_image = full_image.astype(np.uint16)
-
-    #
-    # save image if fusion is required
-    #
-    if parameters.fusion_cropping is True:
-
-        tmp_fused_image = _add_suffix(fused_image, "_uncropped_fusion", new_dirname=temporary_paths[4])
-        imsave(tmp_fused_image, full_image)
-
-        monitoring.to_log_and_console("    .. cropping '" + fused_image.split(os.path.sep)[-1], 2)
-        _crop_disk_image(tmp_fused_image, fused_image, None,
-                         parameters.fusion_cropping_margin_x_0,
-                         parameters.fusion_cropping_margin_x_1,
-                         parameters.fusion_cropping_margin_y_0,
-                         parameters.fusion_cropping_margin_y_1)
-    else:
-        imsave(fused_image, full_image)
-
-    del full_image
+        if c == len(channel)-1:
+         del full_mask
 
     return
 
 
 #
 #
-#
+# read the raw data
 #
 #
 
@@ -1290,12 +1657,21 @@ def fusion_preprocess(input_images, fused_image, time_point, environment, parame
 
     monitoring.to_log_and_console('... fusion of time ' + time_point, 1)
 
-    if os.path.isfile(fused_image):
-        if not monitoring.forceResultsToBeBuilt:
-            monitoring.to_log_and_console('    already existing', 2)
-            return
+
+    do_something = False
+    for c in range (0,len(environment.channel)):
+        if os.path.isfile(os.path.join(environment.channel[c].path_fuse_exp, fused_image)):
+            if not monitoring.forceResultsToBeBuilt:
+                monitoring.to_log_and_console('    channel #' + str(c) + ' already existing', 2)
+            else:
+                monitoring.to_log_and_console('    channel #' + str(c) + ' already existing, but forced', 2)
+                do_something = True
         else:
-            monitoring.to_log_and_console('    already existing, but forced', 2)
+            do_something = True
+
+    if do_something is False:
+        monitoring.to_log_and_console('    nothing to do', 2)
+        return
 
     #
     # start processing
@@ -1312,22 +1688,28 @@ def fusion_preprocess(input_images, fused_image, time_point, environment, parame
     # ANGLE_3: LR/Stack0001
     #
 
-    temporary_paths = list()
-
-    temporary_paths.append(os.path.join(environment.path_fuse_exp, "TEMP_$TIME", "ANGLE_0"))
-    temporary_paths.append(os.path.join(environment.path_fuse_exp, "TEMP_$TIME", "ANGLE_1"))
-    temporary_paths.append(os.path.join(environment.path_fuse_exp, "TEMP_$TIME", "ANGLE_2"))
-    temporary_paths.append(os.path.join(environment.path_fuse_exp, "TEMP_$TIME", "ANGLE_3"))
-    temporary_paths.append(os.path.join(environment.path_fuse_exp, "TEMP_$TIME"))
+    for c in range(0,len(environment.channel)):
+        environment.channel[c].temporary_paths.append(os.path.join(environment.channel[c].path_fuse_exp,
+                                                                   "TEMP_$TIME", "ANGLE_0"))
+        environment.channel[c].temporary_paths.append(os.path.join(environment.channel[c].path_fuse_exp,
+                                                                   "TEMP_$TIME", "ANGLE_1"))
+        environment.channel[c].temporary_paths.append(os.path.join(environment.channel[c].path_fuse_exp,
+                                                                   "TEMP_$TIME", "ANGLE_2"))
+        environment.channel[c].temporary_paths.append(os.path.join(environment.channel[c].path_fuse_exp,
+                                                                   "TEMP_$TIME", "ANGLE_3"))
+        environment.channel[c].temporary_paths.append(os.path.join(environment.channel[c].path_fuse_exp,
+                                                                   "TEMP_$TIME"))
 
     #
     # recall that time_point is a string here
     # nomenclature.replaceTIME() can not be used
     #
-    for i in range(0, len(temporary_paths)):
-        temporary_paths[i] = temporary_paths[i].replace(nomenclature.FLAG_TIME, time_point)
-        if not os.path.isdir(temporary_paths[i]):
-            os.makedirs(temporary_paths[i])
+    for c in range(0, len(environment.channel)):
+        for i in range(0, len(environment.channel[c].temporary_paths)):
+            environment.channel[c].temporary_paths[i] = \
+                environment.channel[c].temporary_paths[i].replace(nomenclature.FLAG_TIME, time_point)
+            if not os.path.isdir(environment.channel[c].temporary_paths[i]):
+                os.makedirs(environment.channel[c].temporary_paths[i])
 
     #
     # get image file names
@@ -1335,34 +1717,42 @@ def fusion_preprocess(input_images, fused_image, time_point, environment, parame
     #
     monitoring.to_log_and_console('    get original images', 2)
 
-    images = list()
+    image_list = list()
 
-    images.append(_read_image_name(environment.path_angle1, temporary_paths[0],
-                                   input_images[0],
-                                   parameters.acquisition_resolution))
-    images.append(_read_image_name(environment.path_angle2, temporary_paths[1],
-                                   input_images[1],
-                                   parameters.acquisition_resolution))
-    images.append(_read_image_name(environment.path_angle3, temporary_paths[2],
-                                   input_images[2],
-                                   parameters.acquisition_resolution))
-    images.append(_read_image_name(environment.path_angle4, temporary_paths[3],
-                                   input_images[3],
-                                   parameters.acquisition_resolution))
+    for c in range(0, len(environment.channel)):
+        images = list()
+        images.append(_read_image_name(environment.channel[c].path_angle1,
+                                       environment.channel[c].temporary_paths[0],
+                                       input_images[0],
+                                       parameters.acquisition_resolution))
+        images.append(_read_image_name(environment.channel[c].path_angle2,
+                                       environment.channel[c].temporary_paths[1],
+                                       input_images[1],
+                                       parameters.acquisition_resolution))
+        images.append(_read_image_name(environment.channel[c].path_angle3,
+                                       environment.channel[c].temporary_paths[2],
+                                       input_images[2],
+                                       parameters.acquisition_resolution))
+        images.append(_read_image_name(environment.channel[c].path_angle4,
+                                       environment.channel[c].temporary_paths[3],
+                                       input_images[3],
+                                       parameters.acquisition_resolution))
+        image_list.append(images)
 
     #
     #
     #
     monitoring.to_log_and_console('    fuse images', 2)
 
-    fusion_process(images, fused_image, temporary_paths, parameters)
+    fusion_process(image_list, fused_image, environment.channel, parameters)
 
     #
     # remove temporary files if required
     #
 
     if monitoring.keepTemporaryFiles is False:
-        shutil.rmtree(temporary_paths[4])
+        for c in range(0, len(environment.channel)):
+            shutil.rmtree(environment.channel[c].temporary_paths[4])
 
     #
     # end processing
@@ -1377,7 +1767,8 @@ def fusion_preprocess(input_images, fused_image, time_point, environment, parame
 
 #
 #
-#
+# Parse the raw data directories and identify data to be fused for each time point
+# - for each time point fusion_preprocess() is then called
 #
 #
 
@@ -1396,10 +1787,12 @@ def fusion_control(experiment, environment, parameters):
 
     #
     # make sure that the result directory exists
+    # (although it should have been verified in 1-fuse.py)
     #
 
-    if not os.path.isdir(environment.path_fuse_exp):
-        os.makedirs(environment.path_fuse_exp)
+    for c in range(0, len(environment.channel)):
+        if not os.path.isdir(environment.channel[c].path_fuse_exp):
+            os.makedirs(environment.channel[c].path_fuse_exp)
 
     if not os.path.isdir(environment.path_logdir):
         os.makedirs(environment.path_logdir)
@@ -1407,39 +1800,39 @@ def fusion_control(experiment, environment, parameters):
     monitoring.to_log_and_console('', 1)
 
     #
-    # if data directories are different, parse them
+    # if data directories of the main channel are different, parse them
     #
 
-    if environment.path_angle1 != environment.path_angle2 \
-            and environment.path_angle1 != environment.path_angle3 \
-            and environment.path_angle1 != environment.path_angle4 \
-            and environment.path_angle2 != environment.path_angle3 \
-            and environment.path_angle2 != environment.path_angle4 \
-            and environment.path_angle3 != environment.path_angle4:
+    if environment.channel[0].path_angle1 != environment.channel[0].path_angle2 \
+            and environment.channel[0].path_angle1 != environment.channel[0].path_angle3 \
+            and environment.channel[0].path_angle1 != environment.channel[0].path_angle4 \
+            and environment.channel[0].path_angle2 != environment.channel[0].path_angle3 \
+            and environment.channel[0].path_angle2 != environment.channel[0].path_angle4 \
+            and environment.channel[0].path_angle3 != environment.channel[0].path_angle4:
 
-        prefix1, time_length1, time_points1, suffix1 = _analyze_data_directory(environment.path_angle1)
-        prefix2, time_length2, time_points2, suffix2 = _analyze_data_directory(environment.path_angle2)
-        prefix3, time_length3, time_points3, suffix3 = _analyze_data_directory(environment.path_angle3)
-        prefix4, time_length4, time_points4, suffix4 = _analyze_data_directory(environment.path_angle4)
+        prefix1, time_length1, time_points1, suffix1 = _analyze_data_directory(environment.channel[0].path_angle1)
+        prefix2, time_length2, time_points2, suffix2 = _analyze_data_directory(environment.channel[0].path_angle2)
+        prefix3, time_length3, time_points3, suffix3 = _analyze_data_directory(environment.channel[0].path_angle3)
+        prefix4, time_length4, time_points4, suffix4 = _analyze_data_directory(environment.channel[0].path_angle4)
 
         if monitoring.debug > 0:
             print ""
-            print "analysis of '" + str(environment.path_angle1) + "'"
+            print "analysis of '" + str(environment.channel[0].path_angle1) + "'"
             print "   -> " + prefix1
             print "   -> " + str(time_length1)
             print "   -> " + str(time_points1)
             print "   -> " + suffix1
-            print "analysis of '" + str(environment.path_angle2) + "'"
+            print "analysis of '" + str(environment.channel[0].path_angle2) + "'"
             print "   -> " + prefix2
             print "   -> " + str(time_length2)
             print "   -> " + str(time_points2)
             print "   -> " + suffix2
-            print "analysis of '" + str(environment.path_angle3) + "'"
+            print "analysis of '" + str(environment.channel[0].path_angle3) + "'"
             print "   -> " + prefix3
             print "   -> " + str(time_length3)
             print "   -> " + str(time_points3)
             print "   -> " + suffix3
-            print "analysis of '" + str(environment.path_angle4) + "'"
+            print "analysis of '" + str(environment.channel[0].path_angle4) + "'"
             print "   -> " + prefix4
             print "   -> " + str(time_length4)
             print "   -> " + str(time_points4)
@@ -1525,7 +1918,7 @@ def fusion_control(experiment, environment, parameters):
                 im = prefix1 + acquisition_time + suffix1
                 if acquisition_time not in time_points1:
                     monitoring.to_log_and_console("    .. image '" + im + "' not found in '"
-                                                  + environment.path_angle1 + "'", 2)
+                                                  + environment.channel[0].path_angle1 + "'", 2)
                     monitoring.to_log_and_console("       skip time " + str(acquisition_time), 2)
                     continue
                 else:
@@ -1533,7 +1926,7 @@ def fusion_control(experiment, environment, parameters):
                 im = prefix2 + acquisition_time + suffix2
                 if acquisition_time not in time_points2:
                     monitoring.to_log_and_console("    .. image '" + im + "' not found in '"
-                                                  + environment.path_angle2 + "'", 2)
+                                                  + environment.channel[0].path_angle2 + "'", 2)
                     monitoring.to_log_and_console("       skip time " + str(acquisition_time), 2)
                     continue
                 else:
@@ -1541,7 +1934,7 @@ def fusion_control(experiment, environment, parameters):
                 im = prefix3 + acquisition_time + suffix3
                 if acquisition_time not in time_points3:
                     monitoring.to_log_and_console("    .. image '" + im + "' not found in '"
-                                                  + environment.path_angle3 + "'", 2)
+                                                  + environment.channel[0].path_angle3 + "'", 2)
                     monitoring.to_log_and_console("       skip time " + str(acquisition_time), 2)
                     continue
                 else:
@@ -1549,7 +1942,7 @@ def fusion_control(experiment, environment, parameters):
                 im = prefix4 + acquisition_time + suffix4
                 if acquisition_time not in time_points4:
                     monitoring.to_log_and_console("    .. image '" + im + "' not found in '"
-                                                  + environment.path_angle4 + "'", 2)
+                                                  + environment.channel[0].path_angle4 + "'", 2)
                     monitoring.to_log_and_console("       skip time " + str(acquisition_time), 2)
                     continue
                 else:
@@ -1585,40 +1978,40 @@ def fusion_control(experiment, environment, parameters):
             images = list()
 
             name = nomenclature.replaceTIME(environment.path_angle1_files, time_value)
-            im = _find_image_name(environment.path_angle1, name)
+            im = _find_image_name(environment.channel[0].path_angle1, name)
             if im is None:
                 monitoring.to_log_and_console("    .. image '" + name + "' not found in '"
-                                              + environment.path_angle1 + "'", 2)
+                                              + environment.channel[0].path_angle1 + "'", 2)
                 monitoring.to_log_and_console("       skip time " + str(acquisition_time), 2)
                 continue
             else:
                 images.append(im)
 
             name = nomenclature.replaceTIME(environment.path_angle2_files, time_value)
-            im = _find_image_name(environment.path_angle2, name)
+            im = _find_image_name(environment.channel[0].path_angle2, name)
             if im is None:
                 monitoring.to_log_and_console("    .. image '" + name + "' not found in '"
-                                              + environment.path_angle2 + "'", 2)
+                                              + environment.channel[0].path_angle2 + "'", 2)
                 monitoring.to_log_and_console("       skip time " + str(acquisition_time), 2)
                 continue
             else:
                 images.append(im)
 
             name = nomenclature.replaceTIME(environment.path_angle3_files, time_value)
-            im = _find_image_name(environment.path_angle3, name)
+            im = _find_image_name(environment.channel[0].path_angle3, name)
             if im is None:
                 monitoring.to_log_and_console("    .. image '" + name + "' not found in '"
-                                              + environment.path_angle3 + "'", 2)
+                                              + environment.channel[0].path_angle3 + "'", 2)
                 monitoring.to_log_and_console("       skip time " + str(acquisition_time), 2)
                 continue
             else:
                 images.append(im)
 
             name = nomenclature.replaceTIME(environment.path_angle4_files, time_value)
-            im = _find_image_name(environment.path_angle4, name)
+            im = _find_image_name(environment.channel[0].path_angle4, name)
             if im is None:
                 monitoring.to_log_and_console("    .. image '" + name + "' not found in '"
-                                              + environment.path_angle4 + "'", 2)
+                                              + environment.channel[0].path_angle4 + "'", 2)
                 monitoring.to_log_and_console("       skip time " + str(acquisition_time), 2)
                 continue
             else:
