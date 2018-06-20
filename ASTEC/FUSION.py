@@ -1060,7 +1060,6 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
                 monitoring.to_log_and_console('    fused channel #' + str(c) + ' already existing, but forced', 2)
                 do_something = True
         else:
-            print 'coucou' + str( os.path.join(channel[c].path_fuse_exp, fused_image) )
             do_something = True
 
     if do_something is False:
@@ -1415,10 +1414,9 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
             else:
                 do_something[i] = True
 
-    for _ in range(1, len(input_image_list[0])):
+    for i in range(1, len(input_image_list[0])):
         if do_something[i] is True:
             do_something[0] = True
-
 
     #
     # default angle for initial rotation matrix
@@ -1442,10 +1440,13 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
     # - other images are co-registered with the first image
     #
 
+    full_mask = None
+
     for c in range(0, len(channel)):
 
         the_images = the_image_list[c]
         res_images = res_image_list[c]
+        full_image = None
 
         for i in range(0, len(the_images)):
 
@@ -1590,15 +1591,12 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
             tmp_mask_image = _add_suffix(fused_image, "_mask_sum", new_dirname=channel[c].temporary_paths[4])
             imsave(tmp_mask_image, full_mask)
 
-
         monitoring.to_log_and_console("    .. combining images", 2)
         for i in range(0, len(the_images)):
             if i == 0:
                 full_image = (imread(weight_images[i]) * imread(res_images[i])) / full_mask
             else:
                 full_image += (imread(weight_images[i]) * imread(res_images[i])) / full_mask
-
-
 
         full_image = full_image.astype(np.uint16)
 
@@ -1622,7 +1620,7 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
         del full_image
 
         if c == len(channel)-1:
-         del full_mask
+            del full_mask
 
     return
 
@@ -1657,9 +1655,12 @@ def fusion_preprocess(input_images, fused_image, time_point, environment, parame
 
     monitoring.to_log_and_console('... fusion of time ' + time_point, 1)
 
+    #
+    # check whether there exists some unfused channel
+    #
 
     do_something = False
-    for c in range (0,len(environment.channel)):
+    for c in range(0, len(environment.channel)):
         if os.path.isfile(os.path.join(environment.channel[c].path_fuse_exp, fused_image)):
             if not monitoring.forceResultsToBeBuilt:
                 monitoring.to_log_and_console('    channel #' + str(c) + ' already existing', 2)
@@ -1688,7 +1689,7 @@ def fusion_preprocess(input_images, fused_image, time_point, environment, parame
     # ANGLE_3: LR/Stack0001
     #
 
-    for c in range(0,len(environment.channel)):
+    for c in range(0, len(environment.channel)):
         environment.channel[c].temporary_paths.append(os.path.join(environment.channel[c].path_fuse_exp,
                                                                    "TEMP_$TIME", "ANGLE_0"))
         environment.channel[c].temporary_paths.append(os.path.join(environment.channel[c].path_fuse_exp,
