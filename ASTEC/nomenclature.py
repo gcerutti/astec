@@ -33,7 +33,7 @@ FLAG_EN = '$EN'
 # apart the directory containing the raw data
 # they are created by the ASTEC stages/utilities
 #
-# - RAW DATA are stored in [FLAG_PATH_EMBRYO]/[FLAG_PATH_RAWDATA]
+# - RAW DATA are stored in [FLAG_PATH_EMBRYO]/[FLAG_DIR_RAWDATA]
 # - Fusion experiments stored in
 #   [FLAG_PATH_EMBRYO]/[DIR_STAGE_FUSE]/[DIR_STAGE_FUSE]_[FLAG_EXP_FUSE]
 # - Registration experiments stored in
@@ -45,7 +45,7 @@ FLAG_EN = '$EN'
 # - Post correction experiments stored in
 #   [FLAG_PATH_EMBRYO]/[DIR_STAGE_SEG]/[DIR_STAGE_SEG]_[FLAG_EXP_POST]
 
-FLAG_PATH_RAWDATA = '$PATHRAWDATA'
+FLAG_DIR_RAWDATA = '$DIRRAWDATA'
 DIR_STAGE_FUSE = 'FUSE'
 DIR_STAGE_REG = 'REG'
 DIR_STAGE_MARS = 'SEG'
@@ -75,7 +75,7 @@ FLAG_TIMEFLO = '$TIMEFLO'		# For registration,time-point of floating snapshot
 #
 # raw data specific definitions: FLAGS
 #
-# definitions of sub-directories in [PATHEMBRYO]/[FLAG_PATH_RAWDATA]
+# definitions of sub-directories in [PATHEMBRYO]/[FLAG_DIR_RAWDATA]
 #
 # if not defined, they will be
 # LC/Stack0000
@@ -84,20 +84,20 @@ FLAG_TIMEFLO = '$TIMEFLO'		# For registration,time-point of floating snapshot
 # RC/Stack0001
 #
 # else
-# - LC/Stack0000 images are in PATHEMBRYO]/[FLAG_PATH_RAWDATA]/[FLAG_PATH_LEFT_STACK_ZERO]
-# - LC/Stack0001 images are in PATHEMBRYO]/[FLAG_PATH_RAWDATA]/[FLAG_PATH_LEFT_STACK_ONE]
-# - RC/Stack0000 images are in PATHEMBRYO]/[FLAG_PATH_RAWDATA]/[FLAG_PATH_RIGHT_STACK_ZERO]
-# - RC/Stack0001 images are in PATHEMBRYO]/[FLAG_PATH_RAWDATA]/[FLAG_PATH_RIGHT_STACK_ONE]
+# - LC/Stack0000 images are in PATHEMBRYO]/[FLAG_DIR_RAWDATA]/[FLAG_DIR_LEFTCAM_STACKZERO]
+# - LC/Stack0001 images are in PATHEMBRYO]/[FLAG_DIR_RAWDATA]/[FLAG_DIR_LEFTCAM_STACKONE]
+# - RC/Stack0000 images are in PATHEMBRYO]/[FLAG_DIR_RAWDATA]/[FLAG_DIR_RIGHTCAM_STACKZERO]
+# - RC/Stack0001 images are in PATHEMBRYO]/[FLAG_DIR_RAWDATA]/[FLAG_DIR_RIGHTCAM_STACKone]
 #
 # Images names are defined by
 # [FLAG_NAME_LEFT_RAW_IMAGE]${TIME} and [FLAG_NAME_RIGHT_RAW_IMAGE]${TIME}
 # default are 'Cam_Left_00' and 'Cam_Right_00' (time is assumed to be encoded on 3 bytes)
 #
 
-FLAG_PATH_LEFT_STACK_ZERO = '$PATHLEFTCAMSTACKZERO'
-FLAG_PATH_LEFT_STACK_ONE = '$PATHLEFTCAMSTACKONE'
-FLAG_PATH_RIGHT_STACK_ZERO = '$PATHRIGHTCAMSTACKZERO'
-FLAG_PATH_RIGHT_STACK_ONE = '$PATHRIGHTCAMSTACKONE'
+FLAG_DIR_LEFTCAM_STACKZERO = '$DIRLEFTCAMSTACKZERO'
+FLAG_DIR_LEFTCAM_STACKONE = '$DIRLEFTCAMSTACKONE'
+FLAG_DIR_RIGHTCAM_STACKZERO = '$DIRFIGHTCAMSTACKZERO'
+FLAG_DIR_RIGHTCAM_STACKONE = '$DIRFIGHTCAMSTACKONE'
 
 FLAG_NAME_LEFT_RAW_IMAGE = '$NAMELEFTRAWIMAGE'
 FLAG_NAME_RIGHT_RAW_IMAGE = '$NAMERIGHTRAWIMAGE'
@@ -105,20 +105,25 @@ FLAG_NAME_RIGHT_RAW_IMAGE = '$NAMERIGHTRAWIMAGE'
 #
 # raw data specific definitions: variables
 #
+# angle #1 = left camera, stack 0
+# angle #2 = right camera, stack 0
+# angle #3 = left camera, stack 1
+# angle #4 = right camera, stack 1
+#
 
-path_rawdata = os.path.join(FLAG_PATH_EMBRYO, FLAG_PATH_RAWDATA)
+path_rawdata = os.path.join(FLAG_PATH_EMBRYO, FLAG_DIR_RAWDATA)
 
-# 1st image from the left camera, good quality image at the beginning
-path_rawdata_angle1 = os.path.join(path_rawdata, FLAG_PATH_LEFT_STACK_ZERO)
+# 1st image from the left camera
+path_rawdata_angle1 = os.path.join(path_rawdata, FLAG_DIR_LEFTCAM_STACKZERO)
 
 # 1st image from the right camera
-path_rawdata_angle2 = os.path.join(path_rawdata, FLAG_PATH_RIGHT_STACK_ZERO)
+path_rawdata_angle2 = os.path.join(path_rawdata, FLAG_DIR_RIGHTCAM_STACKZERO)
 
 # 2nd image from the left camera
-path_rawdata_angle3 = os.path.join(path_rawdata, FLAG_PATH_LEFT_STACK_ONE)
+path_rawdata_angle3 = os.path.join(path_rawdata, FLAG_DIR_LEFTCAM_STACKONE)
 
 # 2nd from the right camera
-path_rawdata_angle4 = os.path.join(path_rawdata, FLAG_PATH_RIGHT_STACK_ONE)
+path_rawdata_angle4 = os.path.join(path_rawdata, FLAG_DIR_RIGHTCAM_STACKONE)
 
 
 path_rawdata_angle1_files = FLAG_NAME_LEFT_RAW_IMAGE + '$TIME'
@@ -441,22 +446,22 @@ def replaceFlags(filename, parameters, timestamp=None, check_name=False):
                 embryo_name = embryo_path.split(os.path.sep)[-1]
             filename = replaceEN( filename, embryo_name, check_name=check_name)
 
-        elif flag == FLAG_PATH_RAWDATA:
+        elif flag == FLAG_DIR_RAWDATA:
             filename = _genericReplaceFlag(filename, flag, parameters, 'DIR_RAWDATA', "RAWDATA")
 
-        elif flag == FLAG_PATH_LEFT_STACK_ZERO:
+        elif flag == FLAG_DIR_LEFTCAM_STACKZERO:
             d = "LC" + os.path.sep + "Stack0000"
             filename = _genericReplaceFlag(filename, flag, parameters, 'DIR_LEFTCAM_STACKZERO', d)
 
-        elif flag == FLAG_PATH_LEFT_STACK_ONE:
+        elif flag == FLAG_DIR_LEFTCAM_STACKONE:
             d = "LC" + os.path.sep + "Stack0001"
             filename = _genericReplaceFlag(filename, flag, parameters, 'DIR_LEFTCAM_STACKONE', d)
 
-        elif flag == FLAG_PATH_RIGHT_STACK_ZERO:
+        elif flag == FLAG_DIR_RIGHTCAM_STACKZERO:
             d = "RC" + os.path.sep + "Stack0000"
             filename = _genericReplaceFlag(filename, flag, parameters, 'DIR_RIGHTCAM_STACKZERO', d)
 
-        elif flag == FLAG_PATH_RIGHT_STACK_ONE:
+        elif flag == FLAG_DIR_RIGHTCAM_STACKONE:
             d = "RC" + os.path.sep + "Stack0001"
             filename = _genericReplaceFlag(filename, flag, parameters, 'DIR_RIGHTCAM_STACKONE', d)
 
