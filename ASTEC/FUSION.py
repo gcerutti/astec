@@ -70,6 +70,116 @@ class FusionChannel(object):
         self.path_angle4 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle4, parameters)
 
         self.path_fuse_exp = nomenclature.replaceFlags(nomenclature.path_fuse_exp, parameters)
+        return
+
+    def update_channel_x_from_file(self, channel_id, parameter_file):
+        proc = 'FusionChannel.update_channel_x_from_file'
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print ("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+
+        #
+        # build paths to raw data
+        #
+
+        if hasattr(parameters, 'DIR_RAWDATA_CHANNEL_' + str(channel_id)):
+            path_rawdata = os.path.join(nomenclature.FLAG_PATH_EMBRYO,
+                                        getattr(parameters, 'DIR_RAWDATA_CHANNEL_' + str(channel_id)))
+        elif hasattr(parameters, 'DIR_RAWDATA_CHANNEL' + str(channel_id)):
+            path_rawdata = os.path.join(nomenclature.FLAG_PATH_EMBRYO,
+                                        getattr(parameters, 'DIR_RAWDATA_CHANNEL' + str(channel_id)))
+        elif hasattr(parameters, 'DIR_RAWDATA'):
+            path_rawdata = os.path.join(nomenclature.FLAG_PATH_EMBRYO, parameters.DIR_RAWDATA)
+        else:
+            path_rawdata = os.path.join(nomenclature.FLAG_PATH_EMBRYO, nomenclature.FLAG_DIR_RAWDATA)
+
+        path_rawdata = nomenclature.replaceFlags(path_rawdata, parameters)
+
+        if not os.path.isdir(path_rawdata):
+            return
+
+        if hasattr(parameters, 'DIR_LEFTCAM_STACKZERO_CHANNEL_' + str(channel_id)):
+            self.path_angle1 = os.path.join(path_rawdata,
+                                            getattr(parameters, 'DIR_LEFTCAM_STACKZERO_CHANNEL_' + str(channel_id)))
+        elif hasattr(parameters, 'DIR_LEFTCAM_STACKZERO_CHANNEL' + str(channel_id)):
+            self.path_angle1 = os.path.join(path_rawdata,
+                                            getattr(parameters, 'DIR_LEFTCAM_STACKZERO_CHANNEL' + str(channel_id)))
+        elif hasattr(parameters, 'DIR_LEFTCAM_STACKZERO'):
+            self.path_angle1 = os.path.join(path_rawdata, parameters.DIR_LEFTCAM_STACKZERO)
+        else:
+            self.path_angle1 = os.path.join(path_rawdata, nomenclature.FLAG_DIR_LEFTCAM_STACKZERO)
+
+        if hasattr(parameters, 'DIR_RIGHTCAM_STACKZERO_CHANNEL_' + str(channel_id)):
+            self.path_angle2 = os.path.join(path_rawdata,
+                                            getattr(parameters, 'DIR_RIGHTCAM_STACKZERO_CHANNEL_' + str(channel_id)))
+        elif hasattr(parameters, 'DIR_RIGHTCAM_STACKZERO_CHANNEL' + str(channel_id)):
+            self.path_angle2 = os.path.join(path_rawdata,
+                                            getattr(parameters, 'DIR_RIGHTCAM_STACKZERO_CHANNEL' + str(channel_id)))
+        elif hasattr(parameters, 'DIR_RIGHTCAM_STACKZERO'):
+            self.path_angle2 = os.path.join(path_rawdata, parameters.DIR_RIGHTCAM_STACKZERO)
+        else:
+            self.path_angle2 = os.path.join(path_rawdata, nomenclature.FLAG_DIR_RIGHTCAM_STACKZERO)
+
+        if hasattr(parameters, 'DIR_LEFTCAM_STACKONE_CHANNEL_' + str(channel_id)):
+            self.path_angle3 = os.path.join(path_rawdata,
+                                            getattr(parameters, 'DIR_LEFTCAM_STACKONE_CHANNEL_' + str(channel_id)))
+        elif hasattr(parameters, 'DIR_LEFTCAM_STACKONE_CHANNEL' + str(channel_id)):
+            self.path_angle3 = os.path.join(path_rawdata,
+                                            getattr(parameters, 'DIR_LEFTCAM_STACKONE_CHANNEL' + str(channel_id)))
+        elif hasattr(parameters, 'DIR_LEFTCAM_STACKONE'):
+            self.path_angle3 = os.path.join(path_rawdata, parameters.DIR_LEFTCAM_STACKONE)
+        else:
+            self.path_angle3 = os.path.join(path_rawdata, nomenclature.FLAG_DIR_LEFTCAM_STACKONE)
+
+        if hasattr(parameters, 'DIR_RIGHTCAM_STACKONE_CHANNEL_' + str(channel_id)):
+            self.path_angle4 = os.path.join(path_rawdata,
+                                            getattr(parameters, 'DIR_RIGHTCAM_STACKONE_CHANNEL_' + str(channel_id)))
+        elif hasattr(parameters, 'DIR_RIGHTCAM_STACKONE_CHANNEL' + str(channel_id)):
+            self.path_angle4 = os.path.join(path_rawdata,
+                                            getattr(parameters, 'DIR_RIGHTCAM_STACKONE_CHANNEL' + str(channel_id)))
+        elif hasattr(parameters, 'DIR_RIGHTCAM_STACKONE'):
+            self.path_angle4 = os.path.join(path_rawdata, parameters.DIR_RIGHTCAM_STACKONE)
+        else:
+            self.path_angle4 = os.path.join(path_rawdata, nomenclature.FLAG_DIR_RIGHTCAM_STACKONE)
+
+        self.path_angle1 = nomenclature.replaceFlags(self.path_angle1, parameters)
+        self.path_angle2 = nomenclature.replaceFlags(self.path_angle2, parameters)
+        self.path_angle3 = nomenclature.replaceFlags(self.path_angle3, parameters)
+        self.path_angle4 = nomenclature.replaceFlags(self.path_angle4, parameters)
+
+        if not os.path.isdir(self.path_angle1) or not os.path.isdir(self.path_angle2) \
+                or not os.path.isdir(self.path_angle3) or not os.path.isdir(self.path_angle4):
+            monitoring.to_log_and_console(proc + ": at least one raw data directory for channel '" + str(channel_id)
+                                          + "' does not exist")
+            monitoring.to_log_and_console("- " + str(self.path_angle1))
+            monitoring.to_log_and_console("- " + str(self.path_angle2))
+            monitoring.to_log_and_console("- " + str(self.path_angle3))
+            monitoring.to_log_and_console("- " + str(self.path_angle4))
+            monitoring.to_log_and_console("\t Exiting")
+            sys.exit(1)
+
+        self.path_fuse_exp = None
+        if hasattr(parameters, 'EXP_FUSE_CHANNEL_' + str(channel_id)):
+            self.path_fuse_exp = os.path.join(nomenclature.path_fuse, nomenclature.DIR_STAGE_FUSE + '_'
+                                              + getattr(parameters, 'EXP_FUSE_CHANNEL_' + str(channel_id)))
+        elif hasattr(parameters, 'EXP_FUSE_CHANNEL' + str(channel_id)):
+            self.path_fuse_exp = os.path.join(nomenclature.path_fuse, nomenclature.DIR_STAGE_FUSE + '_'
+                                              + getattr(parameters, 'EXP_FUSE_CHANNEL' + str(channel_id)))
+
+        return self
+
+    def has_same_raw_data_dirs(self, c):
+        if self.path_angle1 != c.path_angle1 and self.path_angle2 != c.path_angle2 \
+                and self.path_angle3 != c.path_angle3 and self.path_angle4 != c.path_angle4:
+            return False
+        return True
+
+    def update_path_fuse_exp(self, c, suffixe):
+        self.path_fuse_exp = c.path_fuse_exp + suffixe
 
     def write_parameters(self, log_file_name, desc=None):
         with open(log_file_name, 'a') as logfile:
@@ -153,6 +263,25 @@ class FusionEnvironment(object):
         parameters = imp.load_source('*', parameter_file)
 
         self.channel[0].update_main_channel_from_file(parameter_file)
+
+        #
+        # build other channels
+        #
+        channel2 = FusionChannel()
+        channel2 = channel2.update_channel_x_from_file('2', parameter_file)
+        if type(channel2) is not 'NoneType' and channel2.has_same_raw_data_dirs(self.channel[0]) is False:
+            if channel2.path_fuse_exp is None:
+                channel2.update_path_fuse_exp(self.channel[0], '_CHANNEL_2')
+            channel2.path_fuse_exp = nomenclature.replaceFlags(channel2.path_fuse_exp, parameters)
+            self.channel.append(channel2)
+
+        channel3 = FusionChannel()
+        channel3 = channel3.update_channel_x_from_file('3', parameter_file)
+        if type(channel3) is not 'NoneType' and channel3.has_same_raw_data_dirs(self.channel[0]) is False:
+            if channel3.path_fuse_exp is None:
+                channel3.update_path_fuse_exp(self.channel[0], '_CHANNEL_3')
+            channel3.path_fuse_exp = nomenclature.replaceFlags(channel3.path_fuse_exp, parameters)
+            self.channel.append(channel3)
 
         self.path_angle1_files = nomenclature.replaceFlags(nomenclature.path_rawdata_angle1_files, parameters)
         self.path_angle2_files = nomenclature.replaceFlags(nomenclature.path_rawdata_angle2_files, parameters)
@@ -412,6 +541,9 @@ class FusionParameters(object):
 
         #
         # registration parameters
+        if hasattr(parameters, 'fusion_registration_transformation_type'):
+            if parameters.fusion_registration_transformation_type is not None:
+                self.registration_transformation_type = parameters.fusion_registration_transformation_type
         if hasattr(parameters, 'fusion_registration_pyramid_highest_level'):
             if parameters.fusion_registration_pyramid_highest_level is not None:
                 self.registration_pyramid_highest_level = parameters.fusion_registration_pyramid_highest_level
@@ -519,20 +651,48 @@ def _read_image_name(data_path, temporary_path, file_name, resolution):
     if f[len(f)-4:len(f)] == '.zip':
 
         prefix = f[0:len(f)-4]
-        #
-        # unzipping
-        #
-        monitoring.to_log_and_console("    .. unzipping '" + str(f) + "'", 2)
-        cmd = 'unzip '+os.path.join(data_path, f) + ' -d ' + str(temporary_path)
 
-        subprocess.call(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-
+        #
+        # maybe the file has already be unzipped
+        #
         file_names = []
         for f in os.listdir(temporary_path):
             if len(f) <= len(prefix):
                 pass
             if f[0:len(prefix)] == prefix:
-                file_names.append(f)
+                if f[len(prefix):len(f)] in __recognized_extensions__:
+                    file_names.append(f)
+
+        if len(file_names) > 1:
+            monitoring.to_log_and_console(proc + ": already several images with name '"
+                                          + str(prefix) + "' were found in '" + str(temporary_path) + "'")
+            monitoring.to_log_and_console("\t " + str(file_names))
+            monitoring.to_log_and_console("\t Exiting")
+            sys.exit(1)
+
+        elif len(file_names) == 0:
+            #
+            # unzipping
+            #
+            monitoring.to_log_and_console("    .. unzipping '" + str(f) + "'", 2)
+            #
+            # there are issues with unzip
+            # seems to occur when files are zipped with zip 3.0
+            #
+            # cmd = 'unzip '+os.path.join(data_path, f) + ' -d ' + str(temporary_path)
+            cmd = 'tar xvf '+os.path.join(data_path, f) + ' -C ' + str(temporary_path)
+            subprocess.call(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+            #
+            # parsing again the temporay directory
+            #
+            file_names = []
+            for f in os.listdir(temporary_path):
+                if len(f) <= len(prefix):
+                    pass
+                if f[0:len(prefix)] == prefix:
+                    file_names.append(f)
+
         if len(file_names) == 0:
             monitoring.to_log_and_console(proc + ": no image with name '" + str(prefix)
                                           + "' was found in '" + str(temporary_path) + "'")
@@ -560,20 +720,40 @@ def _read_image_name(data_path, temporary_path, file_name, resolution):
     for extension in __extension_to_be_converted__:
         if f[len(f)-len(extension):len(f)] == extension:
             prefix = f[0:len(f) - len(extension)]
-            monitoring.to_log_and_console("    .. converting '" + str(f) + "'", 2)
-            image = imread(full_name)
-            if type(resolution) is tuple and len(resolution) == 3:
-                image.resolution = resolution
-                monitoring.to_log("    * resolution of '" + full_name + "' has been set to " + str(image.resolution))
-            elif type(resolution) is list and len(resolution) == 3:
-                image.resolution = (resolution(0), resolution(1), resolution(2))
-                monitoring.to_log("    * resolution of '" + full_name + "' has been set to " + str(image.resolution))
-            else:
-                monitoring.to_log("    * resolution of '" + full_name + "' is " + str(image.resolution)
-                                  + "(default/read values)")
-            full_name = os.path.join(temporary_path, prefix) + default_extension
-            imsave(full_name, image)
-            file_has_been_converted = True
+
+            #
+            # new file name
+            # check whether it has already been converted
+            #
+            new_full_name = os.path.join(temporary_path, prefix) + default_extension
+            if not os.path.isfile(new_full_name):
+                monitoring.to_log_and_console("    .. converting '" + str(f) + "'", 2)
+                image = imread(full_name)
+                if type(resolution) is tuple and len(resolution) == 3:
+                    image.resolution = resolution
+                    monitoring.to_log("    * resolution of '" + full_name + "' has been set to "
+                                      + str(image.resolution))
+                elif type(resolution) is list and len(resolution) == 3:
+                    image.resolution = (resolution(0), resolution(1), resolution(2))
+                    monitoring.to_log("    * resolution of '" + full_name + "' has been set to "
+                                      + str(image.resolution))
+                else:
+                    monitoring.to_log("    * resolution of '" + full_name + "' is " + str(image.resolution)
+                                      + "(default/read values)")
+                #
+                # remove unzipped file to avoid having two files in the directory
+                # verify that it is not the input file!
+                #
+                if os.path.dirname(full_name) == temporary_path:
+                    os.remove(full_name)
+
+                #
+                # save converted file
+                #
+                imsave(new_full_name, image)
+                file_has_been_converted = True
+
+            full_name = new_full_name
             break
 
     #
@@ -1109,9 +1289,7 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
         # for channel #0, check also whether the correction file is missing
         #
 
-        do_something = list()
-        for _ in range(0, len(input_image_list[0])):
-            do_something.append(False)
+        do_something = [False] * len(input_image_list[0])
 
         for c in range(0, len(channel)):
 
@@ -1248,9 +1426,7 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
         # check whether one cropped image is missing
         #
 
-        do_something = list()
-        for _ in range(0, len(input_image_list[0])):
-            do_something.append(False)
+        do_something = [False] * len(input_image_list[0])
 
         for c in range(0, len(channel)):
 
@@ -1289,23 +1465,17 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
                 if c == 0:
                     box = _crop_bounding_box(the_images[i])
                     box_list.append(box)
-                    if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                        _crop_disk_image(the_images[i], res_images[i], box,
-                                         parameters.acquisition_cropping_margin_x_0,
-                                         parameters.acquisition_cropping_margin_x_1,
-                                         parameters.acquisition_cropping_margin_y_0,
-                                         parameters.acquisition_cropping_margin_y_1)
-                    else:
-                        monitoring.to_log_and_console("       already existing", 2)
                 else:
-                    if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                        _crop_disk_image(the_images[i], res_images[i], box_list[i],
-                                         parameters.acquisition_cropping_margin_x_0,
-                                         parameters.acquisition_cropping_margin_x_1,
-                                         parameters.acquisition_cropping_margin_y_0,
-                                         parameters.acquisition_cropping_margin_y_1)
-                    else:
-                        monitoring.to_log_and_console("       already existing", 2)
+                    box = box_list[i]
+
+                if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                    _crop_disk_image(the_images[i], res_images[i], box,
+                                     parameters.acquisition_cropping_margin_x_0,
+                                     parameters.acquisition_cropping_margin_x_1,
+                                     parameters.acquisition_cropping_margin_y_0,
+                                     parameters.acquisition_cropping_margin_y_1)
+                else:
+                    monitoring.to_log_and_console("       already existing", 2)
 
     #
     # Mirroring of 'right' images if required
@@ -1329,8 +1499,8 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
                 if i == 0 or i == 2:
                     res_images.append(the_images[i])
                 else:
-                    res_images.append(_add_suffix(input_images[i], "_mirror",
-                                                  new_dirname=temporary_paths[i]))
+                    res_images.append(_add_suffix(input_image_list[c][i], "_mirror",
+                                                  new_dirname=channel[c].temporary_paths[i]))
             res_image_list.append(res_images)
 
             #
@@ -1398,14 +1568,16 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
     # if one image is missing, re-process channel #0 to get weights and sum of weights
     #
 
-    do_something = list()
-    for _ in range(0, len(input_image_list[0])):
-        do_something.append(False)
+    do_something = [False] * len(input_image_list[0])
 
     for c in range(0, len(channel)):
 
         the_images = the_image_list[c]
         res_images = res_image_list[c]
+
+        if not os.path.isfile(os.path.join(channel[c].path_fuse_exp, fused_image)):
+            do_something = [True] * len(input_image_list[0])
+            break
 
         for i in range(0, len(the_images)):
             if os.path.isfile(res_images[i]):
@@ -1441,6 +1613,7 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
     #
 
     full_mask = None
+    fusion_box = None
 
     for c in range(0, len(channel)):
 
@@ -1608,8 +1781,11 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
             tmp_fused_image = _add_suffix(fused_image, "_uncropped_fusion", new_dirname=channel[c].temporary_paths[4])
             imsave(tmp_fused_image, full_image)
 
+            if c == 0:
+                fusion_box = _crop_bounding_box(tmp_fused_image)
+
             monitoring.to_log_and_console("    .. cropping '" + fused_image.split(os.path.sep)[-1], 2)
-            _crop_disk_image(tmp_fused_image, os.path.join(channel[c].path_fuse_exp, fused_image), None,
+            _crop_disk_image(tmp_fused_image, os.path.join(channel[c].path_fuse_exp, fused_image), fusion_box,
                              parameters.fusion_cropping_margin_x_0,
                              parameters.fusion_cropping_margin_x_1,
                              parameters.fusion_cropping_margin_y_0,
@@ -1690,6 +1866,7 @@ def fusion_preprocess(input_images, fused_image, time_point, environment, parame
     #
 
     for c in range(0, len(environment.channel)):
+        environment.channel[c].temporary_paths = list()
         environment.channel[c].temporary_paths.append(os.path.join(environment.channel[c].path_fuse_exp,
                                                                    "TEMP_$TIME", "ANGLE_0"))
         environment.channel[c].temporary_paths.append(os.path.join(environment.channel[c].path_fuse_exp,
