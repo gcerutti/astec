@@ -169,6 +169,10 @@ class FusionChannel(object):
         elif hasattr(parameters, 'EXP_FUSE_CHANNEL' + str(channel_id)):
             self.path_fuse_exp = os.path.join(nomenclature.path_fuse, nomenclature.DIR_STAGE_FUSE + '_'
                                               + getattr(parameters, 'EXP_FUSE_CHANNEL' + str(channel_id)))
+        else:
+            monitoring.to_log_and_console(proc + ": no fusion result directory for channel '" + str(channel_id) + "'")
+            monitoring.to_log_and_console("\t Exiting")
+            sys.exit(1)
 
         return self
 

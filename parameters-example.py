@@ -10,7 +10,7 @@
 # if not present, the current directory is used
 #
 
-PATH_EMBRYO = ''
+# PATH_EMBRYO = ''
 
 
 # ##### explanation #####
@@ -21,7 +21,7 @@ PATH_EMBRYO = ''
 # (automatically extracted from PATH_EMBRYO if not provided)
 #
 
-EN = ''
+# EN = ''
 
 
 ######################################################################
@@ -47,6 +47,19 @@ EN = ''
 # DIR_LEFTCAM_STACKONE = 'LC/Stack0001'
 # DIR_RIGHTCAM_STACKONE = 'RC/Stack0001'
 #
+# for multi-channel fusion, paths to the raw data have also to be specified
+# with the variables (X = 2 or 3) and the same path construction
+# eg: 'PATH_EMBRYO'/'DIR_RAWDATA_CHANNEL_X'/'DIR_LEFTCAM_STACKZERO_CHANNEL_X'
+# DIR_RAWDATA_CHANNEL_X
+# DIR_LEFTCAM_STACKZERO_CHANNEL_X
+# DIR_RIGHTCAM_STACKZERO_CHANNEL_X
+# DIR_LEFTCAM_STACKONE_CHANNEL_X
+# DIR_RIGHTCAM_STACKONE_CHANNEL_X
+#
+# if DIR_RAWDATA_CHANNEL_X is not given, it is replaced by DIR_RAWDATA or its default value
+# if any of the four path DIR_dirCAM_STACKx_CHANNEL_X is not given, it is also replaced
+# by the main channel variable (DIR_dirCAM_STACKx) or its default value
+#
 
 # DIR_RAWDATA = ''
 # DIR_LEFTCAM_STACKZERO = ''
@@ -54,6 +67,17 @@ EN = ''
 # DIR_LEFTCAM_STACKONE = ''
 # DIR_RIGHTCAM_STACKONE = ''
 
+# DIR_RAWDATA_CHANNEL_2 = ''
+# DIR_LEFTCAM_STACKZERO_CHANNEL_2 = ''
+# DIR_RIGHTCAM_STACKZERO_CHANNEL_2 = ''
+# DIR_LEFTCAM_STACKONE_CHANNEL_2 = ''
+# DIR_RIGHTCAM_STACKONE_CHANNEL_2 = ''
+
+# DIR_RAWDATA_CHANNEL_3 = ''
+# DIR_LEFTCAM_STACKZERO_CHANNEL_3 = ''
+# DIR_RIGHTCAM_STACKZERO_CHANNEL_3 = ''
+# DIR_LEFTCAM_STACKONE_CHANNEL_3 = ''
+# DIR_RIGHTCAM_STACKONE_CHANNEL_3 = ''
 
 # ##### explanation #####
 #
@@ -102,9 +126,14 @@ EN = ''
 # default value is
 # EXP_FUSE = 'RELEASE'
 #
+# for multi-channel fusion, a fusion result per additional channel has to be given
+# EXP_FUSE_CHANNEL_2 = ''
+# EXP_FUSE_CHANNEL_3 = ''
+#
 
 # EXP_FUSE = ''
-
+# EXP_FUSE_CHANNEL_2 = ''
+# EXP_FUSE_CHANNEL_3 = ''
 
 #
 #
@@ -171,9 +200,9 @@ EN = ''
 # according these 4 directories are different
 #
 
-begin = 1
+# begin = 0
 
-end = 5
+# end = 0
 
 # delta = 1
 
