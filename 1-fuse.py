@@ -4,7 +4,6 @@ import os
 import time
 from argparse import ArgumentParser
 
-
 #
 # local imports
 # add ASTEC subdirectory
@@ -17,6 +16,7 @@ from argparse import ArgumentParser
 
 import ASTEC.commonTools as commonTools
 import ASTEC.FUSION as FUSION
+from ASTEC.CommunFunctions.cpp_wrapping import path_to_vt
 
 
 #
@@ -108,21 +108,22 @@ if __name__ == '__main__':
     # and updating parameters
     #
     parameterFile = commonTools.get_parameter_file(args.parameterFile)
+    environment.update_from_file(parameterFile, start_time)
+
+    if not os.path.isdir(environment.path_logdir):
+        os.makedirs(environment.path_logdir)
+
     experiment.update_from_file(parameterFile)
     parameters.update_from_file(parameterFile)
-    environment.update_from_file(parameterFile, start_time)
 
     #
     # make fusion directory and subdirectory if required
     # => allows to write log and history files
     #    and to copy parameter file
     #
-    for i in range(0,len(environment.channel)):
+    for i in range(0, len(environment.channel)):
         if not os.path.isdir(environment.channel[i].path_fuse_exp):
             os.makedirs(environment.channel[i].path_fuse_exp)
-
-    if not os.path.isdir(environment.path_logdir):
-        os.makedirs(environment.path_logdir)
 
     #
     # write history information in history file
@@ -131,7 +132,8 @@ if __name__ == '__main__':
                                           experiment,
                                           parameterFile,
                                           start_time,
-                                          os.path.dirname(__file__))
+                                          os.path.dirname(__file__),
+                                          path_to_vt())
 
     #
     # define log file

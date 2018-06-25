@@ -103,6 +103,22 @@ def _find_exec(executable_file, monitoring=None):
     return path_to_exec
 
 
+def path_to_vt():
+    """
+    Try to find the executable file 'executable_file'
+    :return:
+    """
+    cmd = 'which blockmatching'
+    path_to_exec = ""
+    try:
+        which_exec = subprocess.check_output(cmd, shell=True)
+        path_to_exec = which_exec.split('\n')[0]
+    except subprocess.CalledProcessError:
+        return None
+
+    return os.path.dirname(path_to_exec)
+
+
 ############################################################
 #
 #
@@ -180,10 +196,12 @@ def apply_transformation(the_image, res_image, the_transformation=None,
             _write_error_msg("\t Exiting", monitoring)
             sys.exit(1)
 
-    if monitoring is not None:
-        monitoring.to_log_and_console("* Launch: " + command_line, 3)
-
-    subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     if return_image is True:
         out = imread(res_image)
@@ -227,10 +245,12 @@ def slitline_correction(the_image, res_image,
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None:
-        monitoring.to_log_and_console("* Launch: " + command_line, 3)
-
-    subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     return
 
@@ -252,10 +272,12 @@ def mip_projection_for_crop(the_image, res_image, other_options=None, monitoring
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None:
-        monitoring.to_log_and_console("* Launch: " + command_line, 3)
-
-    subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     return
 
@@ -303,10 +325,12 @@ def linear_registration(path_ref, path_flo, path_output,
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None:
-        monitoring.to_log_and_console("* Launch: " + command_line, 3)
-
-    subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     return
 

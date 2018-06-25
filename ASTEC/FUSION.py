@@ -75,7 +75,7 @@ class FusionChannel(object):
     def update_channel_x_from_file(self, channel_id, parameter_file):
         proc = 'FusionChannel.update_channel_x_from_file'
         if parameter_file is None:
-            return
+            return False
         if not os.path.isfile(parameter_file):
             print ("Error: '" + parameter_file + "' is not a valid file. Exiting.")
             sys.exit(1)
@@ -100,7 +100,7 @@ class FusionChannel(object):
         path_rawdata = nomenclature.replaceFlags(path_rawdata, parameters)
 
         if not os.path.isdir(path_rawdata):
-            return
+            return False
 
         if hasattr(parameters, 'DIR_LEFTCAM_STACKZERO_CHANNEL_' + str(channel_id)):
             self.path_angle1 = os.path.join(path_rawdata,
@@ -151,16 +151,20 @@ class FusionChannel(object):
         self.path_angle3 = nomenclature.replaceFlags(self.path_angle3, parameters)
         self.path_angle4 = nomenclature.replaceFlags(self.path_angle4, parameters)
 
-        if not os.path.isdir(self.path_angle1) or not os.path.isdir(self.path_angle2) \
-                or not os.path.isdir(self.path_angle3) or not os.path.isdir(self.path_angle4):
-            monitoring.to_log_and_console(proc + ": at least one raw data directory for channel '" + str(channel_id)
-                                          + "' does not exist")
-            monitoring.to_log_and_console("- " + str(self.path_angle1))
-            monitoring.to_log_and_console("- " + str(self.path_angle2))
-            monitoring.to_log_and_console("- " + str(self.path_angle3))
-            monitoring.to_log_and_console("- " + str(self.path_angle4))
-            monitoring.to_log_and_console("\t Exiting")
-            sys.exit(1)
+        if os.path.isdir(self.path_angle1) or os.path.isdir(self.path_angle2) \
+                or os.path.isdir(self.path_angle3) or os.path.isdir(self.path_angle4):
+            if not os.path.isdir(self.path_angle1) or not os.path.isdir(self.path_angle2) \
+                    or not os.path.isdir(self.path_angle3) or not os.path.isdir(self.path_angle4):
+                monitoring.to_log_and_console(proc + ": at least one raw data directory for channel '" + str(channel_id)
+                                            + "' does not exist")
+                monitoring.to_log_and_console("- " + str(self.path_angle1))
+                monitoring.to_log_and_console("- " + str(self.path_angle2))
+                monitoring.to_log_and_console("- " + str(self.path_angle3))
+                monitoring.to_log_and_console("- " + str(self.path_angle4))
+                monitoring.to_log_and_console("\t Exiting")
+                sys.exit(1)
+        else:
+            return False
 
         self.path_fuse_exp = None
         if hasattr(parameters, 'EXP_FUSE_CHANNEL_' + str(channel_id)):
@@ -169,12 +173,8 @@ class FusionChannel(object):
         elif hasattr(parameters, 'EXP_FUSE_CHANNEL' + str(channel_id)):
             self.path_fuse_exp = os.path.join(nomenclature.path_fuse, nomenclature.DIR_STAGE_FUSE + '_'
                                               + getattr(parameters, 'EXP_FUSE_CHANNEL' + str(channel_id)))
-        else:
-            monitoring.to_log_and_console(proc + ": no fusion result directory for channel '" + str(channel_id) + "'")
-            monitoring.to_log_and_console("\t Exiting")
-            sys.exit(1)
 
-        return self
+        return True
 
     def has_same_raw_data_dirs(self, c):
         if self.path_angle1 != c.path_angle1 and self.path_angle2 != c.path_angle2 \
@@ -272,20 +272,20 @@ class FusionEnvironment(object):
         # build other channels
         #
         channel2 = FusionChannel()
-        channel2 = channel2.update_channel_x_from_file('2', parameter_file)
-        if type(channel2) is not 'NoneType' and channel2.has_same_raw_data_dirs(self.channel[0]) is False:
-            if channel2.path_fuse_exp is None:
-                channel2.update_path_fuse_exp(self.channel[0], '_CHANNEL_2')
-            channel2.path_fuse_exp = nomenclature.replaceFlags(channel2.path_fuse_exp, parameters)
-            self.channel.append(channel2)
+        if channel2.update_channel_x_from_file('2', parameter_file) is True:
+            if channel2.has_same_raw_data_dirs(self.channel[0]) is False:
+                if channel2.path_fuse_exp is None:
+                    channel2.update_path_fuse_exp(self.channel[0], '_CHANNEL_2')
+                channel2.path_fuse_exp = nomenclature.replaceFlags(channel2.path_fuse_exp, parameters)
+                self.channel.append(channel2)
 
         channel3 = FusionChannel()
-        channel3 = channel3.update_channel_x_from_file('3', parameter_file)
-        if type(channel3) is not 'NoneType' and channel3.has_same_raw_data_dirs(self.channel[0]) is False:
-            if channel3.path_fuse_exp is None:
-                channel3.update_path_fuse_exp(self.channel[0], '_CHANNEL_3')
-            channel3.path_fuse_exp = nomenclature.replaceFlags(channel3.path_fuse_exp, parameters)
-            self.channel.append(channel3)
+        if channel3.update_channel_x_from_file('3', parameter_file) is True:
+            if channel3.has_same_raw_data_dirs(self.channel[0]) is False:
+                if channel3.path_fuse_exp is None:
+                    channel3.update_path_fuse_exp(self.channel[0], '_CHANNEL_3')
+                channel3.path_fuse_exp = nomenclature.replaceFlags(channel3.path_fuse_exp, parameters)
+                self.channel.append(channel3)
 
         self.path_angle1_files = nomenclature.replaceFlags(nomenclature.path_rawdata_angle1_files, parameters)
         self.path_angle2_files = nomenclature.replaceFlags(nomenclature.path_rawdata_angle2_files, parameters)
@@ -1826,7 +1826,7 @@ def fusion_preprocess(input_images, fused_image, time_point, environment, parame
     proc = "fusion_preprocess"
 
     if monitoring.debug > 1:
-        print ""
+
         print proc + " was called with:"
         print "- input_images = " + str(input_images)
         print "- fused_image = " + str(fused_image)
@@ -1834,6 +1834,8 @@ def fusion_preprocess(input_images, fused_image, time_point, environment, parame
         print ""
 
     monitoring.to_log_and_console('... fusion of time ' + time_point, 1)
+    if len(environment.channel) > 1:
+        monitoring.to_log_and_console('    there are ' + str(len(environment.channel)) + ' channels to be fused', 1)
 
     #
     # check whether there exists some unfused channel

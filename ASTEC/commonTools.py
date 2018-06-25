@@ -64,8 +64,9 @@ class Monitoring(object):
         print(text)
 
     def to_log(self, text):
-        with open(self.logfile, 'a') as logfile:
-            logfile.write(text+'\n')
+        if self.logfile is not None:
+            with open(self.logfile, 'a') as logfile:
+                logfile.write(text+'\n')
 
     def to_log_and_console(self, text, verboseness=0):
         if self.verbose >= verboseness or self.debug > 0:
@@ -220,7 +221,8 @@ def write_history_information(logfile_name,
                               experiment=None,
                               parameter_file=None,
                               start_time=None,
-                              path_to_exe=None):
+                              path_to_exe=None,
+                              path_to_vt=None):
     """
     Write history information
     :param logfile_name: file where to write information
@@ -253,6 +255,14 @@ def write_history_information(logfile_name,
                 o = pipe.next()
                 v = o.split('\n')
                 logfile.write(str(v[0]+"\n"))
+        if path_to_vt is not None:
+            logfile.write("# VT version: ")
+            print str(path_to_vt)
+            pipe = subprocess.Popen("cd "+path_to_vt+"; git describe; cd "+str(os.getcwd()),
+                                    shell=True, stdout=subprocess.PIPE).stdout
+            o = pipe.next()
+            v = o.split('\n')
+            logfile.write(str(v[0]+"\n"))
         logfile.write("# \n")
     return
 
