@@ -401,7 +401,7 @@ class FusionParameters(object):
         #
         # images suffixes/formats
         #
-        self.default_image_suffix = None
+        self.default_image_suffix = 'inr'
 
 
     def write_parameters(self, log_file_name):
@@ -439,7 +439,7 @@ class FusionParameters(object):
             logfile.write('- fusion_cropping_margin_y_0 = '+str(self.fusion_cropping_margin_y_0)+'\n')
             logfile.write('- fusion_cropping_margin_y_1 = '+str(self.fusion_cropping_margin_y_1)+'\n')
 
-            logfile.write(' - default image suffix = '+str(self.default_image_suffix) + '\n')
+            logfile.write('- default_image_suffix = '+str(self.default_image_suffix) + '\n')
 
             logfile.write("\n")
         return
@@ -476,7 +476,7 @@ class FusionParameters(object):
         print('- fusion_cropping_margin_y_0 = '+str(self.fusion_cropping_margin_y_0))
         print('- fusion_cropping_margin_y_1 = '+str(self.fusion_cropping_margin_y_1))
 
-        print(' - default image suffix = ' + str(self.default_image_suffix))
+        print('- default_image_suffix = ' + str(self.default_image_suffix))
 
         print("")
 
@@ -747,7 +747,7 @@ def _read_image_name(data_path, temporary_path, file_name, resolution, default_e
             # new file name
             # check whether it has already been converted
             #
-            new_full_name = os.path.join(temporary_path, prefix) + '.' + default_extension
+            new_full_name = os.path.join(temporary_path, prefix) + '.' + str(default_extension)
             if not os.path.isfile(new_full_name):
                 monitoring.to_log_and_console("    .. converting '" + str(f) + "'", 2)
                 image = imread(full_name)
