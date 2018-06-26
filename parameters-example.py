@@ -207,6 +207,18 @@
 # delta = 1
 
 
+# ##### explanation #####
+#
+# defines the output image format
+#
+# RESULT_IMAGE_SUFFIX_FUSE is for the result image(s)
+# default_image_suffix is for all images (including auxiliary ones)
+# defaulr are 'inr'
+#
+
+# RESULT_IMAGE_SUFFIX_FUSE = 'inr'
+# default_image_suffix = 'inr'
+
 ######################################################################
 #
 # raw data definition

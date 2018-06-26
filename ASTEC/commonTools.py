@@ -229,7 +229,8 @@ def write_history_information(logfile_name,
     :param experiment: experiment values (class)
     :param parameter_file: name of the parameter file
     :param start_time: start time
-    :param path_to_exe: path to Astec repository
+    :param path_to_exe: path to Astec repository, used to get git version
+    :param path_to_vt: path to VT build repository, used to get git version
     :return:
     """
     with open(logfile_name, 'a') as logfile:
@@ -257,7 +258,6 @@ def write_history_information(logfile_name,
                 logfile.write(str(v[0]+"\n"))
         if path_to_vt is not None:
             logfile.write("# VT version: ")
-            print str(path_to_vt)
             pipe = subprocess.Popen("cd "+path_to_vt+"; git describe; cd "+str(os.getcwd()),
                                     shell=True, stdout=subprocess.PIPE).stdout
             o = pipe.next()

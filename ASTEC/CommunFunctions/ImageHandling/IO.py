@@ -10,6 +10,7 @@ import numpy as np
 from spatial_image import SpatialImage
 
 from inrimage import read_inrimage, write_inrimage
+from metaimage import read_metaimage, write_metaimage
 from tif import read_tif, write_tif
 from h5 import read_h5
 
@@ -52,7 +53,7 @@ def imread (filename, dimension=3) :
     if ext == ".inr":
         return read_inrimage(filename)
     if ext == ".mha":
-        return read_inrimage(filename)
+        return read_metaimage(filename)
     elif ext in [".tif", ".tiff"]:
         return read_tif(filename)
     elif ext in [".npz", ".npy"]:
@@ -95,7 +96,7 @@ def imsave(filename, img):
     if ext == ".inr":
         write_inrimage(filename, img)
     if ext == ".mha":
-        write_inrimage(filename, img)
+        write_metaimage(filename, img)
     elif ext in [".npz", ".npy"]:
         save(filename, img)
     elif ext in [".tiff", ".tif"]:

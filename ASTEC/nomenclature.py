@@ -137,14 +137,14 @@ path_rawdata_angle4_files = FLAG_NAME_RIGHT_RAW_IMAGE + '$TIME'
 #
 
 
-FLAG_IMAGESUFFIX_FUSE = '$IMAGESUFFIXFUSE'
+FLAG_RESULT_IMAGE_SUFFIX_FUSE = '$RESULTIMAGESUFFIX'
 
 # path fused images
 path_fuse = os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_FUSE)
 # path for fusion workspace
 path_fuse_exp = os.path.join(path_fuse, DIR_STAGE_FUSE + '_' + FLAG_EXP_FUSE)
 # fused images generic name
-path_fuse_exp_files = FLAG_EN + '_fuse_t$TIME.' + FLAG_IMAGESUFFIX_FUSE
+path_fuse_exp_files = FLAG_EN + '_fuse_t$TIME.' + FLAG_RESULT_IMAGE_SUFFIX_FUSE
 # log files
 path_fuse_logdir = os.path.join(path_fuse_exp, 'LOGS')
 path_fuse_historyfile = os.path.join(path_fuse_logdir, '1-fuse-history.log')
@@ -488,9 +488,8 @@ def replaceFlags(filename, parameters, timestamp=None, check_name=False):
         elif flag == FLAG_EXP_POST:
             filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_POST', 'RELEASE')
 
-
-        elif flag == FLAG_IMAGESUFFIX_FUSE:
-            filename = _genericReplaceFlag(filename, flag, parameters, 'fusion_image_suffixe', 'inr')
+        elif flag == FLAG_RESULT_IMAGE_SUFFIX_FUSE:
+            filename = _genericReplaceFlag(filename, flag, parameters, 'RESULT_IMAGE_SUFFIX_FUSE', 'inr')
 
         elif flag == FLAG_TIMESTAMP:
             filename = replaceTIMESTAMP(filename, timestamp)
