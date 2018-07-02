@@ -701,9 +701,18 @@ def _read_image_name(data_path, temporary_path, file_name, resolution, default_e
             # there are issues with unzip
             # seems to occur when files are zipped with zip 3.0
             #
-            # cmd = 'unzip '+os.path.join(data_path, f) + ' -d ' + str(temporary_path)
-            cmd = 'tar xvf '+os.path.join(data_path, f) + ' -C ' + str(temporary_path)
-            subprocess.call(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            if platform.system() == 'Linux':
+                command_line = 'unzip ' + os.path.join(data_path, f) + ' -d ' + str(temporary_path)
+            elif platform.system() == 'Darwin':
+                command_line = 'tar xvf ' + os.path.join(data_path, f) + ' -C ' + str(temporary_path)
+            else:
+                command_line = 'unzip ' + os.path.join(data_path, f) + ' -d ' + str(temporary_path)
+            if monitoring.verbose >= 3 or monitoring.debug > 0:
+                monitoring.to_log("* Launch: " + command_line)
+                with open(monitoring.logfile, 'a') as logfile:
+                    subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+            else:
+                subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
             #
             # parsing again the temporay directory
