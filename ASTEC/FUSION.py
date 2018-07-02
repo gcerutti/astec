@@ -4,6 +4,7 @@ import imp
 import sys
 import time
 import math
+import platform
 import shutil
 import subprocess
 import numpy as np
