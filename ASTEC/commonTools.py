@@ -24,12 +24,6 @@ class Monitoring(object):
         self.keepTemporaryFiles = False
         self.forceResultsToBeBuilt = False
 
-    def update_from_args(self, args):
-        self.verbose = args.verbose
-        self.debug = args.debug
-        self.keepTemporaryFiles = args.keepTemporaryFiles
-        self.forceResultsToBeBuilt = args.forceResultsToBeBuilt
-
     def write_parameters(self, logfilename):
         with open(logfilename, 'a') as logfile:
             logfile.write("\n")
@@ -51,6 +45,12 @@ class Monitoring(object):
         print('- keepTemporaryFiles is ' + str(self.keepTemporaryFiles))
         print('- forceResultsToBeBuilt is ' + str(self.forceResultsToBeBuilt))
         print("")
+
+    def update_from_args(self, args):
+        self.verbose = args.verbose
+        self.debug = args.debug
+        self.keepTemporaryFiles = args.keepTemporaryFiles
+        self.forceResultsToBeBuilt = args.forceResultsToBeBuilt
 
     def copy(self, m):
         self.verbose = m.verbose
@@ -89,6 +89,31 @@ class Experiment(object):
         self.firstTimePoint = -1
         self.lastTimePoint = -1
         self.deltaTimePoint = 1
+
+    #
+    #
+    #
+    def write_parameters(self, logfilename):
+        with open(logfilename, 'a') as logfile:
+            logfile.write("\n")
+            logfile.write('Experiment parameters\n')
+            logfile.write('- embryoPath is ' + str(self.embryoPath)+'\n')
+            logfile.write('- embryoName is ' + str(self.embryoName)+'\n')
+            logfile.write('- firstTimePoint is ' + str(self.firstTimePoint)+'\n')
+            logfile.write('- lastTimePoint is ' + str(self.lastTimePoint)+'\n')
+            logfile.write('- deltaTimePoint is ' + str(self.deltaTimePoint)+'\n')
+            logfile.write("\n")
+        return
+
+    def print_parameters(self):
+        print("")
+        print('Experiment parameters')
+        print('- embryoPath is ' + str(self.embryoPath))
+        print('- embryoName is ' + str(self.embryoName))
+        print('- firstTimePoint is ' + str(self.firstTimePoint))
+        print('- lastTimePoint is ' + str(self.lastTimePoint))
+        print('- deltaTimePoint is ' + str(self.deltaTimePoint))
+        print("")
 
     #
     #
@@ -164,37 +189,12 @@ class Experiment(object):
                 self.deltaTimePoint = parameters.delta
         return
 
-    #
-    #
-    #
-    def write_parameters(self, logfilename):
-        with open(logfilename, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('Experiment parameters\n')
-            logfile.write('- embryoPath is ' + str(self.embryoPath)+'\n')
-            logfile.write('- embryoName is ' + str(self.embryoName)+'\n')
-            logfile.write('- firstTimePoint is ' + str(self.firstTimePoint)+'\n')
-            logfile.write('- lastTimePoint is ' + str(self.lastTimePoint)+'\n')
-            logfile.write('- deltaTimePoint is ' + str(self.deltaTimePoint)+'\n')
-            logfile.write("\n")
-        return
 
-    def print_parameters(self):
-        print("")
-        print('Experiment parameters')
-        print('- embryoPath is ' + str(self.embryoPath))
-        print('- embryoName is ' + str(self.embryoName))
-        print('- firstTimePoint is ' + str(self.firstTimePoint))
-        print('- lastTimePoint is ' + str(self.lastTimePoint))
-        print('- deltaTimePoint is ' + str(self.deltaTimePoint))
-        print("")
-
+########################################################################################
 #
 #
 #
-#
-#
-
+########################################################################################
 
 def get_parameter_file(parameter_file):
     """
@@ -210,11 +210,12 @@ def get_parameter_file(parameter_file):
         sys.exit(1)
     return new_parameter_file
 
+
+########################################################################################
 #
 #
 #
-#
-#
+########################################################################################
 
 
 def write_history_information(logfile_name,
@@ -266,11 +267,11 @@ def write_history_information(logfile_name,
         logfile.write("# \n")
     return
 
+########################################################################################
 #
 #
 #
-#
-#
+########################################################################################
 
 
 def copy_date_stamped_file(thefile, directory, timestamp):
@@ -284,3 +285,117 @@ def copy_date_stamped_file(thefile, directory, timestamp):
     d = time.strftime("%Y-%m-%d-%H:%M:%S", timestamp)
     resfile = directory+os.path.sep+re.sub(r'(\.*).py', r'\1', thefile.split(os.path.sep)[-1])+'-'+d+'.py'
     shutil.copy2(thefile, resfile)
+
+
+########################################################################################
+#
+# file utilities
+#
+########################################################################################
+
+
+recognized_extensions = ['.zip', '.h5', '.tif', '.tiff', '.TIF', '.TIFF', '.inr', '.inr.gz', '.mha', '.mha.gz']
+
+
+def get_extension(filename):
+    """ Return the file extension. Must be in the set of recognized extensions.
+    :param filename:
+    :return: None in case of unrecognized extension,
+             else the recognized extension (begins with '.')
+    """
+    for e in recognized_extensions:
+        if len(filename) < len(e):
+            continue
+        if filename[len(filename)-len(e):len(filename)] == e:
+            return e
+    return None
+
+#
+#
+#
+#
+#
+
+
+def add_suffix(filename, suffix, new_dirname=None, new_extension=None):
+    """
+    Add a suffix to a filenename (ie before the extension)
+    :param filename:
+    :param suffix: suffix to be added
+    :param new_dirname: change the directory name of the file
+    :param new_extension: change the extension of the file
+    :return: the transformed file name
+    """
+    b = os.path.basename(filename)
+    d = os.path.dirname(filename)
+    e = get_extension(b)
+    if e is None:
+        monitoring.to_log_and_console("add_suffix: file extension of '"+str(filename)+"' was not recognized", 0)
+        monitoring.to_log_and_console("\t Exiting", 0)
+        sys.exit(1)
+    new_basename = b[0:len(b)-len(e)]
+    new_basename += suffix
+    if new_extension is None:
+        new_basename += e
+    else:
+        new_basename += '.' + new_extension
+    if new_dirname is None:
+        res_name = os.path.join(d, new_basename)
+    else:
+        res_name = os.path.join(new_dirname, new_basename)
+    return res_name
+
+
+#
+#
+#
+#
+#
+
+def find_file(data_path, file_prefix, monitoring=None):
+    """
+    find a file in a directory with a given prefix. The suffix is unknowm
+
+    :param data_path:
+    :param file_prefix:
+    :param monitoring:
+    :return:
+    """
+    proc = "find_file"
+
+    if not os.path.isdir(data_path):
+        if monitoring is not None:
+            monitoring.to_log_and_console(proc + ": '" + str(data_path) + "' is not a valid directory ?!")
+            monitoring.to_log_and_console("\t Exiting.")
+        else:
+            print(proc + ": '" + str(data_path) + "' is not a valid directory ?!")
+            print("\t Exiting.")
+        sys.exit(1)
+
+    file_names = []
+    for f in os.listdir(data_path):
+        if len(f) <= len(file_prefix):
+            pass
+        if f[0:len(file_prefix)] == file_prefix:
+            file_names.append(f)
+
+    if len(file_names) == 0:
+        if monitoring is not None:
+            monitoring.to_log_and_console(proc + ": no image with name '" + str(file_prefix)
+                                          + "' was found in '" + str(data_path) + "'", 4)
+        else:
+            print(proc + ": no image with name '" + str(file_prefix) + "' was found in '" + str(data_path) + "'")
+        return None
+
+    if len(file_names) > 1:
+        if monitoring is not None:
+            monitoring.to_log_and_console(proc + ": several images with name '"
+                                          + str(file_prefix) + "' were found in '" + str(data_path) + "'")
+            monitoring.to_log_and_console("\t "+str(file_names))
+        else:
+            print(proc + ": several images with name '"
+                  + str(file_prefix) + "' were found in '" + str(data_path) + "'")
+            print("\t "+str(file_names))
+        return None
+
+    return file_names[0]

@@ -211,12 +211,14 @@
 #
 # defines the output image format
 #
-# RESULT_IMAGE_SUFFIX_FUSE is for the result image(s)
+# RESULT_IMAGE_SUFFIX_FUSE is for the fusion result image(s)
+# result_image_suffix is for all output images
 # default_image_suffix is for all images (including auxiliary ones)
-# defaulr are 'inr'
+# default are 'inr'
 #
 
 # RESULT_IMAGE_SUFFIX_FUSE = 'inr'
+# result_image_suffix = 'inr'
 # default_image_suffix = 'inr'
 
 ######################################################################
@@ -362,83 +364,133 @@ target_resolution = .3
 
 ######################################################################
 #
-#
+# mars parameters
 #
 ######################################################################
 
+# ##### explanation #####
+#
+# MARS method (nothing but a seeded watershed) may be applied on
+# a transformed input image or on the original image (eg the result of
+# the fusion step). This transformed imaged is made of a combination
+# (by the maximum operator) of the transformed intensity image and a
+# membrane-enhanced image.
+# The transformed intensity image can be
+# - None
+# - Identity (the input image)
+# - Normalization_to_u8 (a normalized version of the input image on 1 byte)
+# The membrane-enhanced image can be
+# - None
+# - GACE: 'Global Automated Cell Extractor'
+#
+# This choice can be tuned either with
+# - mars_method
+# or with the two parameters
+# - mars_intensity_transformation
+# - mars_intensity_enhancement
+#
+# mars_intensity_transformation can be chosen in [None, 'Identity', 'Normalization_to_u8']
+# mars_intensity_enhancement can be chosen in [None, 'GACE']
+#
+# mars_method = 1 corresponds to
+# - mars_intensity_transformation = 'Identity'
+# - mars_intensity_enhancement = None
+#
+# mars_method = 2 corresponds to
+# - mars_intensity_transformation = None
+# - mars_intensity_enhancement = 'GACE'
+
+# mars_method = 1
+# mars_intensity_transformation = 'Identity'
+# mars_intensity_enhancement = None
 
 
-#######################
-### MARS PARAMETERS ###
-#######################
+# ##### explanation #####
+#
+# GACE parameters
+# GACE method is made of three steps
+# 1. membrane detection
+# 2. membrane segmentation
+# 3. tensor voting
+#
+# - membrane detection:
+# this is the gaussian sigma that is used to compute image derivatives
+# (in real units, a priori 0.9 um is a good choice for data like Patrick/Ralph/Aquila)
+# mars_sigma_membrane=0.9
+#
+# - membrane segmentation:
+# segmentation of the computed extrema is done by thresholding.
+# Either mars_hard_thresholding is set to True, and a global hard threshold (mars_hard_threshold)
+# is applied to the whole extrema image. This is not advised, and should be used only when the
+# adaptative thresholding has failed.
+# Or mars_hard_thresholding is set to False, meaning that an adaptative thresholding is computed
+# by histogram fitting. This adaptative thresholding is governed by three parameters
+# - mars_sensitivity:
+#   membrane binarization parameter, /!\ if failure, one should enter in "manual" mode of the function
+#   anisotropicHist via activation of 'manual' option
+# - mars_manual:
+#   By default, this parameter is set to False. If failure, (meaning that thresholds are very bad,
+#   meaning that the binarized image is very bad), set this parameter to True and relaunch the
+#   computation on the test image. If the method fails again, "play" with the value of manual_sigma...
+#   and good luck.
+# - mars_manual_sigma:
+#   Axial histograms fitting initialization parameter for the computation of membrane image binarization
+#   axial thresholds (this parameter is used if manual = True). One may need to test different values of
+#   manual_sigma. We suggest to test values between 5 and 25 in case of initial failure. Good luck.
+#
+# - tensor voting:
+# tensor voting is governed by 3 parameters
+# - mars_sigma_TV:
+#   parameter which defines the voting scale for membrane structures propagation by tensor voting method (real
+#   coordinates). This parameter shoud be set between 3 um (little cells) and 4.5 um
+#   (big gaps in the binarized membrane image)
+# - mars_sample:
+#   Parameter for tensor voting computation speed optimisation (do not touch if not bewared)
+# - mars_sigma_LF:
+#   Additional smoothing parameter for reconstructed image (in real coordinates).
+#   It seems that the default value = 0.9 um is ok for standard use.
+#
 
-# Modules choice
-mars_method=1 			
-                        # 1 for 'Classic' method
-			  			# 2 for 'Gace' method
-# General parameters for MARS segmentation
-mars_sigma1 = 0.6  		
-                        # sigma 1 (0.6um) in real coordinates
-mars_sigma2 = 0.15 		
-                        # sigma 2 (0.15um) in real coordinates
-mars_h_min = 4     		
-                        # H min initialisation to ease correction
-# Gace Parameters (if mars_method is set to 2):
-# membrane_renforcement
-mars_sigma_membrane=0.9 
-                        # membrane enhancement parameter (in real units, a 
-						# priori 0.9 um is a good choice for data like 
-						# Patrick/Ralph/Aquila)
-# anisotropicHist /!\ critical step
-mars_sensitivity=0.99   
-                        # membrane binarization parameter, /!\ if failure,
-						# one should enter in "manual" mode of the function
-						# anisotropicHist via activation of 'manual' option
-
-mars_manual=False     	
-                        # By default, this parameter is set to False. If 
-						# failure, (meaning that thresholds are very bad, 
-						# meaning that the binarized image is very bad),
-				 		# set this parameter to True and relaunch the 
-				 		# computation on the test image. If the method fails
-				 		# again, "play" with the value of manual_sigma... 
-				 		# and good luck.
-mars_manual_sigma=15    
-                        # Axial histograms fitting initialization parameter 
-						# for the computation of membrane image binarization
-						# axial thresholds (this parameter is used iif 
-						# manual = True).
-						# One may need to test different values of 
-						# manual_sigma. We suggest to test values between 5 and
-						# 25 in case of initial failure. Good luck.
-
-mars_hard_thresholding=False  
-                              # If the previous membrane threshold method 
-							  # failed, one can force the thresholding with a
-							  # "hard" threshold applied on the whole image. 
-							  # To do so, this option must be set to True.
-mars_hard_threshold=1.0       
-                              # If hard_thresholding = True, the enhanced 
-							  # membranes image is thresholded using this 
-							  # parameter (value 1 seems to be ok for 
-							  # time-point t001 of Aquila embryo for example).
-
-# Tensor voting framework
-mars_sigma_TV=3.6     
-                      # parameter which defines the voting scale for membrane
-					  # structures propagation by tensor voting method (real
-					  # coordinates). 
-				 	  # This parameter shoud be set between 3 um (little cells)
-				 	  # and 4.5 um(big gaps in the binarized membrane image)
-mars_sigma_LF=0.9     
-                      # Smoothing parameter for reconstructed image (in real
-					  # coordinates). It seems that the default value = 0.9 um
-					  # is ok for classic use.
-mars_sample=0.2       
-                      # Parameter for tensor voting computation speed 
-					  # optimisation (do not touch if not bewared)
+# mars_sigma_membrane = 0.9
+# mars_hard_threshold = 1.0
+# mars_sensitivity = 0.99
+# mars_manual = False
+# mars_manual_sigma = 15
+# mars_sigma_TV = 3.6
+# mars_sample = 0.2
 
 
+# ##### explanation #####
+#
+# watershed parameters
+#
+# the watershed segmentation has several steps
+# 1. smoothing of initial image for seed extraction
+#    mars_sigma1 (for back-compatibility)
+#    watershed_seed_sigma
+#    default value is 0.6 (real coordinates, ie 0.6 um)
+# 2. smoothing of reconstructed image for image regularization prior to segmentation
+#    mars_sigma2 (for back-compatibility)
+#    watershed_membrane_sigma
+#    default value is 0.15 (real coordinates, ie 0.15 um)
+# 3. regional minima extraction
+#    mars_h_min (for back-compatibility)
+#    watershed_seed_hmin
+#    default value is 4
+#    Please note that this value may depend on the transformation applied on the input image, ie
+#    h_min value should not be the same for the original image, or the image normalized into 1 byte.
+#
+
+# watershed_seed_sigma = 0.6
+# watershed_membrane_sigma = 0.15
+# watershed_seed_hmin = 4
+
+
+######################################################################
+#
+#
+#
+######################################################################
 
 ####################################
 ### MANUAL CORRECTION PARAMETERS ###

@@ -2,7 +2,6 @@
 # File defining the nomenclature for ASTEC experiments
 #
 
-import sys
 import os
 
 
@@ -12,6 +11,7 @@ import os
 #
 #
 
+FLAG_EXECUTABLE = '$EXECUTABLE'
 
 #
 # main path = path to embryo directory
@@ -63,13 +63,14 @@ FLAG_EXP_POST = '$POST'		# defining post correction experiments subdirectory
 # Flags relative to file name
 #
 
-
 FLAG_TIMESTAMP = '$TIMESTAMP'  # time stamp of the experiment
 
 
 FLAG_TIME = '$TIME'			# Time-point of an embryo snapshot
 FLAG_TIMEREF = '$TIMEREF'		# For registration,time-point of reference snapshot
 FLAG_TIMEFLO = '$TIMEFLO'		# For registration,time-point of floating snapshot
+
+FLAG_RESULT_IMAGE_SUFFIX_FUSE = '$RESULTIMAGESUFFIX'
 
 
 #
@@ -126,10 +127,10 @@ path_rawdata_angle3 = os.path.join(path_rawdata, FLAG_DIR_LEFTCAM_STACKONE)
 path_rawdata_angle4 = os.path.join(path_rawdata, FLAG_DIR_RIGHTCAM_STACKONE)
 
 
-path_rawdata_angle1_files = FLAG_NAME_LEFT_RAW_IMAGE + '$TIME'
-path_rawdata_angle2_files = FLAG_NAME_RIGHT_RAW_IMAGE + '$TIME'
-path_rawdata_angle3_files = FLAG_NAME_LEFT_RAW_IMAGE + '$TIME'
-path_rawdata_angle4_files = FLAG_NAME_RIGHT_RAW_IMAGE + '$TIME'
+path_rawdata_angle1_files = FLAG_NAME_LEFT_RAW_IMAGE + FLAG_TIME
+path_rawdata_angle2_files = FLAG_NAME_RIGHT_RAW_IMAGE + FLAG_TIME
+path_rawdata_angle3_files = FLAG_NAME_LEFT_RAW_IMAGE + FLAG_TIME
+path_rawdata_angle4_files = FLAG_NAME_RIGHT_RAW_IMAGE + FLAG_TIME
 
 
 #
@@ -137,18 +138,17 @@ path_rawdata_angle4_files = FLAG_NAME_RIGHT_RAW_IMAGE + '$TIME'
 #
 
 
-FLAG_RESULT_IMAGE_SUFFIX_FUSE = '$RESULTIMAGESUFFIX'
-
 # path fused images
 path_fuse = os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_FUSE)
 # path for fusion workspace
 path_fuse_exp = os.path.join(path_fuse, DIR_STAGE_FUSE + '_' + FLAG_EXP_FUSE)
 # fused images generic name
-path_fuse_exp_files = FLAG_EN + '_fuse_t$TIME.' + FLAG_RESULT_IMAGE_SUFFIX_FUSE
+path_fuse_exp_files = FLAG_EN + '_fuse_t' + FLAG_TIME
+
 # log files
 path_fuse_logdir = os.path.join(path_fuse_exp, 'LOGS')
-path_fuse_historyfile = os.path.join(path_fuse_logdir, '1-fuse-history.log')
-path_fuse_logfile = os.path.join(path_fuse_logdir, '1-fuse-' + FLAG_TIMESTAMP + '.log')
+path_fuse_historyfile = os.path.join(path_fuse_logdir, FLAG_EXECUTABLE + '-history.log')
+path_fuse_logfile = os.path.join(path_fuse_logdir, FLAG_EXECUTABLE + '-' + FLAG_TIMESTAMP + '.log')
 
 
 #
@@ -161,13 +161,16 @@ path_mars = os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_MARS)
 # path for mars workspace
 path_mars_exp = os.path.join(path_mars, DIR_STAGE_MARS + '_' + FLAG_EXP_MARS)
 # mars images names
-path_mars_exp_files = os.path.join(path_mars_exp, FLAG_EN + '_mars_t$TIME.inr')
-# mars temporary images path (for reconstruction)
-path_mars_exp_reconstruct = os.path.join(path_mars_exp, "RECONSTRUCTION")
+# path_mars_exp_files = os.path.join(path_mars_exp, FLAG_EN + '_mars_t' + FLAG_TIME + '.' + FLAG_RESULT_IMAGE_SUFFIX_FUSE)
+path_mars_exp_files = FLAG_EN + '_mars_t' + FLAG_TIME
+
+# path_mars_exp_reconstruct = os.path.join(path_mars_exp, "RECONSTRUCTION")
 # mars temporary images file names (for reconstruction)
-path_mars_exp_reconstruct_files = os.path.join(path_mars_exp_reconstruct, FLAG_EN + '_rec_t$TIME.inr')
+# path_mars_exp_reconstruct_files = os.path.join(path_mars_exp_reconstruct, FLAG_EN + '_rec_t$TIME.inr')
 # logfile
-path_mars_logfile = os.path.join(path_mars_exp, '2-mars.log')
+path_mars_logdir = os.path.join(path_mars_exp, 'LOGS')
+path_mars_historyfile = os.path.join(path_mars_logdir, FLAG_EXECUTABLE + '-history.log')
+path_mars_logfile = os.path.join(path_mars_logdir, FLAG_EXECUTABLE + '-' + FLAG_TIMESTAMP + '.log')
 
 
 #
@@ -374,8 +377,7 @@ def replaceEN(filename,embryoname, check_name=False):
     return filename.replace(FLAG_EN, embryoname)
 
 
-
-def replacePATH(filename,path):
+def replacePATH(filename, path):
     """
     Replaces all the occurrences of "$EMBRYOPATH" by its value given by path of
     type str
@@ -384,8 +386,7 @@ def replacePATH(filename,path):
     return filename.replace(FLAG_PATH_EMBRYO, path.rstrip(os.path.sep))
 
 
-
-def replaceTIMESTAMP( filename, timestamp):
+def replaceTIMESTAMP(filename, timestamp):
     """
     Replaces all the occurrences of "$TIMESTAMP" by its value given by EN of
     type str
@@ -397,11 +398,24 @@ def replaceTIMESTAMP( filename, timestamp):
     return filename.replace(FLAG_TIMESTAMP, d)
 
 
+def replaceEXECUTABLE(filename, executable):
+    """
+    Replaces all the occurrences of "$EXECUTABLE" by its value given by EN of
+    type str
+    """
+    import time
+    if executable == None:
+        local_executable = 'unknown'
+    else:
+        local_executable = os.path.basename(executable)
+        if local_executable[-3:] == '.py':
+            local_executable = local_executable[:-3]
+    return filename.replace(FLAG_EXECUTABLE, local_executable)
+
 
 def _genericReplaceFlag( name, flag, parameters, attributeName, defaultValue):
     attributeValue=getattr( parameters, attributeName, defaultValue)
     return name.replace(flag, attributeValue)
-
 
 
 #
@@ -494,12 +508,13 @@ def replaceFlags(filename, parameters, timestamp=None, check_name=False):
         elif flag == FLAG_TIMESTAMP:
             filename = replaceTIMESTAMP(filename, timestamp)
 
-        elif flag == FLAG_TIME:
+        elif flag == FLAG_TIME or flag == FLAG_EXECUTABLE:
             #
             # just not to get the default message
             # $TIME may be replaced later
             #
             pass
+
 
         else:
             print "replaceFlags: flag '" + str(flag) + "' was not replaced"

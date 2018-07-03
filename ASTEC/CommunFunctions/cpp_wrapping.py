@@ -8,52 +8,53 @@ from ImageHandling import imread, imsave, SpatialImage
 #
 # path_to_bins = '/user/gmicheli/home/DIG-EM/Codes/Packages/ASTEC-170210/ASTEC/CommunFunctions/cpp/build/bin/'
 #
-path_to_bins = os.path.join(os.path.dirname(__file__), 'cpp')+os.path.sep
-
-path_filters = path_to_bins + 'recfilters'
-path_linearfilters = path_to_bins + 'linearFilter'
-path_reech3d = path_to_bins + 'reech3d'
-path_apply_trsf = path_to_bins + "applyTrsf"
-path_block = path_to_bins + 'blockmatching'
-path_morpho = path_to_bins + "morpho"
-path_regional_max = path_to_bins + 'regionalmax'
-path_regional_ext = path_to_bins + 'regionalext'
-path_connexe = path_to_bins + 'connexe'
-path_watershed = path_to_bins + 'watershed'
-path_gradient_norm = path_to_bins + 'norme_gradient'
-
-
-path_membrane = path_to_bins + 'membrane'
-path_anisotropicHist = path_to_bins + 'anisotropicHist'
-path_TVmembrane = path_to_bins + 'TVmembrane'
-path_seuillage = path_to_bins + 'seuillage'
-path_Arit = path_to_bins + 'Arit'
-path_Logic = path_to_bins + 'Logic'
-path_create_image = path_to_bins + 'createImage'
-path_linearFilter = path_to_bins + 'linearFilter'
-path_copy = path_to_bins + 'copy'
-path_symmetryPlane = path_to_bins + 'symmetryPlane'
-path_dice = path_to_bins + 'dice'
-path_diceMaximisation = path_to_bins + 'diceMaximisation'
-path_directionHistogram = path_to_bins + 'directionHistogram'
-path_directionHistogramMaxima = path_to_bins + 'directionHistogramMaxima'
-path_planeRegistration = path_to_bins + 'planeRegistration'
-path_pointCloudRegistration = path_to_bins + 'pointCloudRegistration'
-path_setvoxelsize = path_to_bins + 'setVoxelSize'
-path_compose_trsf = path_to_bins + 'composeTrsf'
-path_multiple_trsfs = path_to_bins + 'multipleTrsfs'
-path_change_multiple_trsfs = path_to_bins + 'changeMultipleTrsfs'
-path_non_zeros_image = path_to_bins + 'nonZerosImage'
-path_setvoxelvalue = path_to_bins + 'setVoxelValue'
-path_fuselabels = path_to_bins + "fuseLabels"
-path_labelborders = path_to_bins + "labelBorders"
-path_associateLabels = path_to_bins + "associateLabels"
-
-path_boundingboxes = path_to_bins + 'boundingboxes'
-path_cropImage = path_to_bins + 'cropImage'
-path_patchLogic = path_to_bins + 'patchLogic'
-path_mc_adhocfuse = path_to_bins + 'mc-adhocFuse'
-
+#
+# path_to_bins = os.path.join(os.path.dirname(__file__), 'cpp')+os.path.sep
+#
+# path_filters = path_to_bins + 'recfilters'
+# path_linearfilters = path_to_bins + 'linearFilter'
+# path_reech3d = path_to_bins + 'reech3d'
+# path_apply_trsf = path_to_bins + "applyTrsf"
+# path_block = path_to_bins + 'blockmatching'
+# path_morpho = path_to_bins + "morpho"
+# path_regional_max = path_to_bins + 'regionalmax'
+# path_regional_ext = path_to_bins + 'regionalext'
+# path_connexe = path_to_bins + 'connexe'
+# path_watershed = path_to_bins + 'watershed'
+# path_gradient_norm = path_to_bins + 'norme_gradient'
+#
+#
+# path_membrane = path_to_bins + 'membrane'
+# path_anisotropicHist = path_to_bins + 'anisotropicHist'
+# path_TVmembrane = path_to_bins + 'TVmembrane'
+# path_seuillage = path_to_bins + 'seuillage'
+# path_Arit = path_to_bins + 'Arit'
+# path_Logic = path_to_bins + 'Logic'
+# path_create_image = path_to_bins + 'createImage'
+# path_linearFilter = path_to_bins + 'linearFilter'
+# path_copy = path_to_bins + 'copy'
+# path_symmetryPlane = path_to_bins + 'symmetryPlane'
+# path_dice = path_to_bins + 'dice'
+# path_diceMaximisation = path_to_bins + 'diceMaximisation'
+# path_directionHistogram = path_to_bins + 'directionHistogram'
+# path_directionHistogramMaxima = path_to_bins + 'directionHistogramMaxima'
+# path_planeRegistration = path_to_bins + 'planeRegistration'
+# path_pointCloudRegistration = path_to_bins + 'pointCloudRegistration'
+# path_setvoxelsize = path_to_bins + 'setVoxelSize'
+# path_compose_trsf = path_to_bins + 'composeTrsf'
+# path_multiple_trsfs = path_to_bins + 'multipleTrsfs'
+# path_change_multiple_trsfs = path_to_bins + 'changeMultipleTrsfs'
+# path_non_zeros_image = path_to_bins + 'nonZerosImage'
+# path_setvoxelvalue = path_to_bins + 'setVoxelValue'
+# path_fuselabels = path_to_bins + "fuseLabels"
+# path_labelborders = path_to_bins + "labelBorders"
+# path_associateLabels = path_to_bins + "associateLabels"
+#
+# path_boundingboxes = path_to_bins + 'boundingboxes'
+# path_cropImage = path_to_bins + 'cropImage'
+# path_patchLogic = path_to_bins + 'patchLogic'
+# path_mc_adhocfuse = path_to_bins + 'mc-adhocFuse'
+#
 
 ############################################################
 #
@@ -121,8 +122,7 @@ def path_to_vt():
 
 ############################################################
 #
-#
-#
+# function for the fusion steps
 #
 ############################################################
 
@@ -337,12 +337,493 @@ def linear_registration(path_ref, path_flo, path_output,
 
 ############################################################
 #
+# functions for the MARS step
+#
+############################################################
+
+
+def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False, type='deriche',
+                     other_options=None, monitoring=None):
+    """
+
+    :param path_input: path to the image to filter
+    :param path_output: path to the output image
+    :param filter_value: sigma of the gaussian filter for each axis (default is 1.0)
+    :param real_scale: scale values are in 'real' units (will be divided by the voxel size to get 'voxel' values)
+           if this option is at True (default=False)
+    :param type: gaussian type, can be ['deriche'|'fidrich'|'young-1995'|'young-2002'|'gabor-young-2002'|'convolution']
+           or None (default is 'deriche')
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('linearfilter')
+
+    command_line = path_to_exec + " " + path_input + " " + path_output
+
+    #
+    # filter parameter value
+    #
+    command_line += " -sigma " + str(filter_value)
+    if real_scale is True:
+        command_line += " -unit real"
+    else:
+        command_line += " -unit voxel"
+
+    #
+    # filter type
+    #
+    if type is not None:
+        command_line += " -gaussian-type " + str(type)
+    command_line += " -x 0 -y 0 -z 0"
+
+    #
+    # add points at borders
+    #
+    command_line += " -cont 10"
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    return
+
+
+def regional_minima(path_input, path_output, h_min=1, other_options=None, monitoring=None):
+    """
+
+    :param path_input: path to the input image
+    :param path_output: path to the output image
+    :param h_min: h-minima parameter value
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('regionalext')
+
+    #
+    #
+    #
+    command_line = path_to_exec + " " + path_input + " -diff " + path_output
+    command_line += " -min -h " + str(h_min)
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    return
+
+
+def connected_components(path_input, path_output, low_threshold=1, high_threshold=None,
+                         other_options=None, monitoring=None):
+    """
+    Label connected components
+    :param path_input:
+    :param path_output:
+    :param low_threshold:
+    :param high_threshold: high threshold for hysteresis thresholding
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('connexe')
+
+    #
+    #
+    #
+    command_line = path_to_exec + " " + path_input + " " + path_output
+    command_line += " -lt " + str(low_threshold)
+    if high_threshold is not None:
+        command_line += " -ht " + str(high_threshold)
+
+    #
+    # force output type
+    #
+    command_line += " -labels"
+
+    #
+    # force output image type
+    #
+    command_line += " -o 2"
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    return
+
+
+def watershed(path_seeds, path_gradient, path_output, other_options=None, monitoring=None):
+    """
+    Perform the watershed operation
+    :param path_seeds: path to the seeds image
+    :param path_gradient: path to the intensity/gradient image
+    :param path_output: path to the output image
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('watershed')
+
+    #
+    #
+    #
+    command_line = path_to_exec + " -seeds " + path_seeds + " -gradient " + path_gradient + " " + path_output
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    return
+
+
+def inline_to_u8(path_input, path_output, min_percentile=0.01, max_percentile=0.99,
+                 other_options=None, monitoring=None):
+    """
+
+    :param path_input:
+    :param path_output:
+    :param min_percentile:
+    :param max_percentile:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('mc-adhocFuse')
+
+    #
+    #
+    #
+    command_line = path_to_exec + " -intensity-image " + path_input + " -result-intensity-image " + path_output
+    command_line += " -min-method global -max-method global"
+    command_line += " -min-percentile " + str(min_percentile) + " -max-percentile " + str(max_percentile)
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    return
+
+
+############################################################
+#
+# functions for the membrane detection and/or enhancement
+#
+############################################################
+
+
+def membrane_extraction(path_input, prefix_output='tmp_membrane',
+                        path_mask=None, scale=0.9, real_scale=True, other_options=None, monitoring=None):
+    """
+    Membrane (plane-like) structures enhancement and oriented centerplanes extraction
+    (using the method detailed in [Michelin et al. 2014] inspired by [Krissian 2000])
+    :param path_input: path to the image to filter
+    :param prefix_output: Write 3 files named <prefix_output>.ext.inr,<prefix_output>.theta.inr,<prefix_output>.phi.inr
+    :param path_mask: binary image (u8 or u16) such that the response function is only computed for non-null voxels
+           from this mask
+    :param scale: detection scale parameter (should be set as the semi-thickness of the membrane)
+    :param real_scale: set as True if the scale parameter is given in real coordinates system (default),
+           set as False if given in voxel coordinates
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('membrane')
+
+    #
+    #
+    #
+    command_line = path_to_exec + " " + path_input + " " + prefix_output
+    if path_mask is not None and os.path.isfile(path_mask):
+        command_line += " -mask " + path_mask
+    command_line += " -single -init " + str(scale)
+    if real_scale is True:
+        command_line += " -real"
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    return
+
+
+def seuillage(path_input, path_output, low_threshold=1, high_threshold=None, other_options=None, monitoring=None):
+    """
+
+    :param path_input:
+    :param path_output:
+    :param low_threshold: low threshold (default: 1)
+    :param high_threshold:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('seuillage')
+
+    #
+    #
+    #
+    command_line = path_to_exec + " " + path_input + " " + path_output
+    command_line += " -sb " + str(low_threshold)
+    if high_threshold is not None:
+        command_line += " -sh " + str(high_threshold)
+    if realScale is True:
+        command_line += " -real"
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    return
+
+
+def anisotropic_histogram(path_input_prefix, path_output, path_mask=None,
+                          manual=False, manual_sigma=7, sensitivity=0.98, other_options=None, monitoring=None):
+    """
+    Centerplanes image binarisation using an adaptative anisotropic threshold method detailed in [Michelin 2016]
+    :param path_input_prefix: generic prefix to input data
+    :param path_output: output binary image
+    :param path_mask: binary image (u8 or u16) such that the thresholding is only computed for non-null voxels
+           from this mask (8 bits image of same size as input image).
+    :param manual: if True, enables manual initialisation of sigma value for histograms fitting (default: False)
+    :param manual_sigma: the sigma value for histogram fitting in case of manual mode (default: 20)
+    :param sensitivity: computes the anisotropic thresholds following a sensitivity criterion (true positive rate):
+           threshold = #(membrane class >= threshold) / #(membrane class)
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('anisotropicHist')
+
+    #
+    #
+    #
+    command_line = path_to_exec + " " + path_input_prefix + ".ext.inr " + path_input_prefix + ".hist.txt"
+    command_line += " -bin-out " + path_output
+    if path_mask is not None and os.path.isfile(path_mask):
+        command_line += " -mask " + path_mask
+    command_line += " -sensitivity " + str(sensitivity)
+    command_line += " -v"
+
+    if manual is True:
+        from math import exp
+        amplitude = 1.0 / (manual_sigma * exp(-0.5))
+        lmin = manual_sigma / 3.0
+        lmax = manual_sigma * 5.0
+        command_line += ' -rayleighcentered ' + str(amplitude) + ' ' + str(manual_sigma)
+        command_line += ' -lmin ' + str(lmin) + ' -lmax ' + str(lmax)
+    else:
+        command_line += " -auto"
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    return
+
+
+def arithmetic(path_first_input, path_second_input, path_output, other_options=None, monitoring=None):
+    """
+
+    :param path_first_input:
+    :param path_second_input:
+    :param path_output:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('Arit')
+
+    #
+    #
+    #
+    command_line = path_to_exec + " " + path_first_input + " " + path_second_input + " " + path_output
+    if other_options is not None:
+        command_line += " " + other_options
+
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    return
+
+
+def tensor_voting_membrane(path_input, prefix_input, path_output, path_mask=None,
+                           scale_tensor_voting=3.6, sigma_smoothing=0.9, real_scale=True, sample=0.2, monitoring=None):
+    """
+    Grey-level image reconstruction from an image of binarised membranes associated to images of orientations.
+    :param path_input: path to input image which is contains binarised planar structures,
+           with associated input angle images <path_prefix>.theta.inr and <path_prefix>.phi.inr in the same folder.
+    :param prefix_input: prefix name for temporary images
+    :param path_output: path to the output image
+    :param path_mask: mask image applied to the input image to restrict the domain of tensor voting tokens
+           (must be same dimensions with input image)
+    :param scale_tensor_voting: scaling for tensor voting method (only on isotropic images) (default = 3.6 um)
+    :param sigma_smoothing: scale for gaussien smooting after tensor voting (default = 0.9 um)
+    :param real_scale: True (default) if scale in real coordinates. False if scale in voxel coordinates.
+    :param sample: multiplying parameter for decrease the time-cost of the function by diminishing the
+           number of voting token; 0 < sample <= 1, default = 0.2
+    :param monitoring:
+    :return:
+    """
+
+    proc = "tensor_voting_membrane"
+
+    #
+    # check whether the input image is empty
+    #
+    path_to_exec = _find_exec('nonZerosImage')
+    command_line = path_to_exec + " " + path_input
+    isnonzero = subprocess.call(command_line, shell=True)
+    if isnonzero == 0:
+        if monitoring is not None:
+            monitoring.to_log(proc + ": '" + str(path_input).split(os.path.sep)[-1] + "' only contains 0.")
+            monitoring.to_log("\t Exiting.")
+        else:
+            print(proc + ": '" + str(path_input).split(os.path.sep)[-1] + "' only contains 0.")
+            print("\t Exiting.")
+        sys.exit(1)
+
+    #
+    # tensor voting
+    #
+
+    path_to_exec = _find_exec('TVmembrane')
+    command_line = path_to_exec + " " + path_input + " -output-eigenvalues " + prefix_input
+    if path_mask is not None and os.path.isfile(path_mask):
+        command_line += " -mask " + path_mask
+    command_line += " -scale " + str(scale_tensor_voting) + " -hessian"
+    command_line += " -sample " + str(sample)
+
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    #
+    # eigenvalues substraction
+    #
+    arithmetic(prefix_input + ".imvp3.inr", prefix_input + ".imvp1.inr", prefix_input + ".tv.inr", other_options='-sub')
+
+    #
+    # smoothing
+    #
+    #
+    input_image = prefix_input + ".tv.inr"
+    if sigma_smoothing > 0.0:
+        linear_smoothing(input_image, prefix_input + ".lf.inr", filter_value=sigma_smoothing,
+                         real_scale=real_scale, monitoring=monitoring)
+        input_image = prefix_input + ".lf.inr"
+
+    #
+    # copy into 1-byte image
+    #
+    path_to_exec = _find_exec('copy')
+    command_line = path_to_exec + " -norma -o 1 " + input_image + " " + path_output
+
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    return
+
+
+############################################################
+#
 #
 #
 ############################################################
 
 
-def recfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, lazy=False):
+def _recfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, lazy=False):
     ''' Perform a gaussian filtering on an intensity image
     path_input : path to the image to filter
     path_output : path to the temporary output image
@@ -360,36 +841,9 @@ def recfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, lazy
         os.system('rm ' + path_output)
         return out  
 
-def linearfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, realScale=False, type='deriche', verbose=False, lazy=False):
-    ''' Perform a gaussian filtering on an intensity image
-    path_input : path to the image to filter
-    path_output : path to the temporary output image
-    filter_value : sigma of the gaussian filter for each axis (default is 1.0)
-    rad_min : TO REMOVE, NOT USED
-    realScale : scale values are in 'real' units (will be divided by the voxel size to get 'voxel' values) if this option is at True (default=False)
-    type : gaussian type, which can be ['deriche'|'fidrich'|'young-1995'|'young-2002'|'gabor-young-2002'|'convolution'] or None (default is 'deriche')
-    lazy : do not return the output image if True
-    '''
-    opt=""
-    if realScale:
-      opt += " -unit real"
-    else:
-      opt += ' -unit voxel'
-    if type:
-      opt += " -gaussian-type " + str(type)
-    cmd=path_linearfilters + ' ' + path_input +\
-              ' ' + path_output +\
-              ' -cont 10 -sigma ' + str(filter_value) + opt +\
-              ' -x 0 -y 0 -z 0 -o 2'
-    if verbose:
-      print cmd
-    os.system(cmd)
-    if not lazy:
-        out = imread(path_output)
-        os.system('rm ' + path_output)
-        return out        
 
-def regionalmax(path_input, path_output, h_min):
+
+def _regionalmax(path_input, path_output, h_min):
     ''' Perform the h-minima operation on a given image
     path_input : path to the input image
     path_output : path to the output image
@@ -414,32 +868,9 @@ def regionalmax(path_input, path_output, h_min):
     
     os.system('rm ' + temp_out)
 
-def regionalext(path_input, path_output, h_min):
-    ''' Perform the h-minima operation on a given image
-    path_input : path to the input image
-    path_output : path to the output image
-    h_min : h-minima parameter value
-    '''
-    temp_out=path_output.replace('.inr','_out_regionalext.inr')
-    if os.path.exists(path_regional_ext):
-      os.system(path_regional_ext + ' ' + path_input +\
-              ' -diff ' + path_output +' '+temp_out+\
-              ' -h ' + str(h_min) +\
-              ' -min')
-    else:
-      if os.path.exists(path_regional_max):
-        print "Warning : using " + path_regional_max + " instead of " + path_regional_ext + " (not found)."
-        os.system(path_regional_max + ' ' + path_input +\
-              ' -diff ' + path_output +' '+temp_out+\
-              ' -h ' + str(h_min) +\
-              ' -inv')
-      else:
-        print "Error : did not found " + path_regional_max + " neither "+ path_regional_ext + " binary functions. Exiting."
-        return
-    
-    os.system('rm ' + temp_out)
 
-def connexe(path_input, path_output, high_th):
+
+def _connexe(path_input, path_output, high_th):
     ''' Perform the connected componant operation
     path_input : path to the input image
     path_output : path to the output image
@@ -451,7 +882,7 @@ def connexe(path_input, path_output, high_th):
               ' -labels -o 2')
 
 
-def watershed(path_seeds, path_int, path_output=None, lazy=True, temporary_folder='', verbose=False):
+def _watershed(path_seeds, path_int, path_output=None, lazy=True, temporary_folder='', verbose=False):
     ''' Perform the watershed operation
     path_seeds : path to the seeds image
     path_int : path to the intensity image
@@ -517,6 +948,10 @@ def _reech(path_flo, path_output, voxelsize):
               " " + path_output +
               " -linear"
               " -iso " + str(voxelsize))
+
+
+
+
 
 def non_linear_registration(image_file_flo,image_file_ref, affine_image, affine_trsf,vectorfield_image,vectorfield_trsf, verbose=False):
     ''' Compute the non-linear transformation that register the floating image onto the reference image
@@ -612,7 +1047,7 @@ def rigid_registration(path_ref, path_flo, path_trsf, path_output, path_output_t
       print cmd
     os.system(cmd)
 
-def apply_trsf(path_flo, path_trsf=None, path_output="tmp_seeds.inr", 
+def apply_trsf(path_flo, path_trsf=None, path_output="tmp_seeds.inr",
                template=None, nearest=True, voxelsize=None, iso=None, dimensions=None, lazy=True, verbose=False):
     ''' Apply a transformation to a given image
     path_flo : path to the floating image
@@ -808,68 +1243,11 @@ def readMatrixFile(file,t=int,comments='#'):
     return M
 
 
-def membrane_renforcement(path_input, prefix_output='tmp_membrane', path_mask=None, init=0.9, realScale=True, lazy=True, verbose=False):
-    '''
-    Membrane (plane-like) structures enhancement and oriented centerplanes extraction 
-    (using the method detailed in [Michelin et al. 2014] inspired by [Krissian 2000])
-    path_input : path to the image to filter
-    prefix_output : Write 3 files call <prefix_output>.ext.inr,<prefix_output>.theta.inr,<prefix_output>.phi.inr
-    path_mask : binary image (u8 or u16) such that the response function is only computed for non-null voxels from this mask
-    init : enhancement scale parameter (should be set as the semi-thickness of the membrane) 
-    realScale : set as True if the scale parameter is given in real coordinates system (defaut), set as False if given in voxel coordinates
-    lazy : do not return the output image if True
-    '''
-    options=''
-    if path_mask:
-      assert(os.path.exists(path_mask))
-      options += ' -mask ' + str(path_mask)
-    if realScale:
-      options += ' -real'
-
-    cmd=path_membrane + ' ' + path_input + ' ' + prefix_output +\
-              ' -single -init '+str(init) + options
-    if verbose:
-      print cmd
-    os.system(cmd)
-    if os.path.exists(prefix_output+'.rep.inr'):
-      cmd='rm ' + prefix_output+'.rep.inr'
-      if verbose:
-        print cmd
-      os.system(cmd)
-
-    if not lazy:
-        out_ext = imread(prefix_output+'.ext.inr')
-        out_theta = imread(prefix_output+'.theta.inr')
-        out_phi = imread(prefix_output+'.phi.inr')
-        os.system('rm ' + prefix_output+'.*')
-        return out_ext, out_theta, out_phi
-
-def seuillage(path_input, path_output='tmp_threshold.inr',sb=1, sh=None,grey=False,lazy=True, verbose=False):
-    ''' Manual image threshold
-    path_input : path to the image to threshold
-    path_output: image threshold
-    sb : low threshold (seuil bas) (defalut : 1)
-    sh : high threshold (seuil haut) (optional)
-    grey : set to True if the user wants to keep original voxel values for the thresholded ones.
-           if set to False (default), the output image will be binary 
-           (out[i][j][k]=255 iif sb<=in[i][j][k](<=sh), out[i][j][k]=0 otherwise)
-    lazy : do not return the output image if True
-    '''
-    options=""
-    if sh:
-      options+=" -sh " + str(sh)
-    cmd=path_seuillage + ' ' + path_input + ' ' + path_output +\
-              ' -sb '+str(sb) + options
-    if verbose:
-      print cmd
-    os.system(cmd)
-    if not lazy:
-        out = imread(path_output)
-        os.system('rm ' + path_output)
-        return out  
 
 
-def anisotropicHist(path_input="temp_membrane.ext.inr", path_output='tmp_membrane.bin.inr', path_mask=None, manual=False,manual_sigma=7,sensitivity=0.98, keepAll=False, lazy=True, verbose=False):
+
+
+def _anisotropicHist(path_input="temp_membrane.ext.inr", path_output='tmp_membrane.bin.inr', path_mask=None, manual=False,manual_sigma=7,sensitivity=0.98, keepAll=False, lazy=True, verbose=False):
     ''' binarisation des membranes par seuillage anisotropic adaptatif
     Centerplanes image binarisation using an adaptative anisotropic threshold method detailed in [Michelin 2016]
     Generate temp_membrane.bin.inr and path_output
@@ -959,7 +1337,7 @@ def nonZerosImage(image_in, verbose=False):
 
   return bool(os.system(cmd))
 
-def TVmembrane(path_input="temp_membrane.bin.inr", path_output='tmp_TVmembrane.VP31.inr', path_mask=None, scale=3.6, sigma_LF=0.9, realScale=True, sample=0.2, keepAll=False, lazy=True, verbose=False):
+def _TVmembrane(path_input="temp_membrane.bin.inr", path_output='tmp_TVmembrane.VP31.inr', path_mask=None, scale=3.6, sigma_LF=0.9, realScale=True, sample=0.2, keepAll=False, lazy=True, verbose=False):
     '''
     Grey-level image reconstruction from an image of binarised membranes associated to images of orientations.
     path_input : path to input image which is contains binarised planar structures, 
