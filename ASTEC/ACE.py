@@ -219,60 +219,10 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
         sys.exit(1)
 
     #
-    #
+    # to be done
     #
     if monitoring.keepTemporaryFiles is True:
         parameters.keep_membrane = True
-
-
-    # Definition of intermediary image paths
-    # Definition des paths d'images intermediaires
-#
-#	path_WORK = ''
-#	if path_output:
-#		path_WORK = os.path.dirname(path_output).rstrip(os.path.sep) + os.path.sep
-#	else:
-#		path_WORK = os.path.dirname(path_input).rstrip(os.path.sep) + os.path.sep
-#	if path_WORK == os.path.sep:
-#		path_WORK = os.path.curdir + os.path.sep
-#	tmp_ID = random_number()
-#	if path_membrane_prefix:
-#		keep_membrane = True
-#	else:
-#		path_membrane_prefix = path_WORK + 'tmp_membrane_' + tmp_ID + ''
-#	path_TV = path_WORK + 'tmp_reconstructed_' + tmp_ID + '.inr'
-
-
-#	keep_tmp_bin = keep_all
-#	if not keep_tmp_bin:
-#		keep_tmp_bin = path_bin and (path_bin != path_membrane_prefix + '.bin.inr')
-
-#	if verbose:
-#		print "Temporary files:"
-#		if binary_input:
-#			print path_TV
-#		else:
-#			if keep_membrane:
-#				print path_membrane_prefix + ".bin.inr"
-#			else:
-#				print path_membrane_prefix + ".[bin|ext|theta|phi].inr"
-#			if not hard_thresholding:
-#				print path_membrane_prefix + ".hist.txt"
-#			print path_TV
-#	if verbose and path_output:
-#		print "Output file:"
-#		if path_output:
-#			print path_output
-
-    ### Output path ###
-#	if not os.path.isdir(path_WORK):
-##			os.mkdir(path_WORK)
-#		except Exception:
-#			print "Unexpected error: unable to create working directory"
-
-    #
-    # if the output is already binary, there is no membrane extraction
-    #
 
     #
     # set names
@@ -288,10 +238,12 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
     # if the output is already binary, there is no membrane extraction
     #
 
-    path_TV_input = ''
+    path_tv_input = path_input
+
     if binary_input:
-        path_TV_input = path_input
-#		keep_membrane = True
+        
+        pass
+
     else:
         #
         # get a binary image of membranes
@@ -326,7 +278,7 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
                                               + str(tmp_prefix_name + ".ext.inr").split(os.path.sep)[-1] + "'", 2)
                 cpp_wrapping.seuillage(path_input=tmp_prefix_name + ".ext.inr",
                                        path_output=tmp_prefix_name + ".bin.inr",
-                                       low_threshold=hard_threshold, verbose=verbose)
+                                       low_threshold=hard_threshold, monitoring=monitoring)
             else:
                 #
                 # Anisotropic threshold of membranes (the choice of the sensitivity parameter may be critical)
@@ -338,22 +290,22 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
                                                    manual=parameters.manual, manual_sigma=parameters.manual_sigma,
                                                    sensitivity=parameters.sensitivity, monitoring=monitoring)
 
-        path_TV_input = tmp_prefix_name + ".bin.inr"
+        path_tv_input = tmp_prefix_name + ".bin.inr"
 
     #
     # Tensor voting on the image of binarized membranes
     #
 
     monitoring.to_log_and_console("       tensor voting from '"
-                                  + str(path_TV_input).split(os.path.sep)[-1] + "'", 2)
+                                  + str(path_tv_input).split(os.path.sep)[-1] + "'", 2)
 
-    e = commonTools.get_extension(path_TV_input)
-    b = os.path.basename(path_TV_input)
+    e = commonTools.get_extension(path_tv_input)
+    b = os.path.basename(path_tv_input)
     prefix_name = b[0:len(b) - len(e)]
 
     tmp_prefix_name = temporary_path + os.path.sep + prefix_name
 
-    cpp_wrapping.tensor_voting_membrane(path_TV_input, tmp_prefix_name, path_output,
+    cpp_wrapping.tensor_voting_membrane(path_tv_input, tmp_prefix_name, path_output,
                                         scale_tensor_voting=parameters.sigma_TV,
                                         sample=parameters.sample, sigma_smoothing=parameters.sigma_LF,
                                         monitoring=monitoring)
@@ -361,13 +313,11 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
     return
 
 
-
 ########################################################################################
 #
 #
 #
 ########################################################################################
-
 
 
 def light_LACE(parameters):
@@ -1434,10 +1384,10 @@ def GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=Non
 
     ### Stuff ###
 
-    path_TV_input = ''
+    path_tv_input = ''
     if binary_input:
         # Input image = binary image
-        path_TV_input = path_input
+        path_tv_input = path_input
         keep_membrane = True
     else:
         if (not os.path.exists(path_membrane_prefix + ".ext.inr")) or (
@@ -1459,7 +1409,7 @@ def GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=Non
             # Hard threshold
             seuillage(path_input=path_membrane_prefix + ".ext.inr", path_output=path_membrane_prefix + '.bin.inr',
                       sb=hard_threshold, verbose=verbose)
-        path_TV_input = path_membrane_prefix + ".bin.inr"
+        path_tv_input = path_membrane_prefix + ".bin.inr"
         if path_bin and not os.path.exists(path_bin):
             # Copy of the temporary binary image to the path provided in parameter
             # Copie de l'image binaire temporaire vers le path renseigne en parametre
@@ -1468,10 +1418,10 @@ def GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=Non
 
     # Tensor voting on the image of binarized membranes
     if verbose:
-        print 'Processing Tensor Voting on image ' + path_TV_input + ' ...'
-    assert (os.path.exists(path_TV_input))
-    assert (path_TV_input.endswith('.inr.gz') or path_TV_input.endswith('.inr'))
-    binary_file_decomp = path_TV_input.split('.')
+        print 'Processing Tensor Voting on image ' + path_tv_input + ' ...'
+    assert (os.path.exists(path_tv_input))
+    assert (path_tv_input.endswith('.inr.gz') or path_tv_input.endswith('.inr'))
+    binary_file_decomp = path_tv_input.split('.')
     if binary_file_decomp[-1] == 'gz':
         binary_file_decomp = binary_file_decomp[:-1]
     assert binary_file_decomp[-1] == 'inr'
@@ -1480,9 +1430,9 @@ def GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=Non
     not os.path.exists('.'.join(binary_file_decomp) + '.phi.inr')):
         assert (len(binary_file_decomp) > 1 and os.path.exists(
             '.'.join(binary_file_decomp[:-1]) + '.theta.inr') and os.path.exists('.'.join(binary_file_decomp[
-                                                                                          :-1]) + '.phi.inr')), "Error : unexpectedly, <prefix>.theta.inr and/or <prefix>.phi.inr not found for file " + path_TV_input + " before tensor voting step"
+                                                                                          :-1]) + '.phi.inr')), "Error : unexpectedly, <prefix>.theta.inr and/or <prefix>.phi.inr not found for file " + path_tv_input + " before tensor voting step"
 
-    TVmembrane(path_input=path_TV_input, path_output=path_TV, path_mask=None, scale=sigma_TV, sample=sample,
+    TVmembrane(path_input=path_tv_input, path_output=path_TV, path_mask=None, scale=sigma_TV, sample=sample,
                sigma_LF=sigma_LF, realScale=True, keepAll=False, verbose=verbose)
 
     # Reading of the reconstructed image (the one returned by the function)
@@ -1677,10 +1627,10 @@ def _GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=No
 
     ### Stuff ###
 
-    path_TV_input = ''
+    path_tv_input = ''
     if binary_input:
         # Input image = binary image
-        path_TV_input = path_input
+        path_tv_input = path_input
         keep_membrane = True
     else:
         if (not os.path.exists(path_membrane_prefix + ".ext.inr")) or (
@@ -1702,7 +1652,7 @@ def _GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=No
             # Hard threshold
             seuillage(path_input=path_membrane_prefix + ".ext.inr", path_output=path_membrane_prefix + '.bin.inr',
                       sb=hard_threshold, verbose=verbose)
-        path_TV_input = path_membrane_prefix + ".bin.inr"
+        path_tv_input = path_membrane_prefix + ".bin.inr"
         if path_bin and not os.path.exists(path_bin):
             # Copy of the temporary binary image to the path provided in parameter
             # Copie de l'image binaire temporaire vers le path renseigne en parametre
@@ -1711,10 +1661,10 @@ def _GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=No
 
     # Tensor voting on the image of binarized membranes
     if verbose:
-        print 'Processing Tensor Voting on image ' + path_TV_input + ' ...'
-    assert (os.path.exists(path_TV_input))
-    assert (path_TV_input.endswith('.inr.gz') or path_TV_input.endswith('.inr'))
-    binary_file_decomp = path_TV_input.split('.')
+        print 'Processing Tensor Voting on image ' + path_tv_input + ' ...'
+    assert (os.path.exists(path_tv_input))
+    assert (path_tv_input.endswith('.inr.gz') or path_tv_input.endswith('.inr'))
+    binary_file_decomp = path_tv_input.split('.')
     if binary_file_decomp[-1] == 'gz':
         binary_file_decomp = binary_file_decomp[:-1]
     assert binary_file_decomp[-1] == 'inr'
@@ -1723,9 +1673,9 @@ def _GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=No
     not os.path.exists('.'.join(binary_file_decomp) + '.phi.inr')):
         assert (len(binary_file_decomp) > 1 and os.path.exists(
             '.'.join(binary_file_decomp[:-1]) + '.theta.inr') and os.path.exists('.'.join(binary_file_decomp[
-                                                                                          :-1]) + '.phi.inr')), "Error : unexpectedly, <prefix>.theta.inr and/or <prefix>.phi.inr not found for file " + path_TV_input + " before tensor voting step"
+                                                                                          :-1]) + '.phi.inr')), "Error : unexpectedly, <prefix>.theta.inr and/or <prefix>.phi.inr not found for file " + path_tv_input + " before tensor voting step"
 
-    TVmembrane(path_input=path_TV_input, path_output=path_TV, path_mask=None, scale=sigma_TV, sample=sample,
+    TVmembrane(path_input=path_tv_input, path_output=path_TV, path_mask=None, scale=sigma_TV, sample=sample,
                sigma_LF=sigma_LF, realScale=True, keepAll=False, verbose=verbose)
 
     # Reading of the reconstructed image (the one returned by the function)
