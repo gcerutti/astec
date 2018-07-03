@@ -401,8 +401,8 @@ class FusionParameters(object):
         #
         # images suffixes/formats
         #
+        self.result_image_suffix = 'inr'
         self.default_image_suffix = 'inr'
-
 
     def write_parameters(self, log_file_name):
         with open(log_file_name, 'a') as logfile:
@@ -439,6 +439,7 @@ class FusionParameters(object):
             logfile.write('- fusion_cropping_margin_y_0 = '+str(self.fusion_cropping_margin_y_0)+'\n')
             logfile.write('- fusion_cropping_margin_y_1 = '+str(self.fusion_cropping_margin_y_1)+'\n')
 
+            logfile.write('- result_image_suffix = '+str(self.result_image_suffix) + '\n')
             logfile.write('- default_image_suffix = '+str(self.default_image_suffix) + '\n')
 
             logfile.write("\n")
@@ -476,6 +477,7 @@ class FusionParameters(object):
         print('- fusion_cropping_margin_y_0 = '+str(self.fusion_cropping_margin_y_0))
         print('- fusion_cropping_margin_y_1 = '+str(self.fusion_cropping_margin_y_1))
 
+        print('- result_image_suffix = ' + str(self.result_image_suffix))
         print('- default_image_suffix = ' + str(self.default_image_suffix))
 
         print("")
@@ -589,6 +591,13 @@ class FusionParameters(object):
         #
         # images suffixes/formats
         #
+        if hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
+            if parameters.result_image_suffix is not None:
+                self.result_image_suffix = parameters.RESULT_IMAGE_SUFFIX_FUSE
+        if hasattr(parameters, 'result_image_suffix'):
+            if parameters.result_image_suffix is not None:
+                self.result_image_suffix = parameters.result_image_suffix
+
         if hasattr(parameters, 'default_image_suffix'):
             if parameters.default_image_suffix is not None:
                 self.default_image_suffix = parameters.default_image_suffix
@@ -601,53 +610,7 @@ class FusionParameters(object):
 ########################################################################################
 
 
-__recognized_extensions__ = ['.zip', '.h5', '.tif', '.tiff', '.TIF', '.TIFF', '.inr', '.inr.gz', '.mha', '.mha.gz']
-
-
 __extension_to_be_converted__ = ['.h5', '.tif', '.tiff', '.TIF', '.TIFF']
-
-
-def _get_extension(filename):
-    """ Return the file extension. Must be in the set of recognized extensions.
-    :param filename:
-    :return: None in case of unrecognized extension,
-             else the recognized extension (begins with '.')
-    """
-    for e in __recognized_extensions__:
-        if len(filename) < len(e):
-            continue
-        if filename[len(filename)-len(e):len(filename)] == e:
-            return e
-    return None
-
-
-def _add_suffix(filename, suffix, new_dirname=None, new_extension=None):
-    """
-    Add a suffix to a filenename (ie before the extension)
-    :param filename:
-    :param suffix: suffix to be added
-    :param new_dirname: change the directory name of the file
-    :param new_extension: change the extension of the file
-    :return: the transformed file name
-    """
-    b = os.path.basename(filename)
-    d = os.path.dirname(filename)
-    e = _get_extension(b)
-    if e is None:
-        monitoring.to_log_and_console("_add_suffix: file extension of '"+str(filename)+"' was not recognized", 0)
-        monitoring.to_log_and_console("\t Exiting", 0)
-        sys.exit(1)
-    new_basename = b[0:len(b)-len(e)]
-    new_basename += suffix
-    if new_extension is None:
-        new_basename += e
-    else:
-        new_basename += '.' + new_extension
-    if new_dirname is None:
-        res_name = os.path.join(d, new_basename)
-    else:
-        res_name = os.path.join(new_dirname, new_basename)
-    return res_name
 
 
 def _read_image_name(data_path, temporary_path, file_name, resolution, default_extension='inr'):
@@ -682,7 +645,7 @@ def _read_image_name(data_path, temporary_path, file_name, resolution, default_e
             if len(f) <= len(prefix):
                 pass
             if f[0:len(prefix)] == prefix:
-                if f[len(prefix):len(f)] in __recognized_extensions__:
+                if f[len(prefix):len(f)] in commonTools.recognized_extensions:
                     file_names.append(f)
 
         if len(file_names) > 1:
@@ -799,36 +762,6 @@ def _read_image_name(data_path, temporary_path, file_name, resolution, default_e
     return full_name
 
 
-def _find_image_name(data_path, image_name):
-    """
-
-    :param data_path:
-    :param image_name:
-    :return:
-    """
-    proc = "_find_image_name"
-
-    file_names = []
-    for f in os.listdir(data_path):
-        if len(f) <= len(image_name):
-            pass
-        if f[0:len(image_name)] == image_name:
-            file_names.append(f)
-
-    if len(file_names) == 0:
-        monitoring.to_log_and_console(proc + ": no image with name '" + str(image_name)
-                                      + "' was found in '" + str(data_path) + "'", 4)
-        return None
-
-    if len(file_names) > 1:
-        monitoring.to_log_and_console(proc + ": several images with name '"
-                                      + str(image_name) + "' were found in '" + str(data_path) + "'")
-        monitoring.to_log_and_console("\t "+str(file_names))
-        return None
-
-    return file_names[0]
-
-
 def _analyze_data_directory(data_dir):
     """
     Parse a directory containing images
@@ -849,7 +782,7 @@ def _analyze_data_directory(data_dir):
     # recognize images and extensions
     #
     for f in os.listdir(data_dir):
-        for e in __recognized_extensions__:
+        for e in commonTools.recognized_extensions:
             if f[len(f)-len(e):len(f)] == e:
                 if e not in extensions:
                     extensions.append(e)
@@ -946,7 +879,7 @@ def _crop_bounding_box(the_image):
     # build a 2D binary image from the MIP projection
     #
 
-    the_selection = _add_suffix(the_image, "_cropselection")
+    the_selection = commonTools.add_suffix(the_image, "_cropselection")
     cpp_wrapping.mip_projection_for_crop(the_image, the_selection, None, monitoring)
 
     #
@@ -1297,13 +1230,13 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
             res_images = []
 
             for i in range(0, len(the_images)):
-                res_images.append(_add_suffix(input_image_list[c][i], "_line_corrected",
-                                              new_dirname=channel[c].temporary_paths[i],
-                                              new_extension=parameters.default_image_suffix))
+                res_images.append(commonTools.add_suffix(input_image_list[c][i], "_line_corrected",
+                                                         new_dirname=channel[c].temporary_paths[i],
+                                                         new_extension=parameters.default_image_suffix))
                 if c == 0:
-                    corrections.append(_add_suffix(input_image_list[c][i], "_line_corrected",
-                                                   new_dirname=channel[c].temporary_paths[i],
-                                                   new_extension='.txt'))
+                    corrections.append(commonTools.add_suffix(input_image_list[c][i], "_line_corrected",
+                                                              new_dirname=channel[c].temporary_paths[i],
+                                                              new_extension='.txt'))
             res_image_list.append(res_images)
 
         #
@@ -1386,9 +1319,9 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
         #
 
         for i in range(0, len(the_images)):
-            res_images.append(_add_suffix(input_image_list[c][i], "_resample",
-                                          new_dirname=channel[c].temporary_paths[i],
-                                          new_extension=parameters.default_image_suffix))
+            res_images.append(commonTools.add_suffix(input_image_list[c][i], "_resample",
+                                                     new_dirname=channel[c].temporary_paths[i],
+                                                     new_extension=parameters.default_image_suffix))
         res_image_list.append(res_images)
 
         #
@@ -1441,9 +1374,9 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
             res_images = []
 
             for i in range(0, len(the_images)):
-                res_images.append(_add_suffix(input_image_list[c][i], "_crop",
-                                              new_dirname=channel[c].temporary_paths[i],
-                                              new_extension=parameters.default_image_suffix))
+                res_images.append(commonTools.add_suffix(input_image_list[c][i], "_crop",
+                                                         new_dirname=channel[c].temporary_paths[i],
+                                                         new_extension=parameters.default_image_suffix))
             res_image_list.append(res_images)
 
         #
@@ -1524,9 +1457,9 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
                 if i == 0 or i == 2:
                     res_images.append(the_images[i])
                 else:
-                    res_images.append(_add_suffix(input_image_list[c][i], "_mirror",
-                                                  new_dirname=channel[c].temporary_paths[i],
-                                                  new_extension=parameters.default_image_suffix))
+                    res_images.append(commonTools.add_suffix(input_image_list[c][i], "_mirror",
+                                                             new_dirname=channel[c].temporary_paths[i],
+                                                             new_extension=parameters.default_image_suffix))
             res_image_list.append(res_images)
 
             #
@@ -1573,21 +1506,22 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
         res_images = []
 
         for i in range(0, len(the_images)):
-            res_images.append(_add_suffix(input_image_list[c][i], "_reg",
-                                          new_dirname=channel[c].temporary_paths[i],
-                                          new_extension=parameters.default_image_suffix))
+            res_images.append(commonTools.add_suffix(input_image_list[c][i], "_reg",
+                                                     new_dirname=channel[c].temporary_paths[i],
+                                                     new_extension=parameters.default_image_suffix))
             if c == 0:
                 init_trsfs.append(
-                    _add_suffix(input_image_list[c][i], "_init",
-                                new_dirname=channel[c].temporary_paths[i], new_extension="trsf"))
-                res_trsfs.append(_add_suffix(input_image_list[c][i], "_reg",
-                                             new_dirname=channel[c].temporary_paths[i], new_extension="trsf"))
-                unreg_weight_images.append(_add_suffix(input_image_list[c][i], "_init_weight",
-                                                       new_dirname=channel[c].temporary_paths[i],
-                                                       new_extension=parameters.default_image_suffix))
-                weight_images.append(_add_suffix(input_image_list[c][i], "_weight",
-                                                 new_dirname=channel[c].temporary_paths[i],
-                                                 new_extension=parameters.default_image_suffix))
+                    commonTools.add_suffix(input_image_list[c][i], "_init",
+                                           new_dirname=channel[c].temporary_paths[i], new_extension="trsf"))
+                res_trsfs.append(commonTools.add_suffix(input_image_list[c][i], "_reg",
+                                                        new_dirname=channel[c].temporary_paths[i],
+                                                        new_extension="trsf"))
+                unreg_weight_images.append(commonTools.add_suffix(input_image_list[c][i], "_init_weight",
+                                                                  new_dirname=channel[c].temporary_paths[i],
+                                                                  new_extension=parameters.default_image_suffix))
+                weight_images.append(commonTools.add_suffix(input_image_list[c][i], "_weight",
+                                                            new_dirname=channel[c].temporary_paths[i],
+                                                            new_extension=parameters.default_image_suffix))
 
         res_image_list.append(res_images)
 
@@ -1790,8 +1724,8 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
         # do not forget to cast the result on 16 bits
         #
         if monitoring.debug > 0:
-            tmp_mask_image = _add_suffix(fused_image, "_mask_sum", new_dirname=channel[c].temporary_paths[4],
-                                         new_extension=parameters.default_image_suffix)
+            tmp_mask_image = commonTools.add_suffix(fused_image, "_mask_sum", new_dirname=channel[c].temporary_paths[4],
+                                                    new_extension=parameters.default_image_suffix)
             imsave(tmp_mask_image, full_mask)
 
         monitoring.to_log_and_console("    .. combining images", 2)
@@ -1808,9 +1742,9 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
         #
         if parameters.fusion_cropping is True:
 
-            tmp_fused_image = _add_suffix(fused_image, "_uncropped_fusion",
-                                          new_dirname=channel[c].temporary_paths[4],
-                                          new_extension=parameters.default_image_suffix)
+            tmp_fused_image = commonTools.add_suffix(fused_image, "_uncropped_fusion",
+                                                     new_dirname=channel[c].temporary_paths[4],
+                                                     new_extension=parameters.default_image_suffix)
             imsave(tmp_fused_image, full_image)
 
             if c == 0:
@@ -2071,7 +2005,8 @@ def fusion_control(experiment, environment, parameters):
                 # fused image name
                 #
 
-                fused_image = environment.path_fuse_exp_files.replace(nomenclature.FLAG_TIME, extra_zeros + time_point)
+                fused_image = environment.path_fuse_exp_files.replace(nomenclature.FLAG_TIME, extra_zeros + time_point)\
+                              + '.' + parameters.result_image_suffix
 
                 #
                 # input image names
@@ -2119,7 +2054,9 @@ def fusion_control(experiment, environment, parameters):
                 # fused image name
                 #
 
-                fused_image = environment.path_fuse_exp_files.replace(nomenclature.FLAG_TIME, extra_zeros + fused_time)
+                fused_image = environment.path_fuse_exp_files.replace(nomenclature.FLAG_TIME, extra_zeros
+                                                                      + fused_time) \
+                              + '.' + parameters.result_image_suffix
 
                 #
                 # input image names
@@ -2181,7 +2118,8 @@ def fusion_control(experiment, environment, parameters):
             #
 
             fused_image = nomenclature.replaceTIME(environment.path_fuse_exp_files,
-                                                   time_value+parameters.acquisition_delay)
+                                                   time_value+parameters.acquisition_delay) \
+                          + '.' + parameters.result_image_suffix
 
             #
             # input image names
@@ -2190,7 +2128,7 @@ def fusion_control(experiment, environment, parameters):
             images = list()
 
             name = nomenclature.replaceTIME(environment.path_angle1_files, time_value)
-            im = _find_image_name(environment.channel[0].path_angle1, name)
+            im = commonTools.find_file(environment.channel[0].path_angle1, name, monitoring)
             if im is None:
                 monitoring.to_log_and_console("    .. image '" + name + "' not found in '"
                                               + environment.channel[0].path_angle1 + "'", 2)
@@ -2200,7 +2138,7 @@ def fusion_control(experiment, environment, parameters):
                 images.append(im)
 
             name = nomenclature.replaceTIME(environment.path_angle2_files, time_value)
-            im = _find_image_name(environment.channel[0].path_angle2, name)
+            im = commonTools.find_file(environment.channel[0].path_angle2, name, monitoring)
             if im is None:
                 monitoring.to_log_and_console("    .. image '" + name + "' not found in '"
                                               + environment.channel[0].path_angle2 + "'", 2)
@@ -2210,7 +2148,7 @@ def fusion_control(experiment, environment, parameters):
                 images.append(im)
 
             name = nomenclature.replaceTIME(environment.path_angle3_files, time_value)
-            im = _find_image_name(environment.channel[0].path_angle3, name)
+            im = commonTools.find_file(environment.channel[0].path_angle3, name, monitoring)
             if im is None:
                 monitoring.to_log_and_console("    .. image '" + name + "' not found in '"
                                               + environment.channel[0].path_angle3 + "'", 2)
@@ -2220,7 +2158,7 @@ def fusion_control(experiment, environment, parameters):
                 images.append(im)
 
             name = nomenclature.replaceTIME(environment.path_angle4_files, time_value)
-            im = _find_image_name(environment.channel[0].path_angle4, name)
+            im = commonTools.find_file(environment.channel[0].path_angle4, name, monitoring)
             if im is None:
                 monitoring.to_log_and_console("    .. image '" + name + "' not found in '"
                                               + environment.channel[0].path_angle4 + "'", 2)

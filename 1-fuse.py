@@ -16,6 +16,7 @@ from argparse import ArgumentParser
 
 import ASTEC.commonTools as commonTools
 import ASTEC.FUSION as FUSION
+import ASTEC.nomenclature as nomenclature
 from ASTEC.CommunFunctions.cpp_wrapping import path_to_vt
 
 
@@ -109,6 +110,8 @@ if __name__ == '__main__':
     #
     parameterFile = commonTools.get_parameter_file(args.parameterFile)
     environment.update_from_file(parameterFile, start_time)
+    environment.path_history_file = nomenclature.replaceEXECUTABLE(environment.path_history_file, __file__)
+    environment.path_log_file = nomenclature.replaceEXECUTABLE(environment.path_log_file, __file__)
 
     if not os.path.isdir(environment.path_logdir):
         os.makedirs(environment.path_logdir)

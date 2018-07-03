@@ -211,12 +211,14 @@
 #
 # defines the output image format
 #
-# RESULT_IMAGE_SUFFIX_FUSE is for the result image(s)
+# RESULT_IMAGE_SUFFIX_FUSE is for the fusion result image(s)
+# result_image_suffix is for all output images
 # default_image_suffix is for all images (including auxiliary ones)
-# defaulr are 'inr'
+# default are 'inr'
 #
 
 # RESULT_IMAGE_SUFFIX_FUSE = 'inr'
+# result_image_suffix = 'inr'
 # default_image_suffix = 'inr'
 
 ######################################################################
@@ -362,27 +364,41 @@ target_resolution = .3
 
 ######################################################################
 #
-#
+# mars parameters
 #
 ######################################################################
 
-
-
-#######################
-### MARS PARAMETERS ###
-#######################
 
 # Modules choice
 mars_method=1 			
                         # 1 for 'Classic' method
 			  			# 2 for 'Gace' method
-# General parameters for MARS segmentation
-mars_sigma1 = 0.6  		
-                        # sigma 1 (0.6um) in real coordinates
-mars_sigma2 = 0.15 		
-                        # sigma 2 (0.15um) in real coordinates
-mars_h_min = 4     		
-                        # H min initialisation to ease correction
+
+# ##### explanation #####
+#
+# watershed parameters
+#
+# the watershed segmentation has several steps
+# 1. smoothing of initial image for seed extraction
+#    mars_sigma1 (for back-compatibility)
+#    watershed_seed_sigma
+#    default value is 0.6 (real coordinates, ie 0.6 um)
+# 2. smoothing of reconstructed image for image regularization prior to segmentation
+#    mars_sigma2 (for back-compatibility)
+#    watershed_membrane_sigma
+#    default value is 0.15 (real coordinates, ie 0.15 um)
+# 3. regional minima extraction
+#    mars_h_min (for back-compatibility)
+#    watershed_seed_hmin
+#    default value is 4
+#
+
+# watershed_seed_sigma = 0.6
+# watershed_membrane_sigma = 0.15
+# watershed_seed_hmin = 4
+
+
+
 # Gace Parameters (if mars_method is set to 2):
 # membrane_renforcement
 mars_sigma_membrane=0.9 
@@ -439,6 +455,12 @@ mars_sample=0.2
 					  # optimisation (do not touch if not bewared)
 
 
+
+######################################################################
+#
+#
+#
+######################################################################
 
 ####################################
 ### MANUAL CORRECTION PARAMETERS ###
