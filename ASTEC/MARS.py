@@ -214,18 +214,14 @@ class MarsParameters(object):
                 self.intensity_enhancement = 'GACE'
 
         if hasattr(parameters, 'intensity_transformation'):
-            if parameters.intensity_transformation is not None:
-                self.intensity_transformation = parameters.intensity_transformation
+            self.intensity_transformation = parameters.intensity_transformation
         if hasattr(parameters, 'mars_intensity_transformation'):
-            if parameters.mars_intensity_transformation is not None:
-                self.intensity_transformation = parameters.mars_intensity_transformation
+            self.intensity_transformation = parameters.mars_intensity_transformation
 
         if hasattr(parameters, 'intensity_enhancement'):
-            if parameters.intensity_enhancement is not None:
-                self.intensity_enhancement = parameters.intensity_enhancement
+            self.intensity_enhancement = parameters.intensity_enhancement
         if hasattr(parameters, 'mars_intensity_enhancement'):
-            if parameters.mars_intensity_enhancement is not None:
-                self.intensity_enhancement = parameters.mars_intensity_enhancement
+            self.intensity_enhancement = parameters.mars_intensity_enhancement
 
         #
         #
@@ -318,6 +314,15 @@ def mars_process(input_image, mars_image, environment, parameters):
     # 2. transform input image if required
     # 3. mix the two results
     #
+    # If any transformation is performed on the input image, the final result image (input of the watershed)
+    # will be named (in the 'temporary_path' directory)
+    # - 'input_image'_membrane
+    # if fusion is required
+    # - 'input_image'_enhanced
+    #   is the membrance-enhanced image (by tensor voting method)
+    # - 'input_image'_intensity
+    #   is the intensity-transformed image (by normalization)
+    #
 
     enhanced_image = None
     intensity_image = None
@@ -365,7 +370,6 @@ def mars_process(input_image, mars_image, environment, parameters):
         monitoring.to_log_and_console("    unknwon membrane enhancement method: '"
                                       + str(parameters.intensity_enhancement) + "'", 2)
 
-
     if parameters.intensity_enhancement is None or parameters.intensity_enhancement == 'None':
         pass
     elif parameters.intensity_enhancement == 'GACE':
@@ -391,13 +395,13 @@ def mars_process(input_image, mars_image, environment, parameters):
         if not os.path.isfile(intensity_image):
             cpp_wrapping.inline_to_u8(input_image, intensity_image, min_percentile=0.01, max_percentile=0.99,
                                       monitoring=monitoring)
-        arit_options="-o 1"
+        arit_options = "-o 1"
     else:
         monitoring.to_log_and_console("    unknwon intensity transformation method: '"
                                       + str(parameters.intensity_transformation) + "'", 2)
 
     #
-    #
+    # fuse the two images (if fusion is required)
     #
 
     if enhanced_image is None:
@@ -415,6 +419,19 @@ def mars_process(input_image, mars_image, environment, parameters):
                 cpp_wrapping.arithmetic(intensity_image, enhanced_image, membrane_image, other_options=arit_options)
 
     #
+    # this is now the 'pure' watershed approach, it will generate (in the 'temporary_path' directory)
+    # - ['input_image'_seed_preimage]
+    #   the smoothed membrane image, if smoothing is required prior to seed extraction
+    # - 'input_image'_minima
+    #   the minima image, ie the difference between the reconstructed image (after h-evelation) and the
+    #   membrane image. Thus its values are in [0,h]
+    # - 'input_image'_seeds
+    #   the labeled seed (ie regional minima) image used as input for watershed
+    # - ['input_image'_height]
+    #   the smoothed membrane image, if smoothing is required prior to watershed
+    #
+
+    #
     # computation of seed image
     # - [smoothing]
     # - regional minima
@@ -425,7 +442,8 @@ def mars_process(input_image, mars_image, environment, parameters):
 
     if parameters.watershed_seed_sigma > 0.0:
         if not os.path.isfile(membrane_image):
-            monitoring.to_log_and_console("       '" + str(membrane_image).split(os.path.sep)[-1] + "' does not exist", 2)
+            monitoring.to_log_and_console("       '" + str(membrane_image).split(os.path.sep)[-1]
+                                          + "' does not exist", 2)
             monitoring.to_log_and_console("\t Exiting.")
             sys.exit(1)
         monitoring.to_log_and_console("       smoothing '" + str(membrane_image).split(os.path.sep)[-1] + "'", 2)
@@ -533,6 +551,12 @@ def mars_control(experiment, environment, parameters):
     #
     #
 
+    if experiment.firstTimePoint < 0 or experiment.lastTimePoint < 0:
+        monitoring.to_log_and_console("... time interval does not seem to be defined in the parameter file")
+        monitoring.to_log_and_console("    set parameters 'begin' and 'end'")
+        monitoring.to_log_and_console("\t Exiting")
+        sys.exit(1)
+
     for time_value in range(experiment.firstTimePoint, experiment.lastTimePoint + 1, experiment.deltaTimePoint):
 
         acquisition_time = str('{:0{width}d}'.format(time_value, width=default_width))
@@ -565,7 +589,7 @@ def mars_control(experiment, environment, parameters):
         image = commonTools.find_file(environment.path_fuse_exp, name, monitoring)
         if image is None:
             monitoring.to_log_and_console("    .. image '" + name + "' not found in '"
-                                          + environment.fuse_exp + "'", 2)
+                                          + str(environment.path_fuse_exp) + "'", 2)
             monitoring.to_log_and_console("       skip time " + str(acquisition_time), 2)
             continue
 

@@ -2055,6 +2055,12 @@ def fusion_control(experiment, environment, parameters):
 
         else:
 
+            if experiment.firstTimePoint < 0 or experiment.lastTimePoint < 0:
+                monitoring.to_log_and_console("... time interval does not seem to be defined in the parameter file")
+                monitoring.to_log_and_console("    set parameters 'begin' and 'end'")
+                monitoring.to_log_and_console("\t Exiting")
+                sys.exit(1)
+
             for time_value in range(experiment.firstTimePoint, experiment.lastTimePoint + 1, experiment.deltaTimePoint):
 
                 acquisition_time = str('{:0{width}d}'.format(time_value, width=time_length1))
@@ -2118,6 +2124,12 @@ def fusion_control(experiment, environment, parameters):
     #
 
     else:
+
+        if experiment.firstTimePoint < 0 or experiment.lastTimePoint < 0:
+            monitoring.to_log_and_console("... time interval does not seem to be defined in the parameter file")
+            monitoring.to_log_and_console("    set parameters 'begin' and 'end'")
+            monitoring.to_log_and_console("\t Exiting")
+            sys.exit(1)
 
         for time_value in range(experiment.firstTimePoint, experiment.lastTimePoint+1, experiment.deltaTimePoint):
 
