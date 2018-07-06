@@ -161,7 +161,6 @@ path_mars = os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_MARS)
 # path for mars workspace
 path_mars_exp = os.path.join(path_mars, DIR_STAGE_MARS + '_' + FLAG_EXP_MARS)
 # mars images names
-# path_mars_exp_files = os.path.join(path_mars_exp, FLAG_EN + '_mars_t' + FLAG_TIME + '.' + FLAG_RESULT_IMAGE_SUFFIX_FUSE)
 path_mars_exp_files = FLAG_EN + '_mars_t' + FLAG_TIME
 
 # path_mars_exp_reconstruct = os.path.join(path_mars_exp, "RECONSTRUCTION")
@@ -183,7 +182,15 @@ path_seg = os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_SEG)
 # path for segmentation workspace
 path_seg_exp = os.path.join(path_seg, DIR_STAGE_SEG + '_' + FLAG_EXP_SEG)
 # segmentated images names
-path_seg_exp_files = os.path.join(path_seg_exp, FLAG_EN + '_seg_t$TIME.inr')
+# path_seg_exp_files = os.path.join(path_seg_exp, FLAG_EN + '_seg_t$TIME.inr')
+path_seg_exp_files = FLAG_EN + '_seg_t' + FLAG_TIME
+
+# log files
+path_seg_logdir = os.path.join(path_seg_exp, 'LOGS')
+path_seg_historyfile = os.path.join(path_seg_logdir, FLAG_EXECUTABLE + '-history.log')
+path_seg_logfile = os.path.join(path_seg_logdir, FLAG_EXECUTABLE + '-' + FLAG_TIMESTAMP + '.log')
+
+
 # cells lineage file
 path_seg_exp_lineage = os.path.join(path_seg_exp, FLAG_EN + '_seg_lineage.pkl')
 # segmentation temporary images path (for reconstruction)
@@ -193,7 +200,7 @@ path_seg_exp_reconstruct_files = os.path.join(path_seg_exp_reconstruct, FLAG_EN 
 # cells lineage test file
 path_seg_exp_lineage_test = os.path.join(path_seg_exp, FLAG_EN + '_seg_lineage.test')
 # logfiles
-path_seg_logfile = os.path.join(path_seg_exp, '4-astec.log')
+# path_seg_logfile = os.path.join(path_seg_exp, '4-astec.log')
 
 
 #

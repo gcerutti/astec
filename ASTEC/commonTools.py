@@ -283,13 +283,53 @@ def copy_date_stamped_file(thefile, directory, timestamp):
     :return:
     """
     d = time.strftime("%Y-%m-%d-%H:%M:%S", timestamp)
-    resfile = directory+os.path.sep+re.sub(r'(\.*).py', r'\1', thefile.split(os.path.sep)[-1])+'-'+d+'.py'
+    if len(thefile.split('.')) > 1:
+        ext = thefile.split('.')[-1]
+        resfile = directory + os.path.sep + re.sub(r'(\.*).' + ext, r'\1', thefile.split(os.path.sep)[-1]) + '-' \
+                  + d + '.' + ext
+    else:
+        resfile = directory + thefile.split(os.path.sep)[-1] + '-' + d
     shutil.copy2(thefile, resfile)
 
 
 ########################################################################################
 #
-# file utilities
+#
+#
+########################################################################################
+
+
+def read_lut(filename):
+    """
+    Return a dictionnary of integer key-to-key correspondances
+    :param file:
+    :return:
+    """
+    proc = 'read_lut'
+    lut = {}
+
+    if not os.path.isfile(filename):
+        monitoring.to_log_and_console(proc + ": file '" + str(filename) + "' does not exists", 0)
+        return lut
+
+    f = open(filename)
+    for line in f:
+        li = line.strip()
+        if li.startswith('#'):
+            continue
+        info = li.split()
+        if len(info) == 2:
+            # if not lut.has_key(int(info[0])):
+            #   lut[int(info[0])] = None
+            lut[int(info[0])] = int(info[1])
+    f.close()
+
+    return lut
+
+
+########################################################################################
+#
+# image file utilities
 #
 ########################################################################################
 
@@ -326,11 +366,12 @@ def add_suffix(filename, suffix, new_dirname=None, new_extension=None):
     :param new_extension: change the extension of the file
     :return: the transformed file name
     """
+    proc = 'add_suffix'
     b = os.path.basename(filename)
     d = os.path.dirname(filename)
     e = get_extension(b)
     if e is None:
-        monitoring.to_log_and_console("add_suffix: file extension of '"+str(filename)+"' was not recognized", 0)
+        monitoring.to_log_and_console(proc + ": file extension of '"+str(filename)+"' was not recognized", 0)
         monitoring.to_log_and_console("\t Exiting", 0)
         sys.exit(1)
     new_basename = b[0:len(b)-len(e)]

@@ -137,7 +137,7 @@ def read_inrimage (filename) :
             except AttributeError :
                 raise UserWarning("undefined pix size: %d" % pixsize)
     else :
-        msg = "unable to read that type of datas : %s" % dtype
+        msg = "unable to read that type of data : %s" % dtype
         raise UserWarning(msg)
 
     #read datas

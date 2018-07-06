@@ -496,9 +496,10 @@ target_resolution = .3
 ### MANUAL CORRECTION PARAMETERS ###
 ####################################
 
-mancor_seg_file='' 	   
+mancor_input_seg_file=''
                        # segmentation file to be manually corrected
 					   # If not provided, then looking for the output of MARS
+mancor_output_seg_file=''
 mancor_mapping_file='' 
                        # path to mapping file for manual correction of the 
 					   # mars segmentation. See above the syntax of this file.
