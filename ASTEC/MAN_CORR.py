@@ -297,11 +297,14 @@ def correction_process(input_image, output_image, parameters):
         corrected_mapping = commonTools.read_lut(parameters.mapping_file)
 
         if len(corrected_mapping) > 0:
-
             for k, v in corrected_mapping.iteritems():
                 mapping[k] = v
-
             im = mapping[im]
+        else:
+            monitoring.to_log_and_console('    no corrections to be done (no valid mapping file)', 2)
+
+    else:
+        monitoring.to_log_and_console('    no corrections to be done (no valid mapping file)', 2)
 
     #
     # get
@@ -329,13 +332,15 @@ def correction_process(input_image, output_image, parameters):
             monitoring.to_log_and_console('    {:>4d} : {:>9d} {:>15s}'.format(l, int(d[l]),
                                                                                '({:.2f})'.format(d[l]*vol)), 0)
     else:
-        for l in s[:int(parameters.smallest_cells)]:
-            monitoring.to_log_and_console('    {:>4d} : {:>9d} {:>15s}'.format(l, int(d[l]),
-                                                                               '({:.2f})'.format(d[l]*vol)), 0)
+        if int(parameters.smallest_cells) > 0:
+            for l in s[:int(parameters.smallest_cells)]:
+                monitoring.to_log_and_console('    {:>4d} : {:>9d} {:>15s}'.format(l, int(d[l]),
+                                                                                   '({:.2f})'.format(d[l]*vol)), 0)
         monitoring.to_log_and_console('       ...', 0)
-        for l in s[-int(parameters.largest_cells):]:
-            monitoring.to_log_and_console('    {:>4d} : {:>9d} {:>15s}'.format(l, int(d[l]),
-                                                                               '({:.2f})'.format(d[l]*vol)), 0)
+        if int(parameters.largest_cells) > 0:
+            for l in s[-int(parameters.largest_cells):]:
+                monitoring.to_log_and_console('    {:>4d} : {:>9d} {:>15s}'.format(l, int(d[l]),
+                                                                                   '({:.2f})'.format(d[l]*vol)), 0)
 
     imsave(output_image, SpatialImage(im, voxelsize=voxelsize).astype(np.uint16))
 

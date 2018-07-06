@@ -358,7 +358,7 @@ def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False
     :return:
     """
 
-    path_to_exec = _find_exec('linearfilter')
+    path_to_exec = _find_exec('linearFilter')
 
     command_line = path_to_exec + " " + path_input + " " + path_output
 
