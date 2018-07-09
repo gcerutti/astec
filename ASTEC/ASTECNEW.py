@@ -5,7 +5,9 @@ import sys
 
 import commonTools
 import nomenclature
+import lineage
 
+from CommunFunctions.ImageHandling import imread
 
 #
 #
@@ -60,7 +62,7 @@ class AstecEnvironment(object):
 
         self.path_seg_exp = nomenclature.replaceFlags(nomenclature.path_seg_exp, parameters)
         self.path_seg_exp_files = nomenclature.replaceFlags(nomenclature.path_seg_exp_files, parameters)
-        self.path_seg_exp_files = nomenclature.replaceFlags(nomenclature.path_seg_exp_lineage, parameters)
+        self.path_seg_exp_lineage = nomenclature.replaceFlags(nomenclature.path_seg_exp_lineage, parameters)
 
         self.path_logdir = nomenclature.replaceFlags(nomenclature.path_seg_logdir, parameters)
         self.path_history_file = nomenclature.replaceFlags(nomenclature.path_seg_historyfile, parameters)
@@ -73,6 +75,7 @@ class AstecEnvironment(object):
 
             logfile.write('- path_seg_exp = ' + str(self.path_seg_exp) + '\n')
             logfile.write('- path_seg_exp_files = ' + str(self.path_seg_exp_files) + '\n')
+            logfile.write('- path_seg_exp_lineage = ' + str(self.path_seg_exp_lineage) + '\n')
 
             logfile.write('- path_reconstruction = ' + str(self.path_reconstruction) + '\n')
             logfile.write('- temporary_path = ' + str(self.temporary_path) + '\n')
@@ -89,6 +92,7 @@ class AstecEnvironment(object):
 
         print('- path_seg_exp = ' + str(self.path_seg_exp))
         print('- path_seg_exp_files = ' + str(self.path_seg_exp_files))
+        print('- path_seg_exp_lineage = ' + str(self.path_seg_exp_lineage))
 
         print('- path_reconstruction = ' + str(self.path_reconstruction))
         print('- temporary_path = ' + str(self.temporary_path))
@@ -212,7 +216,56 @@ def astec_control(experiment, environment, parameters):
 
     #
     # re-read the lineage file, if any
+    # and check whether any time point should be re-computed
     #
 
     firstTimePoint = experiment.firstTimePoint + experiment.delayTimePoint
     lastTimePoint = experiment.lastTimePoint + experiment.delayTimePoint
+
+    lineage_tree_information = lineage.read_lineage_tree(environment.path_seg_exp_lineage)
+
+    if len(lineage_tree_information) > 0 and  'lin_tree' in lineage_tree_information:
+        monitoring.to_log_and_console("    .. test '" + str(environment.path_seg_exp_lineage) + "'", 1)
+        cellat = {}
+        for y in lineage_tree_information['lin_tree']:
+            t=y/10**4
+            if t not in cellat:
+                cellat[t] = 1
+            else:
+                cellat[t] += 1
+
+        restart=-1
+        t=firstTimePoint
+        while restart==-1 and t<=lastTimePoint:
+            #
+            # possible time point of segmentation, test if ok
+            #
+            time_value = t + experiment.deltaTimePoint
+            acquisition_time = str('{:0{width}d}'.format(time_value, width=default_width))
+            segmentation_file = environment.path_seg_exp_files.replace(nomenclature.FLAG_TIME, acquisition_time)
+            if not os.path.isfile(os.path.join(environment.path_seg_exp, segmentation_file)):
+                monitoring.to_log_and_console("       image '" + segmentation_file + "' not found", 1)
+                restart=t
+            else:
+                if cellat[t] == 0:
+                    monitoring.to_log_and_console("       lineage of image '" + segmentation_file + "' not found", 1)
+                    restart=t
+                else:
+                    try :
+                        segmentation_image = imread(segmentation_file)
+                    except IOError:
+                        monitoring.to_log_and_console("       error in image '" + segmentation_file + "'", 1)
+                        restart=t
+            #
+            #
+            #
+
+            if restart == -1:
+                monitoring.to_log_and_console("       time '" + str(t) + "' seems ok", 1)
+            t+=1
+        firstTimePoint=restart
+        monitoring.to_log_and_console("    " + proc + ": restart computation at time '" + str(firstTimePoint)
+                                      + "'", 1)
+    else:
+        monitoring.to_log_and_console("    " + proc + ": start computation at time '" + str(firstTimePoint)
+                                      + "'", 1)
