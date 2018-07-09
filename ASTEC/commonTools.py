@@ -89,6 +89,7 @@ class Experiment(object):
         self.firstTimePoint = -1
         self.lastTimePoint = -1
         self.deltaTimePoint = 1
+        self.delayTimePoint = 0
 
     #
     #
@@ -102,6 +103,7 @@ class Experiment(object):
             logfile.write('- firstTimePoint is ' + str(self.firstTimePoint)+'\n')
             logfile.write('- lastTimePoint is ' + str(self.lastTimePoint)+'\n')
             logfile.write('- deltaTimePoint is ' + str(self.deltaTimePoint)+'\n')
+            logfile.write('- delayTimePoint is ' + str(self.delayTimePoint)+'\n')
             logfile.write("\n")
         return
 
@@ -113,6 +115,7 @@ class Experiment(object):
         print('- firstTimePoint is ' + str(self.firstTimePoint))
         print('- lastTimePoint is ' + str(self.lastTimePoint))
         print('- deltaTimePoint is ' + str(self.deltaTimePoint))
+        print('- delayTimePoint is ' + str(self.delayTimePoint))
         print("")
 
     #
@@ -187,6 +190,11 @@ class Experiment(object):
         if hasattr(parameters, 'delta'):
             if parameters.delta is not None:
                 self.deltaTimePoint = parameters.delta
+
+        if hasattr(parameters, 'raw_delay'):
+            if parameters.raw_delay is not None:
+                self.delayTimePoint = parameters.raw_delay
+
         return
 
 

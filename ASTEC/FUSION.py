@@ -360,7 +360,6 @@ class FusionParameters(object):
         self.acquisition_orientation = 'left'
         self.acquisition_mirrors = False
         self.acquisition_resolution = None
-        self.acquisition_delay = 0
 
         #
         # Correction of slit lines
@@ -413,7 +412,6 @@ class FusionParameters(object):
             logfile.write('- acquisition_orientation = '+str(self.acquisition_orientation)+'\n')
             logfile.write('- acquisition_mirrors     = '+str(self.acquisition_mirrors)+'\n')
             logfile.write('- acquisition_resolution  = '+str(self.acquisition_resolution)+'\n')
-            logfile.write('- acquisition_delay       = ' + str(self.acquisition_delay)+'\n')
 
             logfile.write('- acquisition_slit_line_correction = '+str(self.acquisition_slit_line_correction)+'\n')
 
@@ -453,7 +451,6 @@ class FusionParameters(object):
         print('- acquisition_orientation = '+str(self.acquisition_orientation))
         print('- acquisition_mirrors     = '+str(self.acquisition_mirrors))
         print('- acquisition_resolution  = '+str(self.acquisition_resolution))
-        print('- acquisition_delay       = ' + str(self.acquisition_delay))
 
         print('- acquisition_slit_line_correction = '+str(self.acquisition_slit_line_correction))
 
@@ -520,10 +517,6 @@ class FusionParameters(object):
                           + ") is not handled")
                     print("\t Exiting.")
                     sys.exit(1)
-
-        if hasattr(parameters, 'raw_delay'):
-            if parameters.raw_delay is not None:
-                self.acquisition_delay = parameters.raw_delay
 
         #
         # correction of slit lines
@@ -2064,7 +2057,7 @@ def fusion_control(experiment, environment, parameters):
             for time_value in range(experiment.firstTimePoint, experiment.lastTimePoint + 1, experiment.deltaTimePoint):
 
                 acquisition_time = str('{:0{width}d}'.format(time_value, width=time_length1))
-                fused_time = str('{:0{width}d}'.format(time_value + parameters.acquisition_delay, width=time_length1))
+                fused_time = str('{:0{width}d}'.format(time_value + experiment.delayTimePoint, width=time_length1))
 
                 #
                 # fused image name
@@ -2140,7 +2133,7 @@ def fusion_control(experiment, environment, parameters):
             #
 
             fused_image = nomenclature.replaceTIME(environment.path_fuse_exp_files,
-                                                   time_value+parameters.acquisition_delay) \
+                                                   time_value+experiment.delayTimePoint) \
                           + '.' + parameters.result_image_suffix
 
             #

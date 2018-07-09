@@ -407,6 +407,13 @@ target_resolution = .3
 
 # ##### explanation #####
 #
+# Previous tuning enables to perform the watershed segmentation on an image that is not
+# the original image. If one want to keep such images, please turn the next variable to True
+
+# mars_keep_reconstruction = False
+
+# ##### explanation #####
+#
 # GACE parameters
 # GACE method is made of three steps
 # 1. membrane detection

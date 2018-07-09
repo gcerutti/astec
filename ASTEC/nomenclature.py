@@ -192,7 +192,9 @@ path_seg_logfile = os.path.join(path_seg_logdir, FLAG_EXECUTABLE + '-' + FLAG_TI
 
 
 # cells lineage file
-path_seg_exp_lineage = os.path.join(path_seg_exp, FLAG_EN + '_seg_lineage.pkl')
+# path_seg_exp_lineage = os.path.join(path_seg_exp, FLAG_EN + '_seg_lineage.pkl')
+path_seg_exp_lineage = FLAG_EN + '_seg_lineage.pkl'
+
 # segmentation temporary images path (for reconstruction)
 path_seg_exp_reconstruct = os.path.join(path_seg_exp, "RECONSTRUCTION")
 # segmentation temporary images file name (for reconstruction)
@@ -201,6 +203,7 @@ path_seg_exp_reconstruct_files = os.path.join(path_seg_exp_reconstruct, FLAG_EN 
 path_seg_exp_lineage_test = os.path.join(path_seg_exp, FLAG_EN + '_seg_lineage.test')
 # logfiles
 # path_seg_logfile = os.path.join(path_seg_exp, '4-astec.log')
+# logfile
 
 
 #

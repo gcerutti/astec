@@ -47,6 +47,7 @@ class MarsEnvironment(object):
         #
         #
         #
+        self.path_reconstruction = None
         self.temporary_path = None
 
         #
@@ -86,6 +87,7 @@ class MarsEnvironment(object):
             logfile.write('- path_mars_exp = ' + str(self.path_mars_exp) + '\n')
             logfile.write('- path_mars_exp_files = ' + str(self.path_mars_exp_files) + '\n')
 
+            logfile.write('- path_reconstruction = ' + str(self.path_reconstruction) + '\n')
             logfile.write('- temporary_path = ' + str(self.temporary_path) + '\n')
 
             logfile.write('- path_logdir = ' + str(self.path_logdir) + '\n')
@@ -104,6 +106,7 @@ class MarsEnvironment(object):
         print('- path_mars_exp = ' + str(self.path_mars_exp))
         print('- path_mars_exp_files = ' + str(self.path_mars_exp_files))
 
+        print('- path_reconstruction = ' + str(self.path_reconstruction))
         print('- temporary_path = ' + str(self.temporary_path))
 
         print('- path_logdir = ' + str(self.path_logdir))
@@ -123,11 +126,6 @@ class MarsParameters(object):
 
     def __init__(self):
         #
-        # acquisition parameters
-        #
-        self.acquisition_delay = 0
-
-        #
         #
         #
         self.intensity_transformation = 'Identity'
@@ -137,6 +135,11 @@ class MarsParameters(object):
         # membrane enhancement parameters
         #
         self.ace = ACE.AceParameters()
+
+        #
+        #
+        #
+        self.keep_reconstruction = False
 
         #
         # watershed parameters
@@ -156,12 +159,16 @@ class MarsParameters(object):
             logfile.write("\n")
             logfile.write('MarsParameters\n')
 
-            logfile.write('- acquisition_delay = ' + str(self.acquisition_delay) + '\n')
-
             logfile.write('- intensity_transformation = ' + str(self.intensity_transformation) + '\n')
             logfile.write('- intensity_enhancement = ' + str(self.intensity_enhancement) + '\n')
 
             self.ace.write_parameters(log_file_name)
+
+            logfile.write('- keep_reconstruction = ' + str(self.keep_reconstruction) + '\n')
+
+            logfile.write('- watershed_seed_sigma = ' + str(self.watershed_seed_sigma) + '\n')
+            logfile.write('- watershed_membrane_sigma = ' + str(self.watershed_membrane_sigma) + '\n')
+            logfile.write('- watershed_seed_hmin = ' + str(self.watershed_seed_hmin) + '\n')
 
             logfile.write('- result_image_suffix = ' + str(self.result_image_suffix) + '\n')
             logfile.write('- default_image_suffix = '+str(self.default_image_suffix) + '\n')
@@ -173,12 +180,16 @@ class MarsParameters(object):
         print("")
         print('MarsParameters')
 
-        print('- acquisition_delay = ' + str(self.acquisition_delay))
-
         print('- intensity_transformation = ' + str(self.intensity_transformation))
         print('- intensity_enhancement = ' + str(self.intensity_enhancement))
 
         self.ace.print_parameters()
+
+        print('- keep_reconstruction = ' + str(self.keep_reconstruction))
+
+        print('- watershed_seed_sigma = ' + str(self.watershed_seed_sigma))
+        print('- watershed_membrane_sigma = ' + str(self.watershed_membrane_sigma))
+        print('- watershed_seed_hmin = ' + str(self.watershed_seed_hmin))
 
         print('- result_image_suffix = ' + str(self.result_image_suffix))
         print('- default_image_suffix = ' + str(self.default_image_suffix))
@@ -193,13 +204,6 @@ class MarsParameters(object):
             sys.exit(1)
 
         parameters = imp.load_source('*', parameter_file)
-
-        #
-        # acquisition parameters
-        #
-        if hasattr(parameters, 'raw_delay'):
-            if parameters.raw_delay is not None:
-                self.acquisition_delay = parameters.raw_delay
 
         #
         # reconstruction methods
@@ -227,6 +231,16 @@ class MarsParameters(object):
         #
         #
         self.ace.update_from_file(parameter_file)
+
+        #
+        #
+        #
+        if hasattr(parameters, 'mars_keep_reconstruction'):
+            if parameters.mars_keep_reconstruction is not None:
+                self.keep_reconstruction = parameters.mars_keep_reconstruction
+        if hasattr(parameters, 'keep_reconstruction'):
+            if parameters.keep_reconstruction is not None:
+                self.keep_reconstruction = parameters.keep_reconstruction
 
         #
         # watershed parameters
@@ -337,7 +351,8 @@ def mars_process(input_image, mars_image, environment, parameters):
         elif parameters.intensity_transformation == 'Identity':
             intensity_image = input_image
         elif parameters.intensity_transformation == 'Normalization_to_u8':
-            intensity_image = commonTools.add_suffix(input_image, "_membrane", new_dirname=environment.temporary_path,
+            intensity_image = commonTools.add_suffix(input_image, "_membrane",
+                                                     new_dirname=environment.path_reconstruction,
                                                      new_extension=parameters.default_image_suffix)
         else:
             monitoring.to_log_and_console("    unknwon intensity transformation method: '"
@@ -348,20 +363,23 @@ def mars_process(input_image, mars_image, environment, parameters):
         # or set the 3 names: intensity_image, enhanced_image, and membrane_image
         #
         if parameters.intensity_transformation is None or parameters.intensity_transformation == 'None':
-            enhanced_image = commonTools.add_suffix(input_image, "_membrane", new_dirname=environment.temporary_path,
+            enhanced_image = commonTools.add_suffix(input_image, "_membrane",
+                                                    new_dirname=environment.path_reconstruction,
                                                     new_extension=parameters.default_image_suffix)
         elif parameters.intensity_transformation == 'Identity':
             intensity_image = input_image
             enhanced_image = commonTools.add_suffix(input_image, "_enhanced", new_dirname=environment.temporary_path,
                                                     new_extension=parameters.default_image_suffix)
-            membrane_image = commonTools.add_suffix(input_image, "_membrane", new_dirname=environment.temporary_path,
+            membrane_image = commonTools.add_suffix(input_image, "_membrane",
+                                                    new_dirname=environment.path_reconstruction,
                                                      new_extension=parameters.default_image_suffix)
         elif parameters.intensity_transformation == 'Normalization_to_u8':
             intensity_image = commonTools.add_suffix(input_image, "_intensity", new_dirname=environment.temporary_path,
                                                      new_extension=parameters.default_image_suffix)
             enhanced_image = commonTools.add_suffix(input_image, "_enhanced", new_dirname=environment.temporary_path,
                                                     new_extension=parameters.default_image_suffix)
-            membrane_image = commonTools.add_suffix(input_image, "_membrane", new_dirname=environment.temporary_path,
+            membrane_image = commonTools.add_suffix(input_image, "_membrane",
+                                                    new_dirname=environment.path_reconstruction,
                                                      new_extension=parameters.default_image_suffix)
         else:
             monitoring.to_log_and_console("    unknwon intensity transformation method: '"
@@ -574,18 +592,24 @@ def mars_control(experiment, environment, parameters):
         environment.temporary_path = environment.temporary_path.replace(nomenclature.FLAG_TIME, acquisition_time)
         if not os.path.isdir(environment.temporary_path):
             os.makedirs(environment.temporary_path)
+        
+        if parameters.keep_reconstruction is True:
+            environment.path_reconstruction = os.path.join(environment.path_mars_exp, "RECONSTRUCTION")
+            os.makedirs(environment.path_reconstruction)
+        else:
+            environment.path_reconstruction = environment.temporary_path
 
         #
         # mars image name
         #
 
         mars_image = nomenclature.replaceTIME(environment.path_mars_exp_files,
-                                              time_value + parameters.acquisition_delay) \
+                                              time_value + experiment.delayTimePoint) \
                      + '.' + parameters.result_image_suffix
         #
         #
         #
-        name = nomenclature.replaceTIME(environment.path_fuse_exp_files, time_value + parameters.acquisition_delay)
+        name = nomenclature.replaceTIME(environment.path_fuse_exp_files, time_value + experiment.delayTimePoint)
         image = commonTools.find_file(environment.path_fuse_exp, name, monitoring)
         if image is None:
             monitoring.to_log_and_console("    .. image '" + name + "' not found in '"

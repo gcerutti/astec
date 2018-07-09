@@ -115,10 +115,6 @@ class ManualCorrectionEnvironment(object):
 class ManualCorrectionParameters(object):
 
     def __init__(self):
-        #
-        # acquisition parameters
-        #
-        self.acquisition_delay = 0
 
         #
         #
@@ -144,8 +140,6 @@ class ManualCorrectionParameters(object):
             logfile.write("\n")
             logfile.write('ManualCorrectionParameters\n')
 
-            logfile.write('- acquisition_delay = ' + str(self.acquisition_delay) + '\n')
-
             logfile.write('- input_image = ' + str(self.input_image) + '\n')
             logfile.write('- output_image = ' + str(self.output_image) + '\n')
             logfile.write('- mapping_file = ' + str(self.mapping_file) + '\n')
@@ -159,8 +153,6 @@ class ManualCorrectionParameters(object):
     def print_parameters(self):
         print("")
         print('ManualCorrectionParameters')
-
-        print('- acquisition_delay = ' + str(self.acquisition_delay))
 
         print('- input_image = ' + str(self.input_image))
         print('- output_image = ' + str(self.output_image))
@@ -188,13 +180,7 @@ class ManualCorrectionParameters(object):
             sys.exit(1)
 
         parameters = imp.load_source('*', parameter_file)
-
-        #
-        # acquisition parameters
-        #
-        if hasattr(parameters, 'raw_delay'):
-            if parameters.raw_delay is not None:
-                self.acquisition_delay = parameters.raw_delay
+        
         #
         #
         #
@@ -386,7 +372,7 @@ def correction_control(experiment, environment, parameters):
             input_image = parameters.input_image
         else:
             input_name = nomenclature.replaceTIME(environment.path_mars_exp_files,
-                                                  experiment.firstTimePoint + parameters.acquisition_delay)
+                                                  experiment.firstTimePoint + experiment.delayTimePoint)
             input_name = commonTools.find_file(environment.path_mars_exp, input_name, monitoring=monitoring)
             input_image = os.path.join(environment.path_mars_exp, input_name)
 
@@ -397,7 +383,7 @@ def correction_control(experiment, environment, parameters):
             output_image = parameters.output_image
         else:
             output_name = nomenclature.replaceTIME(environment.path_seg_exp_files,
-                                                   experiment.firstTimePoint + parameters.acquisition_delay) \
+                                                   experiment.firstTimePoint + experiment.delayTimePoint) \
                           + '.' + parameters.result_image_suffix
             output_image = os.path.join(environment.path_seg_exp, output_name)
 
@@ -419,12 +405,17 @@ def correction_control(experiment, environment, parameters):
     else:
 
         for time_value in range(experiment.firstTimePoint, experiment.lastTimePoint + 1, experiment.deltaTimePoint):
-            input_name = nomenclature.replaceTIME(environment.path_mars_exp_files,
-                                                  time_value + parameters.acquisition_delay)
-            input_name = commonTools.find_file(environment.path_mars_exp, input_name, monitoring=monitoring)
+            input_mars_name = nomenclature.replaceTIME(environment.path_mars_exp_files,
+                                                  time_value + experiment.delayTimePoint)
+            input_name = commonTools.find_file(environment.path_mars_exp, input_mars_name, monitoring=monitoring)
+            if input_name is None:
+                monitoring.to_log_and_console("    mars image '" + str(input_mars_name) + "' not found: skip time "
+                                              + str(time_value), 1)
+                continue
+
             input_image = os.path.join(environment.path_mars_exp, input_name)
             output_name = nomenclature.replaceTIME(environment.path_seg_exp_files,
-                                                   time_value + parameters.acquisition_delay) \
+                                                   time_value + experiment.delayTimePoint) \
                           + '.' + parameters.result_image_suffix
             output_image = os.path.join(environment.path_seg_exp, output_name)
 
