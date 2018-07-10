@@ -2,7 +2,10 @@
 import os
 import imp
 import sys
+import time
+import shutil
 
+import ACE
 import commonTools
 import nomenclature
 import lineage
@@ -116,7 +119,18 @@ class AstecParameters(object):
         #
         #
         #
-        self.acquisition_delay = 0
+        self.intensity_transformation = 'Identity'
+        self.intensity_enhancement = None
+
+        #
+        # membrane enhancement parameters
+        #
+        self.ace = ACE.AceParameters()
+
+        #
+        #
+        #
+        self.keep_reconstruction = False
 
         #
         # images suffixes/formats
@@ -129,7 +143,12 @@ class AstecParameters(object):
             logfile.write("\n")
             logfile.write('AstecParameters\n')
 
-            logfile.write('- acquisition_delay = ' + str(self.acquisition_delay) + '\n')
+            logfile.write('- intensity_transformation = ' + str(self.intensity_transformation) + '\n')
+            logfile.write('- intensity_enhancement = ' + str(self.intensity_enhancement) + '\n')
+
+            self.ace.write_parameters(log_file_name)
+
+            logfile.write('- keep_reconstruction = ' + str(self.keep_reconstruction) + '\n')
 
             logfile.write('- result_image_suffix = ' + str(self.result_image_suffix) + '\n')
             logfile.write('- default_image_suffix = '+str(self.default_image_suffix) + '\n')
@@ -141,7 +160,12 @@ class AstecParameters(object):
         print("")
         print('AstecParameters')
 
-        print('- acquisition_delay = ' + str(self.acquisition_delay))
+        print('- intensity_transformation = ' + str(self.intensity_transformation))
+        print('- intensity_enhancement = ' + str(self.intensity_enhancement))
+
+        self.ace.print_parameters()
+
+        print('- keep_reconstruction = ' + str(self.keep_reconstruction))
 
         print('- result_image_suffix = ' + str(self.result_image_suffix))
         print('- default_image_suffix = ' + str(self.default_image_suffix))
@@ -164,6 +188,9 @@ class AstecParameters(object):
         #
         # images suffixes/formats
         #
+        if hasattr(parameters, 'result_image_suffix'):
+            if parameters.result_image_suffix is not None:
+                self.result_image_suffix = parameters.result_image_suffix
         if hasattr(parameters, 'default_image_suffix'):
             if parameters.default_image_suffix is not None:
                 self.default_image_suffix = parameters.default_image_suffix
@@ -177,13 +204,42 @@ class AstecParameters(object):
 
 ########################################################################################
 #
-# some internal procedures
+#
 #
 ########################################################################################
 
 #
 #
 #
+#
+#
+
+def build_membrane_image(time_point, environment, parameters):
+
+
+#
+#
+#
+#
+#
+
+def astec_process(time_point, lineage_tree_information, environment, parameters):
+    """
+
+    :param time_point:
+    :param environment:
+    :param parameters:
+    :return:
+    """
+
+
+
+    return
+
+
+#
+# check whether a lineage file exists
+# loops over the time points
 #
 #
 
@@ -219,8 +275,8 @@ def astec_control(experiment, environment, parameters):
     # and check whether any time point should be re-computed
     #
 
-    firstTimePoint = experiment.firstTimePoint + experiment.delayTimePoint
-    lastTimePoint = experiment.lastTimePoint + experiment.delayTimePoint
+    first_time_point = experiment.firstTimePoint + experiment.delayTimePoint
+    last_time_point = experiment.lastTimePoint + experiment.delayTimePoint
 
     lineage_tree_information = lineage.read_lineage_tree(environment.path_seg_exp_lineage)
 
@@ -228,15 +284,15 @@ def astec_control(experiment, environment, parameters):
         monitoring.to_log_and_console("    .. test '" + str(environment.path_seg_exp_lineage) + "'", 1)
         cellat = {}
         for y in lineage_tree_information['lin_tree']:
-            t=y/10**4
+            t = y/10**4
             if t not in cellat:
                 cellat[t] = 1
             else:
                 cellat[t] += 1
 
-        restart=-1
-        t=firstTimePoint
-        while restart==-1 and t<=lastTimePoint:
+        restart = -1
+        t = first_time_point
+        while restart == -1 and t <= last_time_point:
             #
             # possible time point of segmentation, test if ok
             #
@@ -263,9 +319,54 @@ def astec_control(experiment, environment, parameters):
             if restart == -1:
                 monitoring.to_log_and_console("       time '" + str(t) + "' seems ok", 1)
             t+=1
-        firstTimePoint=restart
-        monitoring.to_log_and_console("    " + proc + ": restart computation at time '" + str(firstTimePoint)
+        first_time_point = restart
+        monitoring.to_log_and_console("    " + proc + ": restart computation at time '" + str(first_time_point)
                                       + "'", 1)
     else:
-        monitoring.to_log_and_console("    " + proc + ": start computation at time '" + str(firstTimePoint)
+        monitoring.to_log_and_console("    " + proc + ": start computation at time '" + str(first_time_point)
                                       + "'", 1)
+
+    #
+    #
+    #
+
+    for time_value in range(first_time_point, last_time_point + 1, experiment.deltaTimePoint):
+
+        acquisition_time = str('{:0{width}d}'.format(time_value, width=default_width))
+
+        #
+        # start processing
+        #
+        monitoring.to_log_and_console('... astec processing of time ' + acquisition_time, 1)
+
+        start_time = time.time()
+
+        #
+        #
+        #
+        environment.temporary_path = os.path.join(environment.path_mars_exp, "TEMP_$TIME")
+        environment.temporary_path = environment.temporary_path.replace(nomenclature.FLAG_TIME, acquisition_time)
+        if not os.path.isdir(environment.temporary_path):
+            os.makedirs(environment.temporary_path)
+
+        if parameters.keep_reconstruction is True:
+            environment.path_reconstruction = os.path.join(environment.path_mars_exp, "RECONSTRUCTION")
+            os.makedirs(environment.path_reconstruction)
+        else:
+            environment.path_reconstruction = environment.temporary_path
+
+
+        astec_process(acquisition_time, lineage_tree_information, environment, parameters)
+
+        if monitoring.keepTemporaryFiles is False:
+            shutil.rmtree(environment.temporary_path)
+
+        #
+        # end processing for a time point
+        #
+        end_time = time.time()
+
+        monitoring.to_log_and_console('    computation time = ' + str(end_time - start_time) + ' s', 1)
+        monitoring.to_log_and_console('', 1)
+
+    return

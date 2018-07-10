@@ -157,9 +157,9 @@ path_fuse_logfile = os.path.join(path_fuse_logdir, FLAG_EXECUTABLE + '-' + FLAG_
 
 
 # path mars images
-path_mars = os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_MARS) 
+# path_mars = os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_MARS)
 # path for mars workspace
-path_mars_exp = os.path.join(path_mars, DIR_STAGE_MARS + '_' + FLAG_EXP_MARS)
+# path_mars_exp = os.path.join(path_mars, DIR_STAGE_MARS + '_' + FLAG_EXP_MARS)
 # mars images names
 path_mars_exp_files = FLAG_EN + '_mars_t' + FLAG_TIME
 
@@ -167,9 +167,9 @@ path_mars_exp_files = FLAG_EN + '_mars_t' + FLAG_TIME
 # mars temporary images file names (for reconstruction)
 # path_mars_exp_reconstruct_files = os.path.join(path_mars_exp_reconstruct, FLAG_EN + '_rec_t$TIME.inr')
 # logfile
-path_mars_logdir = os.path.join(path_mars_exp, 'LOGS')
-path_mars_historyfile = os.path.join(path_mars_logdir, FLAG_EXECUTABLE + '-history.log')
-path_mars_logfile = os.path.join(path_mars_logdir, FLAG_EXECUTABLE + '-' + FLAG_TIMESTAMP + '.log')
+# path_mars_logdir = os.path.join(path_mars_exp, 'LOGS')
+# path_mars_historyfile = os.path.join(path_mars_logdir, FLAG_EXECUTABLE + '-history.log')
+# path_mars_logfile = os.path.join(path_mars_logdir, FLAG_EXECUTABLE + '-' + FLAG_TIMESTAMP + '.log')
 
 
 #

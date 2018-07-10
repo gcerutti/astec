@@ -37,7 +37,6 @@ class ManualCorrectionEnvironment(object):
         #
         # mars data paths
         #
-        self.path_mars_exp = None
         self.path_mars_exp_files = None
 
         #
@@ -62,7 +61,6 @@ class ManualCorrectionEnvironment(object):
 
         parameters = imp.load_source('*', parameter_file)
 
-        self.path_mars_exp = nomenclature.replaceFlags(nomenclature.path_mars_exp, parameters)
         self.path_mars_exp_files = nomenclature.replaceFlags(nomenclature.path_mars_exp_files, parameters)
 
         self.path_seg_exp = nomenclature.replaceFlags(nomenclature.path_seg_exp, parameters)
@@ -77,7 +75,6 @@ class ManualCorrectionEnvironment(object):
             logfile.write("\n")
             logfile.write('ManualCorrectionEnvironment\n')
 
-            logfile.write('- path_mars_exp = ' + str(self.path_mars_exp) + '\n')
             logfile.write('- path_mars_exp_files = ' + str(self.path_mars_exp_files) + '\n')
 
             logfile.write('- path_seg_exp = ' + str(self.path_seg_exp) + '\n')
@@ -93,7 +90,6 @@ class ManualCorrectionEnvironment(object):
         print("")
         print('ManualCorrectionEnvironment')
 
-        print('- path_mars_exp = ' + str(self.path_mars_exp))
         print('- path_mars_exp_files = ' + str(self.path_mars_exp_files))
 
         print('- path_seg_exp = ' + str(self.path_seg_exp))
@@ -119,6 +115,12 @@ class ManualCorrectionParameters(object):
         #
         #
         #
+        self.first_time_point = -1
+        self.last_time_point = -1
+
+        #
+        #
+        #
         self.input_image = None
         self.output_image = None
         self.mapping_file = None
@@ -140,6 +142,9 @@ class ManualCorrectionParameters(object):
             logfile.write("\n")
             logfile.write('ManualCorrectionParameters\n')
 
+            logfile.write('- first_time_point = ' + str(self.first_time_point) + '\n')
+            logfile.write('- last_time_point = ' + str(self.last_time_point) + '\n')
+
             logfile.write('- input_image = ' + str(self.input_image) + '\n')
             logfile.write('- output_image = ' + str(self.output_image) + '\n')
             logfile.write('- mapping_file = ' + str(self.mapping_file) + '\n')
@@ -153,6 +158,9 @@ class ManualCorrectionParameters(object):
     def print_parameters(self):
         print("")
         print('ManualCorrectionParameters')
+
+        print('- first_time_point = ' + str(self.first_time_point))
+        print('- last_time_point = ' + str(self.last_time_point))
 
         print('- input_image = ' + str(self.input_image))
         print('- output_image = ' + str(self.output_image))
@@ -180,7 +188,15 @@ class ManualCorrectionParameters(object):
             sys.exit(1)
 
         parameters = imp.load_source('*', parameter_file)
-        
+
+        #
+        #
+        #
+        if hasattr(parameters, 'mars_begin'):
+            self.first_time_point = parameters.mars_begin
+        if hasattr(parameters, 'mars_end'):
+            self.last_time_point = parameters.mars_end
+
         #
         #
         #
@@ -404,16 +420,26 @@ def correction_control(experiment, environment, parameters):
 
     else:
 
-        for time_value in range(experiment.firstTimePoint, experiment.lastTimePoint + 1, experiment.deltaTimePoint):
+        if parameters.first_time_point < 0 or parameters.last_time_point < 0:
+            monitoring.to_log_and_console("... time interval does not seem to be defined in the parameter file")
+            monitoring.to_log_and_console("    set parameters 'begin' and 'end'")
+            monitoring.to_log_and_console("\t Exiting")
+            sys.exit(1)
+
+        if parameters.first_time_point > parameters.last_time_point:
+            monitoring.to_log_and_console("... weird time interval: 'begin' = " + str(parameters.first_time_point)
+                                          + ", 'end' = " + str(parameters.last_time_point))
+
+        for time_value in range(parameters.first_time_point, parameters.last_time_point + 1, experiment.deltaTimePoint):
             input_mars_name = nomenclature.replaceTIME(environment.path_mars_exp_files,
                                                   time_value + experiment.delayTimePoint)
-            input_name = commonTools.find_file(environment.path_mars_exp, input_mars_name, monitoring=monitoring)
+            input_name = commonTools.find_file(environment.path_seg_exp, input_mars_name, monitoring=monitoring)
             if input_name is None:
                 monitoring.to_log_and_console("    mars image '" + str(input_mars_name) + "' not found: skip time "
                                               + str(time_value), 1)
                 continue
 
-            input_image = os.path.join(environment.path_mars_exp, input_name)
+            input_image = os.path.join(environment.path_seg_exp, input_name)
             output_name = nomenclature.replaceTIME(environment.path_seg_exp_files,
                                                    time_value + experiment.delayTimePoint) \
                           + '.' + parameters.result_image_suffix

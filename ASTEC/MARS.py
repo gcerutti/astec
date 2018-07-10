@@ -41,7 +41,7 @@ class MarsEnvironment(object):
         #
         # mars data paths
         #
-        self.path_mars_exp = None
+        self.path_seg_exp = None
         self.path_mars_exp_files = None
 
         #
@@ -69,12 +69,12 @@ class MarsEnvironment(object):
         self.path_fuse_exp = nomenclature.replaceFlags(nomenclature.path_fuse_exp, parameters)
         self.path_fuse_exp_files = nomenclature.replaceFlags(nomenclature.path_fuse_exp_files, parameters)
 
-        self.path_mars_exp = nomenclature.replaceFlags(nomenclature.path_mars_exp, parameters)
+        self.path_seg_exp = nomenclature.replaceFlags(nomenclature.path_seg_exp, parameters)
         self.path_mars_exp_files = nomenclature.replaceFlags(nomenclature.path_mars_exp_files, parameters)
 
-        self.path_logdir = nomenclature.replaceFlags(nomenclature.path_mars_logdir, parameters)
-        self.path_history_file = nomenclature.replaceFlags(nomenclature.path_mars_historyfile, parameters)
-        self.path_log_file = nomenclature.replaceFlags(nomenclature.path_mars_logfile, parameters, start_time)
+        self.path_logdir = nomenclature.replaceFlags(nomenclature.path_seg_logdir, parameters)
+        self.path_history_file = nomenclature.replaceFlags(nomenclature.path_seg_historyfile, parameters)
+        self.path_log_file = nomenclature.replaceFlags(nomenclature.path_seg_logfile, parameters, start_time)
 
     def write_parameters(self, log_file_name):
         with open(log_file_name, 'a') as logfile:
@@ -84,7 +84,7 @@ class MarsEnvironment(object):
             logfile.write('- path_fuse_exp = ' + str(self.path_fuse_exp) + '\n')
             logfile.write('- path_fuse_exp_files = ' + str(self.path_fuse_exp_files) + '\n')
 
-            logfile.write('- path_mars_exp = ' + str(self.path_mars_exp) + '\n')
+            logfile.write('- path_seg_exp = ' + str(self.path_seg_exp) + '\n')
             logfile.write('- path_mars_exp_files = ' + str(self.path_mars_exp_files) + '\n')
 
             logfile.write('- path_reconstruction = ' + str(self.path_reconstruction) + '\n')
@@ -103,7 +103,7 @@ class MarsEnvironment(object):
         print('- path_fuse_exp = ' + str(self.path_fuse_exp))
         print('- path_fuse_exp_files = ' + str(self.path_fuse_exp_files))
 
-        print('- path_mars_exp = ' + str(self.path_mars_exp))
+        print('- path_seg_exp = ' + str(self.path_seg_exp))
         print('- path_mars_exp_files = ' + str(self.path_mars_exp_files))
 
         print('- path_reconstruction = ' + str(self.path_reconstruction))
@@ -128,6 +128,12 @@ class MarsParameters(object):
         #
         #
         #
+        self.first_time_point = -1
+        self.last_time_point = -1
+
+        #
+        #
+        #
         self.intensity_transformation = 'Identity'
         self.intensity_enhancement = None
 
@@ -139,7 +145,7 @@ class MarsParameters(object):
         #
         #
         #
-        self.keep_reconstruction = False
+        self.keep_reconstruction = True
 
         #
         # watershed parameters
@@ -158,6 +164,9 @@ class MarsParameters(object):
         with open(log_file_name, 'a') as logfile:
             logfile.write("\n")
             logfile.write('MarsParameters\n')
+
+            logfile.write('- first_time_point = ' + str(self.first_time_point) + '\n')
+            logfile.write('- last_time_point = ' + str(self.last_time_point) + '\n')
 
             logfile.write('- intensity_transformation = ' + str(self.intensity_transformation) + '\n')
             logfile.write('- intensity_enhancement = ' + str(self.intensity_enhancement) + '\n')
@@ -179,6 +188,9 @@ class MarsParameters(object):
     def print_parameters(self):
         print("")
         print('MarsParameters')
+
+        print('- first_time_point = ' + str(self.first_time_point))
+        print('- last_time_point = ' + str(self.last_time_point))
 
         print('- intensity_transformation = ' + str(self.intensity_transformation))
         print('- intensity_enhancement = ' + str(self.intensity_enhancement))
@@ -204,6 +216,14 @@ class MarsParameters(object):
             sys.exit(1)
 
         parameters = imp.load_source('*', parameter_file)
+
+        #
+        #
+        #
+        if hasattr(parameters, 'mars_begin'):
+            self.first_time_point = parameters.mars_begin
+        if hasattr(parameters, 'mars_end'):
+            self.last_time_point = parameters.mars_end
 
         #
         # reconstruction methods
@@ -290,37 +310,20 @@ class MarsParameters(object):
 #
 ########################################################################################
 
+#
+#
+#
+#
+#
 
-def mars_process(input_image, mars_image, environment, parameters):
+def _build_membrane_image(input_image, environment, parameters):
     """
 
     :param input_image:
-    :param mars_image:
     :param environment:
     :param parameters:
     :return:
     """
-
-    proc = "mars_process"
-
-    if monitoring.debug > 2:
-        print ""
-        print proc + " was called with:"
-        print "- input_image = " + str(input_image)
-        print "- mars_image = " + str(mars_image)
-        print ""
-
-    #
-    # nothing to do if the fused image exists
-    #
-
-    if os.path.isfile(os.path.join(environment.path_mars_exp, mars_image)):
-        if monitoring.forceResultsToBeBuilt is False:
-            monitoring.to_log_and_console('    mars image already existing', 2)
-            return
-        else:
-            monitoring.to_log_and_console('    mars image already existing, but forced', 2)
-
     #
     # build input image(s) for segmentation
     # 0. build names
@@ -344,11 +347,14 @@ def mars_process(input_image, mars_image, environment, parameters):
 
     if parameters.intensity_enhancement is None or parameters.intensity_enhancement == 'None':
         #
+        # no membrane enhancement image
         # only set intensity_image
         #
-        if parameters.intensity_transformation is None or parameters.intensity_transformation == 'None':
-            intensity_image = input_image
-        elif parameters.intensity_transformation == 'Identity':
+        if parameters.intensity_transformation is None or parameters.intensity_transformation == 'None' \
+                or parameters.intensity_transformation == 'Identity':
+            #
+            # nothing to do
+            #
             intensity_image = input_image
         elif parameters.intensity_transformation == 'Normalization_to_u8':
             intensity_image = commonTools.add_suffix(input_image, "_membrane",
@@ -388,6 +394,10 @@ def mars_process(input_image, mars_image, environment, parameters):
         monitoring.to_log_and_console("    unknwon membrane enhancement method: '"
                                       + str(parameters.intensity_enhancement) + "'", 2)
 
+    #
+    #
+    #
+
     if parameters.intensity_enhancement is None or parameters.intensity_enhancement == 'None':
         pass
     elif parameters.intensity_enhancement == 'GACE':
@@ -423,10 +433,10 @@ def mars_process(input_image, mars_image, environment, parameters):
     #
 
     if enhanced_image is None:
-        membrane_image = intensity_image
+        return intensity_image
     else:
         if intensity_image is None:
-            membrane_image = enhanced_image
+            return enhanced_image
         else:
             #
             # mix images
@@ -435,19 +445,60 @@ def mars_process(input_image, mars_image, environment, parameters):
             arit_options += " -max"
             if not os.path.isfile(membrane_image):
                 cpp_wrapping.arithmetic(intensity_image, enhanced_image, membrane_image, other_options=arit_options)
+            return membrane_image
 
     #
-    # this is now the 'pure' watershed approach, it will generate (in the 'temporary_path' directory)
-    # - ['input_image'_seed_preimage]
-    #   the smoothed membrane image, if smoothing is required prior to seed extraction
-    # - 'input_image'_minima
-    #   the minima image, ie the difference between the reconstructed image (after h-evelation) and the
-    #   membrane image. Thus its values are in [0,h]
-    # - 'input_image'_seeds
-    #   the labeled seed (ie regional minima) image used as input for watershed
-    # - ['input_image'_height]
-    #   the smoothed membrane image, if smoothing is required prior to watershed
+    # should not reach this point
     #
+    return None
+
+#
+#
+#
+#
+#
+
+def mars_process(input_image, mars_image, environment, parameters):
+    """
+
+    :param input_image:
+    :param mars_image:
+    :param environment:
+    :param parameters:
+    :return:
+    """
+
+    proc = "mars_process"
+
+    if monitoring.debug > 2:
+        print ""
+        print proc + " was called with:"
+        print "- input_image = " + str(input_image)
+        print "- mars_image = " + str(mars_image)
+        print ""
+
+    #
+    # nothing to do if the fused image exists
+    #
+
+    if os.path.isfile(os.path.join(environment.path_seg_exp, mars_image)):
+        if monitoring.forceResultsToBeBuilt is False:
+            monitoring.to_log_and_console('    mars image already existing', 2)
+            return
+        else:
+            monitoring.to_log_and_console('    mars image already existing, but forced', 2)
+
+    #
+    # build the membrane image to be segmented
+    #
+
+    membrane_image = _build_membrane_image(input_image, environment, parameters)
+
+    if membrane_image is None or not os.path.isfile(membrane_image):
+        monitoring.to_log_and_console("       '" + str(membrane_image).split(os.path.sep)[-1]
+                                      + "' does not exist", 2)
+        monitoring.to_log_and_console("\t Exiting.")
+        sys.exit(1)
 
     #
     # computation of seed image
@@ -459,11 +510,6 @@ def mars_process(input_image, mars_image, environment, parameters):
     monitoring.to_log_and_console("    .. seed extraction '" + str(membrane_image).split(os.path.sep)[-1] + "'", 2)
 
     if parameters.watershed_seed_sigma > 0.0:
-        if not os.path.isfile(membrane_image):
-            monitoring.to_log_and_console("       '" + str(membrane_image).split(os.path.sep)[-1]
-                                          + "' does not exist", 2)
-            monitoring.to_log_and_console("\t Exiting.")
-            sys.exit(1)
         monitoring.to_log_and_console("       smoothing '" + str(membrane_image).split(os.path.sep)[-1] + "'", 2)
         seed_preimage = commonTools.add_suffix(input_image, "_seed_preimage", new_dirname=environment.temporary_path,
                                                new_extension=parameters.default_image_suffix)
@@ -557,8 +603,8 @@ def mars_control(experiment, environment, parameters):
     # make sure that the result directory exists
     #
 
-    if not os.path.isdir(environment.path_mars_exp):
-        os.makedirs(environment.path_mars_exp)
+    if not os.path.isdir(environment.path_seg_exp):
+        os.makedirs(environment.path_seg_exp)
 
     if not os.path.isdir(environment.path_logdir):
         os.makedirs(environment.path_logdir)
@@ -569,13 +615,17 @@ def mars_control(experiment, environment, parameters):
     #
     #
 
-    if experiment.firstTimePoint < 0 or experiment.lastTimePoint < 0:
+    if parameters.first_time_point < 0 or parameters.last_time_point < 0:
         monitoring.to_log_and_console("... time interval does not seem to be defined in the parameter file")
         monitoring.to_log_and_console("    set parameters 'begin' and 'end'")
         monitoring.to_log_and_console("\t Exiting")
         sys.exit(1)
 
-    for time_value in range(experiment.firstTimePoint, experiment.lastTimePoint + 1, experiment.deltaTimePoint):
+    if parameters.first_time_point > parameters.last_time_point:
+        monitoring.to_log_and_console("... weird time interval: 'begin' = " + str(parameters.first_time_point)
+                                      + ", 'end' = " + str(parameters.last_time_point))
+
+    for time_value in range(parameters.first_time_point, parameters.last_time_point + 1, experiment.deltaTimePoint):
 
         acquisition_time = str('{:0{width}d}'.format(time_value, width=default_width))
 
@@ -588,14 +638,15 @@ def mars_control(experiment, environment, parameters):
         #
         #
         #
-        environment.temporary_path = os.path.join(environment.path_mars_exp, "TEMP_$TIME")
+        environment.temporary_path = os.path.join(environment.path_seg_exp, "TEMP_$TIME")
         environment.temporary_path = environment.temporary_path.replace(nomenclature.FLAG_TIME, acquisition_time)
         if not os.path.isdir(environment.temporary_path):
             os.makedirs(environment.temporary_path)
         
         if parameters.keep_reconstruction is True:
-            environment.path_reconstruction = os.path.join(environment.path_mars_exp, "RECONSTRUCTION")
-            os.makedirs(environment.path_reconstruction)
+            environment.path_reconstruction = os.path.join(environment.path_seg_exp, "RECONSTRUCTION")
+            if not os.path.isdir(environment.path_reconstruction):
+                os.makedirs(environment.path_reconstruction)
         else:
             environment.path_reconstruction = environment.temporary_path
 
@@ -621,7 +672,7 @@ def mars_control(experiment, environment, parameters):
         #
         #
         image = os.path.join(environment.path_fuse_exp, image)
-        mars_image = os.path.join(environment.path_mars_exp, mars_image)
+        mars_image = os.path.join(environment.path_seg_exp, mars_image)
         mars_process(image, mars_image, environment, parameters)
 
         if monitoring.keepTemporaryFiles is False:

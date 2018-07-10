@@ -107,13 +107,15 @@ if __name__ == '__main__':
     environment.path_history_file = nomenclature.replaceEXECUTABLE(environment.path_history_file, __file__)
     environment.path_log_file = nomenclature.replaceEXECUTABLE(environment.path_log_file, __file__)
 
-    if not os.path.isdir(environment.path_mars_exp):
-        os.makedirs(environment.path_mars_exp)
+    if not os.path.isdir(environment.path_seg_exp):
+        os.makedirs(environment.path_seg_exp)
 
     if not os.path.isdir(environment.path_logdir):
         os.makedirs(environment.path_logdir)
 
     experiment.update_from_file(parameterFile)
+    parameters.first_time_point = experiment.firstTimePoint
+    parameters.last_time_point = experiment.firstTimePoint
     parameters.update_from_file(parameterFile)
 
     #

@@ -134,6 +134,8 @@ if __name__ == '__main__':
         os.makedirs(environment.path_logdir)
 
     experiment.update_from_file(parameterFile)
+    parameters.first_time_point = experiment.firstTimePoint
+    parameters.last_time_point = experiment.firstTimePoint
     parameters.update_from_file(parameterFile)
 
     #

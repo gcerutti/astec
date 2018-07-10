@@ -293,10 +293,10 @@ def copy_date_stamped_file(thefile, directory, timestamp):
     d = time.strftime("%Y-%m-%d-%H:%M:%S", timestamp)
     if len(thefile.split('.')) > 1:
         ext = thefile.split('.')[-1]
-        resfile = directory + os.path.sep + re.sub(r'(\.*).' + ext, r'\1', thefile.split(os.path.sep)[-1]) + '-' \
-                  + d + '.' + ext
+        filename = re.sub(r'(\.*).' + ext, r'\1', thefile.split(os.path.sep)[-1]) + '-' + d + '.' + ext
     else:
-        resfile = directory + thefile.split(os.path.sep)[-1] + '-' + d
+        filename = thefile.split(os.path.sep)[-1] + '-' + d
+    resfile = os.path.join(directory, filename)
     shutil.copy2(thefile, resfile)
 
 

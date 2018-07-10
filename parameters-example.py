@@ -370,6 +370,17 @@ target_resolution = .3
 
 # ##### explanation #####
 #
+# interval of time points to be segmented by MARS method
+# default is that only the time point 'begin' (see above)
+# is segmented. More time points can be segmented only
+# 'mars_begin' and 'mars_end' variables. Please note that
+# a 'delta' (see above) step will take place between two processed time points.
+
+# mars_begin = -1
+# mars_end = -1
+
+# ##### explanation #####
+#
 # MARS method (nothing but a seeded watershed) may be applied on
 # a transformed input image or on the original image (eg the result of
 # the fusion step). This transformed imaged is made of a combination
@@ -392,15 +403,7 @@ target_resolution = .3
 # mars_intensity_transformation can be chosen in [None, 'Identity', 'Normalization_to_u8']
 # mars_intensity_enhancement can be chosen in [None, 'GACE']
 #
-# mars_method = 1 corresponds to
-# - mars_intensity_transformation = 'Identity'
-# - mars_intensity_enhancement = None
-#
-# mars_method = 2 corresponds to
-# - mars_intensity_transformation = None
-# - mars_intensity_enhancement = 'GACE'
 
-# mars_method = 1
 # mars_intensity_transformation = 'Identity'
 # mars_intensity_enhancement = None
 
@@ -408,9 +411,9 @@ target_resolution = .3
 # ##### explanation #####
 #
 # Previous tuning enables to perform the watershed segmentation on an image that is not
-# the original image. If one want to keep such images, please turn the next variable to True
+# the original image. If one does not want to keep such images, please turn the next variable to False
 
-# mars_keep_reconstruction = False
+# mars_keep_reconstruction = True
 
 # ##### explanation #####
 #
