@@ -261,7 +261,7 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
         #      a text file describing the image histogram
         #
         if (not os.path.isfile(tmp_prefix_name + ".ext.inr") or not os.path.exists(tmp_prefix_name + ".theta.inr")
-                or not os.path.exists(tmp_prefix_name + ".phi.inr")):
+                or not os.path.exists(tmp_prefix_name + ".phi.inr")) or monitoring.forceResultsToBeBuilt is True:
             monitoring.to_log_and_console("       membrane extraction of '"
                                           + str(path_input).split(os.path.sep)[-1] + "'", 2)
             #
@@ -280,7 +280,7 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
             monitoring.to_log_and_console("\t Exiting.")
             sys.exit(1)
 
-        if not os.path.isfile(tmp_prefix_name + ".bin.inr"):
+        if not os.path.isfile(tmp_prefix_name + ".bin.inr") or monitoring.forceResultsToBeBuilt is True:
             if parameters.hard_thresholding is True:
                 #
                 # hard threshold
@@ -325,10 +325,11 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
 
     tmp_prefix_name = temporary_path + os.path.sep + prefix_name
 
-    cpp_wrapping.tensor_voting_membrane(path_tv_input, tmp_prefix_name, path_output,
-                                        scale_tensor_voting=parameters.sigma_TV,
-                                        sample=parameters.sample, sigma_smoothing=parameters.sigma_LF,
-                                        monitoring=monitoring)
+    if not os.path.isfile(path_output) or monitoring.forceResultsToBeBuilt is True:
+        cpp_wrapping.tensor_voting_membrane(path_tv_input, tmp_prefix_name, path_output,
+                                            scale_tensor_voting=parameters.sigma_TV,
+                                            sample=parameters.sample, sigma_smoothing=parameters.sigma_LF,
+                                            monitoring=monitoring)
     return
 
 

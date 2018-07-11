@@ -8,6 +8,8 @@ import shutil
 import ACE
 import commonTools
 import nomenclature
+import reconstruction
+
 import CommunFunctions.cpp_wrapping as cpp_wrapping
 
 #
@@ -304,202 +306,16 @@ class MarsParameters(object):
 ########################################################################################
 
 
-########################################################################################
-#
-#
-#
-########################################################################################
-
-#
-#
-#
-#
-#
-
-def _build_membrane_image(input_image, environment, parameters):
+def mars_seeded_watershed(template_image, membrane_image, mars_image, environment, parameters):
     """
 
-    :param input_image:
-    :param environment:
-    :param parameters:
-    :return:
-    """
-    #
-    # build input image(s) for segmentation
-    # 0. build names
-    # 1. do image enhancement if required
-    # 2. transform input image if required
-    # 3. mix the two results
-    #
-    # If any transformation is performed on the input image, the final result image (input of the watershed)
-    # will be named (in the 'temporary_path' directory)
-    # - 'input_image'_membrane
-    # if fusion is required
-    # - 'input_image'_enhanced
-    #   is the membrance-enhanced image (by tensor voting method)
-    # - 'input_image'_intensity
-    #   is the intensity-transformed image (by normalization)
-    #
-
-    enhanced_image = None
-    intensity_image = None
-    membrane_image = None
-
-    if parameters.intensity_enhancement is None or parameters.intensity_enhancement == 'None':
-        #
-        # no membrane enhancement image
-        # only set intensity_image
-        #
-        if parameters.intensity_transformation is None or parameters.intensity_transformation == 'None' \
-                or parameters.intensity_transformation == 'Identity':
-            #
-            # nothing to do
-            #
-            intensity_image = input_image
-        elif parameters.intensity_transformation == 'Normalization_to_u8':
-            intensity_image = commonTools.add_suffix(input_image, "_membrane",
-                                                     new_dirname=environment.path_reconstruction,
-                                                     new_extension=parameters.default_image_suffix)
-        else:
-            monitoring.to_log_and_console("    unknwon intensity transformation method: '"
-                                          + str(parameters.intensity_transformation) + "'", 2)
-    elif parameters.intensity_enhancement == 'GACE':
-        #
-        # only set enhanced_image
-        # or set the 3 names: intensity_image, enhanced_image, and membrane_image
-        #
-        if parameters.intensity_transformation is None or parameters.intensity_transformation == 'None':
-            enhanced_image = commonTools.add_suffix(input_image, "_membrane",
-                                                    new_dirname=environment.path_reconstruction,
-                                                    new_extension=parameters.default_image_suffix)
-        elif parameters.intensity_transformation == 'Identity':
-            intensity_image = input_image
-            enhanced_image = commonTools.add_suffix(input_image, "_enhanced", new_dirname=environment.temporary_path,
-                                                    new_extension=parameters.default_image_suffix)
-            membrane_image = commonTools.add_suffix(input_image, "_membrane",
-                                                    new_dirname=environment.path_reconstruction,
-                                                     new_extension=parameters.default_image_suffix)
-        elif parameters.intensity_transformation == 'Normalization_to_u8':
-            intensity_image = commonTools.add_suffix(input_image, "_intensity", new_dirname=environment.temporary_path,
-                                                     new_extension=parameters.default_image_suffix)
-            enhanced_image = commonTools.add_suffix(input_image, "_enhanced", new_dirname=environment.temporary_path,
-                                                    new_extension=parameters.default_image_suffix)
-            membrane_image = commonTools.add_suffix(input_image, "_membrane",
-                                                    new_dirname=environment.path_reconstruction,
-                                                     new_extension=parameters.default_image_suffix)
-        else:
-            monitoring.to_log_and_console("    unknwon intensity transformation method: '"
-                                          + str(parameters.intensity_transformation) + "'", 2)
-    else:
-        monitoring.to_log_and_console("    unknwon membrane enhancement method: '"
-                                      + str(parameters.intensity_enhancement) + "'", 2)
-
-    #
-    #
-    #
-
-    if parameters.intensity_enhancement is None or parameters.intensity_enhancement == 'None':
-        pass
-    elif parameters.intensity_enhancement == 'GACE':
-        monitoring.to_log_and_console("    .. enhance membranes of '"
-                                      + str(input_image).split(os.path.sep)[-1] + "'", 2)
-        if not os.path.isfile(enhanced_image):
-            ACE.monitoring.copy(monitoring)
-            ACE.global_membrane_enhancement(input_image, enhanced_image, temporary_path=environment.temporary_path,
-                                            parameters=parameters.ace)
-    else:
-        monitoring.to_log_and_console("    unknwon membrane enhancement method: '"
-                                  + str(parameters.intensity_enhancement) + "'", 2)
-
-    arit_options = "-o 2"
-
-    if parameters.intensity_transformation is None or parameters.intensity_transformation == 'None':
-        pass
-    elif parameters.intensity_transformation == 'Identity':
-        pass
-    elif parameters.intensity_transformation == 'Normalization_to_u8':
-        monitoring.to_log_and_console("    .. intensity normalization '"
-                                      + str(input_image).split(os.path.sep)[-1] + "'", 2)
-        if not os.path.isfile(intensity_image):
-            cpp_wrapping.inline_to_u8(input_image, intensity_image, min_percentile=0.01, max_percentile=0.99,
-                                      monitoring=monitoring)
-        arit_options = "-o 1"
-    else:
-        monitoring.to_log_and_console("    unknwon intensity transformation method: '"
-                                      + str(parameters.intensity_transformation) + "'", 2)
-
-    #
-    # fuse the two images (if fusion is required)
-    #
-
-    if enhanced_image is None:
-        return intensity_image
-    else:
-        if intensity_image is None:
-            return enhanced_image
-        else:
-            #
-            # mix images
-            #
-            monitoring.to_log_and_console("       fusion of intensity and enhancement", 2)
-            arit_options += " -max"
-            if not os.path.isfile(membrane_image):
-                cpp_wrapping.arithmetic(intensity_image, enhanced_image, membrane_image, other_options=arit_options)
-            return membrane_image
-
-    #
-    # should not reach this point
-    #
-    return None
-
-#
-#
-#
-#
-#
-
-def mars_process(input_image, mars_image, environment, parameters):
-    """
-
-    :param input_image:
+    :param template_image:
+    :param membrane_image:
     :param mars_image:
     :param environment:
     :param parameters:
     :return:
     """
-
-    proc = "mars_process"
-
-    if monitoring.debug > 2:
-        print ""
-        print proc + " was called with:"
-        print "- input_image = " + str(input_image)
-        print "- mars_image = " + str(mars_image)
-        print ""
-
-    #
-    # nothing to do if the fused image exists
-    #
-
-    if os.path.isfile(os.path.join(environment.path_seg_exp, mars_image)):
-        if monitoring.forceResultsToBeBuilt is False:
-            monitoring.to_log_and_console('    mars image already existing', 2)
-            return
-        else:
-            monitoring.to_log_and_console('    mars image already existing, but forced', 2)
-
-    #
-    # build the membrane image to be segmented
-    #
-
-    membrane_image = _build_membrane_image(input_image, environment, parameters)
-
-    if membrane_image is None or not os.path.isfile(membrane_image):
-        monitoring.to_log_and_console("       '" + str(membrane_image).split(os.path.sep)[-1]
-                                      + "' does not exist", 2)
-        monitoring.to_log_and_console("\t Exiting.")
-        sys.exit(1)
-
     #
     # computation of seed image
     # - [smoothing]
@@ -511,7 +327,7 @@ def mars_process(input_image, mars_image, environment, parameters):
 
     if parameters.watershed_seed_sigma > 0.0:
         monitoring.to_log_and_console("       smoothing '" + str(membrane_image).split(os.path.sep)[-1] + "'", 2)
-        seed_preimage = commonTools.add_suffix(input_image, "_seed_preimage", new_dirname=environment.temporary_path,
+        seed_preimage = commonTools.add_suffix(template_image, "_seed_preimage", new_dirname=environment.temporary_path,
                                                new_extension=parameters.default_image_suffix)
         if not os.path.isfile(seed_preimage) or monitoring.forceResultsToBeBuilt is True:
             cpp_wrapping.linear_smoothing(membrane_image, seed_preimage, parameters.watershed_seed_sigma,
@@ -527,7 +343,7 @@ def mars_process(input_image, mars_image, environment, parameters):
     monitoring.to_log_and_console("       extract regional minima '"
                                   + str(seed_preimage).split(os.path.sep)[-1] + "'", 2)
 
-    minima_image = commonTools.add_suffix(input_image, "_minima", new_dirname=environment.temporary_path,
+    minima_image = commonTools.add_suffix(template_image, "_minima", new_dirname=environment.temporary_path,
                                           new_extension=parameters.default_image_suffix)
     if not os.path.isfile(minima_image) or monitoring.forceResultsToBeBuilt is True:
         cpp_wrapping.regional_minima(seed_preimage, minima_image, h_min=parameters.watershed_seed_hmin,
@@ -541,7 +357,7 @@ def mars_process(input_image, mars_image, environment, parameters):
     monitoring.to_log_and_console("       label regional minima '"
                                   + str(minima_image).split(os.path.sep)[-1] + "'", 2)
 
-    seed_image = commonTools.add_suffix(input_image, "_seeds", new_dirname=environment.temporary_path,
+    seed_image = commonTools.add_suffix(template_image, "_seeds", new_dirname=environment.temporary_path,
                                         new_extension=parameters.default_image_suffix)
     if not os.path.isfile(seed_image) or monitoring.forceResultsToBeBuilt is True:
         cpp_wrapping.connected_components(minima_image, seed_image, high_threshold=parameters.watershed_seed_hmin,
@@ -553,7 +369,7 @@ def mars_process(input_image, mars_image, environment, parameters):
 
     if parameters.watershed_membrane_sigma > 0.0:
         monitoring.to_log_and_console("    .. smoothing '" + str(membrane_image).split(os.path.sep)[-1] + "'", 2)
-        height_image = commonTools.add_suffix(input_image, "_height", new_dirname=environment.temporary_path,
+        height_image = commonTools.add_suffix(template_image, "_height", new_dirname=environment.temporary_path,
                                               new_extension=parameters.default_image_suffix)
         if not os.path.isfile(height_image) or monitoring.forceResultsToBeBuilt is True:
             cpp_wrapping.linear_smoothing(membrane_image, height_image, parameters.watershed_membrane_sigma,
@@ -577,6 +393,80 @@ def mars_process(input_image, mars_image, environment, parameters):
 
     if not os.path.isfile(mars_image) or monitoring.forceResultsToBeBuilt is True:
         cpp_wrapping.watershed(seed_image, height_image, mars_image, monitoring=monitoring)
+
+    return
+
+
+########################################################################################
+#
+#
+#
+########################################################################################
+
+
+#
+#
+#
+#
+#
+
+def mars_process(current_time, environment, parameters):
+    """
+
+    :param current_time:
+    :param environment:
+    :param parameters:
+    :return:
+    """
+
+    #
+    # nothing to do if the segmentation image exists
+    #
+
+    mars_name = nomenclature.replaceTIME(environment.path_mars_exp_files, current_time)
+    mars_image = commonTools.find_file(environment.path_seg_exp, mars_name, monitoring=None, verbose=False)
+
+    if mars_image is not None:
+        if monitoring.forceResultsToBeBuilt is False:
+            monitoring.to_log_and_console('    mars image already existing', 2)
+            return
+        else:
+            monitoring.to_log_and_console('    mars image already existing, but forced', 2)
+
+    mars_image = os.path.join(environment.path_seg_exp, mars_name + '.' + parameters.result_image_suffix)
+
+    #
+    #
+    #
+
+    input_name = nomenclature.replaceTIME(environment.path_fuse_exp_files, current_time)
+    input_image = commonTools.find_file(environment.path_fuse_exp, input_name, monitoring)
+    if input_image is None:
+        monitoring.to_log_and_console("    .. image '" + input_name + "' not found in '"
+                                      + str(environment.path_fuse_exp) + "'", 2)
+        monitoring.to_log_and_console("       skip time " + str(current_time), 2)
+        return
+
+    input_image = os.path.join(environment.path_fuse_exp, input_image)
+
+    #
+    # build the membrane image to be segmented
+    #
+
+    reconstruction.monitoring.copy(monitoring)
+    membrane_image = reconstruction.build_membrane_image(current_time, environment, parameters)
+
+    if membrane_image is None or not os.path.isfile(membrane_image):
+        monitoring.to_log_and_console("       '" + str(membrane_image).split(os.path.sep)[-1]
+                                      + "' does not exist", 2)
+        monitoring.to_log_and_console("\t Exiting.")
+        sys.exit(1)
+
+    #
+    # compute the seeded watershed
+    #
+
+    mars_seeded_watershed(input_image, membrane_image, mars_image, environment, parameters)
 
     return
 
@@ -625,7 +515,8 @@ def mars_control(experiment, environment, parameters):
         monitoring.to_log_and_console("... weird time interval: 'begin' = " + str(parameters.first_time_point)
                                       + ", 'end' = " + str(parameters.last_time_point))
 
-    for time_value in range(parameters.first_time_point, parameters.last_time_point + 1, experiment.deltaTimePoint):
+    for time_value in range(parameters.first_time_point + experiment.delay_time_point,
+                            parameters.last_time_point + experiment.delay_time_point + 1, experiment.delta_time_point):
 
         acquisition_time = str('{:0{width}d}'.format(time_value, width=default_width))
 
@@ -636,8 +527,9 @@ def mars_control(experiment, environment, parameters):
         start_time = time.time()
 
         #
+        # set and make temporary directory
         #
-        #
+
         environment.temporary_path = os.path.join(environment.path_seg_exp, "TEMP_$TIME")
         environment.temporary_path = environment.temporary_path.replace(nomenclature.FLAG_TIME, acquisition_time)
         if not os.path.isdir(environment.temporary_path):
@@ -651,29 +543,14 @@ def mars_control(experiment, environment, parameters):
             environment.path_reconstruction = environment.temporary_path
 
         #
-        # mars image name
+        # processing
         #
 
-        mars_image = nomenclature.replaceTIME(environment.path_mars_exp_files,
-                                              time_value + experiment.delayTimePoint) \
-                     + '.' + parameters.result_image_suffix
-        #
-        #
-        #
-        name = nomenclature.replaceTIME(environment.path_fuse_exp_files, time_value + experiment.delayTimePoint)
-        image = commonTools.find_file(environment.path_fuse_exp, name, monitoring)
-        if image is None:
-            monitoring.to_log_and_console("    .. image '" + name + "' not found in '"
-                                          + str(environment.path_fuse_exp) + "'", 2)
-            monitoring.to_log_and_console("       skip time " + str(acquisition_time), 2)
-            continue
+        mars_process(time_value, environment, parameters)
 
         #
+        # cleaning
         #
-        #
-        image = os.path.join(environment.path_fuse_exp, image)
-        mars_image = os.path.join(environment.path_seg_exp, mars_image)
-        mars_process(image, mars_image, environment, parameters)
 
         if monitoring.keepTemporaryFiles is False:
             shutil.rmtree(environment.temporary_path)

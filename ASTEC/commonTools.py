@@ -53,6 +53,8 @@ class Monitoring(object):
         self.forceResultsToBeBuilt = args.forceResultsToBeBuilt
 
     def copy(self, m):
+        if m is None:
+            return
         self.verbose = m.verbose
         self.debug = m.debug
         self.logfile = m.logfile
@@ -84,12 +86,12 @@ class Monitoring(object):
 class Experiment(object):
 
     def __init__(self):
-        self.embryoPath = None
+        self.embryo_path = None
         self.embryoName = None
-        self.firstTimePoint = -1
-        self.lastTimePoint = -1
-        self.deltaTimePoint = 1
-        self.delayTimePoint = 0
+        self.first_time_point = -1
+        self.last_time_point = -1
+        self.delta_time_point = 1
+        self.delay_time_point = 0
 
     #
     #
@@ -98,36 +100,36 @@ class Experiment(object):
         with open(logfilename, 'a') as logfile:
             logfile.write("\n")
             logfile.write('Experiment parameters\n')
-            logfile.write('- embryoPath is ' + str(self.embryoPath)+'\n')
+            logfile.write('- embryo_path is ' + str(self.embryo_path)+'\n')
             logfile.write('- embryoName is ' + str(self.embryoName)+'\n')
-            logfile.write('- firstTimePoint is ' + str(self.firstTimePoint)+'\n')
-            logfile.write('- lastTimePoint is ' + str(self.lastTimePoint)+'\n')
-            logfile.write('- deltaTimePoint is ' + str(self.deltaTimePoint)+'\n')
-            logfile.write('- delayTimePoint is ' + str(self.delayTimePoint)+'\n')
+            logfile.write('- first_time_point is ' + str(self.first_time_point)+'\n')
+            logfile.write('- last_time_point is ' + str(self.last_time_point)+'\n')
+            logfile.write('- delta_time_point is ' + str(self.delta_time_point)+'\n')
+            logfile.write('- delay_time_point is ' + str(self.delay_time_point)+'\n')
             logfile.write("\n")
         return
 
     def print_parameters(self):
         print("")
         print('Experiment parameters')
-        print('- embryoPath is ' + str(self.embryoPath))
+        print('- embryo_path is ' + str(self.embryo_path))
         print('- embryoName is ' + str(self.embryoName))
-        print('- firstTimePoint is ' + str(self.firstTimePoint))
-        print('- lastTimePoint is ' + str(self.lastTimePoint))
-        print('- deltaTimePoint is ' + str(self.deltaTimePoint))
-        print('- delayTimePoint is ' + str(self.delayTimePoint))
+        print('- first_time_point is ' + str(self.first_time_point))
+        print('- last_time_point is ' + str(self.last_time_point))
+        print('- delta_time_point is ' + str(self.delta_time_point))
+        print('- delay_time_point is ' + str(self.delay_time_point))
         print("")
 
     #
     #
     #
     def update_from_args(self, args):
-        if args.embryoPath is None:
+        if args.embryo_path is None:
             return
-        if not os.path.isdir(args.embryoPath):
-            print ("Experiment.updateFromArgs: '" + args.embryoPath + "' is not a valid directory. Exiting.")
+        if not os.path.isdir(args.embryo_path):
+            print ("Experiment.updateFromArgs: '" + args.embryo_path + "' is not a valid directory. Exiting.")
             sys.exit(1)
-        self.embryoPath = args.embryoPath
+        self.embryo_path = args.embryo_path
         return
 
     #
@@ -151,9 +153,9 @@ class Experiment(object):
                     print ("Experiment.updateFromFile: '" + parameters.PATH_EMBRYO
                            + "' is not a valid directory. Exiting.")
                     sys.exit(1)
-                self.embryoPath = parameters.PATH_EMBRYO
+                self.embryo_path = parameters.PATH_EMBRYO
             else:
-                self.embryoPath = os.getcwd()
+                self.embryo_path = os.getcwd()
 
         if hasattr(parameters, 'EN'):
             if parameters.EN is not None:
@@ -173,7 +175,7 @@ class Experiment(object):
 
         if hasattr(parameters, 'begin'):
             if parameters.begin is not None:
-                self.firstTimePoint = parameters.begin
+                self.first_time_point = parameters.begin
             else:
                 print proc + ": it is mandatory to specify the first time point"
                 print "\t Exiting."
@@ -181,7 +183,7 @@ class Experiment(object):
 
         if hasattr(parameters, 'end'):
             if parameters.end is not None:
-                self.lastTimePoint = parameters.end
+                self.last_time_point = parameters.end
             else:
                 print proc + ": it is mandatory to specify the last time point"
                 print "\t Exiting."
@@ -189,11 +191,11 @@ class Experiment(object):
 
         if hasattr(parameters, 'delta'):
             if parameters.delta is not None:
-                self.deltaTimePoint = parameters.delta
+                self.delta_time_point = parameters.delta
 
         if hasattr(parameters, 'raw_delay'):
             if parameters.raw_delay is not None:
-                self.delayTimePoint = parameters.raw_delay
+                self.delay_time_point = parameters.raw_delay
 
         return
 
@@ -247,7 +249,7 @@ def write_history_information(logfile_name,
         if start_time is not None:
             logfile.write("# "+time.strftime("%a, %d %b %Y %H:%M:%S", start_time)+"\n")
         if experiment is not None:
-            logfile.write("# Embryo path: '"+str(experiment.embryoPath)+"'\n")
+            logfile.write("# Embryo path: '"+str(experiment.embryo_path)+"'\n")
             logfile.write("# Embryo name: '"+str(experiment.embryoName)+"'\n")
         if parameter_file is not None:
             logfile.write("# Parameter file: '" + str(parameter_file) + "'\n")
@@ -401,7 +403,7 @@ def add_suffix(filename, suffix, new_dirname=None, new_extension=None):
 #
 #
 
-def find_file(data_path, file_prefix, monitoring=None):
+def find_file(data_path, file_prefix, monitoring=None, verbose=True):
     """
     find a file in a directory with a given prefix. The suffix is unknowm
 
@@ -432,7 +434,7 @@ def find_file(data_path, file_prefix, monitoring=None):
         if monitoring is not None:
             monitoring.to_log_and_console(proc + ": no image with name '" + str(file_prefix)
                                           + "' was found in '" + str(data_path) + "'", 4)
-        else:
+        elif verbose is True:
             print(proc + ": no image with name '" + str(file_prefix) + "' was found in '" + str(data_path) + "'")
         return None
 
