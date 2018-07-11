@@ -36,7 +36,7 @@ def _set_options(my_parser):
                            action='store', dest='parameterFile', const=None,
                            help='python file containing parameters definition')
     my_parser.add_argument('-e', '--embryo-rep',
-                           action='store', dest='embryoPath', const=None,
+                           action='store', dest='embryo_path', const=None,
                            help='path to the embryo data')
 
     #
@@ -134,8 +134,8 @@ if __name__ == '__main__':
         os.makedirs(environment.path_logdir)
 
     experiment.update_from_file(parameterFile)
-    parameters.first_time_point = experiment.firstTimePoint
-    parameters.last_time_point = experiment.firstTimePoint
+    parameters.first_time_point = experiment.first_time_point
+    parameters.last_time_point = experiment.first_time_point
     parameters.update_from_file(parameterFile)
 
     #

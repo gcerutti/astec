@@ -342,7 +342,7 @@ def linear_registration(path_ref, path_flo, path_output,
 ############################################################
 
 
-def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False, type='deriche',
+def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False, filter_type='deriche',
                      other_options=None, monitoring=None):
     """
 
@@ -351,8 +351,8 @@ def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False
     :param filter_value: sigma of the gaussian filter for each axis (default is 1.0)
     :param real_scale: scale values are in 'real' units (will be divided by the voxel size to get 'voxel' values)
            if this option is at True (default=False)
-    :param type: gaussian type, can be ['deriche'|'fidrich'|'young-1995'|'young-2002'|'gabor-young-2002'|'convolution']
-           or None (default is 'deriche')
+    :param filter_type: gaussian type, can be ['deriche'|'fidrich'|'young-1995'|'young-2002'|...
+           ...|'gabor-young-2002'|'convolution'] or None (default is 'deriche')
     :param other_options:
     :param monitoring:
     :return:
@@ -375,7 +375,7 @@ def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False
     # filter type
     #
     if type is not None:
-        command_line += " -gaussian-type " + str(type)
+        command_line += " -gaussian-type " + str(filter_type)
     command_line += " -x 0 -y 0 -z 0"
 
     #
@@ -627,8 +627,6 @@ def seuillage(path_input, path_output, low_threshold=1, high_threshold=None, oth
     command_line += " -sb " + str(low_threshold)
     if high_threshold is not None:
         command_line += " -sh " + str(high_threshold)
-    if realScale is True:
-        command_line += " -real"
 
     #
     #
@@ -823,6 +821,97 @@ def tensor_voting_membrane(path_input, prefix_input, path_output, path_mask=None
 ############################################################
 
 
+def non_linear_registration(path_ref, path_flo, path_affine, path_vector, affine_trsf, vector_trsf,
+                            py_hl=5, py_ll=3,
+                            transformation_estimator='wlts',
+                            lts_fraction=0.55,
+                            other_options=None,
+                            monitoring=None):
+    """
+    Compute the non-linear transformation that register the floating image onto the reference image
+    :param path_ref: path to the reference image
+    :param path_flo: path to the floating image
+    :param path_affine: path to the floating image after affine registration
+    :param path_vector: path to the floating image after affine o non-linear registration
+    :param affine_trsf: path to the affine transformation
+    :param vector_trsf: path to the non-linear registration (affine o non-linear)
+    :param py_hl:
+    :param py_ll:
+    :param transformation_estimator:
+    :param lts_fraction:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('blockmatching')
+
+    #
+    # affine registration
+    #
+
+    command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo + " -res " + path_affine
+    command_line += " -res-trsf " + affine_trsf
+
+    command_line += " -pyramid-highest-level " + str(py_hl) + " -pyramid-lowest-level " + str(py_ll)
+
+    command_line += " -trsf-type affine"
+
+    command_line += " -estimator " + transformation_estimator
+    command_line += " -lts-fraction " + str(lts_fraction)
+    command_line += " -py-gf"
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    #
+    # non-linear registration
+    #
+
+    command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo + " -res " + path_vector
+    command_line += " -init-trsf " + affine_trsf
+    command_line += " -res-trsf " + vector_trsf
+    command_line += " -composition-with-initial"
+
+    command_line += " -pyramid-highest-level " + str(py_hl) + " -pyramid-lowest-level " + str(py_ll)
+
+    command_line += " -trsf-type vectorfield"
+
+    command_line += " -estimator " + transformation_estimator
+    #
+    # was not set in previous version ...
+    #
+    # command_line += " -lts-fraction " + str(lts_fraction)
+    #
+    command_line += " -py-gf"
+    command_line += " -elastic-sigma 2.0 2.0 2.0"
+    command_line += " -fluid-sigma 2.0 2.0 2.0"
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+
+############################################################
+#
+#
+#
+############################################################
+
+
 def _recfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, lazy=False):
     ''' Perform a gaussian filtering on an intensity image
     path_input : path to the image to filter
@@ -953,7 +1042,7 @@ def _reech(path_flo, path_output, voxelsize):
 
 
 
-def non_linear_registration(image_file_flo,image_file_ref, affine_image, affine_trsf,vectorfield_image,vectorfield_trsf, verbose=False):
+def _non_linear_registration(image_file_flo,image_file_ref, affine_image, affine_trsf,vectorfield_image,vectorfield_trsf, verbose=False):
     ''' Compute the non-linear transformation that register the floating image onto the reference image
     image_file_flo : path to the floating image
     image_file_ref : path to the reference image

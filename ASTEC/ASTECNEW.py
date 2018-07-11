@@ -9,6 +9,7 @@ import ACE
 import commonTools
 import nomenclature
 import lineage
+import reconstruction
 
 from CommunFunctions.ImageHandling import imread
 
@@ -35,6 +36,11 @@ class AstecEnvironment(object):
     def __init__(self):
 
         #
+        # fusion data paths
+        #
+        self.path_fuse_exp = None
+        self.path_fuse_exp_files = None
+
         # segmentation data paths
         #
         self.path_seg_exp = None
@@ -63,6 +69,9 @@ class AstecEnvironment(object):
 
         parameters = imp.load_source('*', parameter_file)
 
+        self.path_fuse_exp = nomenclature.replaceFlags(nomenclature.path_fuse_exp, parameters)
+        self.path_fuse_exp_files = nomenclature.replaceFlags(nomenclature.path_fuse_exp_files, parameters)
+
         self.path_seg_exp = nomenclature.replaceFlags(nomenclature.path_seg_exp, parameters)
         self.path_seg_exp_files = nomenclature.replaceFlags(nomenclature.path_seg_exp_files, parameters)
         self.path_seg_exp_lineage = nomenclature.replaceFlags(nomenclature.path_seg_exp_lineage, parameters)
@@ -75,6 +84,9 @@ class AstecEnvironment(object):
         with open(log_file_name, 'a') as logfile:
             logfile.write("\n")
             logfile.write('AstecEnvironment\n')
+
+            logfile.write('- path_fuse_exp = ' + str(self.path_fuse_exp) + '\n')
+            logfile.write('- path_fuse_exp_files = ' + str(self.path_fuse_exp_files) + '\n')
 
             logfile.write('- path_seg_exp = ' + str(self.path_seg_exp) + '\n')
             logfile.write('- path_seg_exp_files = ' + str(self.path_seg_exp_files) + '\n')
@@ -92,6 +104,9 @@ class AstecEnvironment(object):
     def print_parameters(self):
         print("")
         print('AstecEnvironment')
+
+        print('- path_fuse_exp = ' + str(self.path_fuse_exp))
+        print('- path_fuse_exp_files = ' + str(self.path_fuse_exp_files))
 
         print('- path_seg_exp = ' + str(self.path_seg_exp))
         print('- path_seg_exp_files = ' + str(self.path_seg_exp_files))
@@ -130,7 +145,7 @@ class AstecParameters(object):
         #
         #
         #
-        self.keep_reconstruction = False
+        self.keep_reconstruction = True
 
         #
         # images suffixes/formats
@@ -182,8 +197,23 @@ class AstecParameters(object):
         parameters = imp.load_source('*', parameter_file)
 
         #
-        # acquisition parameters
+        # reconstruction method
         #
+
+        if hasattr(parameters, 'intensity_transformation'):
+            self.intensity_transformation = parameters.intensity_transformation
+        if hasattr(parameters, 'astec_intensity_transformation'):
+            self.intensity_transformation = parameters.astec_intensity_transformation
+
+        if hasattr(parameters, 'intensity_enhancement'):
+            self.intensity_enhancement = parameters.intensity_enhancement
+        if hasattr(parameters, 'astec_intensity_enhancement'):
+            self.intensity_enhancement = parameters.astec_intensity_enhancement
+
+        #
+        #
+        #
+        self.ace.update_from_file(parameter_file)
 
         #
         # images suffixes/formats
@@ -208,13 +238,6 @@ class AstecParameters(object):
 #
 ########################################################################################
 
-#
-#
-#
-#
-#
-
-def build_membrane_image(time_point, environment, parameters):
 
 
 #
@@ -223,16 +246,41 @@ def build_membrane_image(time_point, environment, parameters):
 #
 #
 
-def astec_process(time_point, lineage_tree_information, environment, parameters):
-    """
-
-    :param time_point:
-    :param environment:
-    :param parameters:
-    :return:
-    """
+def astec_process(previous_time, current_time, lineage_tree_information, experiment, environment, parameters):
 
 
+    proc = "astec_process"
+    default_width = 3
+
+    acquisition_time = str('{:0{width}d}'.format(current_time, width=default_width))
+
+    #
+    # nothing to do if the segmentation image exists
+    #
+
+    astec_name = nomenclature.replaceTIME(environment.path_seg_exp_files, current_time)
+    astec_image = commonTools.find_file(environment.path_seg_exp, astec_name, monitoring=None, verbose=False)
+
+    if astec_image is not None:
+        if monitoring.forceResultsToBeBuilt is False:
+            monitoring.to_log_and_console('    astec image already existing', 2)
+            return
+        else:
+            monitoring.to_log_and_console('    astec image already existing, but forced', 2)
+
+    astec_image = os.path.join(environment.path_seg_exp, astec_name + '.' + parameters.result_image_suffix)
+
+    #
+    # build the membrane image to be segmented
+    #
+
+    reconstruction.monitoring.copy(monitoring)
+    membrane_image = reconstruction.build_membrane_image(current_time, environment, parameters,
+                                                         previous_time=previous_time)
+
+    #
+    #
+    #
 
     return
 
@@ -275,8 +323,8 @@ def astec_control(experiment, environment, parameters):
     # and check whether any time point should be re-computed
     #
 
-    first_time_point = experiment.firstTimePoint + experiment.delayTimePoint
-    last_time_point = experiment.lastTimePoint + experiment.delayTimePoint
+    first_time_point = experiment.first_time_point + experiment.delay_time_point
+    last_time_point = experiment.last_time_point + experiment.delay_time_point
 
     lineage_tree_information = lineage.read_lineage_tree(environment.path_seg_exp_lineage)
 
@@ -296,7 +344,7 @@ def astec_control(experiment, environment, parameters):
             #
             # possible time point of segmentation, test if ok
             #
-            time_value = t + experiment.deltaTimePoint
+            time_value = t + experiment.delta_time_point
             acquisition_time = str('{:0{width}d}'.format(time_value, width=default_width))
             segmentation_file = environment.path_seg_exp_files.replace(nomenclature.FLAG_TIME, acquisition_time)
             if not os.path.isfile(os.path.join(environment.path_seg_exp, segmentation_file)):
@@ -320,43 +368,53 @@ def astec_control(experiment, environment, parameters):
                 monitoring.to_log_and_console("       time '" + str(t) + "' seems ok", 1)
             t+=1
         first_time_point = restart
-        monitoring.to_log_and_console("    " + proc + ": restart computation at time '" + str(first_time_point)
-                                      + "'", 1)
+        monitoring.to_log_and_console(proc + ": restart computation at time '" + str(first_time_point) + "'", 1)
     else:
-        monitoring.to_log_and_console("    " + proc + ": start computation at time '" + str(first_time_point)
-                                      + "'", 1)
+        monitoring.to_log_and_console(proc + ": start computation at time '" + str(first_time_point) + "'", 1)
 
     #
     #
     #
 
-    for time_value in range(first_time_point, last_time_point + 1, experiment.deltaTimePoint):
+    for current_time in range(first_time_point + experiment.delay_time_point + experiment.delta_time_point,
+                            last_time_point + experiment.delay_time_point + 1, experiment.delta_time_point):
 
-        acquisition_time = str('{:0{width}d}'.format(time_value, width=default_width))
+        acquisition_time = str('{:0{width}d}'.format(current_time, width=default_width))
+        previous_time = current_time - experiment.delta_time_point
 
         #
         # start processing
         #
-        monitoring.to_log_and_console('... astec processing of time ' + acquisition_time, 1)
 
+        monitoring.to_log_and_console('... astec processing of time ' + acquisition_time, 1)
         start_time = time.time()
 
         #
+        # set and make temporary directory
         #
-        #
-        environment.temporary_path = os.path.join(environment.path_mars_exp, "TEMP_$TIME")
+
+        environment.temporary_path = os.path.join(environment.path_seg_exp, "TEMP_$TIME")
         environment.temporary_path = environment.temporary_path.replace(nomenclature.FLAG_TIME, acquisition_time)
+
         if not os.path.isdir(environment.temporary_path):
             os.makedirs(environment.temporary_path)
 
         if parameters.keep_reconstruction is True:
-            environment.path_reconstruction = os.path.join(environment.path_mars_exp, "RECONSTRUCTION")
-            os.makedirs(environment.path_reconstruction)
+            environment.path_reconstruction = os.path.join(environment.path_seg_exp, "RECONSTRUCTION")
+            if not os.path.isdir(environment.path_reconstruction):
+                os.makedirs(environment.path_reconstruction)
         else:
             environment.path_reconstruction = environment.temporary_path
 
+        #
+        # process
+        #
 
-        astec_process(acquisition_time, lineage_tree_information, environment, parameters)
+        astec_process(previous_time, current_time, lineage_tree_information, experiment, environment, parameters)
+
+        #
+        # cleaning
+        #
 
         if monitoring.keepTemporaryFiles is False:
             shutil.rmtree(environment.temporary_path)

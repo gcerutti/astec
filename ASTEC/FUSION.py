@@ -1999,8 +1999,8 @@ def fusion_control(experiment, environment, parameters):
         if time_length1 < default_width:
             extra_zeros = (default_width - time_length1) * '0'
 
-        if experiment.firstTimePoint < 0 or experiment.lastTimePoint < 0 or experiment.deltaTimePoint < 0 \
-                or experiment.firstTimePoint > experiment.lastTimePoint:
+        if experiment.first_time_point < 0 or experiment.last_time_point < 0 or experiment.delta_time_point < 0 \
+                or experiment.first_time_point > experiment.last_time_point:
 
             for time_point in time_points1:
 
@@ -2048,16 +2048,16 @@ def fusion_control(experiment, environment, parameters):
 
         else:
 
-            if experiment.firstTimePoint < 0 or experiment.lastTimePoint < 0:
+            if experiment.first_time_point < 0 or experiment.last_time_point < 0:
                 monitoring.to_log_and_console("... time interval does not seem to be defined in the parameter file")
                 monitoring.to_log_and_console("    set parameters 'begin' and 'end'")
                 monitoring.to_log_and_console("\t Exiting")
                 sys.exit(1)
 
-            for time_value in range(experiment.firstTimePoint, experiment.lastTimePoint + 1, experiment.deltaTimePoint):
+            for time_value in range(experiment.first_time_point, experiment.last_time_point + 1, experiment.delta_time_point):
 
                 acquisition_time = str('{:0{width}d}'.format(time_value, width=time_length1))
-                fused_time = str('{:0{width}d}'.format(time_value + experiment.delayTimePoint, width=time_length1))
+                fused_time = str('{:0{width}d}'.format(time_value + experiment.delay_time_point, width=time_length1))
 
                 #
                 # fused image name
@@ -2118,13 +2118,13 @@ def fusion_control(experiment, environment, parameters):
 
     else:
 
-        if experiment.firstTimePoint < 0 or experiment.lastTimePoint < 0:
+        if experiment.first_time_point < 0 or experiment.last_time_point < 0:
             monitoring.to_log_and_console("... time interval does not seem to be defined in the parameter file")
             monitoring.to_log_and_console("    set parameters 'begin' and 'end'")
             monitoring.to_log_and_console("\t Exiting")
             sys.exit(1)
 
-        for time_value in range(experiment.firstTimePoint, experiment.lastTimePoint+1, experiment.deltaTimePoint):
+        for time_value in range(experiment.first_time_point, experiment.last_time_point+1, experiment.delta_time_point):
 
             acquisition_time = str('{:0{width}d}'.format(time_value, width=default_width))
 
@@ -2133,7 +2133,7 @@ def fusion_control(experiment, environment, parameters):
             #
 
             fused_image = nomenclature.replaceTIME(environment.path_fuse_exp_files,
-                                                   time_value+experiment.delayTimePoint) \
+                                                   time_value+experiment.delay_time_point) \
                           + '.' + parameters.result_image_suffix
 
             #
