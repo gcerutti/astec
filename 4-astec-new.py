@@ -94,9 +94,6 @@ if __name__ == '__main__':
     _set_options(parser)
     args = parser.parse_args()
 
-    print 'file=' + str(__file__)
-    print 'name=' + str(__name__)
-
     monitoring.update_from_args(args)
     experiment.update_from_args(args)
 
@@ -108,8 +105,6 @@ if __name__ == '__main__':
     environment.update_from_file(parameterFile, start_time)
     environment.path_history_file = nomenclature.replaceEXECUTABLE(environment.path_history_file, __file__)
     environment.path_log_file = nomenclature.replaceEXECUTABLE(environment.path_log_file, __file__)
-
-    environment.print_parameters()
 
     if not os.path.isdir(environment.path_logdir):
         os.makedirs(environment.path_logdir)

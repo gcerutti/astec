@@ -44,6 +44,7 @@ class AstecEnvironment(object):
         # segmentation data paths
         #
         self.path_seg_exp = None
+        self.path_mars_exp_files = None
         self.path_seg_exp_files = None
         self.path_seg_exp_lineage = None
 
@@ -73,6 +74,7 @@ class AstecEnvironment(object):
         self.path_fuse_exp_files = nomenclature.replaceFlags(nomenclature.path_fuse_exp_files, parameters)
 
         self.path_seg_exp = nomenclature.replaceFlags(nomenclature.path_seg_exp, parameters)
+        self.path_mars_exp_files = nomenclature.replaceFlags(nomenclature.path_mars_exp_files, parameters)
         self.path_seg_exp_files = nomenclature.replaceFlags(nomenclature.path_seg_exp_files, parameters)
         self.path_seg_exp_lineage = nomenclature.replaceFlags(nomenclature.path_seg_exp_lineage, parameters)
 
@@ -89,6 +91,7 @@ class AstecEnvironment(object):
             logfile.write('- path_fuse_exp_files = ' + str(self.path_fuse_exp_files) + '\n')
 
             logfile.write('- path_seg_exp = ' + str(self.path_seg_exp) + '\n')
+            logfile.write('- path_mars_exp_files = ' + str(self.path_mars_exp_files) + '\n')
             logfile.write('- path_seg_exp_files = ' + str(self.path_seg_exp_files) + '\n')
             logfile.write('- path_seg_exp_lineage = ' + str(self.path_seg_exp_lineage) + '\n')
 
@@ -109,6 +112,7 @@ class AstecEnvironment(object):
         print('- path_fuse_exp_files = ' + str(self.path_fuse_exp_files))
 
         print('- path_seg_exp = ' + str(self.path_seg_exp))
+        print('- path_mars_exp_files = ' + str(self.path_mars_exp_files))
         print('- path_seg_exp_files = ' + str(self.path_seg_exp_files))
         print('- path_seg_exp_lineage = ' + str(self.path_seg_exp_lineage))
 
@@ -281,6 +285,8 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     #
     #
     #
+
+    sys.exit(1)
 
     return
 

@@ -127,6 +127,31 @@ def path_to_vt():
 ############################################################
 
 
+def _launch_inline_cmd(command_line, monitoring=None):
+    """
+
+    :param command_line:
+    :param monitoring:
+    :return:
+    """
+
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    return
+
+
+############################################################
+#
+# function for the fusion steps
+#
+############################################################
+
+
 def apply_transformation(the_image, res_image, the_transformation=None,
                          template_image=None,
                          voxel_size=None,
@@ -196,12 +221,7 @@ def apply_transformation(the_image, res_image, the_transformation=None,
             _write_error_msg("\t Exiting", monitoring)
             sys.exit(1)
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     if return_image is True:
         out = imread(res_image)
@@ -245,12 +265,7 @@ def slitline_correction(the_image, res_image,
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -272,12 +287,7 @@ def mip_projection_for_crop(the_image, res_image, other_options=None, monitoring
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -325,12 +335,7 @@ def linear_registration(path_ref, path_flo, path_output,
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -389,12 +394,7 @@ def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -424,12 +424,7 @@ def regional_minima(path_input, path_output, h_min=1, other_options=None, monito
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -473,12 +468,7 @@ def connected_components(path_input, path_output, low_threshold=1, high_threshol
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -507,18 +497,13 @@ def watershed(path_seeds, path_gradient, path_output, other_options=None, monito
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
 
-def inline_to_u8(path_input, path_output, min_percentile=0.01, max_percentile=0.99,
-                 other_options=None, monitoring=None):
+def global_normalization_to_u8(path_input, path_output, min_percentile=0.01, max_percentile=0.99,
+                               other_options=None, monitoring=None):
     """
 
     :param path_input:
@@ -544,12 +529,43 @@ def inline_to_u8(path_input, path_output, min_percentile=0.01, max_percentile=0.
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def cell_normalization_to_u8(path_input, path_segmentation, path_output, min_percentile=0.01, max_percentile=0.99,
+                             other_options=None, monitoring=None):
+    """
+
+    :param path_input:
+    :param path_segmentation:
+    :param path_output:
+    :param min_percentile:
+    :param max_percentile:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('mc-adhocFuse')
+
+    #
+    #
+    #
+    command_line = path_to_exec + " -intensity-image " + path_input + " -segmentation-image " + path_segmentation
+    command_line += " -result-intensity-image " + path_output
+    command_line += " -min-method cellinterior -max-method cellborder"
+    command_line += " -min-percentile " + str(min_percentile) + " -max-percentile " + str(max_percentile)
+    command_line += " -sigma 5.0"
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -596,12 +612,7 @@ def membrane_extraction(path_input, prefix_output='tmp_membrane',
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -634,12 +645,7 @@ def seuillage(path_input, path_output, low_threshold=1, high_threshold=None, oth
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -689,12 +695,7 @@ def anisotropic_histogram(path_input_prefix, path_output, path_mask=None,
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -719,12 +720,7 @@ def arithmetic(path_first_input, path_second_input, path_output, other_options=N
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -776,12 +772,7 @@ def tensor_voting_membrane(path_input, prefix_input, path_output, path_mask=None
     command_line += " -scale " + str(scale_tensor_voting) + " -hessian"
     command_line += " -sample " + str(sample)
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     #
     # eigenvalues substraction
@@ -804,14 +795,57 @@ def tensor_voting_membrane(path_input, prefix_input, path_output, path_mask=None
     path_to_exec = _find_exec('copy')
     command_line = path_to_exec + " -norma -o 1 " + input_image + " " + path_output
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
+
+
+def bounding_boxes(image_labels, path_bboxes=None, monitoring=None):
+    """
+    Calcul des bounding-boxes de chaque label de l'image d'entree.
+    Si path_bboxes est renseigne, le resultat est sauvegarde dans ce fichier.
+    Output : dictionnaire D dont les cles sont les labels d'image et les
+    valeurs sont les listes contenant dans l'ordre les informations de
+    [volume, xmin, ymin, zmin, xmax, ymax, zmax] correspondant a ces labels
+    avec volume > 0 et label > 0.
+    :param image_labels:
+    :param path_bboxes:
+    :return:
+    """
+
+    if path_bboxes is None:
+        file_boxes = 'tmp_bounding_boxes.txt'
+    else:
+        file_boxes = path_bboxes
+
+    #
+    #
+    #
+
+    path_to_exec = _find_exec('boundingboxes')
+    command_line = path_to_exec + " " + image_labels + " " + file_boxes
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    #
+    #
+    #
+
+    D = {}
+    f = open(file_boxes, 'r')
+    lines = f.readlines()
+    f.close()
+
+    D = {}
+    for line in lines:
+        if not line.lstrip().startswith('#'):
+            l = line.split()
+            if int(l[1]):
+                D[int(l[0])] = map(int, l[1:])
+
+    if path_bboxes is None:
+        os.remove(file_boxes)
+
+    return D
 
 
 ############################################################
@@ -864,12 +898,7 @@ def non_linear_registration(path_ref, path_flo, path_affine, path_vector, affine
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     #
     # non-linear registration
@@ -897,12 +926,9 @@ def non_linear_registration(path_ref, path_flo, path_affine, path_vector, affine
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
 
 
 ############################################################
@@ -2596,7 +2622,7 @@ def labelBorders(image_in, image_out, lazy=True, verbose=False):
     return out
 
 #####
-def boudingboxes(image_labels, file_out=None, verbose=False):
+def _boudingboxes(image_labels, file_out=None, verbose=False):
   """
   Calcul des bounding-boxes de chaque label de l'image d'entree.
   Si file_out est renseigne, le resultat est sauvegarde dans ce fichier.
