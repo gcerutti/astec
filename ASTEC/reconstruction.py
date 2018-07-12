@@ -42,7 +42,7 @@ def get_deformation_from_current_to_previous(current_time, environment, paramete
     #
 
     current_name = nomenclature.replaceTIME(environment.path_fuse_exp_files, current_time)
-    current_image = commonTools.find_file(environment.path_seg_exp, current_name, monitoring=None, verbose=False)
+    current_image = commonTools.find_file(environment.path_fuse_exp, current_name, monitoring=None, verbose=False)
 
     if current_image is None:
         monitoring.to_log_and_console("    .. " + proc + " no fused image was found for time "
@@ -52,7 +52,7 @@ def get_deformation_from_current_to_previous(current_time, environment, paramete
     current_image = os.path.join(environment.path_fuse_exp, current_image)
 
     previous_name = nomenclature.replaceTIME(environment.path_fuse_exp_files, previous_time)
-    previous_image = commonTools.find_file(environment.path_seg_exp, previous_name, monitoring=None, verbose=False)
+    previous_image = commonTools.find_file(environment.path_fuse_exp, previous_name, monitoring=None, verbose=False)
 
     if previous_image is None:
         monitoring.to_log_and_console("    .. " + proc + " no fused image was found for time "
@@ -66,27 +66,48 @@ def get_deformation_from_current_to_previous(current_time, environment, paramete
     #
 
     affine_image = commonTools.add_suffix(previous_image, "_affine",
-                                             new_dirname=environment.path_reconstruction,
+                                             new_dirname=environment.temporary_path,
                                              new_extension=parameters.default_image_suffix)
 
     vector_image = commonTools.add_suffix(previous_image, "_vector",
-                                          new_dirname=environment.path_reconstruction,
+                                          new_dirname=environment.temporary_path,
                                           new_extension=parameters.default_image_suffix)
 
     affine_trsf = commonTools.add_suffix(previous_image, "_affine",
-                                          new_dirname=environment.path_reconstruction,
+                                          new_dirname=environment.temporary_path,
                                           new_extension="trsf")
 
     vector_trsf = commonTools.add_suffix(previous_image, "_vector",
-                                         new_dirname=environment.path_reconstruction,
+                                         new_dirname=environment.temporary_path,
                                          new_extension="trsf")
 
+    #
+    #
+    #
+
+    if os.path.isfile(vector_trsf):
+        return vector_trsf
+
+    #
+    # compute non-linear transformation
+    #
+    monitoring.to_log_and_console("    .. non-linear registration of time point " + str(previous_time) + " on "
+                                  + str(current_time), 2)
+    cpp_wrapping.non_linear_registration(current_image, previous_image, affine_image, vector_image,
+                                         affine_trsf, vector_trsf, monitoring=monitoring)
+
+    if os.path.isfile(vector_trsf):
+        return vector_trsf
+
+    return None
+
 
 #
 #
 #
 #
 #
+
 
 def get_segmentation_image(current_time, environment):
     """
@@ -98,8 +119,8 @@ def get_segmentation_image(current_time, environment):
 
     proc = 'get_segmentation_image'
 
-    if current_time.isdigit() is False:
-        monitoring.to_log_and_console("    .. " + proc + " no valid time: "
+    if current_time is None:
+        monitoring.to_log_and_console("    .. " + proc + ": no valid time: "
                                       + str(current_time), 2)
         return None
 
@@ -111,11 +132,11 @@ def get_segmentation_image(current_time, environment):
         seg_image = commonTools.find_file(environment.path_seg_exp, seg_name, monitoring=None, verbose=False)
 
     if seg_image is None:
-        monitoring.to_log_and_console("    .. " + proc + " no segmentation image was found for time "
+        monitoring.to_log_and_console("    .. " + proc + ": no segmentation image was found for time "
                                       + str(current_time), 2)
         return None
 
-    return os.path.join(environment.path_seg_exp, seg_name)
+    return os.path.join(environment.path_seg_exp, seg_image)
 
 
 #
@@ -139,13 +160,33 @@ def get_previous_deformed_segmentation(current_time, environment, parameters, pr
     #
     #
 
+    proc = 'get_previous_deformed_segmentation'
+
     prev_segimage = get_segmentation_image(previous_time, environment)
+    if prev_segimage is None:
+        monitoring.to_log_and_console("    .. " + proc + ": no segmentation image was found for time "
+                                      + str(previous_time), 2)
+        return None
+
     prev_def_segimage = commonTools.add_suffix(prev_segimage, "_deformed", new_dirname=environment.temporary_path,
                                                new_extension=parameters.default_image_suffix)
 
-    if not os.path.isfile(prev_def_segimage):
-        deformation = get_deformation_from_current_to_previous(current_time, environment, parameters, previous_time)
+    if os.path.isfile(prev_def_segimage):
+        return prev_def_segimage
 
+    deformation = get_deformation_from_current_to_previous(current_time, environment, parameters, previous_time)
+
+    if deformation is None:
+        monitoring.to_log_and_console("    .. " + proc + ": no deformation was found for time "
+                                      + str(current_time) + " towards " + str(previous_time), 2)
+        return None
+
+    monitoring.to_log_and_console("    .. resampling of '" + str(prev_segimage).split(os.path.sep)[-1] + "'", 2)
+
+    cpp_wrapping.apply_transformation(prev_segimage, prev_def_segimage, deformation,
+                                      nearest=True, monitoring=monitoring)
+
+    return prev_def_segimage
 
 
 
@@ -217,7 +258,7 @@ def build_membrane_image(current_time, environment, parameters, previous_time=No
             monitoring.to_log_and_console("    unknown intensity transformation method: '"
                                           + str(parameters.intensity_transformation) + "'", 2)
 
-    elif parameters.intensity_enhancement.lower() == 'gace':
+    elif parameters.intensity_enhancement.lower() == 'gace' or parameters.intensity_enhancement.lower() == 'glace':
         #
         # only set enhanced_image
         # or set the 3 names: intensity_image, enhanced_image, and membrane_image
@@ -266,6 +307,17 @@ def build_membrane_image(current_time, environment, parameters, previous_time=No
             ACE.monitoring.copy(monitoring)
             ACE.global_membrane_enhancement(input_image, enhanced_image, temporary_path=environment.temporary_path,
                                             parameters=parameters.ace)
+    elif parameters.intensity_enhancement.lower() == 'glace':
+        if (not os.path.isfile(enhanced_image) and (membrane_image is None or not os.path.isfile(membrane_image))) \
+                or monitoring.forceResultsToBeBuilt is True:
+            monitoring.to_log_and_console("    .. membrane cell enhancement of '"
+                                          + str(input_image).split(os.path.sep)[-1] + "'", 2)
+            ACE.monitoring.copy(monitoring)
+            previous_deformed_segmentation = get_previous_deformed_segmentation(current_time, environment, parameters,
+                                                                                previous_time)
+            ACE.cell_membrane_enhancement(input_image, previous_deformed_segmentation, enhanced_image,
+                                          temporary_path=environment.temporary_path,
+                                          parameters=parameters.ace)
     else:
         monitoring.to_log_and_console("    unknown membrane enhancement method: '"
                                       + str(parameters.intensity_enhancement) + "'", 2)
@@ -287,8 +339,9 @@ def build_membrane_image(current_time, environment, parameters, previous_time=No
                 or monitoring.forceResultsToBeBuilt is True:
             monitoring.to_log_and_console("    .. intensity global normalization of '"
                                           + str(input_image).split(os.path.sep)[-1] + "'", 2)
-            cpp_wrapping.inline_to_u8(input_image, intensity_image, min_percentile=0.01, max_percentile=0.99,
-                                      other_options=None, monitoring=monitoring)
+            cpp_wrapping.global_normalization_to_u8(input_image, intensity_image,
+                                                    min_percentile=0.01, max_percentile=0.99,
+                                                    other_options=None, monitoring=monitoring)
         arit_options = "-o 1"
     elif parameters.intensity_transformation.lower() == 'cell_normalization_to_u8':
         if (not os.path.isfile(intensity_image) and (membrane_image is None or not os.path.isfile(membrane_image))) \
@@ -298,11 +351,11 @@ def build_membrane_image(current_time, environment, parameters, previous_time=No
             if previous_time is None:
                 monitoring.to_log_and_console("       previous time point was not given", 2)
                 return None
-
             previous_deformed_segmentation = get_previous_deformed_segmentation(current_time, environment, parameters,
                                                                                 previous_time)
-            pass
-#            cpp_wrapping.inline_to_u8(input_image, intensity_image, min_percentile=0.01, max_percentile=0.99,)
+            cpp_wrapping.cell_normalization_to_u8(input_image, previous_deformed_segmentation, intensity_image,
+                                                  min_percentile=0.01, max_percentile=0.99,
+                                                  other_options=None, monitoring=monitoring)
         arit_options = "-o 1"
     else:
         monitoring.to_log_and_console("    unknown intensity transformation method: '"

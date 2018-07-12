@@ -381,8 +381,10 @@ def add_suffix(filename, suffix, new_dirname=None, new_extension=None):
     d = os.path.dirname(filename)
     e = get_extension(b)
     if e is None:
-        monitoring.to_log_and_console(proc + ": file extension of '"+str(filename)+"' was not recognized", 0)
-        monitoring.to_log_and_console("\t Exiting", 0)
+        print(proc + ": file extension of '"+str(filename)+"' was not recognized")
+        print("\t Exiting")
+#        monitoring.to_log_and_console(proc + ": file extension of '"+str(filename)+"' was not recognized", 0)
+#        monitoring.to_log_and_console("\t Exiting", 0)
         sys.exit(1)
     new_basename = b[0:len(b)-len(e)]
     new_basename += suffix

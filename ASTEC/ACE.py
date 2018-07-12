@@ -219,12 +219,6 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
         sys.exit(1)
 
     #
-    # to be done
-    #
-    if monitoring.keepTemporaryFiles is True:
-        parameters.keep_membrane = True
-
-    #
     # set names
     #
 
@@ -332,6 +326,230 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
                                             monitoring=monitoring)
     return
 
+
+########################################################################################
+#
+#
+#
+########################################################################################
+
+
+def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_output, binary_input=False,
+                                temporary_path=None, parameters=None):
+    """
+
+    :param path_input:
+    :param path_output:
+    :param binary_input:
+    :param temporary_path:
+    :param parameters:
+    :return:
+    """
+
+    #
+    # set names
+    #
+
+    e = commonTools.get_extension(path_input)
+    b = os.path.basename(path_input)
+    prefix_name = b[0:len(b) - len(e)]
+
+    tmp_prefix_name = os.path.join(temporary_path, prefix_name)
+
+    #
+    # first step
+    #
+
+    if (not os.path.isfile(tmp_prefix_name + ".ext.inr") or not os.path.exists(tmp_prefix_name + ".theta.inr")
+        or not os.path.exists(tmp_prefix_name + ".phi.inr")) or monitoring.forceResultsToBeBuilt is True:
+        monitoring.to_log_and_console("       membrane extraction of '"
+                                      + str(path_input).split(os.path.sep)[-1] + "'", 2)
+        #
+        # Local enhancement of membranes from 'path_input' image and extraction of the directional maxima
+        # (generates the tmp_prefix_name+'.[ext|theta|phi].inr') images
+        #
+        cpp_wrapping.membrane_extraction(path_input, tmp_prefix_name,
+                                         scale=parameters.sigma_membrane, monitoring=monitoring)
+
+    #
+    # second step
+    # bounding boxes of all labels
+    #
+    path_bboxes = commonTools.add_suffix(previous_deformed_segmentation, '_bounding_boxes',
+                                         new_dirname=temporary_path, new_extension='txt')
+    bboxes = cpp_wrapping.bounding_boxes(previous_deformed_segmentation, path_bboxes=path_bboxes)
+
+    print(str(bboxes))
+
+
+
+
+    sys.exit(1)
+
+    #def GLACE_from_resampled_segmentation(path_fused_1, path_seg_trsf, labels_of_interest='all', background=[0,1], path_membrane_prefix=None, path_bin=None, path_output=None, rayon_dil=3.6,
+#    sigma_membrane=0.9, manual=False, manual_sigma=7, hard_thresholding=False, hard_threshold=1.0, sensitivity=0.99, sigma_TV=3.6, sigma_LF=0.9, sample=0.2,
+#    keep_membrane=False, keep_all=False,  nb_proc=7, verbose=False):
+
+    #################################################################
+
+    # Main steps of this process are:
+    # * membrane reinforcement on global image
+
+    # * init and build the binary image (loop of short LACEs)
+
+    #	* LACE on the label
+
+    #	* adding to the main binary image
+
+    # * GACE on the binary image
+
+
+    # Test for input images existence
+    # Test existence des images d'entree
+    assert os.path.exists(path_fused_1), 'Miss fusion file '+path_fused_1
+    assert os.path.exists(path_seg_trsf), 'Miss segmented file '+path_seg_trsf
+
+    # Multi process import
+    from multiprocessing import Process, Queue, Pool
+
+    if type(labels_of_interest)==int:
+        labels_of_interest=[labels_of_interest]
+
+
+    # Parameters for intermediary files keep-or-leave
+    # Parametres de conservation des images generees
+    if not keep_membrane:
+        keep_membrane=keep_all
+
+    # Definition of intermediary image paths
+    # Definition des paths d'images intermediaires
+    path_WORK=''
+    if path_output:
+        path_WORK = os.path.dirname(path_output).rstrip(os.path.sep)+os.path.sep
+    else:
+        path_WORK = os.path.dirname(path_fused_1).rstrip(os.path.sep)+os.path.sep
+    if path_WORK==os.path.sep:
+        path_WORK=os.path.curdir+os.path.sep
+
+    tmp_ID = random_number()
+
+    keep_output=True
+    if not path_output:
+        keep_output=False
+        path_output = path_WORK+'tmp_output_'+tmp_ID+'.inr'
+
+    path_affine_trsf = path_WORK+'tmp_affine_'+tmp_ID+'.txt'
+
+    if path_membrane_prefix:
+        keep_membrane = True
+    else:
+        path_membrane_prefix=path_WORK+'tmp_membrane_'+tmp_ID+''
+
+    ### Output path ###
+    if not os.path.isdir(path_WORK):
+        try:
+            os.mkdir(path_WORK)
+        except Exception :
+            print "Unexpected error: unable to create working directory"
+
+
+    # First step
+
+    if (not os.path.exists(path_membrane_prefix+".ext.inr")) or (not os.path.exists(path_membrane_prefix+".theta.inr")) or (not os.path.exists(path_membrane_prefix+".phi.inr")):
+        # Local enhancement of membranes from fused image at t+1 and extraction of the directional maxima (generates the '.[ext|theta|phi].inr')
+        # Renforcement des membranes de l'image fusionnee a l'instant t+1 + extraction des maxima directionnels
+        membrane_renforcement(path_fused_1, prefix_output=path_membrane_prefix, path_mask=None,  init=sigma_membrane, verbose=verbose)
+
+    # Second step
+
+    bboxes=boudingboxes(path_seg_trsf, verbose=verbose)
+    if rayon_dil:	# dilation of all the bounding boxes
+        rayon_dil_voxel = rayon_dil / imread(path_fused_1).voxelsize[0]
+        rayon_dil_voxel = int(rayon_dil_voxel+0.5)
+        dilation_tuple = (0, -rayon_dil_voxel, -rayon_dil_voxel, -rayon_dil_voxel, rayon_dil_voxel, rayon_dil_voxel, rayon_dil_voxel)
+        import operator
+        for x, b in bboxes.iteritems():
+            b=map(operator.add, b, dilation_tuple)
+            if b[1] < 0:	# origin in x >= 0
+                b[1] = 0
+            if b[2] < 0:	# origin in y >= 0
+                b[2] = 0
+            if b[3] < 0:	# origin in z >= 0
+                b[3] = 0
+            # NB : the coordinates of the "final" point of the bounding box can "go" out of the original image dimensions without affecting the following of the program
+            # NB : les coordonnees du point "final" de la bounding box peuvent aller au dela de la dimension de l'image d'origine sans que cela n'affecte la suite du programme
+            bboxes[x]=tuple(b)
+
+    if type(labels_of_interest)==str and labels_of_interest=='all':
+        labels_of_interest=[x for x in bboxes.keys() if not background.count(x)]
+
+    pool=Pool(processes=nb_proc)
+    mapping=[]
+
+    for label_of_interest in labels_of_interest:
+
+        # Second step part 1
+        # 	light_LACE METHOD INTERFACE (since ASTEC-170327):
+        parameters=(path_seg_trsf, label_of_interest, bboxes[label_of_interest], path_membrane_prefix, None, \
+            rayon_dil, manual, manual_sigma, hard_thresholding, hard_threshold, sensitivity, \
+            verbose)
+        if verbose:
+            print 'Running light_LACE(' + str(parameters) + ') ...'
+
+        mapping.append(parameters)
+
+
+    outputs=pool.map(light_LACE, mapping)
+    pool.close()
+    pool.terminate()
+
+    path_union_of_local_bins=path_membrane_prefix+'.bin_union.inr'
+    createImage(path_union_of_local_bins, path_fused_1, '-o 1', verbose=verbose)
+
+    for path_local_bin in outputs:
+        # Second step part 2
+        label_of_interest = int(path_local_bin.split(os.path.sep)[-1].split('.')[-2])
+        bbox=bboxes[label_of_interest]
+        patchLogic(path_local_bin, path_union_of_local_bins, path_union_of_local_bins, bbox, Mode='or', verbose=verbose)
+        if not keep_all:
+            cmd='rm ' + path_local_bin
+            print cmd
+            os.system(cmd)
+
+    keep_union_of_local_bins=False
+    if path_bin:
+        if path_bin != path_union_of_local_bins:
+            keep_union_of_local_bins=False
+            copy(path_union_of_local_bins, path_bin, verbose)
+        else:
+            keep_union_of_local_bins=True
+
+    # Third step
+
+    GACE(path_union_of_local_bins, binary_input=True, path_output=path_output,
+        sigma_membrane=sigma_membrane, manual=manual, manual_sigma=manual_sigma, sensitivity=sensitivity, hard_thresholding=hard_thresholding, hard_threshold=hard_threshold, sigma_TV=sigma_TV, sigma_LF=sigma_LF, sample=sample,
+         keep_membrane=True, keep_all=False, verbose=verbose)
+
+    # Deletion of temporary files
+    files_to_rm=""
+
+    if os.path.exists(path_membrane_prefix+'.hist.txt'):
+        files_to_rm += path_membrane_prefix+'.hist.txt '
+
+    if os.path.exists(path_membrane_prefix+'.bin.inr'):
+        files_to_rm += path_membrane_prefix+'.bin.inr '
+
+    if not keep_membrane:
+        files_to_rm += path_membrane_prefix+'.ext.inr '
+        files_to_rm += path_membrane_prefix+'.theta.inr '
+        files_to_rm += path_membrane_prefix+'.phi.inr '
+    if not keep_union_of_local_bins:
+        files_to_rm += path_membrane_prefix+'.bin_union.inr '
+
+    if files_to_rm:
+        if verbose:
+            print "Deleting temporary files: \n" + files_to_rm
+        os.system("rm " + files_to_rm)
 
 ########################################################################################
 #
@@ -747,6 +965,11 @@ def LACE(path_fused_0, path_fused_1, path_seg_0, label_of_interest, path_membran
 
 
 
+########################################################################################
+#
+#
+#
+########################################################################################
 
 def GLACE(path_fused_0, path_fused_1, path_seg_0, labels_of_interest='all', background=[0,1], path_membrane_prefix=None, path_vector=None, path_bin=None, path_output=None, rayon_dil=3.6, 
     sigma_membrane=0.9, manual=False, manual_sigma=7, hard_thresholding=False, hard_threshold=1.0, sensitivity=0.99, sigma_TV=3.6, sigma_LF=0.9, sample=0.2,
@@ -1019,8 +1242,13 @@ def GLACE(path_fused_0, path_fused_1, path_seg_0, labels_of_interest='all', back
 
     return reconstructed_image_1
 
+########################################################################################
+#
+#
+#
+########################################################################################
 
-def GLACE_from_resampled_segmentation(path_fused_1, path_seg_trsf, labels_of_interest='all', background=[0,1], path_membrane_prefix=None, path_bin=None, path_output=None, rayon_dil=3.6, 
+def GLACE_from_resampled_segmentation(path_fused_1, path_seg_trsf, labels_of_interest='all', background=[0,1], path_membrane_prefix=None, path_bin=None, path_output=None, rayon_dil=3.6,
     sigma_membrane=0.9, manual=False, manual_sigma=7, hard_thresholding=False, hard_threshold=1.0, sensitivity=0.99, sigma_TV=3.6, sigma_LF=0.9, sample=0.2,
     keep_membrane=False, keep_all=False,  nb_proc=7, verbose=False):
     '''
@@ -1256,6 +1484,11 @@ def GLACE_from_resampled_segmentation(path_fused_1, path_seg_trsf, labels_of_int
             print "Deleting temporary files: \n" + files_to_rm
         os.system("rm " + files_to_rm)
 
+########################################################################################
+#
+#
+#
+########################################################################################
 
 def GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=None, path_output=None,
          sigma_membrane=0.9, manual=False, manual_sigma=7, sensitivity=0.99, hard_thresholding=False,
