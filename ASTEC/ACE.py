@@ -2,6 +2,8 @@
 import os
 import sys
 import imp
+import operator
+import multiprocessing
 
 import commonTools
 from CommunFunctions.ImageHandling import SpatialImage, imread, imsave
@@ -57,8 +59,15 @@ monitoring = commonTools.Monitoring()
 class AceParameters(object):
 
     def __init__(self):
+
+        #
+        # parameters for filtering and membrane extrema extraction
+        #
         self.sigma_membrane = 0.9
 
+        #
+        # parameters for binarization
+        #
         self.hard_thresholding = False
         self.hard_threshold = 1.0
 
@@ -66,11 +75,22 @@ class AceParameters(object):
         self.manual_sigma = 7
         self.sensitivity = 0.99
 
+        #
+        # parameters for tensor voting
+        #
         self.sigma_TV = 3.6
         self.sigma_LF = 0.9
         self.sample = 0.2
 
-        self.keep_membrane = False
+        #
+        # for cell-based enhancement
+        # dilation (in real unit)
+        #
+        self.bounding_box_dilation = 3.6
+
+        #
+        #
+        #
         self.default_image_suffix = 'inr'
 
     def write_parameters(self, log_file_name):
@@ -91,7 +111,8 @@ class AceParameters(object):
             logfile.write('- sigma_LF = ' + str(self.sigma_LF) + '\n')
             logfile.write('- sample = ' + str(self.sample) + '\n')
 
-            logfile.write('- keep_membrane = ' + str(self.keep_membrane) + '\n')
+            logfile.write('- bounding_box_dilation = ' + str(self.bounding_box_dilation) + '\n')
+
             logfile.write('- default_image_suffix = ' + str(self.default_image_suffix) + '\n')
 
             logfile.write("\n")
@@ -114,7 +135,8 @@ class AceParameters(object):
         print('- sigma_LF = ' + str(self.sigma_LF))
         print('- sample = ' + str(self.sample))
 
-        print('- keep_membrane = ' + str(self.keep_membrane))
+        print('- bounding_box_dilation = ' + str(self.bounding_box_dilation))
+
         print('- default_image_suffix = ' + str(self.default_image_suffix))
 
         print("")
@@ -241,6 +263,7 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
     else:
         #
         # get a binary image of membranes
+        #
         # 1. surface extrema extraction
         #    it will generate (in the 'temporary_path' directory)
         #    - 'tmp_prefix_name'.ext
@@ -248,11 +271,6 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
         #    - 'tmp_prefix_name'.theta
         #    - 'tmp_prefix_name'.phi
         #      the two angle images that give the direction of the vector orthogonal to the membrane
-        # 2. threshold
-        #    - 'tmp_prefix_name'.bin
-        #      the thresholded directional extrema image
-        #    - 'tmp_prefix_name'.hist.txt
-        #      a text file describing the image histogram
         #
         if (not os.path.isfile(tmp_prefix_name + ".ext.inr") or not os.path.exists(tmp_prefix_name + ".theta.inr")
                 or not os.path.exists(tmp_prefix_name + ".phi.inr")) or monitoring.forceResultsToBeBuilt is True:
@@ -267,6 +285,13 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
 
         #
         # Membranes binarization
+        #
+        # 2. threshold
+        #    it will generate (in the 'temporary_path' directory)
+        #    - 'tmp_prefix_name'.bin
+        #      the thresholded directional extrema image
+        #    - 'tmp_prefix_name'.hist.txt
+        #      a text file describing the image histogram
         #
         if not os.path.isfile(tmp_prefix_name + ".ext.inr"):
             monitoring.to_log_and_console("       '" + str(tmp_prefix_name + ".ext.inr").split(os.path.sep)[-1]
@@ -283,7 +308,7 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
                                               + str(tmp_prefix_name + ".ext.inr").split(os.path.sep)[-1] + "'", 2)
                 cpp_wrapping.seuillage(path_input=tmp_prefix_name + ".ext.inr",
                                        path_output=tmp_prefix_name + ".bin.inr",
-                                       low_threshold=hard_threshold, monitoring=monitoring)
+                                       low_threshold=parameters.hard_threshold, monitoring=monitoring)
             else:
                 #
                 # Anisotropic threshold of membranes (the choice of the sensitivity parameter may be critical)
@@ -333,9 +358,125 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
 #
 ########################################################################################
 
+def cell_binarization(parameters_for_parallelism):
+    """
+    LACE method with
+     - already transformed path_seg_0 (no need for path_fused_0 neither path_vector)
+     - already computed image of membranes (no need for path_fused_1 )
+    Interface :
+        (path_mask, label_of_interest, path_membrane_prefix, path_bin, rayon_dil, manual, manual_sigma, hard_thresholding, hard_threshold, sensitivity, verbose) = parameters
+     - path_mask : path to labelled image that defines the regions of interest (already transformed)
+     - label_of_interest : label of interest of path_mask image. The region of interest is then dilated with a ray of value rayon_dil.
+     - bbox : bounding box of the label of interest (before dilation) at the format [xmin, ymin, zmin, xmax, ymax, zmax].
+     - path_membrane_prefix : paths of maxima of enhanced membranes image (ext) and of associated angles (theta, phi) --> path_membrane_prefix+".[ext|theta|phi].inr" must be existing.
+     - path_bin : path to the binarised membranes result image
+     - rayon_dil : dilation ray for region of interest (see path_mask and label_of_interest)
+     - manual : if set to True, this parameter activates the "manual" mode, ie the user fixes the manual parameters for the thresholds computation for membranes binarization
+                # parametre activant le mode manuel (ie parametrise) du seuil de binarisation des membranes si egal a True
+     - manual_sigma : manual parameter for the initialization of Rayleigh function sigma parameter for the directional histograms fitting for the thresholds computation
+                      # parametre manuel d'initialisation pour le calcul du seuil de binarisation des membranes
+     - hard_thresholding : if set to True, this enables to fix a global threshold on the image. This threshold is given by the parameter 'hard_threshold'
+                           # possibilite de choisir un seuillage dur global sur l'image en mettant cette option a True
+     - hard_threshold : if 'hard_thresholding' is set to True, this is the threshold for the binarization of enhanced membranes image
+                        # si hard_thresholding est a True, seuillage des membranes rehaussees via ce seuil
+     - sensitivity : parameter which fixes the sensitivity criterion for axial thresholds computation:
+                                (true positive rate) : threshold = #(membrane class>=threshold)/#(membrane class)
+                     # parametre de calcul des seuils anisotropiques selon un critere de sensibilite
+                     #          (true positive rate) : seuil = #(classe membrane>=seuil)/#(classe membrane)
+     - verbose : verbosity of the function
+    light_LACE return value is path_bin.
+    """
+
+    label_of_interest, bbox, previous_deformed_segmentation, tmp_prefix_name, parameters = parameters_for_parallelism
+
+
+
+    sys.exit(1)
+    path_mask, label_of_interest, bbox, path_membrane_prefix, path_bin, rayon_dil, manual, manual_sigma, hard_thresholding, hard_threshold, sensitivity, verbose=parameters
+
+
+
+    tmp_ID = random_number()
+    path_WORK = os.path.dirname(path_mask).rstrip(os.path.sep)+os.path.sep
+    path_mask_dil = path_WORK+'mask_at_1_dil_'+tmp_ID+'.inr'
+
+    path_ext_tmp = path_WORK + "tmp_"+tmp_ID+'.ext.inr'
+    path_theta_tmp = path_WORK + "tmp_"+tmp_ID+'.theta.inr'
+    path_phi_tmp = path_WORK + "tmp_"+tmp_ID+'.phi.inr'
+
+    if not path_bin:
+        path_bin = path_WORK + "tmp_"+tmp_ID+"."+str(label_of_interest)+'.inr'
+
+    assert ( os.path.exists(path_membrane_prefix+".ext.inr")) and ( os.path.exists(path_membrane_prefix+".theta.inr")) and ( os.path.exists(path_membrane_prefix+".phi.inr"))
+
+    if bbox:
+        cropImage(path_mask, path_mask_dil, bbox, verbose=verbose )
+        seuillage(path_mask_dil, path_output=path_mask_dil,sb=label_of_interest, sh=label_of_interest, verbose=verbose )
+    else:
+        seuillage(path_mask, path_output=path_mask_dil,sb=label_of_interest, sh=label_of_interest, verbose=verbose )
+
+    # Dilation of the ROI at t+1
+    # Dilatation de la zone d'interet a l'instant t+1
+    if True: # Computation of the dilation ray in real coordinates / Calcul du rayon de dilatation en coordonnees reelles
+        rayon_dil /= imread(path_mask).voxelsize[0]
+        rayon_dil = int(rayon_dil+0.5)
+    morpho(path_mask_dil, path_mask_dil, ' -dil -R '+str(rayon_dil), verbose=verbose)
+
+    # Here, path_mask_dil defines the ROI in which LACE should apply the segmentation
+    # Ici, path_mask_dil definit la zone d'interet dans laquelle LACE doit realiser la segmentation
+
+    if bbox:
+        cropImage(path_membrane_prefix+".ext.inr", path_ext_tmp, bbox, verbose=verbose )
+
+    # Membranes binarization
+    if not hard_thresholding:
+        # Anisotropic threshold of membranes (the choice of the sensitivity parameter may be critical)
+        # Seuillage anisotropique des membranes (parametre de sensitivite potentiellement critique)
+        if bbox:
+            cropImage(path_membrane_prefix+".theta.inr", path_theta_tmp, bbox, verbose=verbose )
+            cropImage(path_membrane_prefix+".phi.inr", path_phi_tmp, bbox, verbose=verbose )
+            anisotropicHist(path_input=path_ext_tmp, path_output=path_bin, path_mask=path_mask_dil, manual=manual, manual_sigma=manual_sigma, sensitivity=sensitivity, keepAll=False, verbose=verbose)
+        else:
+            anisotropicHist(path_input=path_membrane_prefix+".ext.inr", path_output=path_bin, path_mask=path_mask_dil, manual=manual, manual_sigma=manual_sigma, sensitivity=sensitivity, keepAll=False, verbose=verbose)
+    else:
+        if bbox:
+            seuillage(path_input=path_ext_tmp, path_output=path_bin,sb=hard_threshold, verbose=verbose)
+        else:
+            seuillage(path_input=path_membrane_prefix+".ext.inr", path_output=path_bin,sb=hard_threshold, verbose=verbose)
+
+    # Mask application on the binary image
+    Logic(path_mask_dil, path_bin, path_bin, Mode='mask', verbose=verbose)
+
+
+    if os.path.exists(path_mask_dil):
+        cmd='rm ' + str(path_mask_dil)
+        if verbose:
+            print cmd
+        os.system(cmd)
+    if os.path.exists(path_ext_tmp):
+        cmd='rm ' + str(path_ext_tmp)
+        if verbose:
+            print cmd
+        os.system(cmd)
+    if os.path.exists(path_theta_tmp):
+        cmd='rm ' + str(path_theta_tmp)
+        if verbose:
+            print cmd
+        os.system(cmd)
+    if os.path.exists(path_phi_tmp):
+        cmd='rm ' + str(path_phi_tmp)
+        if verbose:
+            print cmd
+        os.system(cmd)
+
+    return path_bin
+
+#
+#
+#
 
 def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_output, binary_input=False,
-                                temporary_path=None, parameters=None):
+                              temporary_path=None, parameters=None, n_processor=7):
     """
 
     :param path_input:
@@ -358,7 +499,14 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
 
     #
     # first step
+    # membrane extrema computation
     #
+    #    it will generate (in the 'temporary_path' directory)
+    #    - 'tmp_prefix_name'.ext
+    #      the directional extrema image
+    #    - 'tmp_prefix_name'.theta
+    #    - 'tmp_prefix_name'.phi
+    #      the two angle images that give the direction of the vector orthogonal to the membrane
 
     if (not os.path.isfile(tmp_prefix_name + ".ext.inr") or not os.path.exists(tmp_prefix_name + ".theta.inr")
         or not os.path.exists(tmp_prefix_name + ".phi.inr")) or monitoring.forceResultsToBeBuilt is True:
@@ -373,16 +521,95 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
 
     #
     # second step
+    # cell-based thresholding
+    #
+
+    #
     # bounding boxes of all labels
+    # bboxes is a list of tuples [volume, xmin, ymin, zmin, xmax, ymax, zmax]
     #
     path_bboxes = commonTools.add_suffix(previous_deformed_segmentation, '_bounding_boxes',
                                          new_dirname=temporary_path, new_extension='txt')
     bboxes = cpp_wrapping.bounding_boxes(previous_deformed_segmentation, path_bboxes=path_bboxes)
 
-    print(str(bboxes))
+    #
+    # dilation of bounding boxes
+    #
+    if parameters.bounding_box_dilation > 0:
+
+        imseg = imread(previous_deformed_segmentation)
+        voxelsize = imseg._get_resolution()
+        xdim = imseg.shape[0]
+        ydim = imseg.shape[1]
+        zdim = imseg.shape[2]
+        del imseg
+
+        dx = int(parameters.bounding_box_dilation/voxelsize[0] + 0.5)
+        if len(voxelsize) >= 2:
+            dy = int(parameters.bounding_box_dilation / voxelsize[1] + 0.5)
+        else:
+            dy = int(parameters.bounding_box_dilation / voxelsize[0] + 0.5)
+        if len(voxelsize) >= 3:
+            dz = int(parameters.bounding_box_dilation / voxelsize[2] + 0.5)
+        else:
+            dz = int(parameters.bounding_box_dilation / voxelsize[0] + 0.5)
+
+        dilation_operator = (0, -dx, -dy, -dz, dx, dy, dz)
+
+        for x, b in bboxes.iteritems():
+            b = map(operator.add, b, dilation_operator)
+            #
+            # Note of Gael:
+            # the coordinates of the "final" point of the bounding box can "go" out of the original image dimensions
+            # without affecting the following of the program
+            #
+            if b[1] < 0:
+                b[1] = 0
+            if b[2] < 0:
+                b[2] = 0
+            if b[3] < 0:
+                b[3] = 0
+            if b[4] >= xdim:
+                b[4] = xdim-1
+            if b[5] >= ydim:
+                b[5] = ydim-1
+            if b[6] >= zdim:
+                b[6] = zdim-1
+            bboxes[x] = tuple(b)
+
+    #
+    # selection of cells to be enhanced
+    # Gael choice was to define two parameters:
+    # - labels_of_interest that can either be a list of labels, ie [3, 4, 7] or the string 'all'
+    # - background that is nothing but [0,1], ie the two possible labels for the backgroung
+    #
+    # if type(labels_of_interest)==int:
+    #     labels_of_interest=[labels_of_interest]
+    # if type(labels_of_interest)==str and labels_of_interest=='all':
+    #     labels_of_interest=[x for x in bboxes.keys() if not background.count(x)]
+    #
+
+    labels_of_interest = [x for x in bboxes.keys() if x != 0 and x != 1]
+
+    #
+    # parallel cell-based binarization
+    # light_LACE METHOD INTERFACE (since ASTEC-170327) for each cell
+    #
+
+    pool = multiprocessing.Pool(processes = n_processor)
+    mapping=[]
+
+    for label_of_interest in labels_of_interest:
+        monitoring.to_log_and_console("       membrane binarization of cell '" + str(label_of_interest) + "'", 2)
+
+        parameters_for_parallelism = (label_of_interest, bboxes[label_of_interest],
+                                      previous_deformed_segmentation, tmp_prefix_name, parameters)
+        mapping.append(parameters_for_parallelism)
 
 
-
+    outputs=pool.map(light_LACE, mapping)
+    pool.close()
+    pool.terminate()
 
     sys.exit(1)
 
@@ -467,7 +694,7 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
         rayon_dil_voxel = rayon_dil / imread(path_fused_1).voxelsize[0]
         rayon_dil_voxel = int(rayon_dil_voxel+0.5)
         dilation_tuple = (0, -rayon_dil_voxel, -rayon_dil_voxel, -rayon_dil_voxel, rayon_dil_voxel, rayon_dil_voxel, rayon_dil_voxel)
-        import operator
+ #       import operator
         for x, b in bboxes.iteritems():
             b=map(operator.add, b, dilation_tuple)
             if b[1] < 0:	# origin in x >= 0
