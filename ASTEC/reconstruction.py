@@ -162,6 +162,19 @@ def get_previous_deformed_segmentation(current_time, environment, parameters, pr
 
     proc = 'get_previous_deformed_segmentation'
 
+    #
+    # it will generate (in the temporary_path directory)
+    #
+    # files related to the deformation computation
+    # - $EN_fuse_t$TIME_affine.inr
+    # - $EN_fuse_t$TIME_affine.trsf
+    # - $EN_fuse_t$TIME_vector.inr
+    # - $EN_fuse_t$TIME_vector.trsf
+    #
+    # the deformed segmentation
+    # - $EN_[mars,seg]_t$TIME_deformed.inr
+    #
+
     prev_segimage = get_segmentation_image(previous_time, environment)
     if prev_segimage is None:
         monitoring.to_log_and_console("    .. " + proc + ": no segmentation image was found for time "
