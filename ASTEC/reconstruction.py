@@ -9,7 +9,6 @@ import CommunFunctions.cpp_wrapping as cpp_wrapping
 monitoring = commonTools.Monitoring()
 
 
-
 ########################################################################################
 #
 #
@@ -33,7 +32,6 @@ def get_deformation_from_current_to_previous(current_time, environment, paramete
     """
 
     proc = 'get_deformation_from_current_to_previous'
-
 
     #
     # image to be registered
@@ -66,16 +64,15 @@ def get_deformation_from_current_to_previous(current_time, environment, paramete
     #
 
     affine_image = commonTools.add_suffix(previous_image, "_affine",
-                                             new_dirname=environment.temporary_path,
-                                             new_extension=parameters.default_image_suffix)
-
-    vector_image = commonTools.add_suffix(previous_image, "_vector",
                                           new_dirname=environment.temporary_path,
                                           new_extension=parameters.default_image_suffix)
 
+    vector_image = commonTools.add_suffix(previous_image, "_vector", new_dirname=environment.temporary_path,
+                                          new_extension=parameters.default_image_suffix)
+
     affine_trsf = commonTools.add_suffix(previous_image, "_affine",
-                                          new_dirname=environment.temporary_path,
-                                          new_extension="trsf")
+                                         new_dirname=environment.temporary_path,
+                                         new_extension="trsf")
 
     vector_trsf = commonTools.add_suffix(previous_image, "_vector",
                                          new_dirname=environment.temporary_path,
@@ -202,7 +199,6 @@ def get_previous_deformed_segmentation(current_time, environment, parameters, pr
     return prev_def_segimage
 
 
-
 ########################################################################################
 #
 #
@@ -262,8 +258,8 @@ def build_membrane_image(current_time, environment, parameters, previous_time=No
             #
             intensity_image = input_image
         elif parameters.intensity_transformation.lower() == 'normalization_to_u8' \
-            or parameters.intensity_transformation.lower() == 'global_normalization_to_u8' \
-            or parameters.intensity_transformation.lower() == 'cell_normalization_to_u8':
+                or parameters.intensity_transformation.lower() == 'global_normalization_to_u8' \
+                or parameters.intensity_transformation.lower() == 'cell_normalization_to_u8':
             intensity_image = commonTools.add_suffix(input_image, "_membrane",
                                                      new_dirname=environment.path_reconstruction,
                                                      new_extension=parameters.default_image_suffix)
@@ -286,17 +282,17 @@ def build_membrane_image(current_time, environment, parameters, previous_time=No
                                                     new_extension=parameters.default_image_suffix)
             membrane_image = commonTools.add_suffix(input_image, "_membrane",
                                                     new_dirname=environment.path_reconstruction,
-                                                     new_extension=parameters.default_image_suffix)
+                                                    new_extension=parameters.default_image_suffix)
         elif parameters.intensity_transformation.lower() == 'normalization_to_u8' \
-            or parameters.intensity_transformation.lower() == 'global_normalization_to_u8' \
-            or parameters.intensity_transformation.lower() == 'cell_normalization_to_u8':
+                or parameters.intensity_transformation.lower() == 'global_normalization_to_u8' \
+                or parameters.intensity_transformation.lower() == 'cell_normalization_to_u8':
             intensity_image = commonTools.add_suffix(input_image, "_intensity", new_dirname=environment.temporary_path,
                                                      new_extension=parameters.default_image_suffix)
             enhanced_image = commonTools.add_suffix(input_image, "_enhanced", new_dirname=environment.temporary_path,
                                                     new_extension=parameters.default_image_suffix)
             membrane_image = commonTools.add_suffix(input_image, "_membrane",
                                                     new_dirname=environment.path_reconstruction,
-                                                     new_extension=parameters.default_image_suffix)
+                                                    new_extension=parameters.default_image_suffix)
         else:
             monitoring.to_log_and_console("    unknown intensity transformation method: '"
                                           + str(parameters.intensity_transformation) + "'", 2)
@@ -397,4 +393,3 @@ def build_membrane_image(current_time, environment, parameters, previous_time=No
     #
     # should not reach this point
     #
-    return None
