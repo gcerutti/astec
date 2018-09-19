@@ -383,11 +383,13 @@ class FusionParameters(object):
         #
         # Registration parameters
         #
-        self.registration_transformation_type = 'affine'
-        self.registration_transformation_estimation_type = 'wlts'
-        self.registration_lts_fraction = 0.55
-        self.registration_pyramid_highest_level = 6
-        self.registration_pyramid_lowest_level = 3
+        self.pre_registration = commonTools.RegistrationParameters()
+        self.pre_registration.prefix = 'fusion_preregistration_'
+        self.pre_registration.compute_registration = False
+        self.pre_registration.transformation_type = 'translation'
+
+        self.registration = commonTools.RegistrationParameters()
+        self.registration.prefix = 'fusion_registration_'
 
         #
         # Cropping of fused image (after fusion)
@@ -423,14 +425,8 @@ class FusionParameters(object):
             logfile.write('- acquisition_cropping_margin_y_0 = '+str(self.acquisition_cropping_margin_y_0)+'\n')
             logfile.write('- acquisition_cropping_margin_y_1 = '+str(self.acquisition_cropping_margin_y_1)+'\n')
 
-            logfile.write('- registration_transformation_type = ' + str(self.registration_transformation_type) + '\n')
-            logfile.write('- registration_transformation_estimation_type = '
-                          + str(self.registration_transformation_estimation_type) + '\n')
-            logfile.write('- registration_lts_fraction = ' + str(self.registration_lts_fraction) + '\n')
-            logfile.write('- registration_pyramid_highest_level = '
-                          + str(self.registration_pyramid_highest_level) + '\n')
-            logfile.write('- registration_pyramid_lowest_level = '
-                          + str(self.registration_pyramid_lowest_level) + '\n')
+            self.pre_registration.write_parameters(log_file_name)
+            self.registration.write_parameters(log_file_name)
 
             logfile.write('- fusion_cropping = '+str(self.fusion_cropping)+'\n')
             logfile.write('- fusion_cropping_margin_x_0 = '+str(self.fusion_cropping_margin_x_0)+'\n')
@@ -462,12 +458,8 @@ class FusionParameters(object):
         print('- acquisition_cropping_margin_y_0 = '+str(self.acquisition_cropping_margin_y_0))
         print('- acquisition_cropping_margin_y_1 = '+str(self.acquisition_cropping_margin_y_1))
 
-        print('- registration_transformation_type = ' + str(self.registration_transformation_type))
-        print('- registration_transformation_estimation_type = '
-              + str(self.registration_transformation_estimation_type))
-        print('- registration_lts_fraction = ' + str(self.registration_lts_fraction))
-        print('- registration_pyramid_highest_level = ' + str(self.registration_pyramid_highest_level))
-        print('- registration_pyramid_lowest_level = ' + str(self.registration_pyramid_lowest_level))
+        self.pre_registration.print_parameters()
+        self.registration.print_parameters()
 
         print('- fusion_cropping = '+str(self.fusion_cropping))
         print('- fusion_cropping_margin_x_0 = '+str(self.fusion_cropping_margin_x_0))
@@ -553,15 +545,8 @@ class FusionParameters(object):
 
         #
         # registration parameters
-        if hasattr(parameters, 'fusion_registration_transformation_type'):
-            if parameters.fusion_registration_transformation_type is not None:
-                self.registration_transformation_type = parameters.fusion_registration_transformation_type
-        if hasattr(parameters, 'fusion_registration_pyramid_highest_level'):
-            if parameters.fusion_registration_pyramid_highest_level is not None:
-                self.registration_pyramid_highest_level = parameters.fusion_registration_pyramid_highest_level
-        if hasattr(parameters, 'fusion_registration_pyramid_lowest_level'):
-            if parameters.fusion_registration_pyramid_lowest_level is not None:
-                self.registration_pyramid_lowest_level = parameters.fusion_registration_pyramid_lowest_level
+        self.pre_registration.update_from_file(parameter_file)
+        self.registration.update_from_file(parameter_file)
 
         #
         # Cropping of fused image (after fusion)
@@ -982,6 +967,8 @@ def _crop_disk_image(the_image, res_image, the_max_box=None,
 
 def _axis_rotation_matrix(axis, angle, min_space=None, max_space=None):
     """ Return the transformation matrix from the axis and angle necessary
+    this is a rigid transformation (rotation) that preserves the center of
+    the field of view
     axis : axis of rotation ("X", "Y" or "Z")
     angle : angle of rotation (in degree)
     min_space : coordinates of the bottom point (usually (0, 0, 0))
@@ -1023,6 +1010,46 @@ def _axis_rotation_matrix(axis, angle, min_space=None, max_space=None):
                         [0., 0., 0., 1.]])
 
     return d(i(centering), d(rot, centering))
+
+
+def _init_rotation_matrix(axis, angle, ref_center=None, flo_center=None):
+
+    if axis not in ["X", "Y", "Z"]:
+        raise Exception("Unknown axis : " + str(axis))
+    rads = math.radians(angle)
+    s = math.sin(rads)
+    c = math.cos(rads)
+
+    rot = np.identity(3)
+    if axis == "X":
+        rot = np.array([[1., 0., 0.],
+                        [0., c, -s],
+                        [0., s, c]])
+    elif axis == "Y":
+        rot = np.array([[c, 0., s],
+                        [0., 1., 0.],
+                        [-s, 0., c]])
+    elif axis == "Z":
+        rot = np.array([[c, -s, 0.],
+                        [s, c, 0.],
+                        [0., 0., 1.]])
+
+    if ref_center is not None:
+        if flo_center is not None:
+            trs = flo_center - np.dot(rot, ref_center)
+        else:
+            trs = ref_center - np.dot(rot, ref_center)
+    else:
+        if flo_center is not None:
+            trs = flo_center - np.dot(rot, flo_center)
+        else:
+            trs = np.array[0.,0.,0.]
+
+    mat = np.identity(4)
+    mat[0:3, 0:3] = rot
+    (mat.T)[3:4,0:3] = trs
+
+    return mat
 
 
 ########################################################################################
@@ -1163,6 +1190,27 @@ def _build_mask(image, direction):
 #
 ########################################################################################
 
+def _linear_registration(path_ref, path_flo, path_output, path_output_trsf, path_init_trsf=None,
+                         parameters=None):
+    if parameters is not None:
+        cpp_wrapping.linear_registration(path_ref, path_flo, path_output, path_output_trsf, path_init_trsf,
+                                         py_hl=parameters.pyramid_highest_level,
+                                         py_ll=parameters.pyramid_lowest_level,
+                                         transformation_type=parameters.transformation_type,
+                                         transformation_estimator=parameters.transformation_estimation_type,
+                                         lts_fraction=parameters.lts_fraction,
+                                         normalization=parameters.normalization,
+                                         monitoring=monitoring)
+    else:
+        cpp_wrapping.linear_registration(path_ref, path_flo, path_output, path_output_trsf, path_init_trsf,
+                                         monitoring=monitoring)
+
+
+########################################################################################
+#
+#
+#
+########################################################################################
 
 def fusion_process(input_image_list, fused_image, channel, parameters):
     """
@@ -1495,6 +1543,7 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
     the_image_list = res_image_list[:]
     res_image_list = list()
     init_trsfs = []
+    prereg_trsfs = []
     res_trsfs = []
     unreg_weight_images = []
     weight_images = []
@@ -1516,6 +1565,9 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
                 init_trsfs.append(
                     commonTools.add_suffix(input_image_list[c][i], "_init",
                                            new_dirname=channel[c].temporary_paths[i], new_extension="trsf"))
+                prereg_trsfs.append(commonTools.add_suffix(input_image_list[c][i], "_prereg",
+                                                           new_dirname=channel[c].temporary_paths[i],
+                                                           new_extension="trsf"))
                 res_trsfs.append(commonTools.add_suffix(input_image_list[c][i], "_reg",
                                                         new_dirname=channel[c].temporary_paths[i],
                                                         new_extension="trsf"))
@@ -1601,6 +1653,13 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
             #
             if i == 0:
                 #
+                # image center
+                #
+                im = imread(the_images[i])
+                ref_center = np.multiply(im.shape[:3], im.resolution) / 2.0
+                del im
+
+                #
                 # resampling first image
                 #
                 monitoring.to_log_and_console("       resampling '" + the_images[i].split(os.path.sep)[-1]
@@ -1636,9 +1695,27 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
                         monitoring.to_log_and_console("       angle used for '" + init_trsfs[i].split(os.path.sep)[-1]
                                                       + "' is " + str(angle), 2)
                         im = imread(the_images[i])
-                        rotation_matrix = _axis_rotation_matrix(axis="Y", angle=angle, min_space=(0, 0, 0),
-                                                                max_space=np.multiply(im.shape[:3], im.resolution))
+                        flo_center = np.multiply(im.shape[:3], im.resolution) / 2.0
                         del im
+
+                        #
+                        # the initial transformation was computed with _axis_rotation_matrix(). To compute the
+                        # translation, it preserves the center of the field of view of the floating image.
+                        # However it seems more coherent to compute a translation that put the center of FOV of the
+                        # floating image onto he FOV of the reference one.
+                        #
+                        # the call to _axis_rotation_matrix() was
+                        # rotation_matrix = _axis_rotation_matrix(axis="Y", angle=angle, min_space=(0, 0, 0),
+                        #                                         max_space=np.multiply(im.shape[:3], im.resolution))
+                        # Note: it requires that 'im' is deleted after the call
+                        #
+                        # it can be mimicked by
+                        # _ init_rotation_matrix(axis="Y", angle=angle, ref_center=flo_center, flo_center=flo_center)
+                        #
+
+                        rotation_matrix = _init_rotation_matrix(axis="Y", angle=angle, ref_center=ref_center,
+                                                                flo_center=flo_center)
+
                         np.savetxt(init_trsfs[i], rotation_matrix)
                         del rotation_matrix
 
@@ -1647,15 +1724,14 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
                     #
                     if not os.path.isfile(res_images[i]) or not os.path.isfile(res_trsfs[i]) \
                             or monitoring.forceResultsToBeBuilt is True:
-                        cpp_wrapping.linear_registration(res_images[0], the_images[i], res_images[i],
-                                                         res_trsfs[i], init_trsfs[i],
-                                                         py_hl=parameters.registration_pyramid_highest_level,
-                                                         py_ll=parameters.registration_pyramid_lowest_level,
-                                                         transformation_type=parameters.registration_transformation_type,
-                                                         transformation_estimator=parameters.registration_transformation_estimation_type,
-                                                         lts_fraction=parameters.registration_lts_fraction,
-                                                         monitoring=monitoring)
-
+                        if parameters.pre_registration.compute_registration is True:
+                            _linear_registration(res_images[0], the_images[i], res_images[i],
+                                                 prereg_trsfs[i], init_trsfs[i], parameters.pre_registration)
+                            _linear_registration(res_images[0], the_images[i], res_images[i],
+                                                 res_trsfs[i], prereg_trsfs[i], parameters.registration)
+                        else:
+                            _linear_registration(res_images[0], the_images[i], res_images[i],
+                                                 res_trsfs[i], init_trsfs[i], parameters.registration)
                     else:
                         monitoring.to_log_and_console("       already existing", 2)
                 #
@@ -2054,7 +2130,8 @@ def fusion_control(experiment, environment, parameters):
                 monitoring.to_log_and_console("\t Exiting")
                 sys.exit(1)
 
-            for time_value in range(experiment.first_time_point, experiment.last_time_point + 1, experiment.delta_time_point):
+            for time_value in range(experiment.first_time_point, experiment.last_time_point + 1,
+                                    experiment.delta_time_point):
 
                 acquisition_time = str('{:0{width}d}'.format(time_value, width=time_length1))
                 fused_time = str('{:0{width}d}'.format(time_value + experiment.delay_time_point, width=time_length1))
@@ -2063,8 +2140,7 @@ def fusion_control(experiment, environment, parameters):
                 # fused image name
                 #
 
-                fused_image = environment.path_fuse_exp_files.replace(nomenclature.FLAG_TIME, extra_zeros
-                                                                      + fused_time) \
+                fused_image = environment.path_fuse_exp_files.replace(nomenclature.FLAG_TIME, extra_zeros+fused_time) \
                               + '.' + parameters.result_image_suffix
 
                 #

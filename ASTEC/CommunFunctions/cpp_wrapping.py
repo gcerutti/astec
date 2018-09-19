@@ -156,7 +156,8 @@ def apply_transformation(the_image, res_image, the_transformation=None,
                          template_image=None,
                          voxel_size=None,
                          dimensions=None,
-                         nearest=False,
+                         interpolation_mode='linear',
+                         cell_based_sigma=0.0,
                          monitoring=None,
                          return_image=False):
     """
@@ -171,6 +172,8 @@ def apply_transformation(the_image, res_image, the_transformation=None,
                 resolution by resampling
     :param nearest: do not interpolate (take the nearest value)
              to be used when applying on label images (default = False)
+    :param cell_based_sigma: smoothing parameter when resampling with nearest=True.
+           cell_based_sigma=0.0 means no smoothing.
     :param monitoring: control structure (for verboseness and log informations)
     :param return_image: if True, return the result image as an spatial image
                   (default = False; nothing is returned)
@@ -190,8 +193,22 @@ def apply_transformation(the_image, res_image, the_transformation=None,
     if template_image is not None:
         command_line += " -template " + template_image
 
-    if nearest is True:
-        command_line += " -nearest"
+    if type(interpolation_mode) == str:
+        if interpolation_mode.lower() == 'linear':
+            command_line += " -linear"
+        elif interpolation_mode.lower() == 'nearest':
+            if (type(cell_based_sigma) == int and cell_based_sigma > 0) \
+                    or (type(cell_based_sigma) == float and cell_based_sigma > 0.0):
+                command_line += " -cellbased"
+                command_line += " -cell-based-sigma " + str(cell_based_sigma)
+            else:
+                command_line += " -nearest"
+        else:
+            # default
+            pass
+    else:
+        # default
+        pass
 
     if voxel_size is not None:
         if type(voxel_size) == int or type(voxel_size) == float:
@@ -298,6 +315,7 @@ def linear_registration(path_ref, path_flo, path_output,
                         transformation_type='affine',
                         transformation_estimator='wlts',
                         lts_fraction=0.55,
+                        normalization=True,
                         other_options=None,
                         monitoring=None):
     """
@@ -306,12 +324,16 @@ def linear_registration(path_ref, path_flo, path_output,
     :param path_flo: path to the floating image
     :param path_output: path to the floating image after registration and resampling
     :param path_output_trsf: path to the computed transformation
-    :param path_init_trsf: path to the initial registration (default=None)
+
+    :param py_ll: pyramid lowes
+        :param path_init_trsf: path to the initial registration (default=None)
     :param py_hl: pyramid highest level (default = 6)
-    :param py_ll: pyramid lowest level (default = 3)
+
+    t level (default = 3)
     :param transformation_type: type of transformation to be computed (default is 'affine')
     :param transformation_estimator: transformation estimator (default is 'wlts')
     :param lts_fraction: least trimmed squares fraction (default = 0.55)
+    :param normalization:
     :param other_options: other options to be passed to 'blockmatching'
            see blockmatching options for details
     :param monitoring: control structure (for verboseness and log informations)
@@ -320,20 +342,151 @@ def linear_registration(path_ref, path_flo, path_output,
 
     path_to_exec = _find_exec('blockmatching')
 
-    command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo + " -res " + path_output
+    command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo
+    if path_output is not None:
+        command_line += " -res " + path_output
     if path_init_trsf is not None:
         command_line += " -init-res-trsf " + path_init_trsf + " -composition-with-initial"
     command_line += " -res-trsf " + path_output_trsf
 
     command_line += " -pyramid-highest-level " + str(py_hl) + " -pyramid-lowest-level " + str(py_ll)
-
     command_line += " -trsf-type " + transformation_type
-
     command_line += " -estimator " + transformation_estimator
     command_line += " -lts-fraction " + str(lts_fraction)
+    if normalization is False:
+        # monitoring.to_log_and_console("       non-normalized registration", 2)
+        command_line += " -no-normalisation"
 
     if other_options is not None:
         command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+############################################################
+#
+# functions for intra-registration
+#
+############################################################
+
+
+def multiple_trsfs(format_input, format_output, first, last, reference, trsf_type='rigid', other_options=None,
+                   monitoring=None):
+    """
+
+    :param format_input:
+    :param format_output:
+    :param first:
+    :param last:
+    :param reference:
+    :param trsf_type:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('multipleTrsfs')
+
+    command_line = path_to_exec + " " + format_input + " -res " + format_output
+    command_line += " -method propagation "
+    command_line += " -first " + str(first) + " -last " + str(last)
+    command_line += " -reference " + str(reference)
+    command_line += " -trsf-type " + trsf_type
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def change_multiple_trsfs(format_input, format_output, first, last, reference, result_template, trsf_type='rigid',
+                          resolution=None, threshold=None, margin=None, format_template=None, other_options=None,
+                          monitoring=None):
+    """
+
+    :param format_input:
+    :param format_output:
+    :param first:
+    :param last:
+    :param reference:
+    :param result_template:
+    :param trsf_type:
+    :param resolution:
+    :param threshold:
+    :param margin:
+    :param format_template:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('changeMultipleTrsfs')
+
+    command_line = path_to_exec + " -format " + format_input + " -res-format " + format_output
+    command_line += " -first " + str(first) + " -last " + str(last)
+    command_line += " -reference " + str(reference)
+    command_line += " -result-template " + str(result_template)
+
+    command_line += " -trsf-type " + trsf_type
+
+    if resolution is not None:
+        if (type(resolution) is tuple or type(resolution) is list) and len(resolution) == 3:
+            command_line += " -result-voxel-size "
+            command_line += str(resolution[0]) + " " + str(resolution[1]) + " " + str(resolution[2])
+        elif type(resolution) is int or type(resolution) is float:
+            command_line += " -result-isotropic " + str(resolution)
+
+    if threshold is not None:
+        command_line += " -threshold " + str(threshold)
+
+    if margin is not None:
+        command_line += " -margin " + str(margin)
+
+    if format_template is not None:
+        command_line += " -template-format " + str(format_template)
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def crop_sequence(format_input, path_output, firstindex, lastindex, orientation, sliceindex, monitoring=None):
+    """
+
+    :param format_input:
+    :param path_output:
+    :param firstindex:
+    :param lastindex:
+    :param orientation:
+    :param sliceindex:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('cropImage')
+    command_line = path_to_exec + " -format " + format_input + " " + path_output
+    command_line += " -first " + str(firstindex) + " -last " + str(lastindex)
+    if orientation.lower() == 'xy':
+        command_line += " -xy " + str(sliceindex)
+    elif orientation.lower() == 'xz':
+        command_line += " -xz " + str(sliceindex)
+    elif orientation.lower() == 'yz':
+        command_line += " -yz " + str(sliceindex)
+    else:
+        return
 
     _launch_inline_cmd(command_line, monitoring=monitoring)
 
@@ -589,7 +742,8 @@ def cell_normalization_to_u8(path_input, path_segmentation, path_output, min_per
     #
     command_line = path_to_exec + " -intensity-image " + path_input + " -segmentation-image " + path_segmentation
     command_line += " -result-intensity-image " + path_output
-    command_line += " -min-method cellinterior -max-method cellborder"
+    command_line += " -min-method " + cell_normalization_min_method
+    command_line += " -max-method " + cell_normalization_max_method
     command_line += " -min-percentile " + str(min_percentile) + " -max-percentile " + str(max_percentile)
     command_line += " -sigma 5.0"
 
@@ -871,6 +1025,7 @@ def bounding_boxes(image_labels, path_bboxes=None, monitoring=None):
     f.close()
 
     boxes = {}
+
     for line in lines:
         if not line.lstrip().startswith('#'):
             li = line.split()
@@ -1137,7 +1292,6 @@ def only_keep_seeds_in_cell(seed_image, cell_image, seed_result,
 #
 #
 ############################################################
-
 
 def _recfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, lazy=False):
     ''' Perform a gaussian filtering on an intensity image
@@ -2525,7 +2679,7 @@ def compose_trsf(path_trsf_1, path_trsf_2, path_output="tmp_compose.inr", lazy=T
     os.system(cmd)
     return out
 
-def multiple_trsfs(format_in, format_out, first_index, last_index, reference_index, trsf_type='rigid', method='propagation', nfloatingbefore=None, nfloatingafter=None, verbose=False):
+def _multiple_trsfs(format_in, format_out, first_index, last_index, reference_index, trsf_type='rigid', method='propagation', nfloatingbefore=None, nfloatingafter=None, verbose=False):
   '''
   Given the transformations between couple of images (typically successive
   images in a series), compute the transformations for every images with
@@ -2566,7 +2720,7 @@ def multiple_trsfs(format_in, format_out, first_index, last_index, reference_ind
     print cmd
   os.system(cmd)
 
-def change_multiple_trsfs(format_trsf_in, 
+def _change_multiple_trsfs(format_trsf_in,
                           format_trsf_out, 
                           format_image_in, template_image_out, 
                           first_index, last_index, 

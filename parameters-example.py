@@ -332,9 +332,21 @@ target_resolution = .3
 # fusion_registration_pyramid_lowest_level: lowest level of the pyramid image for registration
 #
 
+# fusion_preregistration_compute_registration = False
+# fusion_preregistration_transformation_type = 'translation'
+# fusion_preregistration_transformation_estimation_type = 'wlts'
+# fusion_preregistration_lts_fraction = 0.55
+# fusion_preregistration_pyramid_highest_level = 6
+# fusion_preregistration_pyramid_lowest_level = 3
+# fusion_preregistration_normalization = True
+
+# fusion_registration_compute_registration = True
+# fusion_registration_transformation_type = 'affine'
+# fusion_registration_transformation_estimation_type = 'wlts'
+# fusion_registration_lts_fraction = 0.55
 # fusion_registration_pyramid_highest_level = 6
 # fusion_registration_pyramid_lowest_level = 3
-
+# fusion_registration_normalization = True
 
 #
 # step 7. parameters

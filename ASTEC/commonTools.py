@@ -206,6 +206,118 @@ class Experiment(object):
 #
 ########################################################################################
 
+
+def _fullname(prefix, desc):
+    if prefix is not None:
+        return prefix + desc
+    else:
+        return desc
+
+
+def _fulldesc(prefix, desc):
+    return '- ' + _fullname(prefix, desc) + ' = '
+
+
+class RegistrationParameters(object):
+
+    def __init__(self):
+        #
+        # prefix is for naming the parameters
+        #
+        self.prefix = None
+        #
+        #
+        #
+        self.compute_registration = True
+
+        #
+        # parameters
+        #
+        self.transformation_type = 'affine'
+        self.transformation_estimation_type = 'wlts'
+        self.lts_fraction = 0.55
+        self.pyramid_highest_level = 6
+        self.pyramid_lowest_level = 3
+        self.normalization = True
+
+    def write_parameters(self, log_file_name):
+        with open(log_file_name, 'a') as logfile:
+            logfile.write("\n")
+            logfile.write('RegistrationParameters\n')
+            logfile.write(_fulldesc(None, 'prefix')+str(self.prefix)+'\n')
+            logfile.write(_fulldesc(self.prefix, 'compute_registration') + str(self.compute_registration) + '\n')
+
+            logfile.write(_fulldesc(self.prefix, 'transformation_type')+str(self.transformation_type)+'\n')
+            logfile.write(_fulldesc(self.prefix, 'transformation_estimation_type')
+                          + str(self.transformation_estimation_type)+'\n')
+            logfile.write(_fulldesc(self.prefix, 'lts_fraction')+str(self.lts_fraction)+'\n')
+            logfile.write(_fulldesc(self.prefix, 'pyramid_highest_level')+str(self.pyramid_highest_level)+'\n')
+            logfile.write(_fulldesc(self.prefix, 'pyramid_lowest_level')+str(self.pyramid_lowest_level)+'\n')
+            logfile.write(_fulldesc(self.prefix, 'normalization')+str(self.normalization)+'\n')
+
+            logfile.write("\n")
+        return
+
+    def print_parameters(self):
+        print("")
+        print('RegistrationParameters')
+
+        print(_fulldesc(None, 'prefix') + str(self.prefix))
+        print(_fulldesc(self.prefix, 'compute_registration') + str(self.compute_registration))
+
+        print(_fulldesc(self.prefix, 'transformation_type') + str(self.transformation_type))
+        print(_fulldesc(self.prefix, 'transformation_estimation_type') + str(self.transformation_estimation_type))
+        print(_fulldesc(self.prefix, 'lts_fraction') + str(self.lts_fraction))
+        print(_fulldesc(self.prefix, 'pyramid_highest_level') + str(self.pyramid_highest_level))
+        print(_fulldesc(self.prefix, 'pyramid_lowest_level') + str(self.pyramid_lowest_level))
+        print(_fulldesc(self.prefix, 'normalization') + str(self.normalization))
+
+        print("")
+
+    def update_from_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+
+        if hasattr(parameters, _fullname(self.prefix, 'compute_registration')):
+            if getattr(parameters, _fullname(self.prefix, 'compute_registration'), 'None') is not None:
+                self.compute_registration = getattr(parameters, _fullname(self.prefix, 'compute_registration'))
+
+        if hasattr(parameters, _fullname(self.prefix, 'transformation_type')):
+            if getattr(parameters, _fullname(self.prefix, 'transformation_type'), 'None') is not None:
+                self.transformation_type = getattr(parameters, _fullname(self.prefix, 'transformation_type'))
+
+        if hasattr(parameters, _fullname(self.prefix, 'transformation_estimation_type')):
+            if getattr(parameters, _fullname(self.prefix, 'transformation_estimation_type'), 'None') is not None:
+                self.transformation_estimation_type = getattr(parameters,
+                                                     _fullname(self.prefix, 'transformation_estimation_type'))
+
+        if hasattr(parameters, _fullname(self.prefix, 'lts_fraction')):
+            if getattr(parameters, _fullname(self.prefix, 'lts_fraction'), 'None') is not None:
+                self.lts_fraction = getattr(parameters, _fullname(self.prefix, 'lts_fraction'))
+
+        if hasattr(parameters, _fullname(self.prefix, 'pyramid_highest_level')):
+            if getattr(parameters, _fullname(self.prefix, 'pyramid_highest_level'), 'None') is not None:
+                self.pyramid_highest_level = getattr(parameters, _fullname(self.prefix, 'pyramid_highest_level'))
+        if hasattr(parameters, _fullname(self.prefix, 'pyramid_lowest_level')):
+            if getattr(parameters, _fullname(self.prefix, 'pyramid_lowest_level'), 'None') is not None:
+                self.pyramid_lowest_level = getattr(parameters, _fullname(self.prefix, 'pyramid_lowest_level'))
+
+        if hasattr(parameters, _fullname(self.prefix, 'normalization')):
+            if getattr(parameters, _fullname(self.prefix, 'normalization'), 'None') is not None:
+                self.normalization = getattr(parameters, _fullname(self.prefix, 'normalization'))
+
+
+########################################################################################
+#
+#
+#
+########################################################################################
+
 def get_parameter_file(parameter_file):
     """
     check if the given parameter file is valid, otherwise ask for a file name
@@ -315,11 +427,11 @@ def read_lut(filename):
     :param filename:
     :return:
     """
-    proc = 'read_lut'
+    # proc = 'read_lut'
     lut = {}
 
     if not os.path.isfile(filename):
-        monitoring.to_log_and_console(proc + ": file '" + str(filename) + "' does not exists", 0)
+        # monitoring.to_log_and_console(proc + ": file '" + str(filename) + "' does not exists", 0)
         return lut
 
     f = open(filename)
