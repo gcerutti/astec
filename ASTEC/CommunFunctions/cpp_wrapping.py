@@ -298,6 +298,7 @@ def linear_registration(path_ref, path_flo, path_output,
                         transformation_type='affine',
                         transformation_estimator='wlts',
                         lts_fraction=0.55,
+                        normalization=True,
                         other_options=None,
                         monitoring=None):
     """
@@ -306,12 +307,16 @@ def linear_registration(path_ref, path_flo, path_output,
     :param path_flo: path to the floating image
     :param path_output: path to the floating image after registration and resampling
     :param path_output_trsf: path to the computed transformation
-    :param path_init_trsf: path to the initial registration (default=None)
+
+    :param py_ll: pyramid lowes
+        :param path_init_trsf: path to the initial registration (default=None)
     :param py_hl: pyramid highest level (default = 6)
-    :param py_ll: pyramid lowest level (default = 3)
+
+    t level (default = 3)
     :param transformation_type: type of transformation to be computed (default is 'affine')
     :param transformation_estimator: transformation estimator (default is 'wlts')
     :param lts_fraction: least trimmed squares fraction (default = 0.55)
+    :param normalization:
     :param other_options: other options to be passed to 'blockmatching'
            see blockmatching options for details
     :param monitoring: control structure (for verboseness and log informations)
@@ -326,11 +331,12 @@ def linear_registration(path_ref, path_flo, path_output,
     command_line += " -res-trsf " + path_output_trsf
 
     command_line += " -pyramid-highest-level " + str(py_hl) + " -pyramid-lowest-level " + str(py_ll)
-
     command_line += " -trsf-type " + transformation_type
-
     command_line += " -estimator " + transformation_estimator
     command_line += " -lts-fraction " + str(lts_fraction)
+    if normalization is False:
+        # monitoring.to_log_and_console("       non-normalized registration", 2)
+        command_line += " -no-normalisation"
 
     if other_options is not None:
         command_line += " " + other_options
@@ -810,6 +816,7 @@ def bounding_boxes(image_labels, path_bboxes=None, monitoring=None):
     avec volume > 0 et label > 0.
     :param image_labels:
     :param path_bboxes:
+    :param monitoring:
     :return:
     """
 
@@ -830,22 +837,21 @@ def bounding_boxes(image_labels, path_bboxes=None, monitoring=None):
     #
     #
 
-    D = {}
     f = open(file_boxes, 'r')
     lines = f.readlines()
     f.close()
 
-    D = {}
+    d = {}
     for line in lines:
         if not line.lstrip().startswith('#'):
-            l = line.split()
-            if int(l[1]):
-                D[int(l[0])] = map(int, l[1:])
+            li = line.split()
+            if int(li[1]):
+                d[int(li[0])] = map(int, li[1:])
 
     if path_bboxes is None:
         os.remove(file_boxes)
 
-    return D
+    return d
 
 
 ############################################################
