@@ -195,6 +195,9 @@ def get_seeds(seg, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min, bo
         seeds_not_prop=imread(temp_path_h_min)
 
     h_min=h_min_max
+    #
+    #
+    #
     tmp_nb=[]
     checking=True
     while (checking):
@@ -486,6 +489,7 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
                 h, sigma=parameters[c][np.where(np.array(s)==2)[0][-1]]
                 nb_final=2
             right_parameters[c]=[h, sigma, nb_final]
+
             if nb_final==1 and s.count(2)!=0:
                 h, sigma=parameters[c][s.index(2)]
                 path_seeds_not_prop=path_h_min.replace('$HMIN',str(h)).replace('$SIGMA',str(sigma));
@@ -493,6 +497,7 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
                 seg_c=np.ones_like(seg[bb])
                 seg_c[seg[bb]==c]=c
                 nb, seeds_c=extract_seeds(seg_c, c, path_seeds_not_prop, bb)
+
                 if nb==2 and (seg_from_opt_h[bb][seeds_c!=0]==0).any(): #If we can found 2 seeds and one is not in new calculated cell
                     change_happen=True
                     seeds_from_opt_h[seeds_from_opt_h==corres[c][0]]=0
@@ -726,7 +731,9 @@ def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file,  f
     im_fused_8=imread(fused_file_u8)
 
 
-
+    #
+    # segmentation par watershed a l'aide des graines extraites de la segmentation precedente
+    #
     segmentation=watershed(seeds_file, im_fused_8, temporary_folder=os.path.dirname(path_seg_trsf), verbose=verbose)
     seeds=imread(seeds_file)
     if delSeedsASAP:
@@ -734,14 +741,22 @@ def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file,  f
         if verbose:
             print cmd
         os.system(cmd)
+
+    #
+    # bounding boxes
+    #
     cells=list(np.unique(segmentation))
     cells.remove(1)
     bounding_boxes=dict(zip(range(1, max(cells)+1), nd.find_objects(segmentation)))
     treated=[]
 
     print 'Estimation of the local h-minimas at '+str(t+delta_t)
-    nb_cells, parameters=get_seeds(segmentation, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min.replace('$SIGMA',str(sigma)), bounding_boxes, nb_proc=nb_proc, verbose=verbose)
-  
+    nb_cells, parameters=get_seeds(segmentation, h_min_min,h_min_max, sigma, cells, fused_file,
+                                   path_h_min.replace('$SIGMA',str(sigma)), bounding_boxes, nb_proc=nb_proc, verbose=verbose)
+
+    #
+    #
+    #
     right_parameters, cells_with_no_seed=get_back_parameters(nb_cells, parameters, lin_tree, cells,Thau=Thau)
     
     print 'Applying volume correction '+str(t+delta_t)

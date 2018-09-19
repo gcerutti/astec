@@ -394,9 +394,7 @@ target_resolution = .3
 # - None
 # - GACE: 'Global Automated Cell Extractor'
 #
-# This choice can be tuned either with
-# - mars_method
-# or with the two parameters
+# This choice can be tuned with the two parameters
 # - mars_intensity_transformation
 # - mars_intensity_enhancement
 #
@@ -530,6 +528,57 @@ mancor_mapping_file=''
 30 1 
 89 1 
 '''
+
+
+######################################################################
+#
+# astec parameters
+#
+######################################################################
+
+
+# ##### explanation #####
+#
+# ASTEC method (nothing but a cell-based seeded watershed) may be applied on
+# a transformed input image or on the original image (eg the result of
+# the fusion step). This transformed imaged is made of a combination
+# (by the maximum operator) of the transformed intensity image and a
+# membrane-enhanced image.
+# The transformed intensity image can be
+# - None
+# - Identity (the input image)
+# - Normalization_to_u8 (a normalized version of the input image on 1 byte)
+# - Cell_Normalization_to_u8 (a cell-based normalized version of the input image on 1 byte)
+# The membrane-enhanced image can be
+# - None
+# - GACE: 'Global Automated Cell Extractor'
+# - GLACE:
+#
+# This choice can be tuned with the two parameters
+# - astec_intensity_transformation
+# - astec_intensity_enhancement
+#
+# astec_intensity_transformation can be chosen in [None, 'Identity', 'Normalization_to_u8', 'Cell_Normalization_to_u8']
+# astec_intensity_enhancement can be chosen in [None, 'GACE', 'GLACE']
+#
+# The 'Cell_Normalization_to_u8' intensity transformation method can be tuned with
+# - astec_cell_normalization_min_method
+# - astec_cell_normalization_min_method
+# both variable are to be chosen in ['global', 'cell', 'cellborder', 'cellinterior', 'voxel']
+# Choosing both of them as 'global' comes to choose 'Normalization_to_u8'
+
+# astec_intensity_transformation = 'Identity'
+# astec_intensity_enhancement = None
+# astec_cell_normalization_min_method = 'cellinterior'
+# astec_cell_normalization_max_method = 'cellborder'
+
+# ##### explanation #####
+#
+# Previous tuning enables to perform the watershed segmentation on an image that is not
+# the original image. If one does not want to keep such images, please turn the next variable to False
+
+# astec_keep_reconstruction = True
+
 
 
 
