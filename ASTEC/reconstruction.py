@@ -364,6 +364,8 @@ def build_membrane_image(current_time, environment, parameters, previous_time=No
                                                                                 previous_time)
             cpp_wrapping.cell_normalization_to_u8(input_image, previous_deformed_segmentation, intensity_image,
                                                   min_percentile=0.01, max_percentile=0.99,
+                                                  cell_normalization_min_method=parameters.cell_normalization_min_method,
+                                                  cell_normalization_max_method=parameters.cell_normalization_max_method,
                                                   other_options=None, monitoring=monitoring)
         arit_options = "-o 1"
     else:
@@ -387,7 +389,8 @@ def build_membrane_image(current_time, environment, parameters, previous_time=No
             arit_options += " -max"
             if not os.path.isfile(membrane_image) or monitoring.forceResultsToBeBuilt is True:
                 monitoring.to_log_and_console("       fusion of intensity and enhancement", 2)
-                cpp_wrapping.arithmetic(intensity_image, enhanced_image, membrane_image, other_options=arit_options)
+                cpp_wrapping.arithmetic_operation(intensity_image, enhanced_image, membrane_image,
+                                                  other_options=arit_options)
             return membrane_image
 
     #

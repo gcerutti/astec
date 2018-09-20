@@ -489,6 +489,9 @@ def add_suffix(filename, suffix, new_dirname=None, new_extension=None):
     :return: the transformed file name
     """
     proc = 'add_suffix'
+    if filename is None:
+        print(proc + ": was called with '" + str(filename) + "'")
+        return
     b = os.path.basename(filename)
     d = os.path.dirname(filename)
     e = get_extension(b)
@@ -531,6 +534,7 @@ def find_file(data_path, file_prefix, monitoring=None, verbose=True):
 
     if not os.path.isdir(data_path):
         if monitoring is not None:
+            monitoring.to_log_and_console("Error:")
             monitoring.to_log_and_console(proc + ": '" + str(data_path) + "' is not a valid directory ?!")
             monitoring.to_log_and_console("\t Exiting.")
         else:
@@ -555,13 +559,15 @@ def find_file(data_path, file_prefix, monitoring=None, verbose=True):
 
     if len(file_names) > 1:
         if monitoring is not None:
+            monitoring.to_log_and_console("Warning:")
             monitoring.to_log_and_console(proc + ": several images with name '"
                                           + str(file_prefix) + "' were found in '" + str(data_path) + "'")
             monitoring.to_log_and_console("\t "+str(file_names))
+            monitoring.to_log_and_console("\t returned file is '" + str(file_names[0]) + "'")
         else:
             print(proc + ": several images with name '"
                   + str(file_prefix) + "' were found in '" + str(data_path) + "'")
             print("\t "+str(file_names))
-        return None
+        # return None
 
     return file_names[0]

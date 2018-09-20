@@ -405,12 +405,12 @@ def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False
     return
 
 
-def regional_minima(path_input, path_output, h_min=1, other_options=None, monitoring=None):
+def regional_maxima(path_input, path_output, h=1, other_options=None, monitoring=None):
     """
 
     :param path_input: path to the input image
     :param path_output: path to the output image
-    :param h_min: h-minima parameter value
+    :param h: h-maxima parameter value
     :param other_options:
     :param monitoring:
     :return:
@@ -422,7 +422,37 @@ def regional_minima(path_input, path_output, h_min=1, other_options=None, monito
     #
     #
     command_line = path_to_exec + " " + path_input + " -diff " + path_output
-    command_line += " -min -h " + str(h_min)
+    command_line += " -max -h " + str(h)
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def regional_minima(path_input, path_output, h=1, other_options=None, monitoring=None):
+    """
+
+    :param path_input: path to the input image
+    :param path_output: path to the output image
+    :param h: h-minima parameter value
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('regionalext')
+
+    #
+    #
+    #
+    command_line = path_to_exec + " " + path_input + " -diff " + path_output
+    command_line += " -min -h " + str(h)
 
     #
     #
@@ -541,6 +571,8 @@ def global_normalization_to_u8(path_input, path_output, min_percentile=0.01, max
 
 
 def cell_normalization_to_u8(path_input, path_segmentation, path_output, min_percentile=0.01, max_percentile=0.99,
+                             cell_normalization_min_method='cellinterior',
+                             cell_normalization_max_method='cellborder',
                              other_options=None, monitoring=None):
     """
 
@@ -549,6 +581,8 @@ def cell_normalization_to_u8(path_input, path_segmentation, path_output, min_per
     :param path_output:
     :param min_percentile:
     :param max_percentile:
+    :param cell_normalization_min_method:
+    :param cell_normalization_max_method:
     :param other_options:
     :param monitoring:
     :return:
@@ -561,7 +595,8 @@ def cell_normalization_to_u8(path_input, path_segmentation, path_output, min_per
     #
     command_line = path_to_exec + " -intensity-image " + path_input + " -segmentation-image " + path_segmentation
     command_line += " -result-intensity-image " + path_output
-    command_line += " -min-method cellinterior -max-method cellborder"
+    command_line += " -min-method " + cell_normalization_min_method
+    command_line += " -max-method " + cell_normalization_max_method
     command_line += " -min-percentile " + str(min_percentile) + " -max-percentile " + str(max_percentile)
     command_line += " -sigma 5.0"
 
@@ -706,7 +741,7 @@ def anisotropic_histogram(path_input_prefix, path_output, path_mask=None,
     return
 
 
-def arithmetic(path_first_input, path_second_input, path_output, other_options=None, monitoring=None):
+def arithmetic_operation(path_first_input, path_second_input, path_output, other_options=None, monitoring=None):
     """
 
     :param path_first_input:
@@ -783,7 +818,8 @@ def tensor_voting_membrane(path_input, prefix_input, path_output, path_mask=None
     #
     # eigenvalues substraction
     #
-    arithmetic(prefix_input + ".imvp3.inr", prefix_input + ".imvp1.inr", prefix_input + ".tv.inr", other_options='-sub')
+    arithmetic_operation(prefix_input + ".imvp3.inr", prefix_input + ".imvp1.inr", prefix_input + ".tv.inr",
+                         other_options='-sub')
 
     #
     # smoothing
@@ -841,17 +877,154 @@ def bounding_boxes(image_labels, path_bboxes=None, monitoring=None):
     lines = f.readlines()
     f.close()
 
-    d = {}
+    boxes = {}
+
     for line in lines:
         if not line.lstrip().startswith('#'):
             li = line.split()
             if int(li[1]):
-                d[int(li[0])] = map(int, li[1:])
+                boxes[int(li[0])] = map(int, li[1:])
 
     if path_bboxes is None:
         os.remove(file_boxes)
 
-    return d
+    return boxes
+
+
+def crop_image(path_input, path_output, bbox, monitoring=None):
+    """
+    crop an image on disk
+    :param path_input:
+    :param path_output:
+    :param bbox: [volume, xmin, ymin, zmin, xmax, ymax, zmax]
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('cropImage')
+    command_line = path_to_exec + " " + path_input + " " + path_output
+    command_line += " -origin " + str(bbox[1]) + " " + str(bbox[2]) + " " + str(bbox[3])
+    command_line += " -dim " + str(bbox[4]-bbox[1]+1) + " " + str(bbox[5]-bbox[2]+1) + " " + str(bbox[6]-bbox[3]+1)
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def mathematical_morphology(path_input, path_output, other_options=None, monitoring=None):
+    """
+
+    :param path_input:
+    :param path_output:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('morpho')
+    command_line = path_to_exec + " " + path_input + " " + path_output
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def logical_operation(path_first_input, path_second_input, path_output, other_options=None, monitoring=None):
+    """
+
+    :param path_first_input:
+    :param path_second_input:
+    :param path_output:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('Logic')
+
+    #
+    #
+    #
+    command_line = path_to_exec
+    if other_options is not None:
+        command_line += " " + other_options
+
+    command_line += " " + path_first_input
+
+    if path_second_input is not None:
+        command_line += " " + path_second_input
+
+    command_line += " " + path_output
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def patch_logical_operation(path_first_input, path_second_input, path_output, bbox,
+                            other_options=None, monitoring=None):
+    """
+
+    :param path_first_input:
+    :param path_second_input:
+    :param path_output:
+    :param bbox: [volume, xmin, ymin, zmin, xmax, ymax, zmax]
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('patchLogic')
+
+    #
+    #
+    #
+    command_line = path_to_exec
+    if other_options is not None:
+        command_line += " " + other_options
+
+    command_line += " " + path_first_input
+
+    if path_second_input is not None:
+        command_line += " " + path_second_input
+
+    command_line += " " + path_output
+
+    command_line += " -origin " + str(bbox[1]) + " " + str(bbox[2]) + " " + str(bbox[3])
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def create_image(image_out, image_template, other_options=None, monitoring=None):
+    """
+
+    :param image_out:
+    :param image_template:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('createImage')
+
+    #
+    #
+    #
+    command_line = path_to_exec + " " + image_out
+
+    if image_template is not None:
+        command_line += " -template " + image_template
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
 
 
 ############################################################
@@ -936,6 +1109,36 @@ def non_linear_registration(path_ref, path_flo, path_affine, path_vector, affine
 
     return
 
+
+def only_keep_seeds_in_cell(seed_image, cell_image, seed_result,
+                            other_options=None, monitoring=None):
+    """
+
+    :param seed_image:
+    :param cell_image:
+    :param seed_result:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('mc-maskSeeds')
+
+    #
+    #
+    #
+    command_line = path_to_exec
+
+    command_line += " -seed-image " + seed_image
+    command_line += " -cell-image " + cell_image
+    command_line += " -output-image " + seed_result
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
 
 ############################################################
 #
@@ -1285,7 +1488,7 @@ def find_local_minima(path_out, path_ref, h_min, mask=None, sigma=0.6, verbose=F
     os.system(cmd);
     return im, path_mask_out
 
-def morpho(image_input,image_output,paramstre,verbose=False):
+def _morpho(image_input,image_output,paramstre,verbose=False):
   ''' Morphological operation
   '''
   cmd=path_morpho+' '+image_input+' '+' '+image_output+' '+ paramstre
@@ -2463,7 +2666,7 @@ def Arit(image_in, image_ext_or_out, image_out=None, Mode=None, Type='', lazy=Tr
     os.system(cmd)
     return out
 
-def Logic(image_in, image_ext_or_out, image_out=None, Mode=None, lazy=True, verbose=False):
+def _Logic(image_in, image_ext_or_out, image_out=None, Mode=None, lazy=True, verbose=False):
   """
   Usage : Logic [-inv | [-et|-and] | [-ou|-or] | [-xou|-xor] | -mask]
   accepted modes : {'inv', 'et', 'and', 'ou', 'or', 'xou', 'xor', 'mask'}
@@ -2490,7 +2693,7 @@ def Logic(image_in, image_ext_or_out, image_out=None, Mode=None, lazy=True, verb
     os.system(cmd)
     return out
 
-def createImage(image_out, image_template, options='', lazy=True, verbose=False):
+def _createImage(image_out, image_template, options='', lazy=True, verbose=False):
   """
   Creation d'image vide a partir de template
   accepted types :   '-o 1'    : unsigned char
@@ -2666,7 +2869,7 @@ def _boudingboxes(image_labels, file_out=None, verbose=False):
 
   return D
 
-def cropImage(image_in, image_out, bbox, verbose=False):
+def _cropImage(image_in, image_out, bbox, verbose=False):
   """
   Croping an image.
   Inputs:
@@ -2682,7 +2885,7 @@ def cropImage(image_in, image_out, bbox, verbose=False):
     print cmd
   os.system(cmd)
 
-def patchLogic(image_patch, image_ext, image_out, origin, Mode=None, verbose=False):
+def _patchLogic(image_patch, image_ext, image_out, origin, Mode=None, verbose=False):
   '''
   Usage : Logic [[-et|-and] | [-ou|-or] | [-xou|-xor]]
   accepted modes : {'et', 'and', 'ou', 'or', 'xou', 'xor'}
