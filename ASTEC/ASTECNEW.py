@@ -1036,7 +1036,7 @@ def _volume_checking(previous_segmentation, segmentation_from_selection,
     #
 
     volume_ratio = 1.0 - prev_embryo_volume/curr_embryo_volume
-    if -parameters.volume_ratio_tolerance <=  volume_ratio <= parameters.volume_ratio_tolerance:
+    if -parameters.volume_ratio_tolerance <= volume_ratio <= parameters.volume_ratio_tolerance:
         pass
     else:
         if volume_ratio < 0:
@@ -1112,13 +1112,14 @@ def _volume_checking(previous_segmentation, segmentation_from_selection,
 
     #
     # here we look at cells that experiment a large decrease of volume
+    # this is the step (1) of section 2.3.3.6 of L. Guignard thesis
     #
     for cell in abnormal_small_volume_ratio:
         #
         # this is similar to _select_seed_parameters()
         # it has already been done ?!
         #
-        s = n_seeds[c]
+        s = n_seeds[cell]
 
         #
         # np.sum(np.array(s) == 2) is equivalent to s.count(2)

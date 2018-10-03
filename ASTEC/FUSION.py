@@ -580,6 +580,9 @@ class FusionParameters(object):
         if hasattr(parameters, 'default_image_suffix'):
             if parameters.default_image_suffix is not None:
                 self.default_image_suffix = parameters.default_image_suffix
+                if not hasattr(parameters, 'result_image_suffix') \
+                    and not hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
+                    self.result_image_suffix = parameters.default_image_suffix
 
 
 ########################################################################################
@@ -780,6 +783,11 @@ def _analyze_data_directory(data_dir):
                         print "\t Exiting."
                         sys.exit(1)
                 images.append(f)
+
+    if len(images) == 0:
+        print proc + ": no images were found in '" + data_dir + "'"
+        print "\t Exiting."
+        sys.exit(1)
 
     #
     # one image case
