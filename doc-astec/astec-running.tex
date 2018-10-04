@@ -477,7 +477,35 @@ The file included below  may be not up-to-date with respect to the software pack
 
 \section{List of command line interfaces}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% 1-fuse.py
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \subsection{\texttt{1-fuse.py}}
+\label{sec:cli:fuse}
+
+The fusion is made of the following steps.
+
+\begin{enumerate}
+\item Optionally, a slit line correction. Some Y lines may appear brighter in the acquisition and causes artifacts in the reconstructed (i.e. fused) image. By default, it is not done.
+
+\item a change of resolution in the X and Y directions only (Z remains unchanged). It allows to decrease the data volume (and then the computational cost) if the new pixel size (set by \verb|target_resolution|) is larger than the acquisition one.
+
+\item \label{it:fusion:crop:1} Optionally, a crop of the resampled acquisitions. It allows to decrease the volume of data, hence the computational cost. The crop is based on the analysis of a MIP view (in the Z direction) of  the volume, and thus is sensitive to hyper-intensities if any. By default, it is done.
+
+\item Optionally, a mirroring of the 'right' image. It depends on the value of  \verb|raw_mirrors| variable.
+
+\item \label{it:fusion:registration} Linear registration of the 3 last images on the first one (considered as the reference). The reference image is resampled again, to get an isotropic voxel (whose size is given by \verb|target_resolution|), i.e. the voxel size is the same along the 3 directions: X, Y, Z.
+
+\item Linear combination of images, weighted by an ad-hoc function.
+
+\item Optionally, a crop of the fused image, still based on the analysis of a MIP view (in the Z direction). By default, it is done.
+\end{enumerate}
+Please refer to the file \texttt{parameters-example.py} which describes all useful variables to control these steps.
+
+
 
 \subsubsection{Basic use}
 \label{sec:cli:fuse:basic:use}
@@ -587,6 +615,38 @@ DIR_RIGHTCAM_STACKZERO = 'stack_0_channel_0'
 DIR_LEFTCAM_STACKONE = 'stack_1_channel_0'
 DIR_RIGHTCAM_STACKONE = 'stack_1_channel_0'
 \end{verbatim}
+
+\subsubsection{Linear registration}
+
+To decrease the computational cost, images are normalized and cast on one byte before registration. While it generally does not degrade the registration quality, it may induce troubles when hyper-intensities areas are present in the image. In such a case, the useful information may then be summarized in only a few intensity values.
+
+Intensity normalization in registration can be deactivated.
+%  (see \texttt{astec-parameters-examples/parameters-fusion-vincent-3.py}) by
+\begin{verbatim}
+fusion_registration_normalization = False
+\end{verbatim}
+
+Hyper-intensities areas may also the threshold calculation used for the automatic crop (step \ref{it:fusion:crop:1} of fusion). In such cases, the iterative registration method may find a local minimum that is not the desired one, because the relative positions of the two images to be co-registered are too far apart. To circumvent such a behavior, a hierarchical registration can be done. It consists on a first pre-registration with a transformation with fewer degrees of freedom. 
+
+Intensity normalization in registration can be deactivated by
+\begin{verbatim}
+fusion_preregistration_compute_registration = True
+# fusion_preregistration_transformation_type = 'translation'
+fusion_preregistration_normalization = False
+
+# fusion_registration_compute_registration = True
+# fusion_registration_transformation_type = 'affine'
+fusion_registration_normalization = False
+\end{verbatim}
+It may be also preferable to  deactivate the image normalization for both registration steps.
+% (see \texttt{astec-parameters-examples/parameters-fusion-vincent-4.py}).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 \subsection{\texttt{1.5-intraregistration-GC.py}}
 
