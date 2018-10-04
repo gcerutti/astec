@@ -430,7 +430,9 @@ Test si le label est enti\`erement inclus dans la cellule
    141	                    2*(seeds_not_prop==final_labels[1])).astype(np.uint8))
 \end{verbatim} 
 \color{\mycolor}
-\verb|accept_3_seeds| est \`a \verb|False| par d\'efaut, et ne peut pas \^etre modifi\'e lors de l'appel d'\texttt{extract\_seeds()}, donc en cas de 3 graines, on ne num\'erote que les 2 premi\`eres, mais on renvoie un nombre de 3 graines quand m\^eme. Les lignes ci-apr\`es ne sont pas utili\'ees. Le cas de plus de 3 graines n'est pas pr\'evu.
+\verb|accept_3_seeds| est \`a \verb|False| par d\'efaut, et ne peut pas \^etre modifi\'e lors de l'appel d'\texttt{extract\_seeds()} par \texttt{get\_seeds\_from\_optimized\_parameters}, donc en cas de 3 graines, on ne num\'erote que les 2 premi\`eres, mais on renvoie un nombre de 3 graines quand m\^eme. 
+
+Les lignes ci-apr\`es ne sont  utili\'ees que par \texttt{volume\_checking()}. C'est le cas o\`u il y a eu une grosse diminution de volume (plus de 50\%) entre la m\`ere et les filles, et qu'il n'existe pas de $h$ donnant 1 ou 2 graines.
 \color{black}
 \begin{verbatim}        
    142	    elif len(final_labels)==3 and accept_3_seeds: #"accept 3 seeds !"
@@ -1019,7 +1021,7 @@ $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
    436	    segmentation_file_trsf : path to the segmentation at time t resampled at t+1 
    437	    vf_file : path to the vector field that register t into t+dt
    438	    path_h_min : format of h-minima files
-   439	    volumes_t_1 : cell volumes at t
+   439	    volumes_t_1 : cell volumes at t (provient de la lecture du lin\'eage)
    440	    """
    441	
    442	    # seg_origin : original segmentation (SpatialImage)
@@ -1036,7 +1038,8 @@ $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
 \begin{itemize}
 \itemsep -1ex
 \item \verb|volumes_from_opt_h| : volumes des cellules de la segmentation \verb|seg_from_opt_h| \`a $t+1$
-\item \verb|volumes| : volumes des cellules de la segmentation \verb|segmentation_file_ref| \`a $t$
+\item \verb|volumes| : volumes des cellules de la segmentation \verb|segmentation_file_ref| \`a $t$ 
+(a priori provient de la lecture du lin\'eage lors de l'appel : \verb|volumes_t_1|).
 \end{itemize}
 \color{black}
 \begin{verbatim} 
@@ -1188,11 +1191,23 @@ On cr\'ee une sous-image \verb|seg_c| de 0 pour la cellule $c$ dans laquelle on 
 \end{verbatim} 
 \color{\mycolor}
 On cr\'ee une sous-image \verb|seeds_c| de 0 pour la cellule $c$ dans laquelle on met \`a 
-\item 1 l'intersection des cellules filles de $c$ (marqu\'ees dans \verb|seg_c|) et des $h_{min}$-minima
-\item 2  l'intersection de la cellule $c$ de $\tilde{S}_{t+1}$ et des $h_{min}$-minima (qui ne sont pas dans les cellules filles). Ces points sont donc de graines en-dehors des cellules filles.
+\begin{itemize}
+\itemsep -1ex
+\item 1 : l'intersection des cellules filles de $c$ (marqu\'ees dans \verb|seg_c|) et des $h_{min}$-minima
+\item 2  : l'intersection de la cellule $c$ de $\tilde{S}_{t+1}$ et des $h_{min}$-minima (qui ne sont pas dans les cellules filles). Ces points sont donc des graines en-dehors des cellules filles.
+\end{itemize}
 \color{black}
 \begin{verbatim} 
    520	                if 2 in seeds_c:
+\end{verbatim} 
+\color{\mycolor}
+Si il existe des graines en dehors des cellules filles (donc des graines permettant de "r\'ecup\'erer" plus de mati\`ere),
+on efface dans les graines  \verb|seeeds_from_opt_h| les graines des filles pr\'ec\'edentes (\verb|corres[c]|) et on y ajoute les 2 ensembles de nouvelles graines. On met \`a jour l'information des param\`etres dans \verb|h_min_information| et \verb|sigma_information|. Notons qu'il aurait fallu y enlever les informations li\'ees \`a \verb|corres[c]|.
+
+ex: \verb|del h_min_information[(t+delta_t)*10**4+corres[c][0]]|
+
+\color{black}
+\begin{verbatim} 
    521	                    change_happen=True
    522	                    for daughter in corres[c]:
    523	                        seeds_from_opt_h[seeds_from_opt_h==daughter]=0
@@ -1207,16 +1222,38 @@ On cr\'ee une sous-image \verb|seeds_c| de 0 pour la cellule $c$ dans laquelle o
    532	                    sigma_information[(t+delta_t)*10**4+label_max]=sigma
    533	                    label_max+=1
    534	            elif nb_final==1:
+\end{verbatim} 
+\color{\mycolor}
+On est donc dans le cas o\`u \verb|(np.array(s)>2).any()| est faux, donc il n'y a que une ou deux graines. S'il y a deux graines, cela a d\'ej\`a \'et\'e trait\'e dans le premier test (ligne 489). On efface alors la graine de \verb|seeds_from_opt_h| et on la remplace par la graine projetée de \verb|seeds| ($S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$)
+\color{black}
+\begin{verbatim} 
    535	                change_happen=True
    536	                seeds_from_opt_h[seeds_from_opt_h==corres[c][0]]=0
    537	                seeds_from_opt_h[seeds==c]=corres[c][0]
    538	                label_max+=1
    539	        elif s.count(3)!=0:
+\end{verbatim} 
+\color{\mycolor}
+cas o\`u il y a 0 ou trois graines (ou plus) dans tous les $h$-minima (s'il y a 0 ou 4 graines ou plus, cela échappe au test).
+\color{black}
+\begin{verbatim} 
    540	            h, sigma=parameters[c][s.index(3)]
+\end{verbatim} 
+\color{\mycolor}
+Premier cas : on r\'ecup\`ere le premier $3$ qui donne 2 graines, donc le plus grand d'entre eux. Si les premiers $h$ ne donnent pas $0$ graines, c'est donc $h_{max}$.
+\color{black}
+\begin{verbatim} 
    541	            path_seeds_not_prop=path_h_min.replace('$HMIN',str(h)).replace('$SIGMA',str(sigma));
    542	            bb=slices_dilation(bounding_boxes[c], maximum=seg.shape, iterations=2)
    543	            seg_c=np.ones_like(seg[bb])
    544	            seg_c[seg[bb]==c]=c
+\begin{verbatim} 
+   540	            h, sigma=parameters[c][s.index(3)]
+\end{verbatim} 
+\color{\mycolor}
+Appel \`a \texttt{extract\_seeds()} (section \ref{sec:extract:seeds}, page \pageref{se:extract:seeds}), avec \verb| accept_3_seeds=True|. On va donc num\'eroter les 3 graines.
+\color{black}
+\begin{verbatim}
    545	            nb, seeds_c=extract_seeds(seg_c, c, path_seeds_not_prop, bb, accept_3_seeds=True)
    546	            change_happen=True
    547	            #addition to correct 0-boolean error when len(corres[c])>1
@@ -1238,8 +1275,18 @@ On cr\'ee une sous-image \verb|seeds_c| de 0 pour la cellule $c$ dans laquelle o
    563	            label_max+=1
    564	            to_fuse_3.append([c, (label_max-1, label_max-2, label_max-3)])
    565	
+\end{verbatim} 
+\color{\mycolor}
+\verb|to_fuse_3| contient donc les couples (m\`ere, triplets de labels des filles) lorsqu'il y a 3 soeurs.
+\color{black}
+\begin{verbatim}
    566	
    567	
+\end{verbatim} 
+\color{\mycolor}
+On traite les cas o\`u une fille a un trop petit volume. On enl\`eve cette fille des graines de \verb|seeds_from_opt_h|. Si c'\'etait la seule fille, on enl\`eve le m\`ere de la table des correspondances.
+\color{black}
+\begin{verbatim}
    568	    if too_little!=[]:
    569	        for c in too_little:
    570	            #for d in corres[c]:
@@ -1252,6 +1299,13 @@ On cr\'ee une sous-image \verb|seeds_c| de 0 pour la cellule $c$ dans laquelle o
    577	                corres[c[0]]=tmp
    578	            change_happen=True
    579	
+\end{verbatim} 
+\color{\mycolor}
+S'il y a eu des changements dans les graines, on recalcule une image de segmentation. Sinon on pourrait arreter l\`a.
+
+\verb|bigger| n'a pas \'et\'e utilis\'e, \verb|lower| non plus, et va \^etre recalcul\'e.
+\color{black}
+\begin{verbatim}
    580	    if change_happen:
    581	        seg_from_opt_h=watershed(SpatialImage(seeds_from_opt_h,voxelsize=seeds_from_opt_h.voxelsize), im_ref, temporary_folder=os.path.dirname(path_h_min))
    582	        for l in exterior_corres:
@@ -1259,6 +1313,13 @@ On cr\'ee une sous-image \verb|seeds_c| de 0 pour la cellule $c$ dans laquelle o
    584	            
    585	        volumes_from_opt_h=compute_volumes(seg_from_opt_h)
    586	
+\end{verbatim} 
+\color{\mycolor}
+On recalcule \verb|lower| (on rappelle que les cellules pr\'esentes dans \verb|to_look_at| \'etaient aussi dans \verb|lower|, il y a donc eu des changements dans la liste (s'il y a eu des changements dans les graines).
+
+Note : il aurait fallu utiliser \verb|VolumeRatioSmaller| et non \verb|0.1|
+\color{black}
+\begin{verbatim}
    587	    lower=[]
    588	    for mother_c, sisters_c in corres.iteritems():
    589	        if mother_c!=1:
@@ -1267,13 +1328,37 @@ On cr\'ee une sous-image \verb|seeds_c| de 0 pour la cellule $c$ dans laquelle o
    592	                if (volume_ratio<0) and volumes_from_opt_h.get(s, 1)!=1 :
    593	                    lower.append((mother_c, sisters_c))
    594	    
+\end{verbatim} 
+\color{\mycolor}
+On regarde donc s'il y a des diminutions de volumes de plus de 10\%.
+\color{black}
+\begin{verbatim}
    595	    exterior_correction=[]
    596	    if lower!=[]:
    597	        from copy import deepcopy
    598	        #tmp=apply_trsf(segmentation_file_ref, vf_file, nearest=True, lazy=False)
    599	        tmp=imread(segmentation_file_trsf)
+\end{verbatim} 
+\color{\mycolor}
+\verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$   
+\color{black}
+\begin{verbatim}
    600	        old_bb=nd.find_objects(tmp)
    601	        for mother_c, sisters_c in lower:
+\end{verbatim} 
+\color{\mycolor}
+\begin{itemize}
+\item \verb|cell_before| : sous-image bool\'eenne \'ecrivant la cellule $c$ dans $S^{\star}_t$ 
+\item \verb|cell_after| : sous-image bool\'eenne \'ecrivant les cellules filles de  $c$ dans la nouvelle segmentation \verb|seg_from_opt_h|
+\item \verb|lost| : masque de la sous-image de \verb|seg_from_opt_h| masqu\'ee par le  XOR de  \verb|cell_before| et \verb|cell_after|, c'est donc \`a la fois ce qui a \'et\'e perdu et ce qui a \'et\'e gagn\'e [Rq: sur ma machine, le XOR se comporte comme un OR ...]
+\end{itemize}
+
+A priori, on ne peut pas utiliser les boites englobantes calcul\'ees dans $S^{\star}_t$ pour la segmentation \verb|seg_from_opt_h|. Toutefois, on remarque la ligne comment\'ee \verb|#tmp=apply_trsf(segmentation_file_ref, vf_file ...| qui n'est pas comment\'ee dans le code original de L\'eo. J'imagine que celui qui a fait les modifications envisageait de passer (lors de l'appel de \texttt{volume\_checking()} par \texttt{segmentation\_propagation\_from\_seeds()}) \verb|path_seg_trsf| qui est $S^{\star}_t$ transform\'ee dans $I_{t+1}$, soit
+$S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$.
+
+Le calcul qui est fait l\`a est donc erron\'e.
+\color{black}
+\begin{verbatim}
    602	            cell_before=tmp[old_bb[mother_c-1]]==mother_c
    603	            cell_after=np.zeros_like(cell_before)
    604	            for c in sisters_c:
@@ -1282,6 +1367,11 @@ On cr\'ee une sous-image \verb|seeds_c| de 0 pour la cellule $c$ dans laquelle o
    607	            max_share=0
    608	            share_lab=0
    609	            size={}
+\end{verbatim} 
+\color{\mycolor}
+\verb|lost|  contient  les labels de la diff\'erence. On cherche donc \`a v\'erifier si le plus grand label est le fond, ce qui suppose que c'est le fond qui a gagn\'e sur la cellule.
+\color{black}
+\begin{verbatim}
    610	            for v in np.unique(lost):
    611	                size[v]=np.sum(lost==v)
    612	                if np.sum(lost==v)>max_share:
@@ -1307,6 +1397,13 @@ On cr\'ee une sous-image \verb|seeds_c| de 0 pour la cellule $c$ dans laquelle o
    632	                if tuple(daughters) in divided_cells:
    633	                    divided_cells.remove(tuple(daughters))
    634	            corres[m]=[daughters[0]]
+\end{verbatim} 
+\color{\mycolor}
+
+Traitement de \verb|to_fuse_3| : couples (m\`ere, triplets de labels des filles) lorsqu'il y a 3 soeurs.
+
+\color{black}
+\begin{verbatim}
    635	    for c, tf in to_fuse_3:
    636	        bb=slices_dilation(bounding_boxes[c], maximum=seg.shape, iterations=2)
    637	        seg_c=np.ones_like(seg_from_opt_h[bb])
@@ -1587,7 +1684,7 @@ Appel \`a \texttt{volume\_checking()}, cf section \ref{sec:volume:checking}, pag
 \item \verb|path_seg_trsf| : om de l'image de segmentation $S^{\star}_t$ transform\'ee dans $I_{t+1}$, soit
 $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
 \item \verb|path_h_min| : nom g\'en\'erique pour les images de $h$-minima
-\item \verb|volumes_t_1| : liste des volumes des cellules \`a $t$
+\item \verb|volumes_t_1| : liste des volumes des cellules \`a $t$ (provient de la lecture du lin\'eage)
 \item \ldots
 \end{itemize}
 \color{black}
