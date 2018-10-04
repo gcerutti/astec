@@ -275,7 +275,7 @@ raw_delay = 0
 # 4. Optionally, a mirroring of the 'right' image
 #    depends of the 'raw_mirrors' value (see supra)
 # 5. Linear registration of the 3 last images on the first one (considered as the reference)
-#    The reference image is resmapled again, to get an isotropic voxel
+#    The reference image is resampled again, to get an isotropic voxel
 #    (same voxel size in the 3 directions: X, Y, Z)
 # 6. Linear combination of images, weighted by an ad-hoc function
 # 7. Crop of the fused image
