@@ -920,15 +920,44 @@ Retourne
    380	    """
    381	
    382	
+\end{verbatim} 
+\color{\mycolor}
+\begin{itemize}
+\itemsep -1ex
+\item \verb|m| : label de la cellule m\`ere 
+\item \verb|daughters| : labels des cellules filles
+\item \verb|bb| : boite englobante de la cellule m\`ere transform\'ee et dilat\'ee (15 fois)
+\item \verb|I| : sous-image de l'image originale d\'efinie par la boite englobante (ce n'est pas n\'ecessairement une image sur 2 octets). S'appelait  \verb|im_ref_tmp|
+\item \verb|S| : sous-image de $S^{\star}_t$ transform\'ee dans $I_{t+1}$, soit $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$. S'appelait  \verb|seg_ref_tmp|
+\item \verb|MorphosnakeIterations| : \verb|MorphosnakeIterations=10|
+\item \verb|NIterations| : \verb|NIterations=200|
+\item \verb|DeltaVoxels| : \verb|DeltaVoxels=10**3|
+\end{itemize}
+\color{black}
+\begin{verbatim}
    383	    m, daughters, bb, I, S,MorphosnakeIterations,NIterations,DeltaVoxels=parameters
    384	    import os
    385	    from scipy import ndimage as nd
    386	    import morphsnakes
    387	    cell_num=m
+\end{verbatim} 
+\color{\mycolor}
+On \'erode le compl\'ementaire de la m\`ere ?
+\color{black}
+\begin{verbatim} 
    388	    Sb=nd.binary_erosion(S!=cell_num, iterations=MorphosnakeIterations, border_value=1)#[:,:,sl]
    389	    image_input='tmp_'+str(cell_num)+'.inr'
    390	    gradient_output='tmp_out_'+str(cell_num)+'.inr'
    391	    imsave(image_input, I)
+\end{verbatim} 
+\color{\mycolor}
+On calcule une norme de gradient (vient de \verb|cpp_wrapping.py|), puis on calcule 
+\begin{displaymath}
+g(I) = \frac{1}{\sqrt{1+ \alpha |\nabla G_{\sigma}* I|}}
+\end{displaymath}
+c'est l'eq. (24) de \cite{marquez-neil:pami:2014}. Toutefois, le design de cette fonction $g()$ est d'\^etre faible aux contours. Si on consid\`ere que l'image des membranes est une image de norme de gradient, il aurait suffi de l'inverser. 
+\color{black}
+\begin{verbatim} 
    392	    gradient_norm(image_input,gradient_output)
    393	    gI = imread(gradient_output)
    394	    os.system('rm -f '+image_input+' '+gradient_output)
@@ -991,8 +1020,8 @@ Appel\'e par \texttt{segmentation\_propagation\_from\_seeds()}
 \item \verb|h_min_information| : une liste contenant les valeurs de $h$ utilisées pour chaque cellule
 \item \verb|sigma_information| : une liste contenant les valeurs de $\sigma$ utilisées pour chaque cellule
 \item \verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$
-\item \verb|path_seg_trsf| : om de l'image de segmentation $S^{\star}_t$ transform\'ee dans $I_{t+1}$, soit
-$S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
+\item \verb|segmentation_file_trsf| : nom de l'image de segmentation $S^{\star}_t$ transform\'ee dans $I_{t+1}$, soit
+$S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$. S'appelait \verb|path_seg_trsf| lors de l'appel.
 \item \verb|path_h_min| : nom g\'en\'erique pour les images de $h$-minima
 \item \verb|volumes_t_1| : liste des volumes des cellules \`a $t$
 \item \ldots
@@ -1251,7 +1280,7 @@ Premier cas : on r\'ecup\`ere le premier $3$ qui donne 2 graines, donc le plus g
    540	            h, sigma=parameters[c][s.index(3)]
 \end{verbatim} 
 \color{\mycolor}
-Appel \`a \texttt{extract\_seeds()} (section \ref{sec:extract:seeds}, page \pageref{se:extract:seeds}), avec \verb| accept_3_seeds=True|. On va donc num\'eroter les 3 graines.
+Appel \`a \texttt{extract\_seeds()} (section \ref{sec:extract:seeds}, page \pageref{sec:extract:seeds}), avec \verb| accept_3_seeds=True|. On va donc num\'eroter les 3 graines.
 \color{black}
 \begin{verbatim}
    545	            nb, seeds_c=extract_seeds(seg_c, c, path_seeds_not_prop, bb, accept_3_seeds=True)
@@ -1340,7 +1369,7 @@ On regarde donc s'il y a des diminutions de volumes de plus de 10\%.
    599	        tmp=imread(segmentation_file_trsf)
 \end{verbatim} 
 \color{\mycolor}
-\verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$   
+\verb|segmentation_file_trsf| : $S^{\star}_t$ transform\'ee dans $I_{t+1}$, soit $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$.   
 \color{black}
 \begin{verbatim}
    600	        old_bb=nd.find_objects(tmp)
@@ -1348,15 +1377,11 @@ On regarde donc s'il y a des diminutions de volumes de plus de 10\%.
 \end{verbatim} 
 \color{\mycolor}
 \begin{itemize}
+\itemsep -1ex
 \item \verb|cell_before| : sous-image bool\'eenne \'ecrivant la cellule $c$ dans $S^{\star}_t$ 
 \item \verb|cell_after| : sous-image bool\'eenne \'ecrivant les cellules filles de  $c$ dans la nouvelle segmentation \verb|seg_from_opt_h|
 \item \verb|lost| : masque de la sous-image de \verb|seg_from_opt_h| masqu\'ee par le  XOR de  \verb|cell_before| et \verb|cell_after|, c'est donc \`a la fois ce qui a \'et\'e perdu et ce qui a \'et\'e gagn\'e [Rq: sur ma machine, le XOR se comporte comme un OR ...]
 \end{itemize}
-
-A priori, on ne peut pas utiliser les boites englobantes calcul\'ees dans $S^{\star}_t$ pour la segmentation \verb|seg_from_opt_h|. Toutefois, on remarque la ligne comment\'ee \verb|#tmp=apply_trsf(segmentation_file_ref, vf_file ...| qui n'est pas comment\'ee dans le code original de L\'eo. J'imagine que celui qui a fait les modifications envisageait de passer (lors de l'appel de \texttt{volume\_checking()} par \texttt{segmentation\_propagation\_from\_seeds()}) \verb|path_seg_trsf| qui est $S^{\star}_t$ transform\'ee dans $I_{t+1}$, soit
-$S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$.
-
-Le calcul qui est fait l\`a est donc erron\'e.
 \color{black}
 \begin{verbatim}
    602	            cell_before=tmp[old_bb[mother_c-1]]==mother_c
@@ -1377,6 +1402,11 @@ Le calcul qui est fait l\`a est donc erron\'e.
    612	                if np.sum(lost==v)>max_share:
    613	                    max_share=np.sum(lost==v)
    614	                    share_lab=v
+\end{verbatim} 
+\color{\mycolor}
+On v\'erifie que $1$ (le fond) est bien le label le plus repr\'esent\'e dans la partie perdue. On v\'erifie aussi que le fond \'etait pr\'esent dans la boite englobante de la cellule mere deform\'ee (il aurait fallu v\'erifier que le fond \'etait adjacent \`a la cellule m\`ere). Si oui, on va lancer des corrections.
+\color{black}
+\begin{verbatim}
    615	            if share_lab==1 and 1 in tmp[old_bb[mother_c-1]]:
    616	                exterior_correction.append((mother_c, sisters_c))
    617	        from multiprocessing import Pool
@@ -1387,6 +1417,25 @@ Le calcul qui est fait l\`a est donc erron\'e.
    622	            im_ref_tmp=deepcopy(im_ref16[bb])
    623	            seg_ref_tmp=deepcopy(tmp[bb])
    624	            mapping.append((m, daughters, bb, im_ref_tmp, seg_ref_tmp,MorphosnakeIterations,NIterations,DeltaVoxels))
+\end{verbatim} 
+\color{\mycolor}
+Appel \`a \texttt{perform\_ac()}, cf section \ref{sec:perform:ac}, page \pageref{sec:perform:ac}.
+\begin{itemize}
+\itemsep -1ex
+\item \verb|m| : label de la cellule m\`ere 
+\item \verb|daughters| : labels des cellules filles
+\item \verb|bb| : boite englobante de la cellule m\`ere transform\'ee et dilat\'ee (15 fois)
+\item \verb|im_ref_tmp| : sous-image de l'image originale d\'efinie par la boite englobante (ce n'est pas n\'ecessairement une image sur 2 octets)
+\item \verb|seg_ref_tmp| : sous-image de $S^{\star}_t$ transform\'ee dans $I_{t+1}$, soit $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
+\item \verb|MorphosnakeIterations| : \verb|MorphosnakeIterations=10|
+\item \verb|NIterations| : \verb|NIterations=200|
+\item \verb|DeltaVoxels| : \verb|DeltaVoxels=10**3|
+\end{itemize}
+On r\'ecup\`ere ensuite le r\'esultat du morphosnake. S'il y a plusieurs cellules filles, on n'en garde qu'une (la division n'est plus consid\'er\'ee). Note : si le morphosnake est appliqu\'e à deux cellules adjacentes, les parties communes dans le fond atteintes par les 2 morphosnakes seront attribu\'ees \`a la premi\`ere qui sera trait\'ee.
+
+Le cas de 3 cellules filles n'est pas consid\'er\'e. 
+\color{black}
+\begin{verbatim}
    625	        outputs=pool.map(perform_ac, mapping)
    626	        pool.close()
    627	        pool.terminate()
@@ -1399,9 +1448,7 @@ Le calcul qui est fait l\`a est donc erron\'e.
    634	            corres[m]=[daughters[0]]
 \end{verbatim} 
 \color{\mycolor}
-
-Traitement de \verb|to_fuse_3| : couples (m\`ere, triplets de labels des filles) lorsqu'il y a 3 soeurs.
-
+Traitement de \verb|to_fuse_3| : couples (m\`ere, triplets de labels des filles) lorsqu'il y a 3 soeurs. On \'elimine le plus petit label et on l'attribue au label avec lequel il a la plus grande fronti\`ere.
 \color{black}
 \begin{verbatim}
    635	    for c, tf in to_fuse_3:
@@ -1432,9 +1479,19 @@ Traitement de \verb|to_fuse_3| : couples (m\`ere, triplets de labels des filles)
    660	        divided_cells.append((p1, p2))
    661	
    662	    return seg_from_opt_h, bigger, lower, to_look_at, too_little, corres, exterior_correction
-
 \end{verbatim}
-
+\color{\mycolor}
+\begin{itemize}
+\itemsep -1ex
+\item \verb|seg_from_opt_h| : 
+\item \verb|bigger| : 
+\item \verb|lower| : 
+\item \verb|to_look_at| : 
+\item \verb|too_little| : 
+\item \verb|corres| : 
+\item \verb|exterior_correction| : 
+\end{itemize}
+\color{black}
 
 
 
