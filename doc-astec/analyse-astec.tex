@@ -23,13 +23,38 @@ version git 5c6bf9c du 2018-05-04 (derni\`ere version remont\'ee par G. Michelin
 \pagebreak
 \section{Overview}
 
+\subsection{Notations}
+
+\begin{itemize}
+\itemsep -1ex
+
+\item $S^{\star}_t$ : segmentation \`a $t$
+
+\item $S^{\star}_{t+\delta t \leftarrow t} = S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$ : segmentation \`a $t$ projet\'ee dans $I_{t+\delta t}$. C'est une nouvelle notation par rapport \`a \cite{guignard:tel-01278725}, mais l'image est pas mal utilis\'ee.
+
+\item  $\tilde{S}_{t+1}$ : segmentation de $I_{t + \delta t}$ par ligne de partage des eaux avec les graines $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$
+
+\item $S^e_t$ : cellules de $S^{\star}_t$ \'erod\'ees (pour servir de graines)
+
+\item $S^e_{t+\delta t \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$ : cellules de $S^{\star}_t$ \'erod\'ees (pour servir de graines) puis projet\'ees dans $I_{t+\delta t}$.
+
+\item $\mathcal{T}_{t \leftarrow t+\delta t}$ : transformation non-lin\'eaire permet
+tant de r\'e\'echantillonner $I_{t}$ sur  $I_{t + \delta t}$
+\end{itemize}
+
+
+
+
+
+\subsection{Overview}
+
 L'appel se fait par le fichier \texttt{4-fuse.py}. C'est l\`a que se fait la boucle sur le temps pour segmenter successivement tous les points de temps. 
 
 La segmentation d'un point de temps $t + \delta t$ se fait par l'appel de la fonction \texttt{segmentation\_propagation()} (section \ref{sec:segmentation:propagation}, page \pageref{sec:segmentation:propagation}) avec en param\`etres les images fusionn\'ees, $I_{t}$ et $I_{t + \delta t}$ ainsi que la segmentation \`a $t$, $S^{\star}_t$.
 
 \texttt{segmentation\_propagation()} fait les op\'erations suivantes
 \begin{enumerate}
-\itemsep -1ex
+\itemsep -0.5ex
 
 \item \texttt{non\_linear\_registration()} de \texttt{ASTEC/CommunFunctions/cpp\_wrapping.py} qui calcule  la transformation non-lin\'eaire $\mathcal{T}_{t \leftarrow t+\delta t}$. 
 
@@ -40,7 +65,7 @@ S^e_{t+\delta t \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t
 \end{displaymath}
  \cite[section 2.3.3.4]{guignard:tel-01278725}, soit les graines projet\'ees (cellules de $S^{\star}_t$ \'erod\'ees puis transform\'ees dans $I_{t+\delta t}$).
 
-\item \texttt{apply\_trsf()} de \texttt{ASTEC/CommunFunctions/cpp\_wrapping.py} qui calcule $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$, soit la segmentation \`a $t$ projet\'ee \`a $t + \delta t$
+\item \texttt{apply\_trsf()} de \texttt{ASTEC/CommunFunctions/cpp\_wrapping.py} qui calcule $S^{\star}_{t+\delta t \leftarrow t} = S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$, soit la segmentation \`a $t$ projet\'ee \`a $t + \delta t$
 
 \item Une autre image d'intensit\'e $I_{t + \delta t}$ peut \^etre calcul\'ee avec le rehaussement de membrane
 
@@ -52,13 +77,24 @@ $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$, so
 \begin{enumerate}
 \item Calcul de $\tilde{S}_{t+1}$ par ligne de partage des eaux avec les graines $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$
 
-\item appel \`a \texttt{get\_seeds()} (section \ref{sec:get:seeds}, page \pageref{sec:get:seeds}). Pour chaque cellule, et pour un ensemble de valeurs de $h \in [h_{min}, h_{max}]$ (avec un pas de 2), \texttt{get\_seeds()} calcule le nombre de  $h$-minima qui sont strictement inclus dans la cellule $c$ de $\tilde{S}_{t+1}$
+\item appel \`a \texttt{get\_seeds()} (section \ref{sec:get:seeds}, page \pageref{sec:get:seeds}). Pour chaque cellule, et pour un ensemble de valeurs de $h \in [h_{min}, h_{max}]$ (avec un pas de 2), \texttt{get\_seeds()} calcule le nombre de  $h$-minima qui sont strictement inclus dans la cellule $c$ de $\tilde{S}_{t+1}$. Cette op\'eration de s\'election des $h$-minima strictement inclus dans la cellule  $c$ de $\tilde{S}_{t+1}$ est faite plusieurs fois, on peut donc la mutualiser.
 
 \item appel \`a \texttt{get\_back\_parameters()} (section \ref{sec:get:back:parameters}, page \pageref{sec:get:back:parameters}), qui d\'etermine, pour chaque cellule, le nombre de graines \`a consid\'erer et les valeurs de param\`etres $(h, \sigma)$, associ\'es.
 
 \item appel \`a \texttt{get\_seeds\_from\_optimized\_parameters()}
 (section \ref{sec:get:seeds:from:optimized:parameters}, page \pageref{sec:get:seeds:from:optimized:parameters})
-\ldots
+
+\begin{enumerate}
+\item
+
+\end{enumerate}
+
+\item appel \`a \texttt{volume\_checking()}
+(section \ref{sec:volume:checking}, page \pageref{sec:volume:checking})
+
+\item appel \`a \texttt{outer\_correction()}
+(section \ref{sec:outer:correction}, page \pageref{sec:outer:correction})
+
 
 \end{enumerate}
 
@@ -630,7 +666,7 @@ section \ref{sec:segmentation:propagation:from:seeds}
 \color{\mycolor}
 \begin{itemize}
 \itemsep -1ex
-\item \verb|nb_cells| : iste pour chaque cellule, du nombre de $h$-minima strictement inclus dans la cellule de  $\tilde{S}_{t+1}$. C'est le $\mathrm{Count}^{h}(c)$ de \cite[section 2.3.3.5, page 71]{guignard:tel-01278725}.
+\item \verb|nb_cells| : liste pour chaque cellule, du nombre de $h$-minima strictement inclus dans la cellule de  $\tilde{S}_{t+1}$. C'est le $\mathrm{Count}^{h}(c)$ de \cite[section 2.3.3.5, page 71]{guignard:tel-01278725}.
 \item \verb|parameters| : liste pour chaque cellule,  des param\`etres de calcul des $h$-minima ($h$ et $\sigma$)
 \item \verb|lin_tree| : fichier de lin\'eage
 \item \verb|cells| : liste des cellules
@@ -771,7 +807,7 @@ Appel \`a \texttt{extract\_seeds()} (section \ref{sec:extract:seeds}, page \page
 \item \verb|c| : label de la cellule
 \item \verb|seeds_ex| : sous-image des $h$-minima
 \end{itemize}
-\texttt{extract\_seeds()} (re)calcule les graines strictement incluses dans la cellule $c$ et renvoie
+\texttt{extract\_seeds()} (re)calcule les graines strictement incluses dans la cellule $c$ et renvoie une sous-image des graines num\'erot\'ees \`a partir de 1
 \begin{itemize}
 \itemsep -1ex
 \item \verb|nb| : le nombre de graines
@@ -908,6 +944,10 @@ Retourne
 
 
 \subsection{\texttt{perform\_ac()}}
+\label{sec:perform:ac}
+Appel\'e par \texttt{volume\_checking()}
+(section \ref{sec:volume:checking}, page \pageref{sec:volume:checking}).
+
 \begin{verbatim}
    372	def perform_ac(parameters):
    373	    """
@@ -1346,6 +1386,8 @@ S'il y a eu des changements dans les graines, on recalcule une image de segmenta
 \color{\mycolor}
 On recalcule \verb|lower| (on rappelle que les cellules pr\'esentes dans \verb|to_look_at| \'etaient aussi dans \verb|lower|, il y a donc eu des changements dans la liste (s'il y a eu des changements dans les graines).
 
+A priori, cela est inutile s'il n'y a pas eu de changements.
+
 Note : il aurait fallu utiliser \verb|VolumeRatioSmaller| et non \verb|0.1|
 \color{black}
 \begin{verbatim}
@@ -1483,13 +1525,13 @@ Traitement de \verb|to_fuse_3| : couples (m\`ere, triplets de labels des filles)
 \color{\mycolor}
 \begin{itemize}
 \itemsep -1ex
-\item \verb|seg_from_opt_h| : 
-\item \verb|bigger| : 
-\item \verb|lower| : 
-\item \verb|to_look_at| : 
-\item \verb|too_little| : 
-\item \verb|corres| : 
-\item \verb|exterior_correction| : 
+\item \verb|seg_from_opt_h| : image de segmentation
+\item \verb|bigger| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus grand (de plus de 10\%) de celui de la m\`ere
+\item \verb|lower| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus petit (de plus de 10\%) de celui de la m\`ere
+\item \verb|to_look_at| : liste des couples initiaux (m\`ere, filles) o\`u les filles avaient un volume plus petit (de plus de 50\%) de celui de la m\`ere. A priori, les filles ont \'et\'e recalcul\'ees, donc cette liste n'est plus \`a jour.
+\item \verb|too_little| : liste des couples initiaux (m\`ere, fille) o\`u la fille avait un petit volume (inf\'erieur \`a 1000 voxels). Ces filles ont a priori disparu.
+\item \verb|corres| : table des correspondances (m\`ere, filles), il peut y rester des incoh\'erences.
+\item \verb|exterior_correction| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus petit (de plus de 10\%) de celui de la m\`ere, et proches du fond, sur lesquels on lancera le morphosnake.
 \end{itemize}
 \color{black}
 
@@ -1497,23 +1539,55 @@ Traitement de \verb|to_fuse_3| : couples (m\`ere, triplets de labels des filles)
 
 
 \subsection{\texttt{outer\_correction()}}
+\label{sec:outer:correction}
+
+\color{\mycolor}
+Appel\'e par \texttt{segmentation\_propagation\_seeds\_init\_and\_deform()} (section \ref{sec:segmentation:propagation:from:seeds}, page \pageref{sec:segmentation:propagation:from:seeds}).
+\color{black}
+
 \begin{verbatim}
    665	def outer_correction(seg_from_opt_h, exterior_correction,segmentation_file_ref,RadiusOpening=20):
    666	    """
    667	    Return an eroded segmentation correcting for potential errors in the morphsnake
    668	    seg_from_opt_h : segmentated image (SpatialImage)
    669	    exterior_correction : list of cells that have been corrected using morphsnake algorithm
+\end{verbatim}
+\color{\mycolor}
+\begin{itemize}
+\itemsep -1ex
+\item \verb|seg_from_opt_h| : image de segmentation
+\item \verb|exterior_correction| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus petit (de plus de 10\%) de celui de la m\`ere, et proches du fond, sur lesquels on a lanc\'e le morphosnake.
+\item \verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$
+\item \verb|RadiusOpening| : \verb|RadiusOpening|= 20
+\end{itemize}
+\color{black}
+\begin{verbatim}
    670	    """
    671	    if exterior_correction!=[]:
    672	    	image_input=segmentation_file_ref.replace('.inr','.seg_from_opt_h.inr')
    673	        imsave(image_input, SpatialImage(seg_from_opt_h!=1, voxelsize=seg_from_opt_h.voxelsize).astype(np.uint8))
    674	        image_output=segmentation_file_ref.replace('.inr','.seg_out_h.inr')
+\end{verbatim}
+\color{\mycolor}
+Ouverture morphologique (\'erosion puis dilatation) du masque de l'embryon, cela va lisser les cellules touchant le fond par l'ext\'erieur.
+\color{black}
+\begin{verbatim}
    675	        morpho(image_input,image_output,' -ope -R '+str(RadiusOpening))
    676	        opened=imread(image_output)
    677	        cells_to_correct=[i for j in exterior_correction for i in j[1]]
    678	        os.system('rm -f '+image_input+' '+image_output)
+\end{verbatim}
+\color{\mycolor}
+XOR entre le masque de l'embryon et son ouverture (qui y est inclus). La diff\'erence se trouve donc uniquement dans les cellules de \verb|seg_from_opt_h|.
+\color{black}
+\begin{verbatim}
    679	        to_remove=opened^(seg_from_opt_h>1)
    680	        
+\end{verbatim}
+\color{\mycolor}
+Plut\^ot que de faire une boucle sur les cellules, on pourrait juste masquer \verb|seg_from_opt_h| par le masque de l'ouverture.
+\color{black}
+\begin{verbatim}
    681	        for c in cells_to_correct:
    682	            seg_from_opt_h[((seg_from_opt_h==c) & to_remove).astype(np.bool)]=1
    683	    return seg_from_opt_h
@@ -1749,8 +1823,36 @@ $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
    752	    seg_from_opt_h, bigger, lower, to_look_at, too_little, corres, exterior_correction = volume_checking(t,delta_t,segmentation, seeds_from_opt_h, seg_from_opt_h, corres, divided_cells, bounding_boxes, right_parameters, 
    753	        im_fused_8, im_fused, seeds, nb_cells, label_max, exterior_corres, parameters, h_min_information, sigma_information, segmentation_file_ref, path_seg_trsf, path_h_min, volumes_t_1, 
    754	        nb_proc=nb_proc,Thau=Thau, MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,NIterations=NIterations ,DeltaVoxels=DeltaVoxels)
+\end{verbatim}
+\color{\mycolor}
+\texttt{volume\_checking()} retourne
+\begin{itemize}
+\itemsep -1ex
+\item \verb|seg_from_opt_h| : image de segmentation
+\item \verb|bigger| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus grand (de plus de 10\%) de celui de la m\`ere
+\item \verb|lower| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus petit (de plus de 10\%) de celui de la m\`ere
+\item \verb|to_look_at| : liste des couples initiaux (m\`ere, filles) o\`u les filles avaient un volume plus petit (de plus de 50\%) de celui de la m\`ere. A priori, les filles ont \'et\'e recalcul\'ees, donc cette liste n'est plus \`a jour.
+\item \verb|too_little| : liste des couples initiaux (m\`ere, fille) o\`u la fille avait un petit volume (inf\'erieur \`a 1000 voxels). Ces filles ont a priori disparu.
+\item \verb|corres| : table des correspondances (m\`ere, filles), il peut y rester des incoh\'erences.
+\item \verb|exterior_correction| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus petit (de plus de 10\%) de celui de la m\`ere, et proches du fond, sur lesquels on lancera le morphosnake.
+\end{itemize}
+\color{black}
+\begin{verbatim}
    755	
    756	    print 'Perform Outer Correction '+str(t+delta_t)
+\end{verbatim}
+\color{\mycolor}
+Appel \`a \texttt{outer\_correction()}
+(section \ref{sec:outer:correction}, page \pageref{sec:outer:correction})
+\begin{itemize}
+\itemsep -1ex
+\item \verb|seg_from_opt_h| : image de segmentation
+\item \verb|exterior_correction| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus petit (de plus de 10\%) de celui de la m\`ere, et proches du fond, sur lesquels on a lanc\'e le morphosnake.
+\item \verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$ (le nom sert juste pour cr\'eer des noms d'images interm\'ediaires qui seront effac\'ees)
+\item \verb|RadiusOpening| : \verb|RadiusOpening|= 20
+\end{itemize}
+\color{black}
+\begin{verbatim}
    757	    seg_from_opt_h = outer_correction(seg_from_opt_h, exterior_correction,segmentation_file_ref,RadiusOpening=RadiusOpening)
    758	
    759	    print 'Compute Volumes'+str(t+delta_t)
