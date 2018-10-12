@@ -1,7 +1,7 @@
 \documentclass{article}
 \usepackage{fullpage}
 \usepackage[usenames,dvipsnames]{xcolor}
-
+\usepackage[linesnumbered,boxed]{algorithm2e}
 \def \mycolor {red}
 
 \begin{document}
@@ -26,7 +26,7 @@ version git 5c6bf9c du 2018-05-04 (derni\`ere version remont\'ee par G. Michelin
 \subsection{Notations}
 
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 
 \item $S^{\star}_t$ : segmentation \`a $t$
 
@@ -34,9 +34,13 @@ version git 5c6bf9c du 2018-05-04 (derni\`ere version remont\'ee par G. Michelin
 
 \item  $\tilde{S}_{t+1}$ : segmentation de $I_{t + \delta t}$ par ligne de partage des eaux avec les graines $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$
 
+\item $\hat{S}_{t+1}$ : segmentation de $I_{t + \delta t}$ par ligne de partage des eaux avec les graines $\mathrm{Seeds}_{t+1}$. Cette image peut \^etre amen\'ee \`a changer
+
 \item $S^e_t$ : cellules de $S^{\star}_t$ \'erod\'ees (pour servir de graines)
 
 \item $S^e_{t+\delta t \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$ : cellules de $S^{\star}_t$ \'erod\'ees (pour servir de graines) puis projet\'ees dans $I_{t+\delta t}$.
+
+\item $\mathrm{Seeds}_{t+1}$ : image des graines calcul\'ees avec les param\`etres optimaux. Cette image peut \^etre amen\'ee \`a changer
 
 \item $\mathcal{T}_{t \leftarrow t+\delta t}$ : transformation non-lin\'eaire permet
 tant de r\'e\'echantillonner $I_{t}$ sur  $I_{t + \delta t}$
@@ -52,53 +56,213 @@ L'appel se fait par le fichier \texttt{4-fuse.py}. C'est l\`a que se fait la bou
 
 La segmentation d'un point de temps $t + \delta t$ se fait par l'appel de la fonction \texttt{segmentation\_propagation()} (section \ref{sec:segmentation:propagation}, page \pageref{sec:segmentation:propagation}) avec en param\`etres les images fusionn\'ees, $I_{t}$ et $I_{t + \delta t}$ ainsi que la segmentation \`a $t$, $S^{\star}_t$.
 
-\texttt{segmentation\_propagation()} fait les op\'erations suivantes
-\begin{enumerate}
+La plupart des param\`etres (longueurs, volumes) sont en unit\'e voxelique.
+
+
+\texttt{segmentation\_propagation()} (section \ref{sec:segmentation:propagation}, page \pageref{sec:segmentation:propagation}) fait les op\'erations suivantes
+\begin{itemize}
 \itemsep -0.5ex
 
-\item \texttt{non\_linear\_registration()} de \texttt{ASTEC/CommunFunctions/cpp\_wrapping.py} qui calcule  la transformation non-lin\'eaire $\mathcal{T}_{t \leftarrow t+\delta t}$. 
+\item \texttt{non\_linear\_registration()} de \texttt{ASTEC/CommunFunctions/cpp\_wrapping.py} qui calcule  la transformation non-lin\'eaire $\mathcal{T}_{t \leftarrow t+\delta t}$, \`a partir des images fusionn\'ees
 
 \item \texttt{segmentation\_propagation\_seeds\_init\_and\_deform()} (section \ref{sec:segmentation:propagation:seeds:init:and:deform}, page \pageref{sec:segmentation:propagation:seeds:init:and:deform}),
-qui calcule 
+qui calcule $S^e_t$ et $S^e_{t+\delta t \leftarrow t}$
 \begin{displaymath}
 S^e_{t+\delta t \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}
 \end{displaymath}
- \cite[section 2.3.3.4]{guignard:tel-01278725}, soit les graines projet\'ees (cellules de $S^{\star}_t$ \'erod\'ees puis transform\'ees dans $I_{t+\delta t}$).
+sont les graines projet\'ees (cellules de $S^{\star}_t$ \'erod\'ees puis transform\'ees dans $I_{t+\delta t}$) \cite[section 2.3.3.4]{guignard:tel-01278725}
 
 \item \texttt{apply\_trsf()} de \texttt{ASTEC/CommunFunctions/cpp\_wrapping.py} qui calcule $S^{\star}_{t+\delta t \leftarrow t} = S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$, soit la segmentation \`a $t$ projet\'ee \`a $t + \delta t$
 
 \item Une autre image d'intensit\'e $I_{t + \delta t}$ peut \^etre calcul\'ee avec le rehaussement de membrane
 
+
+
+
+
+%
+% \texttt{segmentation\_propagation\_from\_seeds()}
+%
 \item \texttt{segmentation\_propagation\_from\_seeds()}, (section \ref{sec:segmentation:propagation:from:seeds}, page \pageref{sec:segmentation:propagation:from:seeds}) avec en param\`etres
 l'image de segmentation \`a $t$, $S^{\star}_t$,
 l'image d'intensit\'e \`a $t + \delta t$ sur un octet,  $I_{t+\delta t}$,
-$S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$, soit les graines projet\'ees (cellules de $S^{\star}_t$ \'erod\'ees puis transform\'ees dans $I_{t+\delta t}$)
+$S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$, soit les graines projet\'ees (cellules de $S^{\star}_t$ \'erod\'ees puis transform\'ees dans $I_{t+\delta t}$). La transformation pourrait se faire en dehors de la fonction.
 
-\begin{enumerate}
-\item Calcul de $\tilde{S}_{t+1}$ par ligne de partage des eaux avec les graines $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$
+\begin{itemize}
+\item Calcul de $\tilde{S}_{t+1}$ (une premi\`ere segmentation de $I_{t + \delta t}$) par ligne de partage des eaux avec les graines $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$
 
-\item appel \`a \texttt{get\_seeds()} (section \ref{sec:get:seeds}, page \pageref{sec:get:seeds}). Pour chaque cellule, et pour un ensemble de valeurs de $h \in [h_{min}, h_{max}]$ (avec un pas de 2), \texttt{get\_seeds()} calcule le nombre de  $h$-minima qui sont strictement inclus dans la cellule $c$ de $\tilde{S}_{t+1}$. Cette op\'eration de s\'election des $h$-minima strictement inclus dans la cellule  $c$ de $\tilde{S}_{t+1}$ est faite plusieurs fois, on peut donc la mutualiser.
+\item \texttt{get\_seeds()} (section \ref{sec:get:seeds}, page \pageref{sec:get:seeds}). Pour chaque cellule, et pour un ensemble de valeurs de $h \in [h_{min}, h_{max}]$ (avec un pas de 2, param\`etre en dur), \texttt{get\_seeds()} calcule (avec \texttt{cell\_propagation()}) le nombre de  $h$-minima qui sont strictement inclus dans la cellule $c$ de $\tilde{S}_{t+1}$ ($\mathrm{Count}^{h}(c)$ de \cite[section 2.3.3.5, page 71]{guignard:tel-01278725}). Cette op\'eration de s\'election des $h$-minima strictement inclus dans la cellule  $c$ de $\tilde{S}_{t+1}$ est faite plusieurs fois, on peut donc la mutualiser.
 
-\item appel \`a \texttt{get\_back\_parameters()} (section \ref{sec:get:back:parameters}, page \pageref{sec:get:back:parameters}), qui d\'etermine, pour chaque cellule, le nombre de graines \`a consid\'erer et les valeurs de param\`etres $(h, \sigma)$, associ\'es.
 
-\item appel \`a \texttt{get\_seeds\_from\_optimized\_parameters()}
-(section \ref{sec:get:seeds:from:optimized:parameters}, page \pageref{sec:get:seeds:from:optimized:parameters})
 
-\begin{enumerate}
-\item
 
-\end{enumerate}
 
-\item appel \`a \texttt{volume\_checking()}
-(section \ref{sec:volume:checking}, page \pageref{sec:volume:checking})
+\item \texttt{get\_back\_parameters()} (section \ref{sec:get:back:parameters}, page \pageref{sec:get:back:parameters}), qui d\'etermine pour chaque cellule, selon les nombres de $h$-minima inclus, le nombre optimal de graines \`a consid\'erer et les valeurs de param\`etres $(h, \sigma)$, associ\'es (on prend le plus grand $h$ donnant ce nombre de graines). Pour cela, on compte le nombre de fois qu'un nombre de $h$-minima est atteint, soit les grandeurs
+\begin{displaymath}
+N_{n}(c) = \mathrm{Card} \{ h | \mathrm{Count}^{h}(c) = n\}
+\quad 
+N_{n^{+}}(c) = \mathrm{Card} \{ h | \mathrm{Count}^{h}(c) \geq n\}
+\end{displaymath}
+et on calcule le score 
+\begin{displaymath}
+s(c) = N_{2^{+}}(c) . N_2(c)
+\end{displaymath}
+qui permet de d\'eterminer le nombre optimal de graines $\# seeds_{opt} $ (cf Alg. \ref{alg:get:back:parameters})
 
-\item appel \`a \texttt{outer\_correction()}
+\begin{algorithm}
+\uIf{$N_1(c) > 0$ or $N_2(c) > 0$}{
+  \uIf{$N_{2^{+}}(c) . N_2(c) \geq \tau$}{
+  \tcp{Rq: \cite[page 72]{guignard:tel-01278725} utilise une in\'egalit\'e stricte}
+  \tcp{$\tau$ est fix\'e \`a 25}
+    $\# seeds_{opt} = 2$
+  }
+  \uElseIf{$N_1(c) > 0$}{
+    $\# seeds_{opt} = 1$
+  }
+  \Else{
+    $\# seeds_{opt}  = 2$
+  }
+}
+\uElseIf{$N_3(c) > 0$}{
+  $\# seeds_{opt}  = 3$
+}
+\Else{
+  \tcp{cas o\`u $N_1(c) = N_2(c) = N_3(c) = 0$}
+  $\# seeds_{opt}  = 0$
+}
+\caption{\label{alg:get:back:parameters}\rule{0ex}{3ex}Choix du nombre de graines}
+\end{algorithm}
+Quelques remarques:
+\begin{itemize}
+\item Le score d\'epend du nombre de $h$ utilis\'es pour le calcul des graines, donc de $h_{min}$, de $h_{max}$ et du pas entre 2 $h$ successifs.
+\item Le nombre de $h$-minima est une fonction d\'ecroissante en fonction de $h$ (qui est born\'e inf\'erieurement par 1), donc on peut utiliser des longueurs d'intervalle plut\^ot que des d\'enombrements, et  ainsi s'abstraire de $h_{min}$ et du pas entre 2 $h$. Reste la d\'ependance par rapport \`a $h_{max}$
+\end{itemize}
+
+
+
+
+%
+% \texttt{get\_seeds\_from\_optimized\_parameters()}
+%
+\item \texttt{get\_seeds\_from\_optimized\_parameters()}
+(section \ref{sec:get:seeds:from:optimized:parameters}, page \pageref{sec:get:seeds:from:optimized:parameters}), qui va construire une image de graines $\mathrm{Seeds}_{t+1}$  \`a partir des nombres de graines calcul\'es par \texttt{get\_back\_parameters()}, et l'image de segmentation correspondante $\hat{S}_{t+1}$
+
+\begin{itemize}
+\item Pour les cellules qui ont des graines ($\# seeds \neq 0$, cf Alg. \ref{alg:get:back:parameters}), on r\'ecup\`ere les $h$-minima (pour les param\`etres optimaux trouv\'es) inclus dans la cellule (on les recalcule donc avec \texttt{extract\_seeds()} (section \ref{sec:extract:seeds}, page \pageref{sec:extract:seeds}), qui num\'erote aussi les composantes).
+
+Rq: si  $\# seeds = 3$ on ne garde que les 2 premi\`eres composantes num\'erot\'ees, ce qui me semble bizarre comme choix.
+
+\item Pour le fond, on r\'ecup\`ere  (avec \texttt{cell\_propagation()}) les $h_{max}$-minima strictement inclus dans le fond. Plut\^ot que de garder plusieurs num\'eros/labels pour ces graines, on pourrait toutes les mettre \`a 1, cela supprimerait des op\'erations (eg renum\'rotation de la segmentation) car ces graines ne seront pas remises en cause plus tard.
+
+\item Pour les cellules sans graines ($\# seeds = 0$, cf Alg. \ref{alg:get:back:parameters}, cas o\`u $N_1(c) = N_2(c) = N_3(c) = 0$), on regarde leur volume dans $\tilde{S}_{t+1}$. S'il est assez grand (sup\'erieur \`a 100 voxels), on r\'ecup\`ere la projection de la cellule m\`ere \'erod\'ee comme graine ($S^e_{t+\delta t \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$)
+\end{itemize}
+
+Un appel \`a l'algorithme de ligne de partage des eaux permet de calculer l'image de segmentation $\hat{S}_{t+1}$ \`a partir des graines $\mathrm{Seeds}_{t+1}$. Cet appel pourrait \^etre sorti de la fonction.
+
+
+
+
+
+%
+% \texttt{volume\_checking()}
+%
+
+\item \texttt{volume\_checking()}
+(section \ref{sec:volume:checking}, page \pageref{sec:volume:checking}). C'est une fonction assez complexe. Elle vise \`a corriger les erreurs faites \`a l'\'etape pr\'ec\'edente. C'est plus ou moins bien d\'ecrit dans \cite[section 2.3.3.6, page 73]{guignard:tel-01278725}. Une des pr\'eoccupations est que les tests (informatiques) sont mal faits, ce qui peut (en th\'eorie) faire que des cas \'echappent aux traitements (ce qui est peut \^etre voulu), ou que des cas soient trait\'es deux fois (ce qui serait bizarre).
+
+\begin{itemize}
+
+\item On classe les cellules (ou les couples (m\`ere, fille(s))) selon les variations de volume entre la m\`ere (calcul\'e dans $S^{\star}_t$ ou issu du lin\'eage), et le volume des filles (calcul\'e dans $\hat{S}_{t+1}$).
+\begin{itemize}
+\item \verb|bigger| contient les couples (m\`ere, fille(s)) avec une augmentation de volume de plus de 10\%
+\item \verb|lower| contient les couples (m\`ere, fille(s)) avec une diminution de volume de plus de 10\%
+\item \verb|to_look_at| contient les couples (m\`ere, fille(s)) avec une diminution de volume de plus de 50\% (c'est donc un sous-ensemble de \verb|lower|)
+\item \verb|too_little| contient les couples (m\`ere, fille) o\`u la fille a un volume de moins de 1000 voxels
+\end{itemize}
+
+\item Traitement de \verb|to_look_at| (cf Alg. \ref{alg:volume:checking:to_look:at}, \cite[point (1), section 2.3.3.6, page 73]{guignard:tel-01278725}).
+
+\begin{itemize}
+\item On recalcule le nombre de graines optimales $\# seeds_{opt} $, comme dans l'Alg. \ref{alg:get:back:parameters}, 
+pour les cas  $N_1(c) > 0$ \textit{or} $N_2(c) > 0$, sauf que l'on garde le plus petit $h$ donnant le nombre de graines  $\# seeds_{opt} $ (c'\'etait le plus grand dans \texttt{get\_back\_parameters()}).
+\item On peut maintenant avoir trois graines (liste \verb|to_fuse_3| qui sera trait\'ee plus tard).
+\item la gestion des correspondances (filiation) est mal faite : des graines sont re-num\'erot\'ees, mais les filiations pr\'ec\'edentes ne sont pas effac\'ees.
+\end{itemize}
+
+\begin{algorithm}
+\uIf{$N_1(c) > 0$ or $N_2(c) > 0$}{
+  \uIf{$N_{2^{+}}(c) . N_2(c) \geq \tau$}{
+    $\# seeds_{opt} = 2$
+  }
+  \uElseIf{$N_1(c) > 0$}{
+    $\# seeds_{opt} = 1$
+  }
+  \Else{
+    $\# seeds_{opt}  = 2$
+  }
+  \uIf{$\# seeds_{opt}  = 1$ and $N_2(c) > 0$}{
+    \tcp{si on avait 1 graine optimale, mais des $h$ donnant 2 graines}
+    \tcp{on (re)calcule les graines ($\# seeds$) pour le premier $h$ qui donne 2 graines}
+    \tcp{et on ne garde que les graines incluses dans la cellule}
+    \uIf{$\# seeds = 2$ and \ldots}{
+      \tcp{la seconde partie de la condition me semble bizarre, et serait fausse tout le temps ...}
+      \tcp{C'est cens\'e d\'etecter le cas o\`u sur les 2 graines, l'une est en dehors de la cellule dans $\hat{S}_{t+1}$}
+      on passe \`a 2 graines
+    }
+  }
+  \uIf{($\# seeds_{opt}  = 1$ or $\# seeds_{opt}  = 2$) and $\exists n \geq 3 | N_n(c) > 0$}{
+    \tcp{cette condition peut \^etre v\'erifi\'ee en m\^eme temps que la pr\'ec\'edente}
+    \tcp{si on a par exemple $\# seeds_{opt}  = 1$,  $N_2(c) > 0$ et $N_3(c) > 0$}
+    \tcp{une cellule peut \^etre trait\'ee 2 fois \ldots}
+    on r\'ecup\`ere les $h_{min}$-minima (il y en a donc au moins 3)
+  }
+  \uElseIf{$\# seeds_{opt}  = 1$}{
+    \tcp{On a donc $\forall n \geq 3 | N_n(c) = 0$}
+    \tcp{cette condition peut \^etre v\'erifi\'ee en m\^eme temps que la premi\`ere}
+    \tcp{si on a par exemple $\# seeds_{opt}  = 1$ et $N_2(c) > 0$}
+    on r\'ecup\`ere la graine correspondante de $S^e_{t+\delta t \leftarrow t}$
+    \tcp{graine "projet\'ee", cens\'ee \^etre plus grande}
+  }
+}
+\uElseIf{$N_3(c) > 0$}{
+  \tcp{C'est le cas o\`u il n'y a pas de $h$ donnant 1 ou 2 graines. On avait auparavant pris les 2 premi\`eres graines.}
+  on permet d'avoir 3 graines, et on en fusionnera 2 plus tard
+}
+\caption{\label{alg:volume:checking:to_look:at}\rule{0ex}{3ex}Traitement de \texttt{to\_look\_at}  dans \texttt{volume\_checking()}.}
+\end{algorithm}
+
+\item Traitement de  \verb|too_little|. On enl\`eve la graine correspondant \`a la fille de volume trop petit dans $\mathrm{Seeds}_{t+1}$. Si c'est la seule fille, la m\`ere n'a donc plus de descendance.
+
+\item S'il y a eu des changements pr\'ec\'edemment, on recalcule une image de segmentation $\hat{S}_{t+1}$ et les volumes des cellules de  $\hat{S}_{t+1}$. Sinon, on pourrait sortir de la fonction, ce qui n'est pas fait.
+
+\item Recalcul de la liste \verb|lower| (le seuil de 10\% est en dur et non r\'eglable par une variable). A priori, il faudrait recalculer aussi les autres listes. 
+
+\item Traitement de  \verb|lower|.
+\begin{itemize}
+\item On fait la diff\'erence entre la cellule m\`ere de $S^{\star}_{t+\delta t \leftarrow t}$ et les cellules filles de $\hat{S}_{t+1}$, et on regarde si le label majoritaire dans cette diff\'erence est le fond. Si c'est le fond, on va mettre le couple (m\`ere, fille(s)) dans une liste \verb|exterior_correction|, sinon on ne fait rien.
+\item Traitement de  \verb|exterior_correction| \cite[d\'ebut du point (2), section 2.3.3.6, page 73]{guignard:tel-01278725} avec les morphosnakes dans des sous-images (\texttt{perform\_ac()}, section \ref{sec:perform:ac}, page \pageref{sec:perform:ac}), c'est ce qui peut prendre du temps.
+
+Dans \texttt{perform\_ac()}, on calcule une norme de gradient (vient de \verb|cpp_wrapping.py|), puis $g(I) = \frac{1}{\sqrt{1+ \alpha |\nabla G_{\sigma}* I|}}$ comme dans \cite[Eq. (24)]{marquez-neil:pami:2014}. Toutefois, cette \'equation est faite pour avoir une image de potentiel avec de faibles valeurs pour les contours (ie les membranes). Elle n'est donc pas adapt\'ees pour nos images,
+
+\item R\'eincorporation des r\'esultats dans  $\hat{S}_{t+1}$. 
+
+Attention, s'il y avait plusieurs filles (une division), elles sont fusionn\'ees et la filiation ne donne plus qu'une fille.
+\end{itemize}
+
+\item Traitement de  \verb|to_fuse_3|. On \'elimine la plus petite des 3 cellules et on l'affecte à celle des 2 autres avec laquelle elle partage le plus de fronti\`ere.
+
+\end{itemize}
+
+
+
+\item \texttt{outer\_correction()} (\cite[fin du point (2), section 2.3.3.6, page 73]{guignard:tel-01278725} )
 (section \ref{sec:outer:correction}, page \pageref{sec:outer:correction})
+On r\'ealise une ouverture morphologique sur le masque de l'embryon (un ouvert est toujours inclus dans l'objet de d\'epart) et on enl\`eve, pour les cellules filles de  \verb|exterior_correction|, les points enlev\'es par l'ouverture. 
 
 
-\end{enumerate}
+\end{itemize}
 
-\end{enumerate}
+\end{itemize}
 
 
 
@@ -1275,6 +1439,8 @@ on efface dans les graines  \verb|seeeds_from_opt_h| les graines des filles pr\'
 
 ex: \verb|del h_min_information[(t+delta_t)*10**4+corres[c][0]]|
 
+Par ailleurs, on a forc\'ement plus de 3 graines : les graines \`a l'int\'erieur des cellules filles auront un label, et celles \`a l'ext\'erieur un autre. La division cellulaire est r\'ealis\'ee ainsi (alors qu'il pouvait d\'ej\`a y avoir une division cellulaire (cas \verb|nb_final| == 2) !)
+
 \color{black}
 \begin{verbatim} 
    521	                    change_happen=True
@@ -1293,7 +1459,7 @@ ex: \verb|del h_min_information[(t+delta_t)*10**4+corres[c][0]]|
    534	            elif nb_final==1:
 \end{verbatim} 
 \color{\mycolor}
-On est donc dans le cas o\`u \verb|(np.array(s)>2).any()| est faux, donc il n'y a que une ou deux graines. S'il y a deux graines, cela a d\'ej\`a \'et\'e trait\'e dans le premier test (ligne 489). On efface alors la graine de \verb|seeds_from_opt_h| et on la remplace par la graine projetée de \verb|seeds| ($S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$)
+On est donc dans le cas o\`u \verb|(np.array(s)>2).any()| est faux, donc il n'y a que une ou deux graines. S'il y a deux graines, cela a d\'ej\`a \'et\'e trait\'e dans le premier test (ligne 489). On efface alors la graine de \verb|seeds_from_opt_h| et on la remplace par la graine projet\'ee de \verb|seeds| ($S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$)
 \color{black}
 \begin{verbatim} 
    535	                change_happen=True
@@ -1585,7 +1751,7 @@ XOR entre le masque de l'embryon et son ouverture (qui y est inclus). La diff\'e
    680	        
 \end{verbatim}
 \color{\mycolor}
-Plut\^ot que de faire une boucle sur les cellules, on pourrait juste masquer \verb|seg_from_opt_h| par le masque de l'ouverture.
+Plut\^ot que de faire une boucle sur les cellules, on pourrait juste les cellules \`a corriger de \verb|seg_from_opt_h| par le masque de l'ouverture ?
 \color{black}
 \begin{verbatim}
    681	        for c in cells_to_correct:
