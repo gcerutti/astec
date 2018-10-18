@@ -139,7 +139,8 @@
 #
 #
 
-# EXP_REG = ''
+
+# EXP_INTRAREG = ''
 
 
 # ##### explanation #####
@@ -373,6 +374,36 @@ target_resolution = .3
 # fusion_margin_y_0 = 40
 # fusion_margin_y_1 = 40
 
+
+######################################################################
+#
+# intra-registration parameters
+#
+######################################################################
+
+# ##### explanation #####
+#
+# Intra-registration results are stored into 'PATH_EMBRYO'/INTRAREG/INTRAREG_'EXP_INTRAREG'
+#
+
+# intra_registration_compute_registration = True
+# intra_registration_transformation_type = 'rigid'
+# intra_registration_transformation_estimation_type = 'wlts'
+# intra_registration_lts_fraction = 0.55
+# intra_registration_pyramid_highest_level = 6
+# intra_registration_pyramid_lowest_level = 3
+# intra_registration_normalization = True
+
+# intra_registration_reference_index = None
+# intra_registration_template_type = "FUSION"
+# intra_registration_template_threshold = None
+# intra_registration_resolution = None
+# intra_registration_margin = None
+
+# intra_registration_resample_fusion_images = True
+# intra_registration_resample_segmentation_images = False
+# intra_registration_movie_fusion_images = True
+# intra_registration_movie_segmentation_images = False
 
 ######################################################################
 #

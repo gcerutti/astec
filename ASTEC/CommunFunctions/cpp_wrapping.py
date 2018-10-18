@@ -325,7 +325,9 @@ def linear_registration(path_ref, path_flo, path_output,
 
     path_to_exec = _find_exec('blockmatching')
 
-    command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo + " -res " + path_output
+    command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo
+    if path_output is not None:
+        command_line += " -res " + path_output
     if path_init_trsf is not None:
         command_line += " -init-res-trsf " + path_init_trsf + " -composition-with-initial"
     command_line += " -res-trsf " + path_output_trsf
@@ -338,6 +340,104 @@ def linear_registration(path_ref, path_flo, path_output,
         # monitoring.to_log_and_console("       non-normalized registration", 2)
         command_line += " -no-normalisation"
 
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+############################################################
+#
+# functions for intra-registration
+#
+############################################################
+
+
+def multiple_trsfs(format_input, format_output, first, last, reference, trsf_type='rigid', other_options=None,
+                   monitoring=None):
+    """
+
+    :param format_input:
+    :param format_output:
+    :param first:
+    :param last:
+    :param reference:
+    :param trsf_type:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('multipleTrsfs')
+
+    command_line = path_to_exec + " " + format_input + " -res " + format_output
+    command_line += " -method propagation "
+    command_line += " -first " + str(first) + " -last " + str(last)
+    command_line += " -reference " + str(reference)
+    command_line += " -trsf-type " + trsf_type
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def change_multiple_trsfs(format_input, format_output, first, last, reference, result_template, trsf_type='rigid',
+                          resolution=None, threshold=None, margin=None, format_template=None, other_options=None,
+                          monitoring=None):
+    """
+
+    :param format_input:
+    :param format_output:
+    :param first:
+    :param last:
+    :param reference:
+    :param result_template:
+    :param trsf_type:
+    :param resolution:
+    :param threshold:
+    :param margin:
+    :param format_template:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('changeMultipleTrsfs')
+
+    command_line = path_to_exec + " -format " + format_input + " -res-format " + format_output
+    command_line += " -first " + str(first) + " -last " + str(last)
+    command_line += " -reference " + str(reference)
+    command_line += " -result-template " + str(result_template)
+
+    command_line += " -trsf-type " + trsf_type
+
+    if resolution is not None:
+        if (type(resolution) is tuple or type(resolution) is list) and len(resolution) == 3:
+            command_line += " -result-voxel-size "
+            command_line += str(resolution[0]) + " " + str(resolution[1]) + " " + str(resolution[2])
+        elif type(resolution) is int or type(resolution) is float:
+            command_line += " -result-isotropic " + str(resolution)
+
+    if threshold is not None:
+        command_line += " -threshold " + str(threshold)
+
+    if margin is not None:
+        command_line += " -margin " + str(margin)
+
+    if format_template is not None:
+        command_line += " -template-format " + str(format_template)
+
+    #
+    #
+    #
     if other_options is not None:
         command_line += " " + other_options
 
@@ -2533,7 +2633,7 @@ def compose_trsf(path_trsf_1, path_trsf_2, path_output="tmp_compose.inr", lazy=T
     os.system(cmd)
     return out
 
-def multiple_trsfs(format_in, format_out, first_index, last_index, reference_index, trsf_type='rigid', method='propagation', nfloatingbefore=None, nfloatingafter=None, verbose=False):
+def _multiple_trsfs(format_in, format_out, first_index, last_index, reference_index, trsf_type='rigid', method='propagation', nfloatingbefore=None, nfloatingafter=None, verbose=False):
   '''
   Given the transformations between couple of images (typically successive
   images in a series), compute the transformations for every images with
@@ -2574,7 +2674,7 @@ def multiple_trsfs(format_in, format_out, first_index, last_index, reference_ind
     print cmd
   os.system(cmd)
 
-def change_multiple_trsfs(format_trsf_in, 
+def _change_multiple_trsfs(format_trsf_in,
                           format_trsf_out, 
                           format_image_in, template_image_out, 
                           first_index, last_index, 

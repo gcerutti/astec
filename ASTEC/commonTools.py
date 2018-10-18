@@ -522,7 +522,7 @@ def add_suffix(filename, suffix, new_dirname=None, new_extension=None):
 
 def find_file(data_path, file_prefix, monitoring=None, verbose=True):
     """
-    find a file in a directory with a given prefix. The suffix is unknowm
+    find a file in a directory with a given prefix. The suffix is unknown
 
     :param data_path:
     :param file_prefix:

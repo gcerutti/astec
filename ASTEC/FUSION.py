@@ -1051,11 +1051,11 @@ def _init_rotation_matrix(axis, angle, ref_center=None, flo_center=None):
         if flo_center is not None:
             trs = flo_center - np.dot(rot, flo_center)
         else:
-            trs = np.array[0.,0.,0.]
+            trs = np.array[0., 0., 0.]
 
     mat = np.identity(4)
     mat[0:3, 0:3] = rot
-    (mat.T)[3:4,0:3] = trs
+    (mat.T)[3:4, 0:3] = trs
 
     return mat
 
