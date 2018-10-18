@@ -36,8 +36,8 @@ FLAG_EN = '$EN'
 # - RAW DATA are stored in [FLAG_PATH_EMBRYO]/[FLAG_DIR_RAWDATA]
 # - Fusion experiments stored in
 #   [FLAG_PATH_EMBRYO]/[DIR_STAGE_FUSE]/[DIR_STAGE_FUSE]_[FLAG_EXP_FUSE]
-# - Registration experiments stored in
-#   [FLAG_PATH_EMBRYO]/[DIR_STAGE_REG]/[DIR_STAGE_REG]_[FLAG_EXP_REG]
+# - Intra-registration experiments stored in
+#   [FLAG_PATH_EMBRYO]/[DIR_STAGE_INTRAREG]/[DIR_STAGE_INTRAREG]_[FLAG_EXP_FUSE]
 # - Mars experiments (segmentation of first time point) stored in
 #   [FLAG_PATH_EMBRYO]/[DIR_STAGE_MARS]/[DIR_STAGE_MARS]_[FLAG_EXP_MARS]
 # - Segmentation propagation experiments stored in
@@ -47,17 +47,20 @@ FLAG_EN = '$EN'
 
 FLAG_DIR_RAWDATA = '$DIRRAWDATA'
 DIR_STAGE_FUSE = 'FUSE'
-DIR_STAGE_REG = 'REG'
+DIR_STAGE_INTRAREG = 'INTRAREG'
 DIR_STAGE_MARS = 'SEG'
 DIR_STAGE_SEG = 'SEG'
 DIR_STAGE_POST = 'POST'
 
+DIR_STAGE_REG = 'REG'
+
 FLAG_EXP_FUSE = '$FUSE'		# defining fusion experiments subdirectory
-FLAG_EXP_REG = '$REG'			# defining registration experiments subdirectory
+FLAG_EXP_INTRAREG = '$INTRAREG'			# defining registration experiments subdirectory
 FLAG_EXP_MARS = '$MARS'		# defining mars experiments subdirectory
 FLAG_EXP_SEG = '$SEG'			# defining seg propagation experiments subdirectory
 FLAG_EXP_POST = '$POST'		# defining post correction experiments subdirectory
 
+FLAG_EXP_REG = '$REG'
 
 #
 # Flags relative to file name
@@ -150,6 +153,29 @@ path_fuse_logdir = os.path.join(path_fuse_exp, 'LOGS')
 path_fuse_historyfile = os.path.join(path_fuse_logdir, FLAG_EXECUTABLE + '-history.log')
 path_fuse_logfile = os.path.join(path_fuse_logdir, FLAG_EXECUTABLE + '-' + FLAG_TIMESTAMP + '.log')
 
+#
+# INTRA REGISTRATION DATA
+#
+
+# main path
+path_intrareg = os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_INTRAREG)
+# path for intra-registration workspace
+path_intrareg_exp = os.path.join(path_intrareg, DIR_STAGE_INTRAREG + '_' + FLAG_EXP_INTRAREG)
+# fused images generic name
+path_intrareg_exp_files = FLAG_EN + '_intrareg_t' + FLAG_TIME
+
+# path for intra-registration co-registration transformation
+path_intrareg_cotrsf = os.path.join(path_intrareg_exp, 'CO-TRSFS')
+path_intrareg_cotrsf_files = FLAG_EN + '_intrareg_flo' + FLAG_TIMEFLO + '_ref' + FLAG_TIMEREF + '.trsf'
+path_intrareg_trsf = os.path.join(path_intrareg_exp, 'TRSFS')
+path_intrareg_trsf_files = FLAG_EN + '_intrareg_t' + FLAG_TIME + '.trsf'
+
+# log files
+path_intrareg_logdir = os.path.join(path_intrareg_exp, 'LOGS')
+path_intrareg_historyfile = os.path.join(path_intrareg_logdir, FLAG_EXECUTABLE + '-history.log')
+path_intrareg_logfile = os.path.join(path_intrareg_logdir, FLAG_EXECUTABLE + '-' + FLAG_TIMESTAMP + '.log')
+
+
 
 #
 # MARS DATA
@@ -238,21 +264,21 @@ path_post_logfile = os.path.join(path_post_exp, '5-postcorrection.log')
 #
 
 
-path_intrareg= os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_REG) # Path intra registration data
-path_intrareg_exp= os.path.join(path_intrareg, DIR_STAGE_REG+'_'+FLAG_EXP_REG) # Path intra registration data
-path_intrareg_step_files= os.path.join(path_intrareg_exp, \
-		FLAG_EN+'_reg_t$TIMEFLO_t$TIMEREF.trsf') # Intra registration step-by-step
+#path_intrareg= os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_REG) # Path intra registration data
+#path_intrareg_exp= os.path.join(path_intrareg, DIR_STAGE_REG+'_'+FLAG_EXP_REG) # Path intra registration data
+#path_intrareg_step_files= os.path.join(path_intrareg_exp, \
+#		FLAG_EN+'_reg_t$TIMEFLO_t$TIMEREF.trsf') # Intra registration step-by-step
 											# trsf file names
-path_intrareg_multiple_files= os.path.join(path_intrareg, \
-		FLAG_EN+'_reg_compose_t$TIME_t$TIME.trsf') # Intra registration composed 
+#path_intrareg_multiple_files= os.path.join(path_intrareg, \
+#		FLAG_EN+'_reg_compose_t$TIME_t$TIME.trsf') # Intra registration composed
 											  #trsf file names
-path_intrareg_change_files= os.path.join(path_intrareg, \
-		FLAG_EN+'_reg_compose_t$TIME.trsf') # Intra registration recentered trsf 
+#path_intrareg_change_files= os.path.join(path_intrareg, \
+#		FLAG_EN+'_reg_compose_t$TIME.trsf') # Intra registration recentered trsf
 									   # file names
-path_intrareg_change_template= os.path.join(path_intrareg, \
-		FLAG_EN+'_reg_compose_template.inr.gz') # Intra registration template file
+#path_intrareg_change_template= os.path.join(path_intrareg, \
+#		FLAG_EN+'_reg_compose_template.inr.gz') # Intra registration template file
 										   # name for recentered trsfs
-iso_intra_registration=1.0		# Parameter for intra registration resampled 
+#iso_intra_registration=1.0		# Parameter for intra registration resampled
 								# images resolution
 
 
@@ -330,13 +356,13 @@ named_lineage_tree_test_filename=postsegment_Path+FLAG_EN+'_fuse_seg_post_lin_tr
 ##############################################################
 
 
-def replaceTIME(filename, time, timeDigits=3):
+def replaceTIME(filename, time, flag=FLAG_TIME, timeDigits=3):
     """
     Replaces all the occurrences of "$TIME" by its value given by time of 
     type int at the format specified by _format argument (default="%03d")
     """
-    time_point= '{:0{width}d}'.format( time, width=timeDigits)
-    return filename.replace(FLAG_TIME, time_point)
+    time_point= '{:0{width}d}'.format(time, width=timeDigits)
+    return filename.replace(flag, time_point)
 
 
 #def replaceTIMEFLO(filename,time,_format="%03d"):
@@ -503,6 +529,9 @@ def replaceFlags(filename, parameters, timestamp=None, check_name=False):
         elif flag == FLAG_EXP_REG:
             filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_REG', 'RELEASE')
 
+        elif flag == FLAG_EXP_INTRAREG:
+            filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_INTRAREG', 'RELEASE')
+
         elif flag == FLAG_EXP_MARS:
             filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_MARS', 'RELEASE')
 
@@ -518,7 +547,7 @@ def replaceFlags(filename, parameters, timestamp=None, check_name=False):
         elif flag == FLAG_TIMESTAMP:
             filename = replaceTIMESTAMP(filename, timestamp)
 
-        elif flag == FLAG_TIME or flag == FLAG_EXECUTABLE:
+        elif flag == FLAG_TIME or flag == FLAG_TIMEFLO or flag == FLAG_TIMEREF or flag == FLAG_EXECUTABLE:
             #
             # just not to get the default message
             # $TIME may be replaced later

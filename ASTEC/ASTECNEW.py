@@ -352,12 +352,19 @@ class AstecParameters(object):
         #
         # images suffixes/formats
         #
+        if hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
+            if parameters.result_image_suffix is not None:
+                self.result_image_suffix = parameters.RESULT_IMAGE_SUFFIX_FUSE
         if hasattr(parameters, 'result_image_suffix'):
             if parameters.result_image_suffix is not None:
                 self.result_image_suffix = parameters.result_image_suffix
+
         if hasattr(parameters, 'default_image_suffix'):
             if parameters.default_image_suffix is not None:
                 self.default_image_suffix = parameters.default_image_suffix
+                if not hasattr(parameters, 'result_image_suffix') \
+                    and not hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
+                    self.result_image_suffix = parameters.default_image_suffix
 
 
 ########################################################################################
