@@ -48,13 +48,20 @@ class IntraRegEnvironment(object):
         # registration data path
         #
         self.path_intrareg_exp = None
-        self.path_intrareg_exp_files = None
 
         self.path_intrareg_cotrsf = None
         self.path_intrareg_cotrsf_files = None
 
         self.path_intrareg_trsf = None
         self.path_intrareg_trsf_files = None
+
+        #
+        # result data
+        #
+        self.path_intrareg_fuse = None
+        self.path_intrareg_fuse_files = None
+        self.path_intrareg_seg = None
+        self.path_intrareg_seg_files = None
 
         #
         #
@@ -80,12 +87,16 @@ class IntraRegEnvironment(object):
         self.path_seg_exp_files = nomenclature.replaceFlags(nomenclature.path_seg_exp_files, parameters)
 
         self.path_intrareg_exp = nomenclature.replaceFlags(nomenclature.path_intrareg_exp, parameters)
-        self.path_intrareg_exp_files = nomenclature.replaceFlags(nomenclature.path_intrareg_exp_files, parameters)
 
         self.path_intrareg_cotrsf = nomenclature.replaceFlags(nomenclature.path_intrareg_cotrsf, parameters)
         self.path_intrareg_cotrsf_files = nomenclature.replaceFlags(nomenclature.path_intrareg_cotrsf_files, parameters)
         self.path_intrareg_trsf = nomenclature.replaceFlags(nomenclature.path_intrareg_trsf, parameters)
         self.path_intrareg_trsf_files = nomenclature.replaceFlags(nomenclature.path_intrareg_trsf_files, parameters)
+
+        self.path_intrareg_fuse = nomenclature.replaceFlags(nomenclature.path_intrareg_fuse, parameters)
+        self.path_intrareg_fuse_files = nomenclature.replaceFlags(nomenclature.path_intrareg_fuse_files, parameters)
+        self.path_intrareg_seg = nomenclature.replaceFlags(nomenclature.path_intrareg_seg, parameters)
+        self.path_intrareg_seg_files = nomenclature.replaceFlags(nomenclature.path_intrareg_seg_files, parameters)
 
         self.path_logdir = nomenclature.replaceFlags(nomenclature.path_intrareg_logdir, parameters)
         self.path_history_file = nomenclature.replaceFlags(nomenclature.path_intrareg_historyfile, parameters)
@@ -104,12 +115,16 @@ class IntraRegEnvironment(object):
             logfile.write('- path_seg_exp_files = ' + str(self.path_seg_exp_files) + '\n')
 
             logfile.write('- path_intrareg_exp = ' + str(self.path_intrareg_exp) + '\n')
-            logfile.write('- path_intrareg_exp_files = ' + str(self.path_intrareg_exp_files) + '\n')
 
             logfile.write('- path_intrareg_cotrsf = ' + str(self.path_intrareg_cotrsf) + '\n')
             logfile.write('- path_intrareg_cotrsf_files = ' + str(self.path_intrareg_cotrsf_files) + '\n')
             logfile.write('- path_intrareg_trsf = ' + str(self.path_intrareg_trsf) + '\n')
             logfile.write('- path_intrareg_trsf_files = ' + str(self.path_intrareg_trsf_files) + '\n')
+
+            logfile.write('- path_intrareg_fuse = ' + str(self.path_intrareg_fuse) + '\n')
+            logfile.write('- path_intrareg_fuse_files = ' + str(self.path_intrareg_fuse_files) + '\n')
+            logfile.write('- path_intrareg_seg = ' + str(self.path_intrareg_seg) + '\n')
+            logfile.write('- path_intrareg_seg_files = ' + str(self.path_intrareg_seg_files) + '\n')
 
             logfile.write('- path_logdir = ' + str(self.path_logdir) + '\n')
             logfile.write('- path_history_file = ' + str(self.path_history_file)+'\n')
@@ -129,12 +144,16 @@ class IntraRegEnvironment(object):
         print('- path_seg_exp_files = ' + str(self.path_seg_exp_files))
 
         print('- path_intrareg_exp = ' + str(self.path_intrareg_exp))
-        print('- path_intrareg_exp_files = ' + str(self.path_intrareg_exp_files))
 
         print('- path_intrareg_cotrsf = ' + str(self.path_intrareg_cotrsf))
         print('- path_intrareg_cotrsf_files = ' + str(self.path_intrareg_cotrsf_files))
         print('- path_intrareg_trsf = ' + str(self.path_intrareg_trsf))
         print('- path_intrareg_trsf_files = ' + str(self.path_intrareg_trsf_files))
+
+        print('- path_intrareg_fuse = ' + str(self.path_intrareg_fuse))
+        print('- path_intrareg_fuse_files = ' + str(self.path_intrareg_fuse_files))
+        print('- path_intrareg_seg = ' + str(self.path_intrareg_seg))
+        print('- path_intrareg_seg_files = ' + str(self.path_intrareg_seg_files))
 
         print('- path_logdir = ' + str(self.path_logdir))
         print('- path_history_file = ' + str(self.path_history_file))
@@ -406,8 +425,8 @@ def _get_file_suffix(experiment, data_path, file_format):
 
         nimages += 1
 
-    for s in suffixes:
-        if suffixes[s] == nimages:
+    for s, n in suffixes.items():
+        if n == nimages:
             return s
 
     monitoring.to_log_and_console(proc + ": no common suffix for '" + str(file_format)
@@ -475,7 +494,8 @@ def _coregistration_control(experiment, environment, parameters):
 
 def _transformations_from_reference(experiment, environment, parameters, temporary_dir):
     """
-
+    Combine the transformations issued from the co-registration of pairs of successive images
+    to get transformations from one given image
     :param experiment:
     :param environment:
     :param parameters:
@@ -513,7 +533,7 @@ def _transformations_from_reference(experiment, environment, parameters, tempora
 
 def _transformations_and_template(experiment, environment, parameters, temporary_dir, result_template):
     """
-
+    From transformations from one given image, compute the template to resample all images.
     :param experiment:
     :param environment:
     :param parameters:
@@ -583,6 +603,53 @@ def _transformations_and_template(experiment, environment, parameters, temporary
                                        margin=parameters.margin, format_template=template_format, monitoring=None)
 
     return
+
+
+def _resample_images(experiment, environment, parameters, dir_input, format_input, dir_output, format_output,
+                     template_image, nearest=False):
+    """
+
+    :param experiment:
+    :param environment:
+    :param parameters:
+    :param dir_input:
+    :param format_input:
+    :param dir_output:
+    :param format_output:
+    :param template_image:
+    :param nearest:
+    :return:
+    """
+
+    if not os.path.isdir(dir_output):
+        os.makedirs(dir_output)
+
+    first_time_point = experiment.first_time_point + experiment.delay_time_point
+    last_time_point = experiment.last_time_point + experiment.delay_time_point
+
+    for t in range(first_time_point + experiment.delay_time_point, last_time_point + experiment.delay_time_point + 1,
+                   experiment.delta_time_point):
+
+        output_name = nomenclature.replaceTIME(format_output, t)
+        output_image = commonTools.find_file(dir_output, output_name, monitoring=None, verbose=False)
+
+        if output_image is None or monitoring.forceResultsToBeBuilt is True:
+            input_name = nomenclature.replaceTIME(format_input, t)
+            input_image = commonTools.find_file(dir_input, input_name, monitoring)
+            output_image = os.path.join(dir_output, output_name + '.' + str(parameters.result_image_suffix))
+
+            if input_image is None:
+                monitoring.to_log_and_console(proc + ": image '" + str(input_name) + "' was not found in '"
+                                              + str(dir_input) + "'", 1)
+            else:
+                trsf_name = os.path.join(environment.path_intrareg_trsf,
+                                         nomenclature.replaceTIME(environment.path_intrareg_trsf_files, t))
+                input_image = os.path.join(dir_input, input_image)
+                cpp_wrapping.apply_transformation(input_image, output_image, trsf_name, template_image, nearest=nearest,
+                                                  monitoring=monitoring)
+
+    return
+
 
 ########################################################################################
 #
@@ -659,6 +726,21 @@ def intraregistration_control(experiment, environment, parameters):
     # template image and resampling transformations have been computed
     # resample images if required
     #
+    # NOTE: il y a un probleme de coherence, puisque la premiere image de segmentation peut etre issue
+    # de mars et donc etre nommee differemment. Pour le reechantillonage, on pourrait utitliser
+    # reconstruction.get_segmentation_image()
+    #
+    if parameters.resample_fusion_images is True:
+        monitoring.to_log_and_console("    .. resampling fusion images", 2)
+        _resample_images(experiment, environment, parameters, environment.path_fuse_exp,
+                         environment.path_fuse_exp_files, environment.path_intrareg_fuse,
+                         environment.path_intrareg_fuse_files, result_template)
+
+    if parameters.resample_segmentation_images is True:
+        monitoring.to_log_and_console("    .. resampling segmentation images", 2)
+        _resample_images(experiment, environment, parameters, environment.path_seg_exp, environment.path_seg_exp_files,
+                         environment.path_intrareg_seg, environment.path_intrareg_seg_files, result_template,
+                         nearest=True)
 
     #
     # end processing
