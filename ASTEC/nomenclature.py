@@ -161,8 +161,6 @@ path_fuse_logfile = os.path.join(path_fuse_logdir, FLAG_EXECUTABLE + '-' + FLAG_
 path_intrareg = os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_INTRAREG)
 # path for intra-registration workspace
 path_intrareg_exp = os.path.join(path_intrareg, DIR_STAGE_INTRAREG + '_' + FLAG_EXP_INTRAREG)
-# fused images generic name
-path_intrareg_exp_files = FLAG_EN + '_intrareg_t' + FLAG_TIME
 
 # path for intra-registration co-registration transformation
 path_intrareg_cotrsf = os.path.join(path_intrareg_exp, 'CO-TRSFS')
@@ -170,11 +168,20 @@ path_intrareg_cotrsf_files = FLAG_EN + '_intrareg_flo' + FLAG_TIMEFLO + '_ref' +
 path_intrareg_trsf = os.path.join(path_intrareg_exp, 'TRSFS')
 path_intrareg_trsf_files = FLAG_EN + '_intrareg_t' + FLAG_TIME + '.trsf'
 
+path_intrareg_fuse = os.path.join(path_intrareg_exp, 'FUSE')
+path_intrareg_seg = os.path.join(path_intrareg_exp, 'SEG')
+
 # log files
 path_intrareg_logdir = os.path.join(path_intrareg_exp, 'LOGS')
 path_intrareg_historyfile = os.path.join(path_intrareg_logdir, FLAG_EXECUTABLE + '-history.log')
 path_intrareg_logfile = os.path.join(path_intrareg_logdir, FLAG_EXECUTABLE + '-' + FLAG_TIMESTAMP + '.log')
 
+# resampled images
+path_intrareg_fuse = os.path.join(path_intrareg_exp, 'FUSE')
+path_intrareg_fuse_files = FLAG_EN + '_intrareg_fuse_t' + FLAG_TIME
+
+path_intrareg_seg = os.path.join(path_intrareg_exp, 'SEG')
+path_intrareg_seg_files = FLAG_EN + '_intrareg_seg_t' + FLAG_TIME
 
 
 #
