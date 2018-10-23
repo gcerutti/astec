@@ -542,11 +542,14 @@ def find_file(data_path, file_prefix, monitoring=None, verbose=True):
             print("\t Exiting.")
         sys.exit(1)
 
+    #
+    # get all file names beginning by the given prefix followed by '.'
+    #
     file_names = []
     for f in os.listdir(data_path):
         if len(f) <= len(file_prefix):
             pass
-        if f[0:len(file_prefix)] == file_prefix:
+        if f[0:len(file_prefix)] == file_prefix and f[len(file_prefix)] == '.':
             file_names.append(f)
 
     if len(file_names) == 0:

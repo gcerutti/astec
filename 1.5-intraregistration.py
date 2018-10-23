@@ -1,79 +1,167 @@
 #!/usr/bin/python2.7
 
+import os
+import time
+from argparse import ArgumentParser
 
-# ASTEC  intra-sequence registration
-from definitions import *
-if not os.path.isdir(intrareg_Path):
-    os.mkdir(intrareg_Path)  
-os.system("cp -f "+astec_Path+"definitions.py "+intrareg_Path )
-os.system("cp -f "+astec_Path+"1.5-intraregistration.py "+intrareg_Path ) 
-
-#Import Functions
-from ImageHandling import imread, imsave, SpatialImage
-from lineage import timeNamed,timesNamed #, read_lineage_tree,write_lineage_tree,
-from cpp_wrapping import rigid_registration, multiple_trsfs, change_multiple_trsfs
-#from ASTEC import segmentation_propagation
-from REGISTRATION import compute_intra_sequence_two_by_two_registration, compute_intra_sequence_respatialization_trsfs, compute_optimized_intra_sequence_respatialization_trsfs, intra_sequence_realignment, compose_transformation_stack_with_a_transformation
-
-iso=iso_intra_registration
-
-### Parameters:
+#
+# local imports
+# add ASTEC subdirectory
+#
 
 
-
-### Stuff:
-
-# Step-by-step
-
-
-compute_intra_sequence_two_by_two_registration(fused_files, intrareg_step_files, begin=begin, end=end, delta=delta, verbose=True)
-
-# Recomputing the trsfs with a unique reference
-
-time_point_ref=compute_intra_sequence_respatialization_trsfs(intrareg_step_files, intrareg_multiple_files, begin=begin, end=end, verbose=True)
-
-# Next step : usage of function "changeMultipleTrsfs" for 
-#	- computing the minimal window for building a 3D+t subsequence of images of the full sequence 
-#	- building a template image into which the original images will be transformed
+import ASTEC.commonTools as commonTools
+import ASTEC.INTRAREGISTRATION as INTRAREG
+import ASTEC.nomenclature as nomenclature
+from ASTEC.CommunFunctions.cpp_wrapping import path_to_vt
 
 
-if intrareg_multiple_files.count('$TIME')==2:
-	intrareg_comp_format=intrareg_multiple_files.split('$TIME')
-	intrareg_comp_format=intrareg_comp_format[0]+'$TIME'+intrareg_comp_format[1]+('%03d'%time_point_ref)+intrareg_comp_format[2]
-else:
-	intrareg_comp_format=intrareg_multiple_files
-
-compute_optimized_intra_sequence_respatialization_trsfs(postsegment_files, intrareg_comp_format, intrareg_change_template, intrareg_change_files, begin, end, threshold=2, iso=iso, margin=10, verbose=True)
-
-# Resampling a sequence of segmented images in a unique referential
+#
+#
+#
+#
+#
 
 
-intra_sequence_realignment(postsegment_files, "TMP_COMPOSE/foo_compose_t$TIME.mha", intrareg_change_files, 
-						   template_image=intrareg_change_template, begin=begin, end=end, delta=delta, nearest=True, visu=True, verbose=True)
+def _set_options(my_parser):
+    proc = "_set_options"
+    if not isinstance(my_parser, ArgumentParser):
+        print proc + ": argument is not of type ArgumentParser"
+        return
+    #
+    # common parameters
+    #
 
-################################################################################################
-#### or for example, if one wants to apply transformation on the sequence of fused images : ####
-################################################################################################
-intra_sequence_realignment(fused_files, "TMP_COMPOSE/foo_fused_compose_t$TIME.mha", intrareg_change_files, 
-						   template_image=intrareg_change_template, begin=begin, end=end, delta=delta, nearest=False, visu=False, verbose=True)
+    my_parser.add_argument('-p', '--parameters',
+                           action='store', dest='parameterFile', const=None,
+                           help='python file containing parameters definition')
+    my_parser.add_argument('-e', '--embryo-rep',
+                           action='store', dest='embryo_path', const=None,
+                           help='path to the embryo data')
+
+    #
+    # control parameters
+    #
+
+    my_parser.add_argument('-k', '--keep-temporary-files',
+                           action='store_const', dest='keepTemporaryFiles',
+                           default=False, const=True,
+                           help='keep temporary files')
+
+    my_parser.add_argument('-f', '--force',
+                           action='store_const', dest='forceResultsToBeBuilt',
+                           default=False, const=True,
+                           help='force building of results')
+
+    my_parser.add_argument('-v', '--verbose',
+                           action='count', dest='verbose', default=2,
+                           help='incrementation of verboseness')
+    my_parser.add_argument('-nv', '--no-verbose',
+                           action='store_const', dest='verbose', const=0,
+                           help='no verbose at all')
+    my_parser.add_argument('-d', '--debug',
+                           action='count', dest='debug', default=0,
+                           help='incrementation of debug level')
+    my_parser.add_argument('-nd', '--no-debug',
+                           action='store_const', dest='debug', const=0,
+                           help='no debug information')
+
+    return
 
 
-#############################################################################################################################
-#### or for example, if an optimal template has not been computed before or if one does not need to keep this template : ####
-#############################################################################################################################
-#intra_sequence_realignment(postsegment_files, "TMP/foo_t$TIME.mha", intrareg_comp_format, 
-#						   template_image=None, begin=begin, end=end, delta=delta, nearest=True, iso=1.0, threshold=2, margin=10, visu=True, verbose=True)
+#
+#
+# main 
+#
+#
 
 
-# If needed to compose with any transformation to rotate the movie onto a specific orientation
+if __name__ == '__main__':
 
-if os.path.exists(intrareg_germinal_file):
-	# The following code will enable to compute a resampling of the sequence following a specific orientation 
-	# (usually, this orientation is given by registering the reference time-point 'time_point_ref' of the present
-	# sequence onto the reference embryo 140317-Patrick-St8 and by composing this transformation with the 
-	# "germinal transformation" of Patrick)
-	if not os.path.isdir(intrareg_germinal_Path):
-		os.mkdir(intrareg_germinal_Path) 
-	compose_transformation_stack_with_a_transformation(intrareg_comp_format, intrareg_germinal_file, intrareg_germinal_files, begin, end, verbose=True)
-	intra_sequence_realignment(postsegment_files, "TMP/foo_germinal_t$TIME.mha", intrareg_germinal_files, 
-						   template_image=None, begin=begin, end=end, delta=delta, nearest=True, iso=iso, threshold=2, margin=10, visu=True, verbose=True)
+    #
+    # initialization
+    #
+    start_time = time.localtime()
+    monitoring = commonTools.Monitoring()
+    experiment = commonTools.Experiment()
+    parameters = INTRAREG.IntraRegParameters()
+    environment = INTRAREG.IntraRegEnvironment()
+
+    #
+    # reading command line arguments
+    #
+    parser = ArgumentParser(description='Fused sequence intra-registration')
+    _set_options(parser)
+    args = parser.parse_args()
+
+    monitoring.update_from_args(args)
+    experiment.update_from_args(args)
+
+    #
+    # reading parameter files
+    # and updating parameters
+    #
+    parameterFile = commonTools.get_parameter_file(args.parameterFile)
+    environment.update_from_file(parameterFile, start_time)
+    environment.path_history_file = nomenclature.replaceEXECUTABLE(environment.path_history_file, __file__)
+    environment.path_log_file = nomenclature.replaceEXECUTABLE(environment.path_log_file, __file__)
+
+    if not os.path.isdir(environment.path_logdir):
+        os.makedirs(environment.path_logdir)
+
+    experiment.update_from_file(parameterFile)
+    parameters.update_from_file(parameterFile)
+
+    #
+    # make fusion directory and subdirectory if required
+    # => allows to write log and history files
+    #    and to copy parameter file
+    #
+    # for i in range(0, len(environment.channel)):
+    #    if not os.path.isdir(environment.channel[i].path_fuse_exp):
+    #        os.makedirs(environment.channel[i].path_fuse_exp)
+
+    #
+    # write history information in history file
+    #
+    commonTools.write_history_information(environment.path_history_file,
+                                          experiment,
+                                          parameterFile,
+                                          start_time,
+                                          os.path.dirname(__file__),
+                                          path_to_vt())
+
+    #
+    # define log file
+    # and write some information
+    #
+    monitoring.logfile = environment.path_log_file
+    INTRAREG.monitoring.copy(monitoring)
+
+    experiment.write_parameters(monitoring.logfile)
+    environment.write_parameters(monitoring.logfile)
+    parameters.write_parameters(monitoring.logfile)
+
+    #
+    # copy parameter file
+    #
+    commonTools.copy_date_stamped_file(parameterFile, environment.path_logdir, start_time)
+
+    #
+    # processing
+    #
+    INTRAREG.intraregistration_control(experiment, environment, parameters)
+
+    #
+    # end of execution
+    # write execution time in both log and history file
+    #
+    endtime = time.localtime()
+    with open(environment.path_log_file, 'a') as logfile:
+        logfile.write("\n")
+        logfile.write('Total execution time = '+str(time.mktime(endtime)-time.mktime(start_time))+' sec\n')
+        logfile.write("\n")
+
+    with open(environment.path_history_file, 'a') as logfile:
+        logfile.write('# Total execution time = '+str(time.mktime(endtime)-time.mktime(start_time))+' sec\n')
+        logfile.write("\n\n")

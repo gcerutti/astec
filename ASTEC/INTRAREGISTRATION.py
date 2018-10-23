@@ -7,6 +7,7 @@ import time
 
 import commonTools
 import nomenclature
+from CommunFunctions.ImageHandling import SpatialImage, imread
 import CommunFunctions.cpp_wrapping as cpp_wrapping
 
 #
@@ -56,12 +57,17 @@ class IntraRegEnvironment(object):
         self.path_intrareg_trsf_files = None
 
         #
-        # result data
+        # resampled data
         #
         self.path_intrareg_fuse = None
         self.path_intrareg_fuse_files = None
         self.path_intrareg_seg = None
         self.path_intrareg_seg_files = None
+
+        #
+        # movies
+        #
+        self.path_intrareg_movies = None
 
         #
         #
@@ -98,6 +104,8 @@ class IntraRegEnvironment(object):
         self.path_intrareg_seg = nomenclature.replaceFlags(nomenclature.path_intrareg_seg, parameters)
         self.path_intrareg_seg_files = nomenclature.replaceFlags(nomenclature.path_intrareg_seg_files, parameters)
 
+        self.path_intrareg_movies = nomenclature.replaceFlags(nomenclature.path_intrareg_movies, parameters)
+
         self.path_logdir = nomenclature.replaceFlags(nomenclature.path_intrareg_logdir, parameters)
         self.path_history_file = nomenclature.replaceFlags(nomenclature.path_intrareg_historyfile, parameters)
         self.path_log_file = nomenclature.replaceFlags(nomenclature.path_intrareg_logfile, parameters, start_time)
@@ -125,6 +133,8 @@ class IntraRegEnvironment(object):
             logfile.write('- path_intrareg_fuse_files = ' + str(self.path_intrareg_fuse_files) + '\n')
             logfile.write('- path_intrareg_seg = ' + str(self.path_intrareg_seg) + '\n')
             logfile.write('- path_intrareg_seg_files = ' + str(self.path_intrareg_seg_files) + '\n')
+
+            logfile.write('- path_intrareg_movies = ' + str(self.path_intrareg_movies) + '\n')
 
             logfile.write('- path_logdir = ' + str(self.path_logdir) + '\n')
             logfile.write('- path_history_file = ' + str(self.path_history_file)+'\n')
@@ -154,6 +164,8 @@ class IntraRegEnvironment(object):
         print('- path_intrareg_fuse_files = ' + str(self.path_intrareg_fuse_files))
         print('- path_intrareg_seg = ' + str(self.path_intrareg_seg))
         print('- path_intrareg_seg_files = ' + str(self.path_intrareg_seg_files))
+
+        print('- path_intrareg_movies = ' + str(self.path_intrareg_movies))
 
         print('- path_logdir = ' + str(self.path_logdir))
         print('- path_history_file = ' + str(self.path_history_file))
@@ -187,7 +199,7 @@ class IntraRegParameters(object):
         self.reference_index = None
         self.template_type = "FUSION"
         self.template_threshold = None
-        self.resolution = None
+        self.resolution = 0.6
         self.margin = None
 
         #
@@ -199,6 +211,14 @@ class IntraRegParameters(object):
 
         self.movie_fusion_images = True
         self.movie_segmentation_images = False
+
+        self.xy_movie_fusion_images = []
+        self.xz_movie_fusion_images = []
+        self.yz_movie_fusion_images = []
+
+        self.xy_movie_segmentation_images = []
+        self.xz_movie_segmentation_images = []
+        self.yz_movie_segmentation_images = []
 
         #
         # images suffixes/formats
@@ -234,8 +254,21 @@ class IntraRegParameters(object):
 
             logfile.write('- resample_fusion_images = ' + str(self.resample_fusion_images) + '\n')
             logfile.write('- resample_segmentation_images = ' + str(self.resample_segmentation_images) + '\n')
+
+            #
+            # movie parameters
+            #
+
             logfile.write('- movie_fusion_images = ' + str(self.movie_fusion_images) + '\n')
             logfile.write('- movie_segmentation_images = ' + str(self.movie_segmentation_images) + '\n')
+
+            logfile.write('- xy_movie_fusion_images = ' + str(self.xy_movie_fusion_images) + '\n')
+            logfile.write('- xz_movie_fusion_images = ' + str(self.xz_movie_fusion_images) + '\n')
+            logfile.write('- yz_movie_fusion_images = ' + str(self.yz_movie_fusion_images) + '\n')
+
+            logfile.write('- xy_movie_segmentation_images = ' + str(self.xy_movie_segmentation_images) + '\n')
+            logfile.write('- xz_movie_segmentation_images = ' + str(self.xz_movie_segmentation_images) + '\n')
+            logfile.write('- yz_movie_segmentation_images = ' + str(self.yz_movie_segmentation_images) + '\n')
 
             #
             # images suffixes/formats
@@ -273,8 +306,21 @@ class IntraRegParameters(object):
 
         print('- resample_fusion_images = ' + str(self.resample_fusion_images))
         print('- resample_segmentation_images = ' + str(self.resample_segmentation_images))
+
+        #
+        # movie parameters
+        #
+
         print('- movie_fusion_images = ' + str(self.movie_fusion_images))
         print('- movie_segmentation_images = ' + str(self.movie_segmentation_images))
+
+        print('- xy_movie_fusion_images = ' + str(self.xy_movie_fusion_images))
+        print('- xz_movie_fusion_images = ' + str(self.xz_movie_fusion_images))
+        print('- yz_movie_fusion_images = ' + str(self.yz_movie_fusion_images))
+
+        print('- xy_movie_segmentation_images = ' + str(self.xy_movie_segmentation_images))
+        print('- xz_movie_segmentation_images = ' + str(self.xz_movie_segmentation_images))
+        print('- yz_movie_segmentation_images = ' + str(self.yz_movie_segmentation_images))
 
         #
         # images suffixes/formats
@@ -305,29 +351,58 @@ class IntraRegParameters(object):
         #
 
         if hasattr(parameters, 'intra_registration_reference_index'):
-            self.reference_index = parameters.intra_registration_reference_index
+            if parameters.intra_registration_reference_index is not None:
+                self.reference_index = parameters.intra_registration_reference_index
         if hasattr(parameters, 'intra_registration_template_type'):
-            self.template_type = parameters.intra_registration_template_type
+            if parameters.intra_registration_template_type is not None:
+                self.template_type = parameters.intra_registration_template_type
         if hasattr(parameters, 'intra_registration_template_threshold'):
-            self.template_threshold = parameters.intra_registration_template_threshold
+            if parameters.intra_registration_template_threshold is not None:
+                self.template_threshold = parameters.intra_registration_template_threshold
         if hasattr(parameters, 'intra_registration_resolution'):
-            self.resolution = parameters.intra_registration_resolution
+            if parameters.intra_registration_resolution is not None:
+                self.resolution = parameters.intra_registration_resolution
         if hasattr(parameters, 'intra_registration_margin'):
-            self.margin = parameters.intra_registration_margin
+            if parameters.intra_registration_margin is not None:
+                self.margin = parameters.intra_registration_margin
 
         #
         # resampling parameters
         #
 
         if hasattr(parameters, 'intra_registration_resample_fusion_images'):
-            self.resample_fusion_images = parameters.intra_registration_resample_fusion_images
+            if parameters.intra_registration_resample_fusion_images is not None:
+                self.resample_fusion_images = parameters.intra_registration_resample_fusion_images
         if hasattr(parameters, 'intra_registration_resample_segmentation_images'):
-            self.resample_segmentation_images = parameters.intra_registration_resample_segmentation_images
+            if parameters.intra_registration_resample_segmentation_images is not None:
+                self.resample_segmentation_images = parameters.intra_registration_resample_segmentation_images
 
         if hasattr(parameters, 'intra_registration_movie_fusion_images'):
-            self.movie_fusion_images = parameters.intra_registration_movie_fusion_images
+            if parameters.intra_registration_movie_fusion_images is not None:
+                self.movie_fusion_images = parameters.intra_registration_movie_fusion_images
         if hasattr(parameters, 'intra_registration_movie_segmentation_images'):
-            self.movie_segmentation_images = parameters.intra_registration_movie_segmentation_images
+            if parameters.intra_registration_movie_segmentation_images is not None:
+                self.movie_segmentation_images = parameters.intra_registration_movie_segmentation_images
+
+        if hasattr(parameters, 'intra_registration_xy_movie_fusion_images'):
+            if parameters.intra_registration_xy_movie_fusion_images is not None:
+                self.xy_movie_fusion_images = parameters.intra_registration_xy_movie_fusion_images
+        if hasattr(parameters, 'intra_registration_xz_movie_fusion_images'):
+            if parameters.intra_registration_xz_movie_fusion_images is not None:
+                self.xz_movie_fusion_images = parameters.intra_registration_xz_movie_fusion_images
+        if hasattr(parameters, 'intra_registration_yz_movie_fusion_images'):
+            if parameters.intra_registration_yz_movie_fusion_images is not None:
+                self.yz_movie_fusion_images = parameters.intra_registration_yz_movie_fusion_images
+
+        if hasattr(parameters, 'intra_registration_xy_movie_segmentation_images'):
+            if parameters.intra_registration_xy_movie_segmentation_images is not None:
+                self.xy_movie_segmentation_images = parameters.intra_registration_xy_movie_segmentation_images
+        if hasattr(parameters, 'intra_registration_xz_movie_segmentation_images'):
+            if parameters.intra_registration_xz_movie_segmentation_images is not None:
+                self.xz_movie_segmentation_images = parameters.intra_registration_xz_movie_segmentation_images
+        if hasattr(parameters, 'intra_registration_yz_movie_segmentation_images'):
+            if parameters.intra_registration_yz_movie_segmentation_images is not None:
+                self.yz_movie_segmentation_images = parameters.intra_registration_yz_movie_segmentation_images
 
         #
         # images suffixes/formats
@@ -344,7 +419,7 @@ class IntraRegParameters(object):
             if parameters.default_image_suffix is not None:
                 self.default_image_suffix = parameters.default_image_suffix
                 if not hasattr(parameters, 'result_image_suffix') \
-                    and not hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
+                        and not hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
                     self.result_image_suffix = parameters.default_image_suffix
 
 
@@ -415,11 +490,10 @@ def _get_file_suffix(experiment, data_path, file_format):
 
         file_prefix = nomenclature.replaceTIME(file_format, current_time)
 
-        file_names = []
         for f in os.listdir(data_path):
             if len(f) <= len(file_prefix):
                 pass
-            if f[0:len(file_prefix)] == file_prefix:
+            if f[0:len(file_prefix)] == file_prefix and f[len(file_prefix)] == '.':
                 suffix = f[len(file_prefix) + 1:len(f)]
                 suffixes[suffix] = suffixes.get(suffix, 0) + 1
 
@@ -453,6 +527,13 @@ def _coregistration_control(experiment, environment, parameters):
     :return:
     """
 
+    proc = "_coregistration_control"
+
+#    if _check_data(experiment, environment.path_fuse_exp, environment.path_fuse_exp_files) is False:
+#        monitoring.to_log_and_console(proc + ": error, some fused data are missing", 1)
+#        monitoring.to_log_and_console("\t Exiting")
+#        sys.exit(1)
+
     if not os.path.isdir(environment.path_intrareg_cotrsf):
         os.makedirs(environment.path_intrareg_cotrsf)
 
@@ -461,24 +542,31 @@ def _coregistration_control(experiment, environment, parameters):
 
     for reference_time in range(first_time_point + experiment.delay_time_point + experiment.delta_time_point,
                               last_time_point + experiment.delay_time_point + 1, experiment.delta_time_point):
+
         floating_time = reference_time - experiment.delta_time_point
-
-        floating_name = commonTools.find_file(environment.path_fuse_exp,
-                                              nomenclature.replaceTIME(environment.path_fuse_exp_files, floating_time),
-                                              monitoring)
-        reference_name = commonTools.find_file(environment.path_fuse_exp,
-                                               nomenclature.replaceTIME(environment.path_fuse_exp_files,
-                                                                        reference_time),
-                                               monitoring)
-
-        floating_image = os.path.join(environment.path_fuse_exp, floating_name)
-        reference_image = os.path.join(environment.path_fuse_exp, reference_name)
 
         trsf_name = nomenclature.replaceTIME(environment.path_intrareg_cotrsf_files, floating_time,
                                              nomenclature.FLAG_TIMEFLO)
         trsf_name = os.path.join(environment.path_intrareg_cotrsf, nomenclature.replaceTIME(trsf_name, reference_time,
                                                                                             nomenclature.FLAG_TIMEREF))
         if not os.path.isfile(trsf_name) or monitoring.forceResultsToBeBuilt is True:
+
+            floating_prefix = nomenclature.replaceTIME(environment.path_fuse_exp_files, floating_time)
+            floating_name = commonTools.find_file(environment.path_fuse_exp, floating_prefix, monitoring)
+            if floating_name is None:
+                monitoring.to_log_and_console(proc + ": error, image '" + str(floating_prefix) + "' was not found", 1)
+                monitoring.to_log_and_console("\t Exiting")
+                sys.exit(1)
+
+            reference_prefix = nomenclature.replaceTIME(environment.path_fuse_exp_files, reference_time)
+            reference_name = commonTools.find_file(environment.path_fuse_exp, reference_prefix, monitoring)
+            if reference_name is None:
+                monitoring.to_log_and_console(proc + ": error, image '" + str(reference_prefix) + "' was not found", 1)
+                monitoring.to_log_and_console("\t Exiting")
+                sys.exit(1)
+
+            floating_image = os.path.join(environment.path_fuse_exp, floating_name)
+            reference_image = os.path.join(environment.path_fuse_exp, reference_name)
             monitoring.to_log_and_console("       co-registering '" + floating_name + "'", 2)
             cpp_wrapping.linear_registration(reference_image, floating_image, None, trsf_name, None,
                                              py_hl=parameters.pyramid_highest_level,
@@ -531,13 +619,15 @@ def _transformations_from_reference(experiment, environment, parameters, tempora
     return
 
 
-def _transformations_and_template(experiment, environment, parameters, temporary_dir, result_template):
+def _transformations_and_template(experiment, environment, parameters, temporary_dir, result_dir, result_template):
     """
     From transformations from one given image, compute the template to resample all images.
     :param experiment:
     :param environment:
     :param parameters:
     :param temporary_dir:
+    :param result_dir:
+    :param result_template:
     :return:
     """
 
@@ -546,11 +636,15 @@ def _transformations_and_template(experiment, environment, parameters, temporary
     if os.path.isfile(result_template) and monitoring.forceResultsToBeBuilt is not True:
         return
 
-    if not os.path.isdir(environment.path_intrareg_trsf):
-        os.makedirs(environment.path_intrareg_trsf)
+    monitoring.to_log_and_console("       warning: this stage may be long", 2)
+
+    if not os.path.isdir(result_dir):
+        os.makedirs(result_dir)
 
     #
-    # which templates to use?
+    # which format to use?
+    # if requested, try to use segmentation image (threshold should be set to 2)
+    # else use fusion images
     #
     template_format = None
 
@@ -586,7 +680,7 @@ def _transformations_and_template(experiment, environment, parameters, temporary
 
     name_trsf = environment.path_intrareg_trsf_files.replace(nomenclature.FLAG_TIME, '%03d')
     format_input = os.path.join(temporary_dir, name_trsf)
-    format_output = os.path.join(environment.path_intrareg_trsf, name_trsf)
+    format_output = os.path.join(result_dir, name_trsf)
 
     if parameters.reference_index is None:
         reference_index = first_time_point
@@ -598,7 +692,7 @@ def _transformations_and_template(experiment, environment, parameters, temporary
     #
 
     cpp_wrapping.change_multiple_trsfs(format_input, format_output, first_time_point, last_time_point, reference_index,
-                                       result_template,trsf_type=parameters.registration.transformation_type,
+                                       result_template, trsf_type=parameters.registration.transformation_type,
                                        resolution=parameters.resolution, threshold=parameters.template_threshold,
                                        margin=parameters.margin, format_template=template_format, monitoring=None)
 
@@ -606,9 +700,9 @@ def _transformations_and_template(experiment, environment, parameters, temporary
 
 
 def _resample_images(experiment, environment, parameters, dir_input, format_input, dir_output, format_output,
-                     template_image, nearest=False):
+                     trsf_dir, template_image, nearest=False):
     """
-
+    resample all images given a set of transformations and a template
     :param experiment:
     :param environment:
     :param parameters:
@@ -620,6 +714,8 @@ def _resample_images(experiment, environment, parameters, dir_input, format_inpu
     :param nearest:
     :return:
     """
+
+    proc = "_resample_images"
 
     if not os.path.isdir(dir_output):
         os.makedirs(dir_output)
@@ -642,11 +738,95 @@ def _resample_images(experiment, environment, parameters, dir_input, format_inpu
                 monitoring.to_log_and_console(proc + ": image '" + str(input_name) + "' was not found in '"
                                               + str(dir_input) + "'", 1)
             else:
-                trsf_name = os.path.join(environment.path_intrareg_trsf,
-                                         nomenclature.replaceTIME(environment.path_intrareg_trsf_files, t))
+                monitoring.to_log_and_console("       resampling '" + str(input_image) + "'", 2)
+                trsf_name = os.path.join(trsf_dir, nomenclature.replaceTIME(environment.path_intrareg_trsf_files, t))
                 input_image = os.path.join(dir_input, input_image)
                 cpp_wrapping.apply_transformation(input_image, output_image, trsf_name, template_image, nearest=nearest,
                                                   monitoring=monitoring)
+
+    return
+
+
+def _make_movies(experiment, parameters, dir_input, format_input, dir_output, xylist, xzlist, yzlist):
+    """
+
+    :param experiment:
+    :param parameters:
+    :param dir_input:
+    :param format_input:
+    :param dir_output:
+    :param xylist:
+    :param xzlist:
+    :param yzlist:
+    :return:
+    """
+
+    if not os.path.isdir(dir_output):
+        os.makedirs(dir_output)
+
+    firstindex = experiment.first_time_point + experiment.delay_time_point
+    lastindex = experiment.last_time_point + experiment.delay_time_point
+
+    suffix = _get_file_suffix(experiment, dir_input, format_input)
+
+    format_resample = format_input.replace(nomenclature.FLAG_TIME, '%03d')
+    format_resample = os.path.join(dir_input, format_resample + '.' + str(suffix))
+
+    xy = []
+    xz = []
+    yz = []
+
+    #
+    # should we switch to default behavior?
+    #
+
+    if len(xylist) == 0 and len(xzlist) == 0 and len(yzlist) == 0:
+        #
+        # read the first image and set XY slice in the middle
+        #
+        first_prefix = nomenclature.replaceTIME(format_input, firstindex)
+        first_name = commonTools.find_file(dir_input, first_prefix, monitoring=None, verbose=False)
+        first_image = imread(os.path.join(dir_input, first_name))
+        xy.append(int(first_image.shape[2]/2))
+        del first_image
+    else:
+        xy = xylist
+        xz = xzlist
+        yz = yzlist
+
+    #
+    # processing
+    #
+
+    if len(xy) > 0:
+        for s in xy:
+            name_output = format_input.replace(nomenclature.FLAG_TIME, str(firstindex) + '-' + str(lastindex))
+            name_output += '_xy' + str(s)
+            name_output = os.path.join(dir_output, name_output + '.' + str(parameters.result_image_suffix))
+            if os.path.isfile(name_output) is False or monitoring.forceResultsToBeBuilt is True:
+                monitoring.to_log_and_console("       process xy=" + str(s), 2)
+                cpp_wrapping.crop_sequence(format_resample, name_output, firstindex, lastindex, 'xy', s,
+                                           monitoring=monitoring)
+
+    if len(xz) > 0:
+        for s in xz:
+            name_output = format_input.replace(nomenclature.FLAG_TIME, str(firstindex) + '-' + str(lastindex))
+            name_output += 'xz' + str(s)
+            name_output = os.path.join(dir_output, name_output + '.' + str(parameters.result_image_suffix))
+            if os.path.isfile(name_output) is False or monitoring.forceResultsToBeBuilt is True:
+                monitoring.to_log_and_console("       process xz=" + str(s), 2)
+                cpp_wrapping.crop_sequence(format_resample, name_output, firstindex, lastindex, 'xz', s,
+                                           monitoring=monitoring)
+
+    if len(yz) > 0:
+        for s in yz:
+            name_output = format_input.replace(nomenclature.FLAG_TIME, str(firstindex) + '-' + str(lastindex))
+            name_output += '_yz' + str(s)
+            name_output = os.path.join(dir_output, name_output + '.' + str(parameters.result_image_suffix))
+            if os.path.isfile(name_output) is False or monitoring.forceResultsToBeBuilt is True:
+                monitoring.to_log_and_console("       process yz=" + str(s), 2)
+                cpp_wrapping.crop_sequence(format_resample, name_output, firstindex, lastindex, 'yz', s,
+                                           monitoring=monitoring)
 
     return
 
@@ -677,14 +857,14 @@ def intraregistration_control(experiment, environment, parameters):
     #
     # if template does not exists, compute transformations
     #
-    result_template = os.path.join(environment.path_intrareg_trsf, "template" + "." + parameters.result_image_suffix)
+    firstindex = experiment.first_time_point + experiment.delay_time_point
+    lastindex = experiment.last_time_point + experiment.delay_time_point
 
-    if not os.path.isfile(result_template) or monitoring.forceResultsToBeBuilt is True:
+    result_dir = environment.path_intrareg_trsf + "_t" + str(firstindex) + "-" + str(lastindex)
+    result_template = "template" + "_t" + str(firstindex) + "-" + str(lastindex) + "." + parameters.result_image_suffix
+    result_template = os.path.join(result_dir, result_template)
 
-        if _check_data(experiment, environment.path_fuse_exp, environment.path_fuse_exp_files) is False:
-            monitoring.to_log_and_console(proc + ": error, some fused data are missing", 1)
-            monitoring.to_log_and_console("\t Exiting")
-            sys.exit(1)
+    if not os.path.isdir(result_dir) or os.path.isfile(result_template) or monitoring.forceResultsToBeBuilt is True:
 
         if experiment.delta_time_point > 1:
             monitoring.to_log_and_console(proc + ": warning, delta_time=" + str(experiment.delta_time_point)
@@ -717,7 +897,8 @@ def intraregistration_control(experiment, environment, parameters):
         #
 
         monitoring.to_log_and_console("    .. transformation recomposition and template generation", 2)
-        _transformations_and_template(experiment, environment, parameters, temporary_dir, result_template )
+
+        _transformations_and_template(experiment, environment, parameters, temporary_dir, result_dir, result_template)
 
         if monitoring.keepTemporaryFiles is False:
             shutil.rmtree(temporary_dir)
@@ -727,20 +908,41 @@ def intraregistration_control(experiment, environment, parameters):
     # resample images if required
     #
     # NOTE: il y a un probleme de coherence, puisque la premiere image de segmentation peut etre issue
-    # de mars et donc etre nommee differemment. Pour le reechantillonage, on pourrait utitliser
-    # reconstruction.get_segmentation_image()
+    # de mars et donc etre nommee differemment. Pour le reechantillonage, on pourrait utiliser
+    # reconstruction.get_segmentation_image().
     #
-    if parameters.resample_fusion_images is True:
+    if parameters.resample_fusion_images is True or parameters.movie_fusion_images is True \
+            or len(parameters.xy_movie_fusion_images) > 0 or len(parameters.xz_movie_fusion_images) > 0 \
+            or len(parameters.yz_movie_fusion_images) > 0:
         monitoring.to_log_and_console("    .. resampling fusion images", 2)
         _resample_images(experiment, environment, parameters, environment.path_fuse_exp,
                          environment.path_fuse_exp_files, environment.path_intrareg_fuse,
-                         environment.path_intrareg_fuse_files, result_template)
+                         environment.path_intrareg_fuse_files, result_dir, result_template)
 
-    if parameters.resample_segmentation_images is True:
+    if parameters.resample_segmentation_images is True or parameters.movie_segmentation_images is True \
+            or len(parameters.xy_movie_segmentation_images) > 0 or len(parameters.xz_movie_segmentation_images) > 0 \
+            or len(parameters.yz_movie_segmentation_images) > 0:
         monitoring.to_log_and_console("    .. resampling segmentation images", 2)
         _resample_images(experiment, environment, parameters, environment.path_seg_exp, environment.path_seg_exp_files,
-                         environment.path_intrareg_seg, environment.path_intrareg_seg_files, result_template,
-                         nearest=True)
+                         environment.path_intrareg_seg, environment.path_intrareg_seg_files, result_dir,
+                         result_template, nearest=True)
+
+    #
+    # make 3D=2D+t images = movie of evolving slices with respect to time
+    #
+    if parameters.movie_fusion_images is True or len(parameters.xy_movie_fusion_images) > 0 \
+            or len(parameters.xz_movie_fusion_images) > 0 or len(parameters.yz_movie_fusion_images) > 0:
+        monitoring.to_log_and_console("    .. movies from fusion images", 2)
+        _make_movies(experiment, parameters, environment.path_intrareg_fuse, environment.path_intrareg_fuse_files,
+                     environment.path_intrareg_movies, parameters.xy_movie_fusion_images,
+                     parameters.xz_movie_fusion_images, parameters.yz_movie_fusion_images)
+
+    if parameters.movie_segmentation_images is True or len(parameters.xy_movie_segmentation_images) > 0 \
+            or len(parameters.xz_movie_segmentation_images) > 0 or len(parameters.yz_movie_segmentation_images) > 0:
+        monitoring.to_log_and_console("    .. movies from segmentation images", 2)
+        _make_movies(experiment, parameters, environment.path_intrareg_seg, environment.path_intrareg_seg_files,
+                     environment.path_intrareg_movies, parameters.xy_movie_segmentation_images,
+                     parameters.xz_movie_segmentation_images, parameters.yz_movie_segmentation_images)
 
     #
     # end processing

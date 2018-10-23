@@ -397,13 +397,23 @@ target_resolution = .3
 # intra_registration_reference_index = None
 # intra_registration_template_type = "FUSION"
 # intra_registration_template_threshold = None
-# intra_registration_resolution = None
+# intra_registration_resolution = 0.6
 # intra_registration_margin = None
 
 # intra_registration_resample_fusion_images = True
 # intra_registration_resample_segmentation_images = False
+
 # intra_registration_movie_fusion_images = True
 # intra_registration_movie_segmentation_images = False
+
+# intra_registration_xy_movie_fusion_images = [];
+# intra_registration_xz_movie_fusion_images = [];
+# intra_registration_yz_movie_fusion_images = [];
+
+# intra_registration_xy_movie_segmentation_images = [];
+# intra_registration_xz_movie_segmentation_images = [];
+# intra_registration_yz_movie_segmentation_images = [];
+
 
 ######################################################################
 #
