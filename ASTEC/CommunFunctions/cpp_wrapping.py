@@ -446,6 +446,36 @@ def change_multiple_trsfs(format_input, format_output, first, last, reference, r
     return
 
 
+def crop_sequence(format_input, path_output, firstindex, lastindex, orientation, sliceindex, monitoring=None):
+    """
+
+    :param format_input:
+    :param path_output:
+    :param firstindex:
+    :param lastindex:
+    :param orientation:
+    :param sliceindex:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('cropImage')
+    command_line = path_to_exec + " -format " + format_input + " " + path_output
+    command_line += " -first " + str(firstindex) + " -last " + str(lastindex)
+    if orientation.lower() == 'xy':
+        command_line += " -xy " + str(sliceindex)
+    elif orientation.lower() == 'xz':
+        command_line += " -xz " + str(sliceindex)
+    elif orientation.lower() == 'yz':
+        command_line += " -yz " + str(sliceindex)
+    else:
+        return
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
 ############################################################
 #
 # functions for the MARS step
@@ -1245,7 +1275,6 @@ def only_keep_seeds_in_cell(seed_image, cell_image, seed_result,
 #
 #
 ############################################################
-
 
 def _recfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, lazy=False):
     ''' Perform a gaussian filtering on an intensity image

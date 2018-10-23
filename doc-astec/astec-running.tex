@@ -652,6 +652,108 @@ It may be also preferable to  deactivate the image normalization for both regist
 
 \subsection{\texttt{1.5-intraregistration.py}}
 
+The intra-registration step can be done either after the fusion step, or after the segmentation step. It aims at
+\begin{itemize}
+\item resampling the fusion and/or the segmentation images into a common frame, so they can better be compared, and
+\item building 2D+t images made of 2D sections from either the  fusion and/or the segmentation images, so that the quality of the fusion and/of the tracking step can be visually assessed.
+\end{itemize}
+Its results will be stored in the \verb|INTRAREG/INTRAREG<EXP>| subdirectory where \verb|<EXP>| is set by \verb|EXP_INTRAREG| from the parameter file.
+
+\dirtree{%
+.1 <EMBRYO>.
+.2 \ldots.
+.2 INTRAREG.
+.3 INTRAREG<EXP>.
+.4 CO-TRSFS.
+.4 FUSE.
+.4 LOGS.
+.4 MOVIES.
+.4 SEG.
+.4 TRSFS\_t<F>-<L>.
+.2 \ldots.
+}
+
+
+It first co-registers all pairs of successive images, and then combine the computed transformations to get a set of  transformations from a common reference. This enables to build a \textit{template} image towards which all images will be resampled.
+
+\subsubsection{Registration parameters}
+
+Default registration parameters for the co-registration are set by:
+\begin{verbatim}
+# intra_registration_compute_registration = True
+# intra_registration_transformation_type = 'rigid'
+# intra_registration_transformation_estimation_type = 'wlts'
+# intra_registration_lts_fraction = 0.55
+# intra_registration_pyramid_highest_level = 6
+# intra_registration_pyramid_lowest_level = 3
+# intra_registration_normalization = True
+\end{verbatim}
+Computed transformations are stored in \verb|INTRAREG/INTRAREG<EXP>/CO-TRSFS|.
+It may be advised to set the pyramid lowest level value to some higher value to speed up the co-registrations (recall that all pairs of successive images will be co-registered, i.e.
+\begin{verbatim}
+intra_registration_pyramid_lowest_level = 4
+\end{verbatim}
+
+
+\subsubsection{Template building parameters}
+
+The \textit{template} image can be tuned by the following parameters. 
+
+\begin{verbatim}
+# intra_registration_reference_index = None
+# intra_registration_template_type = "FUSION"
+# intra_registration_template_threshold = None
+# intra_registration_resolution = 0.6
+# intra_registration_margin = None
+\end{verbatim}
+
+The \verb|intra_registration_reference_index| allows to choose the reference image (the one which remains still, i.e. is only displaced by a translation), by default it is the first image image of the series (associated to \verb|begin|).
+
+Depending on \verb|intra_registration_template_type| (\verb|"FUSION"| or \verb|"SEGMENTATION"|, the latter assumes obviously that the segmentation has been done), the \textit{template} image can be built either after the fusion or the segmentation images. If no threshold is given by \verb|intra_registration_template_threshold|, the built template will be large enough to include all the transformed fields of view (in this case, the template is the same whatever \verb|intra_registration_template_type|; according the image values are positive it comes ). If a threshold is given, the built template will be large enough to include all the transformed points above the threshold. E.g., the background is labeled with '1' in segmentation images, then a threshold of '2' ensures that all the embryo cells will not be cut by the resampling stage.  In this case, adding an additional margin to the template could be a good idea for visualization purpose. Last but not least, using a larger resolution than the \verb|target_resolution| allows to decrease the resampled images volume. 
+
+Thus, building a \textit{template} image after the segmentation images can be done with
+\begin{verbatim}
+# intra_registration_reference_index = None
+intra_registration_template_type = "SEGMENTATION"
+intra_registration_template_threshold = 2
+intra_registration_resolution = 0.9
+intra_registration_margin = 10
+\end{verbatim}
+
+Computed transformations from the \textit{template} image as well as the \textit{template} image itself are stored in \verb|INTRAREG/INTRAREG<EXP>/TRSFS_t<F>-<L>| where \verb|<F>| and \verb|L| are the first and the last index of the series (specified by \verb|begin| and \verb|end| from the parameter file).
+
+\subsubsection{Resampling fusion/segmentation images}
+
+The resampled fusion and segmentation images will be stored respectively in \verb|INTRAREG/INTRAREG<EXP>/FUSE| and \verb|INTRAREG/INTRAREG<EXP>/SEG|. Resampling is done either if the following parameters are set to \verb|True| or if movies are requested to be computed.
+
+\begin{verbatim}
+# intra_registration_resample_fusion_images = True
+# intra_registration_resample_segmentation_images = False
+\end{verbatim}
+
+\subsubsection{2D+t movies}
+
+For either visual assessment or illustration purposes, 2D+t (i.e. 3D) images can be built from 2D sections extracted from the resampled temporal series. This is controlled by the following parameters:
+\begin{verbatim}
+# intra_registration_movie_fusion_images = True
+# intra_registration_movie_segmentation_images = False
+
+# intra_registration_xy_movie_fusion_images = [];
+# intra_registration_xz_movie_fusion_images = [];
+# intra_registration_yz_movie_fusion_images = [];
+
+# intra_registration_xy_movie_segmentation_images = [];
+# intra_registration_xz_movie_segmentation_images = [];
+# intra_registration_yz_movie_segmentation_images = [];
+\end{verbatim}
+
+If \verb|intra_registration_movie_fusion_images| is set to \verb|True|, a movie is made with the  XY-section located at the middle of each resampled fusion image (recall that, after resampling, all images have the same geometry). Additional XY-movies can be done by specifying the wanted Z values in \verb|intra_registration_xy_movie_fusion_images|. E.g.
+\begin{verbatim}
+intra_registration_xy_movie_fusion_images = [100, 200];
+\end{verbatim}
+will build two movies with XY-sections located respectively at Z values of 100 and 200. The same stands for the other orientation and for the resampled segmentation images.
+
+
 \subsection{\texttt{2-mars.py}}
 
 \subsection{\texttt{3-manualcorrection.py}}

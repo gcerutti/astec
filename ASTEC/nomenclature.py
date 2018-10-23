@@ -183,6 +183,9 @@ path_intrareg_fuse_files = FLAG_EN + '_intrareg_fuse_t' + FLAG_TIME
 path_intrareg_seg = os.path.join(path_intrareg_exp, 'SEG')
 path_intrareg_seg_files = FLAG_EN + '_intrareg_seg_t' + FLAG_TIME
 
+# movies
+path_intrareg_movies = os.path.join(path_intrareg_exp, 'MOVIES')
+
 
 #
 # MARS DATA
