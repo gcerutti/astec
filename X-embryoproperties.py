@@ -62,7 +62,7 @@ def _set_options(my_parser):
 
     my_parser.add_argument('--diagnosis-items',
                            action='store', dest='diagnosis_items',
-                           help='maximal number of items to be displayed')
+                           help='minimal number of items to be displayed')
 
     my_parser.add_argument('--print-content', '--print-keys',
                            action='store_const', dest='print_content',
