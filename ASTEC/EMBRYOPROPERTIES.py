@@ -4,6 +4,9 @@ import os
 import cPickle as pkl
 import xml.etree.ElementTree as ElementTree
 import numpy as np
+import math
+
+from operator import itemgetter
 
 import commonTools
 
@@ -170,8 +173,6 @@ def _set_xml_element_text(element, value):
     #   dictionary element may be list, int, numpy.ndarray, str
     # list : may be int, numpy.int64, numpy.float64, numpy.ndarray
     #
-
-    print "value is '" + str(value) + "'"
 
     if type(value) == dict:
         # print proc + ": type is dict"
@@ -418,7 +419,7 @@ def _update_read_dictionary(propertiesdict, tmpdict, filename):
                     if type(propertiesdict[outputkey]) is dict and type(tmpdict[tmpkey]) is dict:
                         propertiesdict[outputkey].update(tmpdict[tmpkey])
                     elif type(propertiesdict[outputkey]) is list and type(tmpdict[tmpkey]) is list:
-                        propertiesdict[outputkey].append(tmpdict[tmpkey])
+                        propertiesdict[outputkey] += tmpdict[tmpkey]
                     else:
                         monitoring.to_log_and_console(proc + ": error, can not update property '" + str(outputkey)
                                                       + "'")
@@ -517,7 +518,7 @@ def read_dictionary(inputfilenames):
             monitoring.to_log_and_console(proc + ": error, file '" + str(filename) + "' does not exist")
             continue
 
-        if filename[len(filename) - 3:len(filename)] == "xml":
+        if filename.endswith("xml") is True:
             monitoring.to_log_and_console("... reading '" + str(filename) + "'", 1)
             inputxmltree = ElementTree.parse(filename)
             tmpdict = xml2dict(inputxmltree)
@@ -531,7 +532,7 @@ def read_dictionary(inputfilenames):
 
     for filename in inputfilenames:
 
-        if filename[len(filename) - 3:len(filename)] == "pkl":
+        if filename.endswith("pkl") is True:
             monitoring.to_log_and_console("... reading '" + str(filename) + "'", 1)
             inputfile = open(filename, 'r')
             tmpdict = pkl.load(inputfile)
@@ -560,7 +561,293 @@ def read_dictionary(inputfilenames):
 #
 ########################################################################################
 
-def compare_dictionaries(d1, d2, features, name1, name2):
+
+def _decode_cell_id(s):
+    return "cell #{:4d}".format(int(s)/10000) + " of image #{:4d}".format(int(s)%10000)
+
+
+########################################################################################
+#
+# comparison of two dictionaries
+#
+########################################################################################
+
+
+def _intersection_cell_keys(e1, e2, name1, name2):
+    """
+
+    :param e1:
+    :param e2:
+    :param name1:
+    :param name2:
+    :return:
+    """
+    intersection = list(set(e1.keys()).intersection(set(e2.keys())))
+    difference1 = list(set(e1.keys()).difference(set(e2.keys())))
+    difference2 = list(set(e2.keys()).difference(set(e1.keys())))
+
+    if len(difference1) > 0:
+        monitoring.to_log_and_console("    ... cells that are in '" + str(name1) + "' and not in '"
+                                      + str(name2) + "'", 1)
+        s = repr(difference1)
+        monitoring.to_log_and_console("        " + s, 1)
+
+    if len(difference2) > 0:
+        monitoring.to_log_and_console("    ... cells that are not in '" + str(name1) + "' but in '"
+                                      + str(name2) + "'", 1)
+        s = repr(difference2)
+        monitoring.to_log_and_console("        " + s, 1)
+
+    return intersection
+
+
+# def _compare_lineage(e1, e2, name1, name2, description):
+#     return
+
+
+# def _compare_h_min(e1, e2, name1, name2, description):
+#     return
+
+
+def _compare_volume(e1, e2, name1, name2, description):
+    """
+
+    :param e1:
+    :param e2:
+    :param name1:
+    :param name2:
+    :param description:
+    :return:
+    """
+    #     dictionary de int
+    #     cell_volume.590002 = <type 'int'>
+    #     590002: 236936
+
+    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+
+    intersection = _intersection_cell_keys(e1, e2, name1, name2)
+
+    if len(intersection) > 0:
+        for k in intersection:
+            if e1[k] != e2[k]:
+                s = "cell #'" + str(k) + "' has different volumes: "
+                s += str(e1[k]) + " and " + str(e2[k])
+                monitoring.to_log_and_console("        " + s, 1)
+
+    return
+
+
+# def _compare_sigma(e1, e2, name1, name2, description):
+#     return
+
+
+# def _compare_label_in_time(e1, e2, name1, name2, description):
+#     return
+
+
+def _compare_barycenter(e1, e2, name1, name2, description):
+    """
+
+    :param e1:
+    :param e2:
+    :param name1:
+    :param name2:
+    :param description:
+    :return:
+    """
+
+    # 'barycenter': 'cell_barycenter'
+    #     dictionary de numpy.ndarray de numpy.float64
+    #     cell_barycenter.590002 = <type 'numpy.ndarray'>
+    #     590002: array([ 258.41037242,  226.74975943,  303.67167927])
+
+    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+
+    intersection = _intersection_cell_keys(e1, e2, name1, name2)
+
+    residual = []
+
+    if len(intersection) > 0:
+        for k in intersection:
+            residual.append([k, math.sqrt(sum((e1[k] - e2[k]) * (e1[k] - e2[k])))])
+
+    residual = sorted(residual, key=itemgetter(1), reverse=True)
+    monitoring.to_log_and_console("    ... largest residual at cell #" + str(residual[0][0]) + " is "
+                                  + str(residual[0][1]), 1)
+    s = str(e1[residual[0][0]]) + " <-> " + str(e2[residual[0][0]])
+    monitoring.to_log_and_console("        " + s, 1)
+
+    # for i in range(min(len(intersection),10)):
+    #     print "#" + str(i) + ": " + str(residual[i])
+
+    return
+
+
+# def _compare_fate(e1, e2, name1, name2, description):
+#     return
+
+
+def _compare_all_cells(e1, e2, name1, name2, description):
+    """
+
+    :param e1:
+    :param e2:
+    :param name1:
+    :param name2:
+    :param description:
+    :return:
+    """
+
+    # 'all-cells': 'all_cells'  # liste de toutes les cellules ?
+    #     liste de numpy.int64
+    #     all_cells = <type 'list'>
+
+    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+
+    difference1 = list(set(e1).difference(set(e2)))
+    difference2 = list(set(e2).difference(set(e1)))
+
+    if len(difference1) > 0:
+        monitoring.to_log_and_console("    ... cells that are in '" + str(name1) + "' and not in '"
+                                      + str(name2) + "'", 1)
+        s = repr(difference1)
+        monitoring.to_log_and_console("        " + s, 1)
+
+    if len(difference2) > 0:
+        monitoring.to_log_and_console("    ... cells that are not in '" + str(name1) + "' but in '"
+                                      + str(name2) + "'", 1)
+        s = repr(difference2)
+        monitoring.to_log_and_console("        " + s, 1)
+
+    return
+
+
+def _compare_principal_value(e1, e2, name1, name2, description):
+    """
+
+    :param e1:
+    :param e2:
+    :param name1:
+    :param name2:
+    :param description:
+    :return:
+    """
+
+    # 'principal-value': 'cell_principal_values'
+    #     dictionary de liste de numpy.float64
+    #     cell_principal_values.590002 = <type 'list'>
+    #     590002: [1526.0489371146978, 230.60881177650205, 91.063513300019849]
+
+    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+
+    intersection = _intersection_cell_keys(e1, e2, name1, name2)
+
+    residual = []
+
+    if len(intersection) > 0:
+        for k in intersection:
+            residual.append([k, max(abs(np.array(e1[k]) - np.array(e2[k])))])
+
+    residual = sorted(residual, key=itemgetter(1), reverse=True)
+    monitoring.to_log_and_console("    ... largest residual at cell #" + str(residual[0][0]) + " is "
+                                  + str(residual[0][1]), 1)
+    s = str(e1[residual[0][0]]) + " <-> " + str(e2[residual[0][0]])
+    monitoring.to_log_and_console("        " + s, 1)
+
+    # for i in range(min(len(intersection),10)):
+    #     print "#" + str(i) + ": " + str(residual[i])
+
+    return
+
+
+# def _compare_name(e1, e2, name1, name2, description):
+#     return
+
+
+def _compare_contact(e1, e2, name1, name2, description):
+    """
+
+    :param e1:
+    :param e2:
+    :param name1:
+    :param name2:
+    :param description:
+    :return:
+    """
+    # 'contact': 'cell_contact_surface',
+    #     dictionary de dictionary de int
+    #     cell_contact_surface.590002.590019 = <type 'int'>
+
+    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+
+    intersection = _intersection_cell_keys(e1, e2, name1, name2)
+
+    if len(intersection) > 0:
+        for k in intersection:
+
+            d = list(set(e1[k].keys()).symmetric_difference(set(e2[k].keys())))
+            i = list(set(e1[k].keys()).intersection(set(e2[k].keys())))
+
+            if len(d) > 0:
+                s = "cell #" + str(k) + "has different contacts in '" + str(name1) + "' and '" + str(name2) + "'"
+                monitoring.to_log_and_console("        " + s, 1)
+                monitoring.to_log_and_console("        " + str(e1[k].keys()), 1)
+                monitoring.to_log_and_console("        " + "<-> " + str(e2[k].keys()), 1)
+
+            if len(i) > 0:
+                for c in i:
+                    if e1[k][c] != e2[k][c]:
+                        s = "surface contact of cell #" + str(k) + " with cell #" + str(c)
+                        s += " is " + str(e1[k][c]) + " in '" + str(name1) + "'"
+                        s += " and " + str(e2[k][c]) + " in '" + str(name2) + "'"
+                        monitoring.to_log_and_console("        " + s, 1)
+
+    return
+
+
+# def _compare_history(e1, e2, name1, name2, description):
+#    return
+
+
+def _compare_principal_vector(e1, e2, name1, name2, description):
+    """
+
+    :param e1:
+    :param e2:
+    :param name1:
+    :param name2:
+    :param description:
+    :return:
+    """
+    # 'principal-vector': 'cell_principal_vectors'    # liste de numpy.ndarray
+    #     dictionary de liste de numpy.ndarray de numpy.float64
+    #     cell_principal_vectors.590002 = <type 'list'>
+    #     590002: [array([ 0.17420991, -0.74923203,  0.63898534]),
+    #         array([-0.24877611,  0.59437038,  0.7647446 ]),
+    #         array([ 0.95276511,  0.29219037,  0.08284582])]
+
+    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+
+    intersection = _intersection_cell_keys(e1, e2, name1, name2)
+
+    residual = []
+
+    if len(intersection) > 0:
+        for k in intersection:
+            residual.append([k, max(math.sqrt(sum((e1[k][0] - e2[k][0]) * (e1[k][0] - e2[k][0]))),
+                                    math.sqrt(sum((e1[k][1] - e2[k][1]) * (e1[k][1] - e2[k][1]))),
+                                    math.sqrt(sum((e1[k][2] - e2[k][2]) * (e1[k][2] - e2[k][2]))))])
+
+    residual = sorted(residual, key=itemgetter(1), reverse=True)
+    monitoring.to_log_and_console("    ... largest residual at cell #" + str(residual[0][0]) + " is "
+                                  + str(residual[0][1]), 1)
+    s = str(e1[residual[0][0]]) + "\n" + "        " + " <-> " + str(e2[residual[0][0]])
+    monitoring.to_log_and_console("        " + s, 1)
+
+    return
+
+
+def comparison(d1, d2, features, name1, name2):
     """
 
     :param d1:
@@ -601,7 +888,7 @@ def compare_dictionaries(d1, d2, features, name1, name2):
                 for k2 in d2.keys():
                     if k2 in keydictionary[k]['input_keys']:
                         pairedkey = True
-                        pairedkeys.append([k1,k2])
+                        pairedkeys.append([k1, k2])
                         break
                 if pairedkey is False:
                     unpairedkeys1.append(k1)
@@ -640,10 +927,13 @@ def compare_dictionaries(d1, d2, features, name1, name2):
             unrecognizedkeys2.append(k2)
 
     #
-    #
+    # first output, compare the dictionaries keys
     #
 
-    print_summary = True
+    print_summary = False
+
+    if features is None or len(features) == 0:
+        print_summary = True
 
     #
     #
@@ -672,11 +962,107 @@ def compare_dictionaries(d1, d2, features, name1, name2):
             for k in unrecognizedkeys2:
                 monitoring.to_log_and_console("        " + str(k), 1)
 
+    #
+    # 2. perform a comparison key by key
+    #
+
+    if len(pairedkeys) == 0:
+        monitoring.to_log_and_console("... no common keys between '" + str(name1) + "' and '" + str(name2) + "'", 1)
+        monitoring.to_log_and_console("    comparison is not possible", 1)
+        return
+
+    #
+    # recall that the dictionary keys are the 'output_key' of the keydictionary
+    #
 
     if features is None or len(features) == 0:
-        pass
 
-    monitoring.to_log_and_console("\n", 1)
+        monitoring.to_log_and_console("", 1)
+
+        for pk in pairedkeys:
+            if pk[0] == keydictionary['lineage']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    comparison of '" + str(pk[0]) + "' not implemented yet", 1)
+            elif pk[0] == keydictionary['h_min']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    comparison of '" + str(pk[0]) + "' not implemented yet", 1)
+            elif pk[0] == keydictionary['volume']['output_key']:
+                _compare_volume(d1[pk[0]], d2[pk[1]], name1, name2, pk[0])
+            elif pk[0] == keydictionary['sigma']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    comparison of '" + str(pk[0]) + "' not implemented yet", 1)
+            elif pk[0] == keydictionary['label_in_time']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    comparison of '" + str(pk[0]) + "' not implemented yet", 1)
+            elif pk[0] == keydictionary['barycenter']['output_key']:
+                _compare_barycenter(d1[pk[0]], d2[pk[1]], name1, name2, pk[0])
+            elif pk[0] == keydictionary['fate']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    comparison of '" + str(pk[0]) + "' not implemented yet", 1)
+            elif pk[0] == keydictionary['all-cells']['output_key']:
+                _compare_all_cells(d1[pk[0]], d2[pk[1]], name1, name2, pk[0])
+            elif pk[0] == keydictionary['principal-value']['output_key']:
+                _compare_principal_value(d1[pk[0]], d2[pk[1]], name1, name2, pk[0])
+            elif pk[0] == keydictionary['name']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    comparison of '" + str(pk[0]) + "' not implemented yet", 1)
+            elif pk[0] == keydictionary['contact']['output_key']:
+                _compare_contact(d1[pk[0]], d2[pk[1]], name1, name2, pk[0])
+            elif pk[0] == keydictionary['history']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    comparison of '" + str(pk[0]) + "' not implemented yet", 1)
+            elif pk[0] == keydictionary['principal-vector']['output_key']:
+                _compare_principal_vector(d1[pk[0]], d2[pk[1]], name1, name2, pk[0])
+            else:
+                monitoring.to_log_and_console("    unknown key '" + str(pk[0]) + "' for comparison", 1)
+
+    else:
+        for f in features:
+            if f not in keydictionary.keys():
+                monitoring.to_log_and_console("    unknown property '" + str(f) + "' for comparison", 1)
+                continue
+
+            outk = keydictionary[f]['output_key']
+
+            for i in range(len(pairedkeys)):
+                if pairedkeys[i][0] == outk:
+                    if outk == keydictionary['lineage']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    comparison of '" + str(outk) + "' not implemented yet", 1)
+                    elif outk == keydictionary['h_min']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    comparison of '" + str(outk) + "' not implemented yet", 1)
+                    elif outk == keydictionary['volume']['output_key']:
+                        _compare_volume(d1[outk], d2[outk], name1, name2, outk)
+                    elif outk == keydictionary['sigma']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    comparison of '" + str(outk) + "' not implemented yet", 1)
+                    elif outk == keydictionary['label_in_time']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    comparison of '" + str(outk) + "' not implemented yet", 1)
+                    elif outk == keydictionary['barycenter']['output_key']:
+                        _compare_barycenter(d1[outk], d2[outk], name1, name2, outk)
+                    elif outk == keydictionary['fate']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    comparison of '" + str(outk) + "' not implemented yet", 1)
+                    elif outk == keydictionary['all-cells']['output_key']:
+                        _compare_all_cells(d1[outk], d2[outk], name1, name2, outk)
+                    elif outk == keydictionary['principal-value']['output_key']:
+                        _compare_principal_value(d1[outk], d2[outk], name1, name2, outk)
+                    elif outk == keydictionary['name']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    comparison of '" + str(outk) + "' not implemented yet", 1)
+                    elif outk == keydictionary['contact']['output_key']:
+                        _compare_contact(d1[outk], d2[outk], name1, name2, outk)
+                    elif outk == keydictionary['history']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    comparison of '" + str(outk) + "' not implemented yet", 1)
+                    elif outk == keydictionary['principal-vector']['output_key']:
+                        _compare_principal_vector(d1[outk], d2[outk], name1, name2, outk)
+                    else:
+                        monitoring.to_log_and_console("    unknown key '" + str(outk) + "' for comparison", 1)
+                    break
+
     return
 
 
@@ -686,8 +1072,241 @@ def compare_dictionaries(d1, d2, features, name1, name2):
 #
 ########################################################################################
 
+class DiagnosisParameters(object):
+
+    def __init__(self):
+        #
+        #
+        #
+        self.minimal_volume = 0
+        self.items = 10
+
+    def write_parameters(self, log_file_name):
+        with open(log_file_name, 'a') as logfile:
+            logfile.write("\n")
+            logfile.write('DiagnosisParameters\n')
+
+            logfile.write('- minimal_volume = ' + str(self.minimal_volume) + '\n')
+            logfile.write('- items = '+str(self.items) + '\n')
+
+            logfile.write("\n")
+        return
+
+    def print_parameters(self):
+        print("")
+        print('DiagnosisParameters')
+
+        print('- minimal_volume = ' + str(self.minimal_volume))
+        print('- items = ' + str(self.items))
+
+        print("")
+
+    def update_from_args(self, args):
+        if hasattr(args, 'diagnosis_minimal_volume'):
+            if args.diagnosis_minimal_volume is not None:
+                self.minimal_volume = args.diagnosis_minimal_volume
+        if hasattr(args, 'diagnosis_items'):
+            if args.diagnosis_items is not None:
+                self.items = args.diagnosis_items
 
 
+# def _diagnosis_lineage(d):
+#     return
+
+
+# def _diagnosis_h_min(d):
+#     return
+
+
+def _diagnosis_volume(dictionary, description, diagnosis_parameters=None):
+    """
+
+    :param dictionary:
+    :param description:
+    :param diagnosis_parameters:
+    :return:
+    """
+
+    #     dictionary de int
+    #     cell_volume.590002 = <type 'int'>
+    #     590002: 236936
+
+    monitoring.to_log_and_console("    === " + str(description) + " diagnosis === ", 1)
+
+    volume = []
+
+    for k in dictionary.keys():
+        volume.append([k, dictionary[k]])
+
+    volume = sorted(volume, key=itemgetter(1))
+
+    monitoring.to_log_and_console("    ... smallest volumes", 1)
+
+    d = DiagnosisParameters()
+    n = int(d.items)
+    v = int(d.minimal_volume)
+
+    if diagnosis_parameters is not None:
+        n = int(diagnosis_parameters.items)
+        v = int(diagnosis_parameters.minimal_volume)
+
+    for i in range(len(dictionary.keys())):
+        if (n > 0 and i < n) or (v > 0 and int(volume[i][1]) <= v):
+            s = _decode_cell_id(volume[i][0]) + " has volume = " + str(volume[i][1])
+            monitoring.to_log_and_console("        " + s, 1)
+
+    return
+
+
+# def _diagnosis_sigma(d):
+#     return
+
+
+# def _diagnosis_label_in_time(d):
+#     return
+
+
+# def _diagnosis_barycenter(d):
+#     return
+
+
+# def _diagnosis_fate(d):
+#     return
+
+
+# def _diagnosis_all_cells(d):
+#     return
+
+
+# def _diagnosis_principal_value(d):
+#     return
+
+
+# def _diagnosis_name(d):
+#     return
+
+
+# def _diagnosis_contact(d):
+#     return
+
+
+# def _diagnosis_history(d):
+#     return
+
+
+# def _diagnosis_principal_vector(d):
+#     return
+
+
+def diagnosis(d, features, diagnosis_parameters):
+    """
+
+    :param d:
+    :param features:
+    :param diagnosis_parameters:
+    :return:
+    """
+
+    monitoring.to_log_and_console("\n", 1)
+    monitoring.to_log_and_console("... diagnosis", 1)
+
+    if features is None or len(features) == 0:
+        for k in d.keys():
+            if k == keydictionary['lineage']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+            elif k == keydictionary['h_min']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+            elif k == keydictionary['volume']['output_key']:
+                _diagnosis_volume(d[k], k, diagnosis_parameters=diagnosis_parameters)
+            elif k == keydictionary['sigma']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+            elif k == keydictionary['label_in_time']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+            elif k == keydictionary['barycenter']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+            elif k == keydictionary['fate']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+            elif k == keydictionary['all-cells']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+            elif k == keydictionary['principal-value']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+            elif k == keydictionary['name']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+            elif k == keydictionary['contact']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+            elif k == keydictionary['history']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+            elif k == keydictionary['principal-vector']['output_key']:
+                pass
+                # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+            else:
+                monitoring.to_log_and_console("    unknown key '" + str(k) + "' for diagnosis", 1)
+
+    else:
+        for f in features:
+            if f not in keydictionary.keys():
+                monitoring.to_log_and_console("    unknown property '" + str(f) + "' for comparison", 1)
+                continue
+
+            outk = keydictionary[f]['output_key']
+
+            for i in range(len(d.keys())):
+                if d.keys()[i] == outk:
+                    if outk == keydictionary['lineage']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+                    elif outk == keydictionary['h_min']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+                    elif outk == keydictionary['volume']['output_key']:
+                        _diagnosis_volume(d[outk], outk, diagnosis=diagnosis)
+                    elif outk == keydictionary['sigma']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+                    elif outk == keydictionary['label_in_time']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+                    elif outk == keydictionary['barycenter']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+                    elif outk == keydictionary['fate']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+                    elif outk == keydictionary['all-cells']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+                    elif outk == keydictionary['principal-value']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+                    elif outk == keydictionary['name']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+                    elif outk == keydictionary['contact']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+                    elif outk == keydictionary['history']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+                    elif outk == keydictionary['principal-vector']['output_key']:
+                        pass
+                        # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+                    else:
+                        monitoring.to_log_and_console("    unknown key '" + str(outk) + "' for comparison", 1)
+                    break
+        pass
+
+    return
 
 
 ########################################################################################
@@ -695,6 +1314,24 @@ def compare_dictionaries(d1, d2, features, name1, name2):
 # utilities for debugging, etc.
 #
 ########################################################################################
+
+def print_keys(d):
+
+    monitoring.to_log_and_console("\n", 1)
+    monitoring.to_log_and_console("... contents", 1)
+
+    if type(d) is dict:
+        if d == {}:
+            monitoring.to_log_and_console("    " + "empty dictionary", 1)
+        else:
+            monitoring.to_log_and_console("    " + "keys are:", 1)
+            for k in d.keys():
+                monitoring.to_log_and_console("    " + "- " + str(k), 1)
+    else:
+        monitoring.to_log_and_console("    " + "input is not a dictionary", 1)
+
+    return
+
 
 def print_type(d, t=None, desc=None):
 

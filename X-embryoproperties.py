@@ -51,6 +51,24 @@ def _set_options(my_parser):
                                 ",'label_in_time', 'barycenter', 'principal-value', 'principal-vector', 'fate'" +
                                 ", 'all-cells', 'name', 'history', 'contact'")
 
+    my_parser.add_argument('--diagnosis',
+                           action='store_const', dest='print_diagnosis',
+                           default=False, const=True,
+                           help='perform some tests')
+
+    my_parser.add_argument('--diagnosis-minimal-volume',
+                           action='store', dest='diagnosis_minimal_volume',
+                           help='displays all cells with smaller volume')
+
+    my_parser.add_argument('--diagnosis-items',
+                           action='store', dest='diagnosis_items',
+                           help='maximal number of items to be displayed')
+
+    my_parser.add_argument('--print-content', '--print-keys',
+                           action='store_const', dest='print_content',
+                           default=False, const=True,
+                           help='print keys of the input file(s) (read as dictionary)')
+
     my_parser.add_argument('--print-types',
                            action='store_const', dest='print_input_types',
                            default=False, const=True,
@@ -106,7 +124,7 @@ if __name__ == '__main__':
 
     start_time = time.localtime()
     monitoring = commonTools.Monitoring()
-
+    diagnosis = embryoProp.DiagnosisParameters()
 
     #
     # reading command line arguments
@@ -117,6 +135,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     monitoring.update_from_args(args)
+    diagnosis.update_from_args(args)
 
     path_log_file = os.path.join(nomenclature.FLAG_EXECUTABLE + '-' + nomenclature.FLAG_TIMESTAMP + '.log')
     path_log_file = nomenclature.replaceTIMESTAMP(path_log_file, start_time)
@@ -140,16 +159,33 @@ if __name__ == '__main__':
         print "error: empty input dictionary"
         sys.exit(-1)
 
+
+    #
+    # display content
+    #
+
+    if args.print_content is True:
+        embryoProp.print_keys(inputdict)
+
+    #
+    # is a diagnosis to be done?
+    #
+
+    if args.print_diagnosis is True:
+        embryoProp.diagnosis(inputdict, args.outputFeatures, diagnosis)
+
+
     #
     # is there some comparison to be done?
     #
+
     if args.compareFiles is not None and len(args.compareFiles) > 0:
         comparedict = embryoProp.read_dictionary(args.compareFiles)
         if comparedict == {}:
             print "error: empty dictionary to be compared with"
         else:
-            embryoProp.compare_dictionaries(inputdict, comparedict, args.outputFeatures, 'input entry', 'compared entry')
-    
+            embryoProp.comparison(inputdict, comparedict, args.outputFeatures, 'input entry', 'compared entry')
+
     #
     # select features if required
     #
@@ -193,24 +229,25 @@ if __name__ == '__main__':
     #
 
     if args.outputFiles is None:
-        print "error: no output file(s)"
+        pass
+        # print "error: no output file(s)"
     else:
-        for file in args.outputFiles:
-            print "... writing '" + str(file) + "'"
-            if file[len(file) - 3:len(file)] == "pkl":
-                propertiesfile = open(file, 'w')
+        for ofile in args.outputFiles:
+            print "... writing '" + str(ofile) + "'"
+            if ofile.endswith("pkl") is True:
+                propertiesfile = open(ofile, 'w')
                 pkl.dump(outputdict, propertiesfile)
                 propertiesfile.close()
-            elif file[len(file) - 3:len(file)] == "xml":
+            elif ofile.endswith("xml") is True:
                 xmltree = embryoProp.dict2xml(outputdict)
-                xmltree.write(file)
+                xmltree.write(ofile)
             else:
-                print "   error: extension not recognized for '" + str(file) + "'"
+                print "   error: extension not recognized for '" + str(ofile) + "'"
 
     endtime = time.localtime()
 
-    monitoring.to_log_and_console("\n")
-    monitoring.to_log_and_console("Total execution time = "+str(time.mktime(endtime)-time.mktime(start_time))+"sec\n")
-    monitoring.to_log_and_console("\n")
+    monitoring.to_log_and_console("")
+    monitoring.to_log_and_console("Total execution time = "+str(time.mktime(endtime)-time.mktime(start_time))+"sec")
+    monitoring.to_log_and_console("")
 
 
