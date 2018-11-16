@@ -226,7 +226,7 @@ def _set_xml_element_text(element, value):
     #
     # 'volume', 'contact'
     #
-    elif type(value) == int:
+    elif type(value) in (int, float, np.int64, np.float64):
         # element.text = str(value)
         element.text = repr(value)
 
