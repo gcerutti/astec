@@ -1917,7 +1917,7 @@ def fusion_preprocess(input_images, fused_image, time_point, environment, parame
     # ANGLE_0: LC/Stack0000
     # ANGLE_1: RC/Stack0000
     # ANGLE_2: LC/Stack0001
-    # ANGLE_3: LR/Stack0001
+    # ANGLE_3: RC/Stack0001
     #
 
     for c in range(0, len(environment.channel)):

@@ -170,6 +170,7 @@ path_intrareg_trsf_files = FLAG_EN + '_intrareg_t' + FLAG_TIME + '.trsf'
 
 path_intrareg_fuse = os.path.join(path_intrareg_exp, 'FUSE')
 path_intrareg_seg = os.path.join(path_intrareg_exp, 'SEG')
+path_intrareg_post = os.path.join(path_intrareg_exp, 'POST')
 
 # log files
 path_intrareg_logdir = os.path.join(path_intrareg_exp, 'LOGS')
@@ -182,6 +183,9 @@ path_intrareg_fuse_files = FLAG_EN + '_intrareg_fuse_t' + FLAG_TIME
 
 path_intrareg_seg = os.path.join(path_intrareg_exp, 'SEG')
 path_intrareg_seg_files = FLAG_EN + '_intrareg_seg_t' + FLAG_TIME
+
+path_intrareg_post = os.path.join(path_intrareg_exp, 'POST')
+path_intrareg_post_files = FLAG_EN + '_intrareg_post_t' + FLAG_TIME
 
 # movies
 path_intrareg_movies = os.path.join(path_intrareg_exp, 'MOVIES')
@@ -260,7 +264,9 @@ path_post = os.path.join(FLAG_PATH_EMBRYO, DIR_STAGE_POST)
 # path for post correction workspace
 path_post_exp = os.path.join(path_post, DIR_STAGE_POST + '_' + FLAG_EXP_POST)
 # post corrected images names
-path_post_exp_files = os.path.join(path_post_exp, FLAG_EN + '_post_t$TIME.inr')
+path_post_exp_files = FLAG_EN + '_post_t' + FLAG_TIME
+# path_post_exp_files = os.path.join(path_post_exp, FLAG_EN + '_post_t$TIME.inr')
+
 # post corrected cells lineage file
 path_post_exp_lineage = os.path.join(path_post_exp, FLAG_EN + '_post_lineage.pkl')
 # post corrected cells lineage test file
