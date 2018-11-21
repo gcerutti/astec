@@ -562,10 +562,10 @@ def find_file(data_path, file_prefix, monitoring=None, verbose=True):
 
     if len(file_names) > 1:
         if monitoring is not None:
-            monitoring.to_log_and_console("Warning:")
-            monitoring.to_log_and_console(proc + ": several images with name '"
-                                          + str(file_prefix) + "' were found in '" + str(data_path) + "'")
-            monitoring.to_log_and_console("\t "+str(file_names))
+            monitoring.to_log_and_console("\t " + proc + ": warning")
+            monitoring.to_log_and_console("\t several images with name '" + str(file_prefix) + "' were found in")
+            monitoring.to_log_and_console("\t    '" + str(data_path) + "'")
+            monitoring.to_log_and_console("\t    -> "+str(file_names))
             monitoring.to_log_and_console("\t returned file is '" + str(file_names[0]) + "'")
         else:
             print(proc + ": several images with name '"

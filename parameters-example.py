@@ -386,6 +386,11 @@ target_resolution = .3
 # Intra-registration results are stored into 'PATH_EMBRYO'/INTRAREG/INTRAREG_'EXP_INTRAREG'
 #
 
+
+#
+# parameters for the co-registration of successive fused images
+#
+
 # intra_registration_compute_registration = True
 # intra_registration_transformation_type = 'rigid'
 # intra_registration_transformation_estimation_type = 'wlts'
@@ -394,17 +399,51 @@ target_resolution = .3
 # intra_registration_pyramid_lowest_level = 3
 # intra_registration_normalization = True
 
+#
+# parameters for template building
+# the 'intra_registration_resolution' parameter gives the resulting (isotropic) voxel size
+# (as the 'target_resolution' gives the voxel size of the fused images). However, for
+# visualization purposes, it may be indicated to have a larger voxel size (hence the 0.6
+# instead the 0.3)
+#
+# The template is built so that the useful information of all resampled images fits into it.
+# Useful information can be issued from either the fused sequence, the segmentation sequence or
+# the post-segmentation sequence. It can be indicated by the 'intra_registration_template_type'
+# parameter:
+#  - intra_registration_template_type = 'FUSION' | 'SEGMENTATION' | 'POST-SEGMENTATION'
+# By default, the useful information is the whole image, which may yield a huge template image.
+#
+# Giving a threshold with the 'intra_registration_template_type', only points above the threshold
+# are considered to be included in the template after resampling, this allows to reduce the template.
+# According the background value is either 0 or 1 in both the segmentation and the post-segmentation
+# sequences, setting this threshold to 2 for these sequences allows to keep the entire embryo in the
+# resampled/reconstructed sequence.
+# In addition, a margin can be given for a more comfortable visualization.
+#
+
 # intra_registration_reference_index = None
 # intra_registration_template_type = "FUSION"
 # intra_registration_template_threshold = None
 # intra_registration_resolution = 0.6
 # intra_registration_margin = None
 
+#
+# outputs
+# 1. resampled images (in the 'template' geometry)
+#    If required, it assumes that segmentation and post-segmentation images exists
+#    and are respectively located in 'PATH_EMBRYO'/SEG/SEG_'EXP_SEG' and
+#    'PATH_EMBRYO'/POST/POST_'EXP_POST'
+# 2. movies (ie 2D+t images)
+#    each 'intra_registration_[xy|xz|yz]_movie_fusion_images
+#
+
 # intra_registration_resample_fusion_images = True
 # intra_registration_resample_segmentation_images = False
+# intra_registration_resample_post_segmentation_images = False
 
 # intra_registration_movie_fusion_images = True
 # intra_registration_movie_segmentation_images = False
+# intra_registration_movie_post_segmentation_images = False
 
 # intra_registration_xy_movie_fusion_images = [];
 # intra_registration_xz_movie_fusion_images = [];
@@ -414,6 +453,9 @@ target_resolution = .3
 # intra_registration_xz_movie_segmentation_images = [];
 # intra_registration_yz_movie_segmentation_images = [];
 
+# intra_registration_xy_movie_post_segmentation_images = [];
+# intra_registration_xz_movie_post_segmentation_images = [];
+# intra_registration_yz_movie_post_segmentation_images = [];
 
 ######################################################################
 #

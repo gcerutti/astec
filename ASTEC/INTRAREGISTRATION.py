@@ -7,7 +7,7 @@ import time
 
 import commonTools
 import nomenclature
-from CommunFunctions.ImageHandling import SpatialImage, imread
+from CommunFunctions.ImageHandling import imread
 import CommunFunctions.cpp_wrapping as cpp_wrapping
 
 #
@@ -45,6 +45,9 @@ class IntraRegEnvironment(object):
         self.path_mars_exp_files = None
         self.path_seg_exp_files = None
 
+        self.path_post_exp = None
+        self.path_post_exp_files = None
+
         #
         # registration data path
         #
@@ -63,6 +66,8 @@ class IntraRegEnvironment(object):
         self.path_intrareg_fuse_files = None
         self.path_intrareg_seg = None
         self.path_intrareg_seg_files = None
+        self.path_intrareg_post = None
+        self.path_intrareg_post_files = None
 
         #
         # movies
@@ -92,6 +97,9 @@ class IntraRegEnvironment(object):
         self.path_mars_exp_files = nomenclature.replaceFlags(nomenclature.path_mars_exp_files, parameters)
         self.path_seg_exp_files = nomenclature.replaceFlags(nomenclature.path_seg_exp_files, parameters)
 
+        self.path_post_exp = nomenclature.replaceFlags(nomenclature.path_post_exp, parameters)
+        self.path_post_exp_files = nomenclature.replaceFlags(nomenclature.path_post_exp_files, parameters)
+
         self.path_intrareg_exp = nomenclature.replaceFlags(nomenclature.path_intrareg_exp, parameters)
 
         self.path_intrareg_cotrsf = nomenclature.replaceFlags(nomenclature.path_intrareg_cotrsf, parameters)
@@ -103,6 +111,8 @@ class IntraRegEnvironment(object):
         self.path_intrareg_fuse_files = nomenclature.replaceFlags(nomenclature.path_intrareg_fuse_files, parameters)
         self.path_intrareg_seg = nomenclature.replaceFlags(nomenclature.path_intrareg_seg, parameters)
         self.path_intrareg_seg_files = nomenclature.replaceFlags(nomenclature.path_intrareg_seg_files, parameters)
+        self.path_intrareg_post = nomenclature.replaceFlags(nomenclature.path_intrareg_post, parameters)
+        self.path_intrareg_post_files = nomenclature.replaceFlags(nomenclature.path_intrareg_post_files, parameters)
 
         self.path_intrareg_movies = nomenclature.replaceFlags(nomenclature.path_intrareg_movies, parameters)
 
@@ -122,6 +132,9 @@ class IntraRegEnvironment(object):
             logfile.write('- path_mars_exp_files = ' + str(self.path_mars_exp_files) + '\n')
             logfile.write('- path_seg_exp_files = ' + str(self.path_seg_exp_files) + '\n')
 
+            logfile.write('- path_post_exp = ' + str(self.path_post_exp) + '\n')
+            logfile.write('- path_post_exp_files = ' + str(self.path_post_exp_files) + '\n')
+
             logfile.write('- path_intrareg_exp = ' + str(self.path_intrareg_exp) + '\n')
 
             logfile.write('- path_intrareg_cotrsf = ' + str(self.path_intrareg_cotrsf) + '\n')
@@ -133,6 +146,8 @@ class IntraRegEnvironment(object):
             logfile.write('- path_intrareg_fuse_files = ' + str(self.path_intrareg_fuse_files) + '\n')
             logfile.write('- path_intrareg_seg = ' + str(self.path_intrareg_seg) + '\n')
             logfile.write('- path_intrareg_seg_files = ' + str(self.path_intrareg_seg_files) + '\n')
+            logfile.write('- path_intrareg_post = ' + str(self.path_intrareg_post) + '\n')
+            logfile.write('- path_intrareg_post_files = ' + str(self.path_intrareg_post_files) + '\n')
 
             logfile.write('- path_intrareg_movies = ' + str(self.path_intrareg_movies) + '\n')
 
@@ -153,6 +168,9 @@ class IntraRegEnvironment(object):
         print('- path_mars_exp_files = ' + str(self.path_mars_exp_files))
         print('- path_seg_exp_files = ' + str(self.path_seg_exp_files))
 
+        print('- path_post_exp = ' + str(self.path_post_exp))
+        print('- path_post_exp_files = ' + str(self.path_post_exp_files))
+
         print('- path_intrareg_exp = ' + str(self.path_intrareg_exp))
 
         print('- path_intrareg_cotrsf = ' + str(self.path_intrareg_cotrsf))
@@ -164,6 +182,8 @@ class IntraRegEnvironment(object):
         print('- path_intrareg_fuse_files = ' + str(self.path_intrareg_fuse_files))
         print('- path_intrareg_seg = ' + str(self.path_intrareg_seg))
         print('- path_intrareg_seg_files = ' + str(self.path_intrareg_seg_files))
+        print('- path_intrareg_post = ' + str(self.path_intrareg_post))
+        print('- path_intrareg_post_files = ' + str(self.path_intrareg_post_files))
 
         print('- path_intrareg_movies = ' + str(self.path_intrareg_movies))
 
@@ -208,9 +228,11 @@ class IntraRegParameters(object):
 
         self.resample_fusion_images = True
         self.resample_segmentation_images = False
+        self.resample_post_segmentation_images = False
 
         self.movie_fusion_images = True
         self.movie_segmentation_images = False
+        self.movie_post_segmentation_images = False
 
         self.xy_movie_fusion_images = []
         self.xz_movie_fusion_images = []
@@ -219,6 +241,10 @@ class IntraRegParameters(object):
         self.xy_movie_segmentation_images = []
         self.xz_movie_segmentation_images = []
         self.yz_movie_segmentation_images = []
+
+        self.xy_movie_post_segmentation_images = []
+        self.xz_movie_post_segmentation_images = []
+        self.yz_movie_post_segmentation_images = []
 
         #
         # images suffixes/formats
@@ -254,6 +280,7 @@ class IntraRegParameters(object):
 
             logfile.write('- resample_fusion_images = ' + str(self.resample_fusion_images) + '\n')
             logfile.write('- resample_segmentation_images = ' + str(self.resample_segmentation_images) + '\n')
+            logfile.write('- resample_post_segmentation_images = ' + str(self.resample_post_segmentation_images) + '\n')
 
             #
             # movie parameters
@@ -261,6 +288,7 @@ class IntraRegParameters(object):
 
             logfile.write('- movie_fusion_images = ' + str(self.movie_fusion_images) + '\n')
             logfile.write('- movie_segmentation_images = ' + str(self.movie_segmentation_images) + '\n')
+            logfile.write('- movie_post_segmentation_images = ' + str(self.movie_post_segmentation_images) + '\n')
 
             logfile.write('- xy_movie_fusion_images = ' + str(self.xy_movie_fusion_images) + '\n')
             logfile.write('- xz_movie_fusion_images = ' + str(self.xz_movie_fusion_images) + '\n')
@@ -269,6 +297,10 @@ class IntraRegParameters(object):
             logfile.write('- xy_movie_segmentation_images = ' + str(self.xy_movie_segmentation_images) + '\n')
             logfile.write('- xz_movie_segmentation_images = ' + str(self.xz_movie_segmentation_images) + '\n')
             logfile.write('- yz_movie_segmentation_images = ' + str(self.yz_movie_segmentation_images) + '\n')
+
+            logfile.write('- xy_movie_post_segmentation_images = ' + str(self.xy_movie_post_segmentation_images) + '\n')
+            logfile.write('- xz_movie_post_segmentation_images = ' + str(self.xz_movie_post_segmentation_images) + '\n')
+            logfile.write('- yz_movie_post_segmentation_images = ' + str(self.yz_movie_post_segmentation_images) + '\n')
 
             #
             # images suffixes/formats
@@ -306,6 +338,7 @@ class IntraRegParameters(object):
 
         print('- resample_fusion_images = ' + str(self.resample_fusion_images))
         print('- resample_segmentation_images = ' + str(self.resample_segmentation_images))
+        print('- resample_post_segmentation_images = ' + str(self.resample_post_segmentation_images))
 
         #
         # movie parameters
@@ -313,6 +346,7 @@ class IntraRegParameters(object):
 
         print('- movie_fusion_images = ' + str(self.movie_fusion_images))
         print('- movie_segmentation_images = ' + str(self.movie_segmentation_images))
+        print('- movie_post_segmentation_images = ' + str(self.movie_post_segmentation_images))
 
         print('- xy_movie_fusion_images = ' + str(self.xy_movie_fusion_images))
         print('- xz_movie_fusion_images = ' + str(self.xz_movie_fusion_images))
@@ -321,6 +355,10 @@ class IntraRegParameters(object):
         print('- xy_movie_segmentation_images = ' + str(self.xy_movie_segmentation_images))
         print('- xz_movie_segmentation_images = ' + str(self.xz_movie_segmentation_images))
         print('- yz_movie_segmentation_images = ' + str(self.yz_movie_segmentation_images))
+
+        print('- xy_movie_post_segmentation_images = ' + str(self.xy_movie_post_segmentation_images))
+        print('- xz_movie_post_segmentation_images = ' + str(self.xz_movie_post_segmentation_images))
+        print('- yz_movie_post_segmentation_images = ' + str(self.yz_movie_post_segmentation_images))
 
         #
         # images suffixes/formats
@@ -376,6 +414,9 @@ class IntraRegParameters(object):
         if hasattr(parameters, 'intra_registration_resample_segmentation_images'):
             if parameters.intra_registration_resample_segmentation_images is not None:
                 self.resample_segmentation_images = parameters.intra_registration_resample_segmentation_images
+        if hasattr(parameters, 'intra_registration_resample_post_segmentation_images'):
+            if parameters.intra_registration_resample_post_segmentation_images is not None:
+                self.resample_post_segmentation_images = parameters.intra_registration_resample_post_segmentation_images
 
         if hasattr(parameters, 'intra_registration_movie_fusion_images'):
             if parameters.intra_registration_movie_fusion_images is not None:
@@ -383,6 +424,9 @@ class IntraRegParameters(object):
         if hasattr(parameters, 'intra_registration_movie_segmentation_images'):
             if parameters.intra_registration_movie_segmentation_images is not None:
                 self.movie_segmentation_images = parameters.intra_registration_movie_segmentation_images
+        if hasattr(parameters, 'intra_registration_movie_post_segmentation_images'):
+            if parameters.intra_registration_movie_post_segmentation_images is not None:
+                self.movie_post_segmentation_images = parameters.intra_registration_movie_post_segmentation_images
 
         if hasattr(parameters, 'intra_registration_xy_movie_fusion_images'):
             if parameters.intra_registration_xy_movie_fusion_images is not None:
@@ -403,6 +447,16 @@ class IntraRegParameters(object):
         if hasattr(parameters, 'intra_registration_yz_movie_segmentation_images'):
             if parameters.intra_registration_yz_movie_segmentation_images is not None:
                 self.yz_movie_segmentation_images = parameters.intra_registration_yz_movie_segmentation_images
+
+        if hasattr(parameters, 'intra_registration_xy_movie_post_segmentation_images'):
+            if parameters.intra_registration_xy_movie_post_segmentation_images is not None:
+                self.xy_movie_post_segmentation_images = parameters.intra_registration_xy_movie_post_segmentation_images
+        if hasattr(parameters, 'intra_registration_xz_movie_post_segmentation_images'):
+            if parameters.intra_registration_xz_movie_post_segmentation_images is not None:
+                self.xz_movie_post_segmentation_images = parameters.intra_registration_xz_movie_post_segmentation_images
+        if hasattr(parameters, 'intra_registration_yz_movie_post_segmentation_images'):
+            if parameters.intra_registration_yz_movie_post_segmentation_images is not None:
+                self.yz_movie_post_segmentation_images = parameters.intra_registration_yz_movie_post_segmentation_images
 
         #
         # images suffixes/formats
@@ -505,6 +559,7 @@ def _get_file_suffix(experiment, data_path, file_format):
 
     monitoring.to_log_and_console(proc + ": no common suffix for '" + str(file_format)
                                   + "' was found in '" + str(data_path) + "'", 2)
+    monitoring.to_log_and_console("\t time point range was ["+ str(first_time_point)+", "+str(last_time_point)+"]")
     return None
 
 
@@ -657,9 +712,27 @@ def _transformations_and_template(experiment, environment, parameters, temporary
             monitoring.to_log_and_console("\t switch to fused images as templates", 1)
 
         else:
+            monitoring.to_log_and_console("       ... build template from segmentation images of '"
+                                          + str(environment.path_seg_exp) + "'", 2)
             template_name = environment.path_seg_exp_files.replace(nomenclature.FLAG_TIME, '%03d')
             template_name += '.' + suffix
             template_format = os.path.join(environment.path_seg_exp, template_name)
+
+    elif parameters.template_type.lower() == 'post-segmentation' \
+            or parameters.template_type.lower() == 'post_segmentation' or parameters.template_type.lower() == 'post':
+        suffix = _get_file_suffix(experiment, environment.path_post_exp, environment.path_post_exp_files)
+
+        if suffix is None:
+            monitoring.to_log_and_console(proc + ": no consistent naming was found in '"
+                                          + str(environment.path_post_exp) + "'", 1)
+            monitoring.to_log_and_console("\t switch to fused images as templates", 1)
+
+        else:
+            monitoring.to_log_and_console("       ... build template from post-segmentation images of '"
+                                          + str(environment.path_post_exp) + "'", 2)
+            template_name = environment.path_post_exp_files.replace(nomenclature.FLAG_TIME, '%03d')
+            template_name += '.' + suffix
+            template_format = os.path.join(environment.path_post_exp, template_name)
 
     if template_format is None:
         suffix = _get_file_suffix(experiment, environment.path_fuse_exp, environment.path_fuse_exp_files)
@@ -667,6 +740,8 @@ def _transformations_and_template(experiment, environment, parameters, temporary
             monitoring.to_log_and_console(proc + ": no consistent naming was found in '"
                                           + str(environment.path_fuse_exp) + "'", 1)
         else:
+            monitoring.to_log_and_console("       ... build template from fusion images of '"
+                                          + str(environment.path_fuse_exp) + "'", 2)
             template_name = environment.path_fuse_exp_files.replace(nomenclature.FLAG_TIME, '%03d')
             template_name += '.' + suffix
             template_format = os.path.join(environment.path_fuse_exp, template_name)
@@ -849,6 +924,7 @@ def intraregistration_control(experiment, environment, parameters):
 
     proc = "intraregistration_control"
 
+#
     #
     # start processing
     #
@@ -927,6 +1003,16 @@ def intraregistration_control(experiment, environment, parameters):
                          environment.path_intrareg_seg, environment.path_intrareg_seg_files, result_dir,
                          result_template, nearest=True)
 
+    if parameters.resample_post_segmentation_images is True or parameters.movie_post_segmentation_images is True \
+            or len(parameters.xy_movie_post_segmentation_images) > 0 \
+            or len(parameters.xz_movie_post_segmentation_images) > 0 \
+            or len(parameters.yz_movie_post_segmentation_images) > 0:
+        monitoring.to_log_and_console("    .. resampling post-segmentation images", 2)
+        _resample_images(experiment, environment, parameters, environment.path_post_exp,
+                         environment.path_post_exp_files,
+                         environment.path_intrareg_post, environment.path_intrareg_post_files, result_dir,
+                         result_template, nearest=True)
+
     #
     # make 3D=2D+t images = movie of evolving slices with respect to time
     #
@@ -943,6 +1029,14 @@ def intraregistration_control(experiment, environment, parameters):
         _make_movies(experiment, parameters, environment.path_intrareg_seg, environment.path_intrareg_seg_files,
                      environment.path_intrareg_movies, parameters.xy_movie_segmentation_images,
                      parameters.xz_movie_segmentation_images, parameters.yz_movie_segmentation_images)
+
+    if parameters.movie_post_segmentation_images is True or len(parameters.xy_movie_post_segmentation_images) > 0 \
+            or len(parameters.xz_movie_post_segmentation_images) > 0 \
+            or len(parameters.yz_movie_post_segmentation_images) > 0:
+        monitoring.to_log_and_console("    .. movies from post-segmentation images", 2)
+        _make_movies(experiment, parameters, environment.path_intrareg_post, environment.path_intrareg_post_files,
+                     environment.path_intrareg_movies, parameters.xy_movie_post_segmentation_images,
+                     parameters.xz_movie_post_segmentation_images, parameters.yz_movie_post_segmentation_images)
 
     #
     # end processing
