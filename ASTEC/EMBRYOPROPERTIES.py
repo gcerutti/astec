@@ -50,6 +50,8 @@ keydictionary = {'lineage': {'output_key': 'lin_tree',
                            'input_keys': ['cell_h_min', 'h_mins_information']},
                  'volume': {'output_key': 'cell_volume',
                             'input_keys': ['cell_volume', 'volumes_information', 'volumes information']},
+                 'surface': {'output_key': 'cell_surface',
+                            'input_keys': ['cell_surface']},
                  'sigma': {'output_key': 'cell_sigma',
                            'input_keys': ['cell_sigma', 'sigmas_information']},
                  'label_in_time': {'output_key': 'cell_labels_in_time',
@@ -563,7 +565,7 @@ def read_dictionary(inputfilenames):
 
 
 def _decode_cell_id(s):
-    return "cell #{:4d}".format(int(s)/10000) + " of image #{:4d}".format(int(s)%10000)
+    return "cell #{:4d}".format(int(s)/10000) + " of image #{:4d}".format(int(s) % 10000)
 
 
 ########################################################################################
@@ -1220,6 +1222,8 @@ def diagnosis(d, features, diagnosis_parameters):
                 # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
             elif k == keydictionary['volume']['output_key']:
                 _diagnosis_volume(d[k], k, diagnosis_parameters=diagnosis_parameters)
+            elif k == keydictionary['surface']['output_key']:
+                pass
             elif k == keydictionary['sigma']['output_key']:
                 pass
                 # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
@@ -1271,6 +1275,8 @@ def diagnosis(d, features, diagnosis_parameters):
                         # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
                     elif outk == keydictionary['volume']['output_key']:
                         _diagnosis_volume(d[outk], outk, diagnosis=diagnosis)
+                    elif outk == keydictionary['surface']['output_key']:
+                        pass
                     elif outk == keydictionary['sigma']['output_key']:
                         pass
                         # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)

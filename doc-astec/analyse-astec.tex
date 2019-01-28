@@ -52,7 +52,7 @@ tant de r\'e\'echantillonner $I_{t}$ sur  $I_{t + \delta t}$
 
 \subsection{Overview}
 
-L'appel se fait par le fichier \texttt{4-fuse.py}. C'est l\`a que se fait la boucle sur le temps pour segmenter successivement tous les points de temps. 
+L'appel se fait par le fichier \texttt{4-astec.py}. C'est l\`a que se fait la boucle sur le temps pour segmenter successivement tous les points de temps. 
 
 La segmentation d'un point de temps $t + \delta t$ se fait par l'appel de la fonction \texttt{segmentation\_propagation()} (section \ref{sec:segmentation:propagation}, page \pageref{sec:segmentation:propagation}) avec en param\`etres les images fusionn\'ees, $I_{t}$ et $I_{t + \delta t}$ ainsi que la segmentation \`a $t$, $S^{\star}_t$.
 
@@ -70,7 +70,7 @@ qui calcule $S^e_t$ et $S^e_{t+\delta t \leftarrow t}$
 \begin{displaymath}
 S^e_{t+\delta t \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}
 \end{displaymath}
-sont les graines projet\'ees (cellules de $S^{\star}_t$ \'erod\'ees puis transform\'ees dans $I_{t+\delta t}$) \cite[section 2.3.3.4]{guignard:tel-01278725}
+soit les graines projet\'ees (cellules de $S^{\star}_t$ \'erod\'ees puis transform\'ees dans $I_{t+\delta t}$) \cite[section 2.3.3.4]{guignard:tel-01278725}
 
 \item \texttt{apply\_trsf()} de \texttt{ASTEC/CommunFunctions/cpp\_wrapping.py} qui calcule $S^{\star}_{t+\delta t \leftarrow t} = S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$, soit la segmentation \`a $t$ projet\'ee \`a $t + \delta t$
 
@@ -152,7 +152,7 @@ Quelques remarques:
 
 Rq: si  $\# seeds = 3$ on ne garde que les 2 premi\`eres composantes num\'erot\'ees, ce qui me semble bizarre comme choix.
 
-\item Pour le fond, on r\'ecup\`ere  (avec \texttt{cell\_propagation()}) les $h_{max}$-minima strictement inclus dans le fond. Plut\^ot que de garder plusieurs num\'eros/labels pour ces graines, on pourrait toutes les mettre \`a 1, cela supprimerait des op\'erations (eg renum\'rotation de la segmentation) car ces graines ne seront pas remises en cause plus tard.
+\item Pour le fond, on r\'ecup\`ere  (avec \texttt{cell\_propagation()}) les $h_{max}$-minima strictement inclus dans le fond. Plut\^ot que de garder plusieurs num\'eros/labels pour ces graines, on pourrait toutes les mettre \`a 1, cela supprimerait des op\'erations (eg renum\'erotation de la segmentation) car ces graines ne seront pas remises en cause plus tard.
 
 \item Pour les cellules sans graines ($\# seeds = 0$, cf Alg. \ref{alg:get:back:parameters}, cas o\`u $N_1(c) = N_2(c) = N_3(c) = 0$), on regarde leur volume dans $\tilde{S}_{t+1}$. S'il est assez grand (sup\'erieur \`a 100 voxels), on r\'ecup\`ere la projection de la cellule m\`ere \'erod\'ee comme graine ($S^e_{t+\delta t \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$)
 \end{itemize}
@@ -242,14 +242,14 @@ pour les cas  $N_1(c) > 0$ \textit{or} $N_2(c) > 0$, sauf que l'on garde le plus
 \item On fait la diff\'erence entre la cellule m\`ere de $S^{\star}_{t+\delta t \leftarrow t}$ et les cellules filles de $\hat{S}_{t+1}$, et on regarde si le label majoritaire dans cette diff\'erence est le fond. Si c'est le fond, on va mettre le couple (m\`ere, fille(s)) dans une liste \verb|exterior_correction|, sinon on ne fait rien.
 \item Traitement de  \verb|exterior_correction| \cite[d\'ebut du point (2), section 2.3.3.6, page 73]{guignard:tel-01278725} avec les morphosnakes dans des sous-images (\texttt{perform\_ac()}, section \ref{sec:perform:ac}, page \pageref{sec:perform:ac}), c'est ce qui peut prendre du temps.
 
-Dans \texttt{perform\_ac()}, on calcule une norme de gradient (vient de \verb|cpp_wrapping.py|), puis $g(I) = \frac{1}{\sqrt{1+ \alpha |\nabla G_{\sigma}* I|}}$ comme dans \cite[Eq. (24)]{marquez-neil:pami:2014}. Toutefois, cette \'equation est faite pour avoir une image de potentiel avec de faibles valeurs pour les contours (ie les membranes). Elle n'est donc pas adapt\'ees pour nos images,
+Dans \texttt{perform\_ac()}, on calcule une norme de gradient (vient de \verb|cpp_wrapping.py|), puis $g(I) = \frac{1}{\sqrt{1+ \alpha |\nabla G_{\sigma}* I|}}$ comme dans \cite[Eq. (24)]{marquez-neil:pami:2014}. Toutefois, cette \'equation est faite pour avoir une image de potentiel avec de faibles valeurs pour les contours (ie les membranes). Elle n'est donc pas adapt\'ee pour nos images (une inversion des valeurs de l'image pourrait \^etre plus ad\'equate).
 
 \item R\'eincorporation des r\'esultats dans  $\hat{S}_{t+1}$. 
 
 Attention, s'il y avait plusieurs filles (une division), elles sont fusionn\'ees et la filiation ne donne plus qu'une fille.
 \end{itemize}
 
-\item Traitement de  \verb|to_fuse_3|. On \'elimine la plus petite des 3 cellules et on l'affecte à celle des 2 autres avec laquelle elle partage le plus de fronti\`ere.
+\item Traitement de  \verb|to_fuse_3|. On \'elimine la plus petite des 3 cellules et on l'affecte \`a celle des 2 autres avec laquelle elle partage le plus de fronti\`ere.
 
 \end{itemize}
 
@@ -269,7 +269,7 @@ On r\'ealise une ouverture morphologique sur le masque de l'embryon (un ouvert e
 
 
 \pagebreak
-\section{\texttt{4-fuse.py}}
+\section{\texttt{4-astec.py}}
 
 \begin{verbatim}
 [...]
