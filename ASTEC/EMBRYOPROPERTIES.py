@@ -71,7 +71,9 @@ keydictionary = {'lineage': {'output_key': 'lin_tree',
                  'history': {'output_key': 'cell_history',
                              'input_keys': ['cell_history', 'Cells history']},
                  'principal-vector': {'output_key': 'cell_principal_vectors',
-                                      'input_keys': ['cell_principal_vectors', 'Principal vectors']}}
+                                      'input_keys': ['cell_principal_vectors', 'Principal vectors']},
+                 'unknown': {'output_key': 'unknown_key',
+                             'input_keys': ['unknown_key']}}
 
 
 ########################################################################################
@@ -450,9 +452,26 @@ def _update_read_dictionary(propertiesdict, tmpdict, filename):
 
     elif len(unknownkeys) > 0:
         #
-        # some keys were found
+        # some unknown keys were found
         #
         monitoring.to_log_and_console("   ... unrecognized key(s) are '" + str(unknownkeys) + "'", 1)
+
+        outputkey = keydictionary['unknown']['output_key']
+
+        if (len(unknownkeys) == 1):
+            tmpkey = unknownkeys[0]
+            if outputkey in propertiesdict.keys():
+                if type(propertiesdict[outputkey]) is dict and type(tmpdict[tmpkey]) is dict:
+                    propertiesdict[outputkey].update(tmpdict[tmpkey])
+                elif type(propertiesdict[outputkey]) is list and type(tmpdict[tmpkey]) is list:
+                    propertiesdict[outputkey] += tmpdict[tmpkey]
+                else:
+                    monitoring.to_log_and_console(proc + ": error, can not update property '" + str(outputkey)
+                                                  + "'")
+            else:
+                propertiesdict[outputkey] = tmpdict[tmpkey]
+        else:
+            monitoring.to_log_and_console(proc + ": error, can not update many unknown properties")
 
     return propertiesdict
 
