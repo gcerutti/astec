@@ -48,9 +48,9 @@ def _set_options(my_parser):
     my_parser.add_argument('-feature', '-property',
                            action='store', nargs='*', dest='outputFeatures', const=None,
                            help="features to be extracted from the lineage: 'lineage', 'h_min', 'volume', 'surface'" +
-                                ", 'sigma'" +
-                                ", 'label_in_time', 'barycenter', 'principal-value', 'principal-vector', 'fate'" +
-                                ", 'all-cells', 'name', 'history', 'contact'")
+                                ", 'sigma', 'label_in_time', 'barycenter', 'fate', 'fate2', 'fate3', 'fate4'" +
+                                ", 'all-cells', 'principal-value', 'name', 'contact', 'history', 'principal-vector'" +
+                                ", 'name-score', 'cell-compactness'")
 
     my_parser.add_argument('--diagnosis',
                            action='store_const', dest='print_diagnosis',
