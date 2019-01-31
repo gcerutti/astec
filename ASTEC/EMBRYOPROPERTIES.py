@@ -43,38 +43,47 @@ monitoring = commonTools.Monitoring()
 #
 ########################################################################################
 
-
-keydictionary = {'lineage': {'output_key': 'lin_tree',
-                             'input_keys': ['lineage_tree', 'lin_tree', 'Lineage tree']},
+keydictionary = {'lineage': {'output_key': 'cell_lineage',
+                             'input_keys': ['lineage_tree', 'lin_tree', 'Lineage tree', 'cell_lineage']},
                  'h_min': {'output_key': 'cell_h_min',
                            'input_keys': ['cell_h_min', 'h_mins_information']},
                  'volume': {'output_key': 'cell_volume',
-                            'input_keys': ['cell_volume', 'volumes_information', 'volumes information']},
+                            'input_keys': ['cell_volume', 'volumes_information', 'volumes information', 'vol']},
                  'surface': {'output_key': 'cell_surface',
-                            'input_keys': ['cell_surface']},
+                            'input_keys': ['cell_surface', 'cell surface']},
                  'sigma': {'output_key': 'cell_sigma',
-                           'input_keys': ['cell_sigma', 'sigmas_information']},
+                           'input_keys': ['cell_sigma', 'sigmas_information', 'sigmas']},
                  'label_in_time': {'output_key': 'cell_labels_in_time',
-                                   'input_keys': ['cell_labels_in_time', 'Cells labels in time']},
+                                   'input_keys': ['cell_labels_in_time', 'Cells labels in time', 'time_labels']},
                  'barycenter': {'output_key': 'cell_barycenter',
-                                'input_keys': ['cell_barycenter', 'Barycenters']},
+                                'input_keys': ['cell_barycenter', 'Barycenters', 'barycenters']},
                  'fate': {'output_key': 'cell_fate',
                           'input_keys': ['cell_fate', 'Fate']},
+                 'fate2': {'output_key': 'cell_fate_2',
+                          'input_keys': ['cell_fate_2', 'Fate2']},
+                 'fate3': {'output_key': 'cell_fate_3',
+                          'input_keys': ['cell_fate_3', 'Fate3']},
+                 'fate4': {'output_key': 'cell_fate_4',
+                          'input_keys': ['cell_fate_4', 'Fate4']},
                  'all-cells': {'output_key': 'all_cells',
-                               'input_keys': ['all_cells', 'All Cells']},
+                               'input_keys': ['all_cells', 'All Cells', 'All_Cells', 'all cells', 'tot_cells']},
                  'principal-value': {'output_key': 'cell_principal_values',
                                      'input_keys': ['cell_principal_values', 'Principal values']},
                  'name': {'output_key': 'cell_name',
-                          'input_keys': ['cell_name', 'Names']},
+                          'input_keys': ['cell_name', 'Names', 'names', 'cell_names']},
                  'contact': {'output_key': 'cell_contact_surface',
                              'input_keys': ['cell_contact_surface', 'cell_cell_contact_information']},
                  'history': {'output_key': 'cell_history',
-                             'input_keys': ['cell_history', 'Cells history']},
+                             'input_keys': ['cell_history', 'Cells history', 'cell_life', 'life']},
                  'principal-vector': {'output_key': 'cell_principal_vectors',
                                       'input_keys': ['cell_principal_vectors', 'Principal vectors']},
+                 'name-score': {'output_key': 'cell_naming_score',
+                                      'input_keys': ['cell_naming_score', 'Scores', 'scores']},
+                 'cell-compactness': {'output_key': 'cell_compactness',
+                                      'input_keys': ['cell_compactness', 'Cell Compactness', 'compacity',
+                                                      'cell_sphericity']},
                  'unknown': {'output_key': 'unknown_key',
                              'input_keys': ['unknown_key']}}
-
 
 ########################################################################################
 #
@@ -180,8 +189,10 @@ def _set_xml_element_text(element, value):
 
     if type(value) == dict:
         # print proc + ": type is dict"
-        for k, v in value.iteritems():
-            _dict2xml(element, k, v)
+        keylist = value.keys()
+        keylist.sort()
+        for k in keylist:
+            _dict2xml(element, k, value[k])
 
     elif type(value) == list:
 
