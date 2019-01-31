@@ -469,7 +469,7 @@ def _update_read_dictionary(propertiesdict, tmpdict, filename):
 
         outputkey = keydictionary['unknown']['output_key']
 
-        if (len(unknownkeys) == 1):
+        if len(unknownkeys) == 1:
             tmpkey = unknownkeys[0]
             if outputkey in propertiesdict.keys():
                 if type(propertiesdict[outputkey]) is dict and type(tmpdict[tmpkey]) is dict:
@@ -1304,7 +1304,7 @@ def diagnosis(d, features, diagnosis_parameters):
                         pass
                         # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
                     elif outk == keydictionary['volume']['output_key']:
-                        _diagnosis_volume(d[outk], outk, diagnosis=diagnosis)
+                        _diagnosis_volume(d[outk], outk, diagnosis_parameters=diagnosis)
                     elif outk == keydictionary['surface']['output_key']:
                         pass
                     elif outk == keydictionary['sigma']['output_key']:
@@ -1390,7 +1390,3 @@ def print_type(d, t=None, desc=None):
         print "type of " + desc + " is " + str(t) + str(type(d))
 
     return
-
-
-
-
