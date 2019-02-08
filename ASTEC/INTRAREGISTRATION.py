@@ -85,7 +85,7 @@ class IntraRegEnvironment(object):
         if parameter_file is None:
             return
         if not os.path.isfile(parameter_file):
-            print ("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
             sys.exit(1)
 
         parameters = imp.load_source('*', parameter_file)
@@ -225,6 +225,7 @@ class IntraRegParameters(object):
         #
         # resampling parameters
         #
+        self.sigma_segmentation_images = 1.0
 
         self.resample_fusion_images = True
         self.resample_segmentation_images = False
@@ -278,6 +279,7 @@ class IntraRegParameters(object):
             # resampling parameters
             #
 
+            logfile.write('- sigma_segmentation_images = ' + str(self.sigma_segmentation_images) + '\n')
             logfile.write('- resample_fusion_images = ' + str(self.resample_fusion_images) + '\n')
             logfile.write('- resample_segmentation_images = ' + str(self.resample_segmentation_images) + '\n')
             logfile.write('- resample_post_segmentation_images = ' + str(self.resample_post_segmentation_images) + '\n')
@@ -336,6 +338,7 @@ class IntraRegParameters(object):
         # resampling parameters
         #
 
+        print('- sigma_segmentation_images = ' + str(self.sigma_segmentation_images))
         print('- resample_fusion_images = ' + str(self.resample_fusion_images))
         print('- resample_segmentation_images = ' + str(self.resample_segmentation_images))
         print('- resample_post_segmentation_images = ' + str(self.resample_post_segmentation_images))
@@ -376,6 +379,7 @@ class IntraRegParameters(object):
             print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
             sys.exit(1)
 
+        margin_is_updated = False
         parameters = imp.load_source('*', parameter_file)
 
         #
@@ -403,10 +407,15 @@ class IntraRegParameters(object):
         if hasattr(parameters, 'intra_registration_margin'):
             if parameters.intra_registration_margin is not None:
                 self.margin = parameters.intra_registration_margin
+                margin_is_updated = True
 
         #
         # resampling parameters
         #
+
+        if hasattr(parameters, 'intra_registration_sigma_segmentation_images'):
+            if parameters.intra_registration_sigma_segmentation_images is not None:
+                self.sigma_segmentation_images = parameters.intra_registration_sigma_segmentation_images
 
         if hasattr(parameters, 'intra_registration_resample_fusion_images'):
             if parameters.intra_registration_resample_fusion_images is not None:
@@ -475,6 +484,20 @@ class IntraRegParameters(object):
                 if not hasattr(parameters, 'result_image_suffix') \
                         and not hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
                     self.result_image_suffix = parameters.default_image_suffix
+
+        #
+        # default for margin is none (ie no margin)
+        # which is convenient for fusion images
+        # however, when dealing with segmentation images as template, a little margin will be great
+        # thus, define the default as 10 (if no specification from the user)
+        #
+        if parameters.intra_registration_template_type.lower() == 'segmentation' \
+                or parameters.intra_registration_template_type.lower() == 'seg' \
+                or parameters.intra_registration_template_type.lower() == 'post-segmentation' \
+                or parameters.intra_registration_template_type.lower() == 'post_segmentation' \
+                or parameters.intra_registration_template_type.lower() == 'post':
+            if margin_is_updated is False:
+                parameters.intra_registration_margin = 10
 
 
 ########################################################################################
@@ -559,7 +582,7 @@ def _get_file_suffix(experiment, data_path, file_format):
 
     monitoring.to_log_and_console(proc + ": no common suffix for '" + str(file_format)
                                   + "' was found in '" + str(data_path) + "'", 2)
-    monitoring.to_log_and_console("\t time point range was ["+ str(first_time_point)+", "+str(last_time_point)+"]")
+    monitoring.to_log_and_console("\t time point range was ["+str(first_time_point)+", "+str(last_time_point)+"]")
     return None
 
 
@@ -596,7 +619,7 @@ def _coregistration_control(experiment, environment, parameters):
     last_time_point = experiment.last_time_point + experiment.delay_time_point
 
     for reference_time in range(first_time_point + experiment.delay_time_point + experiment.delta_time_point,
-                              last_time_point + experiment.delay_time_point + 1, experiment.delta_time_point):
+                                last_time_point + experiment.delay_time_point + 1, experiment.delta_time_point):
 
         floating_time = reference_time - experiment.delta_time_point
 
@@ -775,7 +798,7 @@ def _transformations_and_template(experiment, environment, parameters, temporary
 
 
 def _resample_images(experiment, environment, parameters, dir_input, format_input, dir_output, format_output,
-                     trsf_dir, template_image, nearest=False):
+                     trsf_dir, template_image, interpolation_mode='linear'):
     """
     resample all images given a set of transformations and a template
     :param experiment:
@@ -786,7 +809,7 @@ def _resample_images(experiment, environment, parameters, dir_input, format_inpu
     :param dir_output:
     :param format_output:
     :param template_image:
-    :param nearest:
+    :param interpolation_mode:
     :return:
     """
 
@@ -794,6 +817,23 @@ def _resample_images(experiment, environment, parameters, dir_input, format_inpu
 
     if not os.path.isdir(dir_output):
         os.makedirs(dir_output)
+
+    #
+    # in case the template has been gziped, or copied into an other format
+    #
+
+    b = os.path.basename(template_image)
+    d = os.path.dirname(template_image)
+    local_template_name = commonTools.find_file(d, b, monitoring)
+    local_template_image = os.path.join(d, local_template_name)
+    if local_template_image is None:
+        monitoring.to_log_and_console(proc + ": template '" + str(b) + "' was not found in '" + str(d) + "'", 1)
+        monitoring.to_log_and_console("\t resampling will not be done")
+        return
+
+    #
+    #
+    #
 
     first_time_point = experiment.first_time_point + experiment.delay_time_point
     last_time_point = experiment.last_time_point + experiment.delay_time_point
@@ -816,7 +856,9 @@ def _resample_images(experiment, environment, parameters, dir_input, format_inpu
                 monitoring.to_log_and_console("       resampling '" + str(input_image) + "'", 2)
                 trsf_name = os.path.join(trsf_dir, nomenclature.replaceTIME(environment.path_intrareg_trsf_files, t))
                 input_image = os.path.join(dir_input, input_image)
-                cpp_wrapping.apply_transformation(input_image, output_image, trsf_name, template_image, nearest=nearest,
+                cpp_wrapping.apply_transformation(input_image, output_image, trsf_name, local_template_image,
+                                                  interpolation_mode=interpolation_mode,
+                                                  cell_based_sigma=parameters.sigma_segmentation_images,
                                                   monitoring=monitoring)
 
     return
@@ -1001,7 +1043,7 @@ def intraregistration_control(experiment, environment, parameters):
         monitoring.to_log_and_console("    .. resampling segmentation images", 2)
         _resample_images(experiment, environment, parameters, environment.path_seg_exp, environment.path_seg_exp_files,
                          environment.path_intrareg_seg, environment.path_intrareg_seg_files, result_dir,
-                         result_template, nearest=True)
+                         result_template, interpolation_mode='nearest')
 
     if parameters.resample_post_segmentation_images is True or parameters.movie_post_segmentation_images is True \
             or len(parameters.xy_movie_post_segmentation_images) > 0 \
@@ -1011,7 +1053,7 @@ def intraregistration_control(experiment, environment, parameters):
         _resample_images(experiment, environment, parameters, environment.path_post_exp,
                          environment.path_post_exp_files,
                          environment.path_intrareg_post, environment.path_intrareg_post_files, result_dir,
-                         result_template, nearest=True)
+                         result_template, interpolation_mode='nearest')
 
     #
     # make 3D=2D+t images = movie of evolving slices with respect to time

@@ -1409,7 +1409,7 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
             if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
                 cpp_wrapping.apply_transformation(the_images[i], res_images[i], the_transformation=None,
                                                   template_image=None,
-                                                  voxel_size=resampling_resolution, nearest=False,
+                                                  voxel_size=resampling_resolution, interpolation_mode='linear',
                                                   monitoring=monitoring)
             else:
                 monitoring.to_log_and_console("       already existing", 2)
@@ -1675,7 +1675,8 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
                 if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
                     cpp_wrapping.apply_transformation(the_images[i], res_images[i], the_transformation=None,
                                                       template_image=None,
-                                                      voxel_size=parameters.target_resolution, nearest=False,
+                                                      voxel_size=parameters.target_resolution,
+                                                      interpolation_mode='linear',
                                                       monitoring=monitoring)
                 else:
                     monitoring.to_log_and_console("       already existing", 2)
@@ -1751,7 +1752,8 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
                     if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
                         cpp_wrapping.apply_transformation(the_images[i], res_images[i],
                                                           the_transformation=res_trsfs[i], template_image=res_images[0],
-                                                          voxel_size=None, nearest=False, monitoring=monitoring)
+                                                          voxel_size=None, interpolation_mode='linear',
+                                                          monitoring=monitoring)
                     else:
                         monitoring.to_log_and_console("       already existing", 2)
 
@@ -1788,14 +1790,15 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
                         cpp_wrapping.apply_transformation(unreg_weight_images[i], weight_images[i],
                                                           the_transformation=None, template_image=None,
                                                           voxel_size=parameters.target_resolution,
-                                                          nearest=False, monitoring=monitoring)
+                                                          interpolation_mode='linear', monitoring=monitoring)
                     else:
                         monitoring.to_log_and_console("       already existing", 2)
                 else:
                     if not os.path.isfile(weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
                         cpp_wrapping.apply_transformation(unreg_weight_images[i], weight_images[i],
                                                           the_transformation=res_trsfs[i], template_image=res_images[0],
-                                                          voxel_size=None, nearest=False, monitoring=monitoring)
+                                                          voxel_size=None, interpolation_mode='linear',
+                                                          monitoring=monitoring)
                     else:
                         monitoring.to_log_and_console("       already existing", 2)
 
