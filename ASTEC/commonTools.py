@@ -543,13 +543,23 @@ def find_file(data_path, file_prefix, monitoring=None, verbose=True):
         sys.exit(1)
 
     #
+    # if there is any extension, remove if from the file_prefix length
+    # recall that the '.' is part of the extension
+    #
+    extension = get_extension(file_prefix)
+    if extension is not None:
+        length_file_prefix = len(file_prefix) - len(extension)
+    else:
+        length_file_prefix = len(file_prefix)
+
+    #
     # get all file names beginning by the given prefix followed by '.'
     #
     file_names = []
     for f in os.listdir(data_path):
-        if len(f) <= len(file_prefix):
+        if len(f) <= length_file_prefix:
             pass
-        if f[0:len(file_prefix)] == file_prefix and f[len(file_prefix)] == '.':
+        if f[0:length_file_prefix] == file_prefix[0:length_file_prefix] and f[length_file_prefix] == '.':
             file_names.append(f)
 
     if len(file_names) == 0:

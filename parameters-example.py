@@ -418,7 +418,9 @@ target_resolution = .3
 # According the background value is either 0 or 1 in both the segmentation and the post-segmentation
 # sequences, setting this threshold to 2 for these sequences allows to keep the entire embryo in the
 # resampled/reconstructed sequence.
-# In addition, a margin can be given for a more comfortable visualization.
+#
+# In addition, a margin can be given for a more comfortable visualization. By default, it is 0 when only
+# fusion images are used, and 10 if either segmentation or post-segmentation images are also used
 #
 
 # intra_registration_reference_index = None
@@ -436,6 +438,8 @@ target_resolution = .3
 # 2. movies (ie 2D+t images)
 #    each 'intra_registration_[xy|xz|yz]_movie_fusion_images
 #
+
+# intra_registration_sigma_segmentation_images = 1.0
 
 # intra_registration_resample_fusion_images = True
 # intra_registration_resample_segmentation_images = False

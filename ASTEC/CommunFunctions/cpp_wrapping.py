@@ -156,7 +156,8 @@ def apply_transformation(the_image, res_image, the_transformation=None,
                          template_image=None,
                          voxel_size=None,
                          dimensions=None,
-                         nearest=False,
+                         interpolation_mode='linear',
+                         cell_based_sigma=0.0,
                          monitoring=None,
                          return_image=False):
     """
@@ -171,6 +172,8 @@ def apply_transformation(the_image, res_image, the_transformation=None,
                 resolution by resampling
     :param nearest: do not interpolate (take the nearest value)
              to be used when applying on label images (default = False)
+    :param cell_based_sigma: smoothing parameter when resampling with nearest=True.
+           cell_based_sigma=0.0 means no smoothing.
     :param monitoring: control structure (for verboseness and log informations)
     :param return_image: if True, return the result image as an spatial image
                   (default = False; nothing is returned)
@@ -190,8 +193,22 @@ def apply_transformation(the_image, res_image, the_transformation=None,
     if template_image is not None:
         command_line += " -template " + template_image
 
-    if nearest is True:
-        command_line += " -nearest"
+    if type(interpolation_mode) == str:
+        if interpolation_mode.lower() == 'linear':
+            command_line += " -linear"
+        elif interpolation_mode.lower() == 'nearest':
+            if (type(cell_based_sigma) == int and cell_based_sigma > 0) \
+                    or (type(cell_based_sigma) == float and cell_based_sigma > 0.0):
+                command_line += " -cellbased"
+                command_line += " -cell-based-sigma " + str(cell_based_sigma)
+            else:
+                command_line += " -nearest"
+        else:
+            # default
+            pass
+    else:
+        # default
+        pass
 
     if voxel_size is not None:
         if type(voxel_size) == int or type(voxel_size) == float:

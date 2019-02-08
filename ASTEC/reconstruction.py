@@ -194,7 +194,7 @@ def get_previous_deformed_segmentation(current_time, environment, parameters, pr
     monitoring.to_log_and_console("    .. resampling of '" + str(prev_segimage).split(os.path.sep)[-1] + "'", 2)
 
     cpp_wrapping.apply_transformation(prev_segimage, prev_def_segimage, deformation,
-                                      nearest=True, monitoring=monitoring)
+                                      interpolation_mode='nearest', monitoring=monitoring)
 
     return prev_def_segimage
 

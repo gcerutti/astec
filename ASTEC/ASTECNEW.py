@@ -363,7 +363,7 @@ class AstecParameters(object):
             if parameters.default_image_suffix is not None:
                 self.default_image_suffix = parameters.default_image_suffix
                 if not hasattr(parameters, 'result_image_suffix') \
-                    and not hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
+                        and not hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
                     self.result_image_suffix = parameters.default_image_suffix
 
 
@@ -1192,6 +1192,7 @@ def _volume_checking(previous_segmentation, segmentation_from_selection,
 #
 #
 
+
 def astec_process(previous_time, current_time, lineage_tree_information, experiment, environment, parameters):
     """
 
@@ -1262,7 +1263,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
         deformation = reconstruction.get_deformation_from_current_to_previous(current_time, environment,
                                                                               parameters, previous_time)
         cpp_wrapping.apply_transformation(undeformed_seeds, deformed_seeds, deformation,
-                                          nearest=True, monitoring=monitoring)
+                                          interpolation_mode='nearest', monitoring=monitoring)
 
     #
     # watershed segmentation with seeds extracted from previous segmentation
