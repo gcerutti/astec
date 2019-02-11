@@ -1390,3 +1390,119 @@ def print_type(d, t=None, desc=None):
         print "type of " + desc + " is " + str(t) + str(type(d))
 
     return
+
+
+########################################################################################
+#
+# write tlp file
+# this was inspired from pkl2tlp from L. Guignard
+#
+########################################################################################
+
+def write_tlp_file(dictionary, tlpfilename):
+    """
+
+    :param dictionary:
+    :param tlpfilename:
+    :return:
+    """
+
+    proc = "write_tlp_file"
+
+    #
+    # is there a lineage
+    #
+    if keydictionary['lineage']['output_key'] in dictionary.keys():
+        lineage = dictionary[keydictionary['lineage']['output_key']]
+    else:
+        monitoring.to_log_and_console(proc + ": no lineage was found.")
+        return
+
+    #
+    # open file
+    #
+    f = open(tlpfilename, "w")
+    f.write("(tlp \"2.0\"\n")
+
+    #
+    # write nodes = lineage.keys() + lineage.values()
+    #
+    nodes = set(lineage.keys()).union(set([v for values in lineage.values() for v in values]))
+    f.write("(nodes ")
+    for n in nodes:
+        f.write(str(n)+ " ")
+    f.write(")\n")
+
+    #
+    # write edges
+    #
+    count_edges = 0
+    for m, ds in lineage.iteritems():
+        count_edges += 1
+        for d in ds:
+            f.write("(edge " + str(count_edges) + " " + str(m) + " " + str(d) + ")\n")
+
+    #
+    # write node ids
+    #
+    f.write("(property 0 int \"id\"\n")
+    f.write("\t(default \"0\" \"0\")\n")
+    for node in nodes:
+        f.write("\t(node " + str(node) + str(" \"") + str(node) + "\")\n")
+    f.write(")\n")
+
+    #
+    #
+    #
+    for p in dictionary.keys():
+        if p == keydictionary['lineage']['output_key']:
+            pass
+        elif p == keydictionary['all-cells']['output_key']:
+            pass
+        #
+        # property as single double
+        #
+        elif p == keydictionary['volume']['output_key'] or p == keydictionary['surface']['output_key'] \
+            or p == keydictionary['compactness']['output_key']:
+            property = dictionary[p]
+            default = np.median(property.values())
+            f.write("(property 0 double \"" + str(p) + "\"\n")
+            f.write("\t(default \"" + str(default) + "\" \"0\")\n")
+            for node in nodes:
+                f.write("\t(node " + str(node) + str(" \"") + str(property.get(node, default)) + "\")\n")
+            f.write(")\n")
+        #
+        # property as string
+        #
+        elif p == keydictionary['fate']['output_key'] or p == keydictionary['fate2']['output_key'] \
+                or p == keydictionary['fate3']['output_key'] or p == keydictionary['fate4']['output_key'] \
+                or p == keydictionary['name']['output_key']:
+            property = dictionary[p]
+            f.write("(property 0 double \"" + str(p) + "\"\n")
+            f.write("\t(default \"" + "no string" + "\" \"0\")\n")
+            for node in nodes:
+                f.write("\t(node " + str(node) + str(" \"") + str(property.get(node, "no string")) + "\")\n")
+            f.write(")\n")
+        #
+        #
+        #
+        elif p == keydictionary['h_min']['output_key'] or p == keydictionary['sigma']['output_key'] \
+                or p == keydictionary['label_in_time']['output_key'] \
+                or p == keydictionary['barycenter']['output_key'] \
+                or p == keydictionary['principal-value']['output_key'] \
+                or p == keydictionary['contact']['output_key'] \
+                or p == keydictionary['history']['output_key'] \
+                or p == keydictionary['principal-vector']['output_key'] \
+                or p == keydictionary['name-score']['output_key']:
+            pass
+        else:
+            monitoring.to_log_and_console(proc + ": property '" + str(p) +"' not handled yet for writing.")
+
+    #
+    # close file
+    #
+    f.write(")")
+    f.write("(nodes ")
+
+    f.close()
+

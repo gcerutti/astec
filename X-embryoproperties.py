@@ -242,6 +242,8 @@ if __name__ == '__main__':
             elif ofile.endswith("xml") is True:
                 xmltree = embryoProp.dict2xml(outputdict)
                 xmltree.write(ofile)
+            elif ofile.endswith("tlp") is True:
+                embryoProp.write_tlp_file(outputdict, ofile)
             else:
                 print "   error: extension not recognized for '" + str(ofile) + "'"
 
