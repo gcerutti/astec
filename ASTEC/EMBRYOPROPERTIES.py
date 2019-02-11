@@ -1478,7 +1478,7 @@ def write_tlp_file(dictionary, tlpfilename):
                 or p == keydictionary['fate3']['output_key'] or p == keydictionary['fate4']['output_key'] \
                 or p == keydictionary['name']['output_key']:
             property = dictionary[p]
-            f.write("(property 0 double \"" + str(p) + "\"\n")
+            f.write("(property 0 string \"" + str(p) + "\"\n")
             f.write("\t(default \"" + "no string" + "\" \"0\")\n")
             for node in nodes:
                 f.write("\t(node " + str(node) + str(" \"") + str(property.get(node, "no string")) + "\")\n")
