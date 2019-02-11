@@ -142,7 +142,10 @@ if __name__ == '__main__':
     path_log_file = nomenclature.replaceTIMESTAMP(path_log_file, start_time)
     path_log_file = nomenclature.replaceEXECUTABLE(path_log_file, __file__)
 
-    monitoring.logfile = path_log_file
+    #
+    # uncomment the following line to have a log file written
+    #
+    # monitoring.logfile = path_log_file
     embryoProp.monitoring.copy(monitoring)
 
     #
