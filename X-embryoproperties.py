@@ -252,8 +252,8 @@ if __name__ == '__main__':
 
     endtime = time.localtime()
 
-    monitoring.to_log_and_console("")
-    monitoring.to_log_and_console("Total execution time = "+str(time.mktime(endtime)-time.mktime(start_time))+"sec")
-    monitoring.to_log_and_console("")
+    # monitoring.to_log_and_console("")
+    # monitoring.to_log_and_console("Total execution time = "+str(time.mktime(endtime)-time.mktime(start_time))+"sec")
+    # monitoring.to_log_and_console("")
 
 

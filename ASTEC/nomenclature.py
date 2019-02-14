@@ -39,7 +39,7 @@ FLAG_EN = '$EN'
 # - Intra-registration experiments stored in
 #   [FLAG_PATH_EMBRYO]/[DIR_STAGE_INTRAREG]/[DIR_STAGE_INTRAREG]_[FLAG_EXP_FUSE]
 # - Mars experiments (segmentation of first time point) stored in
-#   [FLAG_PATH_EMBRYO]/[DIR_STAGE_MARS]/[DIR_STAGE_MARS]_[FLAG_EXP_MARS]
+#   [FLAG_PATH_EMBRYO]/[DIR_STAGE_SEG]/[DIR_STAGE_SEG]_[FLAG_EXP_SEG]
 # - Segmentation propagation experiments stored in
 #   [FLAG_PATH_EMBRYO]/[DIR_STAGE_SEG]/[DIR_STAGE_SEG]_[FLAG_EXP_SEG]
 # - Post correction experiments stored in
@@ -48,7 +48,6 @@ FLAG_EN = '$EN'
 FLAG_DIR_RAWDATA = '$DIRRAWDATA'
 DIR_STAGE_FUSE = 'FUSE'
 DIR_STAGE_INTRAREG = 'INTRAREG'
-DIR_STAGE_MARS = 'SEG'
 DIR_STAGE_SEG = 'SEG'
 DIR_STAGE_POST = 'POST'
 
@@ -56,7 +55,6 @@ DIR_STAGE_REG = 'REG'
 
 FLAG_EXP_FUSE = '$FUSE'		# defining fusion experiments subdirectory
 FLAG_EXP_INTRAREG = '$INTRAREG'			# defining registration experiments subdirectory
-FLAG_EXP_MARS = '$MARS'		# defining mars experiments subdirectory
 FLAG_EXP_SEG = '$SEG'			# defining seg propagation experiments subdirectory
 FLAG_EXP_POST = '$POST'		# defining post correction experiments subdirectory
 
@@ -484,7 +482,6 @@ def replaceFlags(filename, parameters, timestamp=None, check_name=False):
     	FLAG_EN -> parameters.EN
     	FLAG_EXP_FUSE -> parameters.EXP_FUSE
     	FLAG_EXP_REG -> parameters.EXP_REG
-    	FLAG_EXP_MARS -> parameters.EXP_MARS
     	FLAG_EXP_SEG -> parameters.EXP_SEG
     	FLAG_EXP_POST -> parameters.EXP_POST
     """
@@ -547,9 +544,6 @@ def replaceFlags(filename, parameters, timestamp=None, check_name=False):
 
         elif flag == FLAG_EXP_INTRAREG:
             filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_INTRAREG', 'RELEASE')
-
-        elif flag == FLAG_EXP_MARS:
-            filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_MARS', 'RELEASE')
 
         elif flag == FLAG_EXP_SEG:
             filename = _genericReplaceFlag(filename, flag, parameters, 'EXP_SEG', 'RELEASE')

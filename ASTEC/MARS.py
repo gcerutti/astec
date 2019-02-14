@@ -4,6 +4,8 @@ import imp
 import sys
 import time
 import shutil
+import numpy as np
+from scipy import ndimage as nd
 
 import ACE
 import commonTools
@@ -11,6 +13,7 @@ import nomenclature
 import reconstruction
 
 import CommunFunctions.cpp_wrapping as cpp_wrapping
+from CommunFunctions.ImageHandling import SpatialImage, imread, imsave
 
 #
 #
@@ -311,7 +314,7 @@ class MarsParameters(object):
             if parameters.default_image_suffix is not None:
                 self.default_image_suffix = parameters.default_image_suffix
                 if not hasattr(parameters, 'result_image_suffix') \
-                    and not hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
+                        and not hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
                     self.result_image_suffix = parameters.default_image_suffix
 
 
@@ -322,7 +325,7 @@ class MarsParameters(object):
 ########################################################################################
 
 def build_seeds(input_image, output_difference_image, output_seed_image, sigma, h, environment, parameters,
-                operation_type = 'min'):
+                operation_type='min'):
     """
 
     :param input_image:
@@ -438,7 +441,8 @@ def watershed(seed_image, membrane_image, result_image, environment, parameters,
 
     if sigma > 0.0:
         monitoring.to_log_and_console("    .. smoothing '" + str(membrane_image).split(os.path.sep)[-1] + "'", 2)
-        height_image = commonTools.add_suffix(membrane_image, "_smoothing_for_watershed", new_dirname=environment.temporary_path,
+        height_image = commonTools.add_suffix(membrane_image, "_smoothing_for_watershed",
+                                              new_dirname=environment.temporary_path,
                                               new_extension=parameters.default_image_suffix)
         if not os.path.isfile(height_image) or monitoring.forceResultsToBeBuilt is True:
             cpp_wrapping.linear_smoothing(membrane_image, height_image, parameters.watershed_membrane_sigma,
@@ -499,6 +503,44 @@ def _mars_watershed(template_image, membrane_image, mars_image, environment, par
     return
 
 
+def _volume_diagnosis(mars_image, ncells=10):
+    """
+
+    :param mars_image:
+    :param ncells:
+    :return:
+    """
+
+    proc = "_volume_diagnosis"
+    if not os.path.isfile(mars_image):
+        monitoring.to_log_and_console("    "+proc+": error, '"+str(mars_image)+"' was not found", 2)
+        return
+
+    image = imread(mars_image)
+    labels = np.unique(image)
+    volumes = nd.sum(np.ones_like(image), image, index=np.int16(labels))
+    list_for_sort = list()
+    for i in range(len(labels)):
+        list_for_sort.append([volumes[i],labels[i]])
+
+    #
+    # statistics without the background
+    #
+    m = np.mean(volumes[1:])
+    s = np.std(volumes[1:])
+
+    list_for_sort.sort()
+
+    monitoring.to_log_and_console("    .. diagnosis on cell volumes, smallest cells to be looked at", 1)
+    monitoring.to_log_and_console("       mean cell volume = " + str(m) + ", standard deviation = " + str(s), 1)
+    for i in range(len(labels)):
+        if i <= ncells or list_for_sort[i][0] <= m - 2*s:
+            monitoring.to_log_and_console('       cell #'+'{:3d}'.format(list_for_sort[i][1])+' volume='
+                                          +'{:10.1f}'.format(list_for_sort[i][0]), 1)
+
+    del image
+    return
+
 ########################################################################################
 #
 #
@@ -531,6 +573,11 @@ def mars_process(current_time, environment, parameters):
     if mars_image is not None:
         if monitoring.forceResultsToBeBuilt is False:
             monitoring.to_log_and_console('    mars image already existing', 2)
+            #
+            # compute diagnosis anyway
+            #
+            mars_image = os.path.join(environment.path_seg_exp, mars_name + '.' + parameters.result_image_suffix)
+            _volume_diagnosis(mars_image)
             return
         else:
             monitoring.to_log_and_console('    mars image already existing, but forced', 2)
@@ -569,6 +616,11 @@ def mars_process(current_time, environment, parameters):
     #
 
     _mars_watershed(input_image, membrane_image, mars_image, environment, parameters)
+
+    #
+    #
+    #
+    _volume_diagnosis(mars_image)
 
     return
 
