@@ -344,6 +344,7 @@ def _set_dictionary_value(root):
     :param root:
     :return:
     """
+
     if len(root) == 0:
 
         #
@@ -351,7 +352,10 @@ def _set_dictionary_value(root):
         #
 
         # return ast.literal_eval(root.text)
-        return eval(root.text)
+        if root.text is None:
+            return None
+        else:
+            return eval(root.text)
 
     else:
 
@@ -393,7 +397,12 @@ def xml2dict(tree):
     else:
         for child in root:
             monitoring.to_log_and_console(proc + ": process child.tag = '" + str(child.tag) + "'", 3)
-            dictionary[str(child.tag)] = _set_dictionary_value(child)
+            value = _set_dictionary_value(child)
+            if value is None:
+                monitoring.to_log_and_console('   ' + proc + ": empty property '" + str(child.tag) + "' ?! "
+                                              + " ... skip it", 1)
+            else:
+                dictionary[str(child.tag)] = value
 
     return dictionary
 

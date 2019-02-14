@@ -565,7 +565,7 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
     monitoring.to_log_and_console("       ----- start: cell-based parallel binarization -----", 3)
 
     pool = multiprocessing.Pool(processes = n_processor)
-    mapping=[]
+    mapping = []
 
     for label_of_interest in labels_of_interest:
         monitoring.to_log_and_console("       membrane binarization of cell '" + str(label_of_interest) + "'", 3)
@@ -575,8 +575,7 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
         # print str(parameters_for_parallelism)
         mapping.append(parameters_for_parallelism)
 
-
-    outputs=pool.map(cell_binarization, mapping)
+    outputs = pool.map(cell_binarization, mapping)
     pool.close()
     pool.terminate()
 
