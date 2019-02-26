@@ -24,6 +24,31 @@ from ASTEC.CommunFunctions.cpp_wrapping import path_to_vt
 
 
 def _set_options(my_parser):
+    """
+
+
+#
+#
+# main call
+#
+#
+
+
+if __name__ == '__main__':
+    main()
+
+#
+#
+# main call
+#
+#
+
+
+if __name__ == '__main__':
+    main()
+    :param my_parser:
+    :return:
+    """
     proc = "_set_options"
     if not isinstance(my_parser, ArgumentParser):
         print proc + ": argument is not of type ArgumentParser"
@@ -71,12 +96,12 @@ def _set_options(my_parser):
 
 #
 #
-# main 
+# main function
 #
 #
 
 
-if __name__ == '__main__':
+def main():
 
     #
     # initialization
@@ -165,3 +190,14 @@ if __name__ == '__main__':
     with open(environment.path_history_file, 'a') as logfile:
         logfile.write('# Total execution time = '+str(time.mktime(endtime)-time.mktime(start_time))+' sec\n')
         logfile.write("\n\n")
+
+
+#
+#
+# main call
+#
+#
+
+
+if __name__ == '__main__':
+    main()
