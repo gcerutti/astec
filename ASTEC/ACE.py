@@ -385,6 +385,13 @@ def cell_binarization(parameters_for_parallelism):
     voxelsize = immask._get_resolution()
     del immask
 
+    #
+    # bounding_box_dilation was already used for the bounding box dilation,
+    # thus it remains consistent
+    # default value for bounding_box_dilation is 3.6 um, thus 12 voxels
+    # for an image of resolution 0.3 um
+    #
+
     rx = int(parameters.bounding_box_dilation / voxelsize[0] + 0.5)
     ry = int(parameters.bounding_box_dilation / voxelsize[1] + 0.5)
     rz = int(parameters.bounding_box_dilation / voxelsize[2] + 0.5)
@@ -499,6 +506,8 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
 
     #
     # dilation of bounding boxes
+    # default value for bounding_box_dilation is 3.6 um
+    # which yield 12 voxels for a image of resolution 0.3 um
     #
     if parameters.bounding_box_dilation > 0:
 

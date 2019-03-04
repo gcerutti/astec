@@ -481,7 +481,7 @@ def get_extension(filename):
 
 def add_suffix(filename, suffix, new_dirname=None, new_extension=None):
     """
-    Add a suffix to a filenename (ie before the extension)
+    Add a suffix to a filename (ie before the extension)
     :param filename:
     :param suffix: suffix to be added
     :param new_dirname: change the directory name of the file
@@ -506,7 +506,10 @@ def add_suffix(filename, suffix, new_dirname=None, new_extension=None):
     if new_extension is None:
         new_basename += e
     else:
-        new_basename += '.' + new_extension
+        if new_extension[0] == '.':
+            new_basename += new_extension
+        else:
+            new_basename += '.' + new_extension
     if new_dirname is None:
         res_name = os.path.join(d, new_basename)
     else:

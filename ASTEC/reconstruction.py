@@ -131,6 +131,8 @@ def get_segmentation_image(current_time, environment):
     if seg_image is None:
         monitoring.to_log_and_console("    .. " + proc + ": no segmentation image was found for time "
                                       + str(current_time), 2)
+        monitoring.to_log_and_console("       \t  " + "was looking for file '" + str(seg_name) + "'", 2)
+        monitoring.to_log_and_console("       \t  " + "in directory '" + str(environment.path_seg_exp) + "'", 2)
         return None
 
     return os.path.join(environment.path_seg_exp, seg_image)

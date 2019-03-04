@@ -1231,12 +1231,13 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     #
 
     reconstruction.monitoring.copy(monitoring)
+
     membrane_image = reconstruction.build_membrane_image(current_time, environment, parameters,
                                                          previous_time=previous_time)
     if membrane_image is None:
-        print(proc + ": build_membrane_image() has returned '" + str(membrane_image) + "'")
-        print("\t Exiting")
-        sys.exit(1)
+        monitoring.to_log_and_console("    .. " + proc + ": no membrane image was found/built for time "
+                                      + str(current_time), 2)
+        return False
 
     #
     # build seeds by eroding previous segmentation and deforming it
@@ -1248,7 +1249,13 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     # extract the seeds
     #
     monitoring.to_log_and_console('    build seeds from previous segmentation', 2)
+
     previous_segmentation = reconstruction.get_segmentation_image(previous_time, environment)
+    if previous_segmentation is None:
+        monitoring.to_log_and_console("    .. " + proc + ": no segmentation image was found for time "
+                                      + str(previous_time), 2)
+        return False
+
     undeformed_seeds = commonTools.add_suffix(previous_segmentation, '_undeformed_seeds_from_previous',
                                               new_dirname=environment.temporary_path,
                                               new_extension=parameters.default_image_suffix)
@@ -1503,7 +1510,10 @@ def astec_control(experiment, environment, parameters):
         # process
         #
 
-        astec_process(previous_time, current_time, lineage_tree_information, experiment, environment, parameters)
+        ret = astec_process(previous_time, current_time, lineage_tree_information, experiment, environment, parameters)
+        if ret is False:
+            monitoring.to_log_and_console('    an error occurs when processing time ' + acquisition_time, 1)
+            return
 
         #
         # cleaning
