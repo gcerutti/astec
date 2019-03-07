@@ -365,6 +365,37 @@ def linear_registration(path_ref, path_flo, path_output,
     return
 
 
+def linear_combination(the_weights, the_images, res_image, other_options=None, monitoring=None):
+    """
+
+    :param the_weights:
+    :param the_images:
+    :param res_image:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('mc-linearCombination')
+
+    command_line = path_to_exec + " -weights"
+    for i in range(len(the_weights)):
+        command_line += " " + str(the_weights[i])
+
+    command_line += " -images"
+    for i in range(len(the_images)):
+        command_line += " " + str(the_images[i])
+
+    command_line += " -res " + str(res_image)
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
 ############################################################
 #
 # functions for intra-registration

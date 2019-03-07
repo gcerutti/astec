@@ -57,6 +57,7 @@ class FusionChannel(object):
         self.temporary_paths = list()
 
     def update_main_channel_from_file(self, parameter_file):
+        proc = 'FusionChannel.update_main_channel_from_file'
         if parameter_file is None:
             return
         if not os.path.isfile(parameter_file):
@@ -69,6 +70,16 @@ class FusionChannel(object):
         self.path_angle2 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle2, parameters)
         self.path_angle3 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle3, parameters)
         self.path_angle4 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle4, parameters)
+
+        if not os.path.isdir(self.path_angle1) or not os.path.isdir(self.path_angle2) \
+                or not os.path.isdir(self.path_angle3) or not os.path.isdir(self.path_angle4):
+            monitoring.to_log_and_console(proc + ": at least one raw data directory for main channel does not exist")
+            monitoring.to_log_and_console("- " + str(self.path_angle1))
+            monitoring.to_log_and_console("- " + str(self.path_angle2))
+            monitoring.to_log_and_console("- " + str(self.path_angle3))
+            monitoring.to_log_and_console("- " + str(self.path_angle4))
+            monitoring.to_log_and_console("\t Exiting")
+            sys.exit(1)
 
         self.path_fuse_exp = nomenclature.replaceFlags(nomenclature.path_fuse_exp, parameters)
         return
@@ -278,6 +289,9 @@ class FusionEnvironment(object):
                 if channel2.path_fuse_exp is None:
                     channel2.update_path_fuse_exp(self.channel[0], '_CHANNEL_2')
                 channel2.path_fuse_exp = nomenclature.replaceFlags(channel2.path_fuse_exp, parameters)
+                if channel2.path_fuse_exp == self.channel[0].path_fuse_exp:
+                    print ("Error: channel #2 result directory is the same than channel #1. Exiting.")
+                    sys.exit(1)
                 self.channel.append(channel2)
 
         channel3 = FusionChannel()
@@ -286,6 +300,12 @@ class FusionEnvironment(object):
                 if channel3.path_fuse_exp is None:
                     channel3.update_path_fuse_exp(self.channel[0], '_CHANNEL_3')
                 channel3.path_fuse_exp = nomenclature.replaceFlags(channel3.path_fuse_exp, parameters)
+                if channel3.path_fuse_exp == self.channel[0].path_fuse_exp:
+                    print ("Error: channel #3 result directory is the same than channel #1. Exiting.")
+                    sys.exit(1)
+                elif channel3.path_fuse_exp == self.channel[1].path_fuse_exp:
+                    print ("Error: channel #3 result directory is the same than channel #2. Exiting.")
+                    sys.exit(1)
                 self.channel.append(channel3)
 
         self.path_angle1_files = nomenclature.replaceFlags(nomenclature.path_rawdata_angle1_files, parameters)
@@ -593,6 +613,7 @@ class FusionParameters(object):
 
 
 __extension_to_be_converted__ = ['.h5', '.tif', '.tiff', '.TIF', '.TIFF']
+__extension_with_resolution__ = ['.inr', '.mha']
 
 
 def _read_image_name(data_path, temporary_path, file_name, resolution, default_extension='inr'):
@@ -731,6 +752,16 @@ def _read_image_name(data_path, temporary_path, file_name, resolution, default_e
 
             full_name = new_full_name
             break
+
+    #
+    # test whether the input format is supposed to have the resolution set
+    #
+
+    if file_has_been_converted is False:
+        for extension in __extension_with_resolution__:
+            if f[len(f) - len(extension):len(f)] == extension:
+                file_has_been_converted = True
+                break
 
     #
     # if no conversion occurs, the resolution has not been set yet
@@ -1638,7 +1669,6 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
     # - other images are co-registered with the first image
     #
 
-    full_mask = None
     fusion_box = None
 
     for c in range(0, len(channel)):
@@ -1802,40 +1832,28 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
                     else:
                         monitoring.to_log_and_console("       already existing", 2)
 
-                if i == 0:
-                    full_mask = imread(weight_images[i])
-                else:
-                    full_mask += imread(weight_images[i])
-
         #
         # compute fused image as a linear combination of co-registered images
         # the sun of weights have been precomputed to mimic historical behavior
         #
         # do not forget to cast the result on 16 bits
         #
-        if monitoring.debug > 0:
-            tmp_mask_image = commonTools.add_suffix(fused_image, "_mask_sum", new_dirname=channel[c].temporary_paths[4],
-                                                    new_extension=parameters.default_image_suffix)
-            imsave(tmp_mask_image, full_mask)
 
         monitoring.to_log_and_console("    .. combining images", 2)
-        for i in range(0, len(the_images)):
-            if i == 0:
-                full_image = (imread(weight_images[i]) * imread(res_images[i])) / full_mask
-            else:
-                full_image += (imread(weight_images[i]) * imread(res_images[i])) / full_mask
 
-        full_image = full_image.astype(np.uint16)
+        if parameters.fusion_cropping is True:
+            tmp_fused_image = commonTools.add_suffix(fused_image, "_uncropped_fusion",
+                                                     new_dirname=channel[c].temporary_paths[4],
+                                                     new_extension=parameters.default_image_suffix)
+        else:
+            tmp_fused_image = os.path.join(channel[c].path_fuse_exp, fused_image)
+
+        cpp_wrapping.linear_combination(weight_images, res_images, tmp_fused_image, monitoring=monitoring)
 
         #
         # save image if fusion is required
         #
         if parameters.fusion_cropping is True:
-
-            tmp_fused_image = commonTools.add_suffix(fused_image, "_uncropped_fusion",
-                                                     new_dirname=channel[c].temporary_paths[4],
-                                                     new_extension=parameters.default_image_suffix)
-            imsave(tmp_fused_image, full_image)
 
             if c == 0:
                 fusion_box = _crop_bounding_box(tmp_fused_image)
@@ -1846,13 +1864,6 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
                              parameters.fusion_cropping_margin_x_1,
                              parameters.fusion_cropping_margin_y_0,
                              parameters.fusion_cropping_margin_y_1)
-        else:
-            imsave(os.path.join(channel[c].path_fuse_exp, fused_image), full_image)
-
-        del full_image
-
-        if c == len(channel)-1:
-            del full_mask
 
     return
 
