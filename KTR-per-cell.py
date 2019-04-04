@@ -27,7 +27,7 @@ def main():
         # we assume that 1 is the background
         if c != 1:
             bb = bboxes[c-1]
-            avgs[c] = np.mean(intensity[bb][intensity[bb] == c])
+            avgs[c] = np.mean(intensity[bb][seg[bb] == c])
 
     # write the averages in the output file
     with open(args.output, 'w') as f:
