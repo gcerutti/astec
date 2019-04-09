@@ -28,6 +28,7 @@ def main():
         if c != 1:
             bb = bboxes[c-1]
             avgs[c] = np.mean(intensity[bb][seg[bb] == c])
+    avgs[-1] = np.mean(intensity[seg != 1])
 
     # write the averages in the output file
     with open(args.output, 'w') as f:
