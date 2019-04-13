@@ -118,11 +118,11 @@ def main(embryo_name, start_time, output):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Output the potential errors in a manually corrected lineage tree')
-    parser.add_argument('-i', '--input', help='path to the embryo pkl', required=True)
-    parser.add_argument('-s', '--start-time', help='number of cells the lineage tree should start to be checked at',
+    parser.add_argument('-i', '--input', help='path to the pkl file', required=True)
+    parser.add_argument('-s', '--start-time', help='number of cells the lineage tree should start to be checked at (optional, default value is 64)',
                             required=False, default=64, type=int)
     parser.add_argument('-o', '--output', help='output csv file', required=True)
     
-    args = parser.parse_args(['-i', 'tmp-examples/170728-Samson-St8_final_properties.pkl', '-o', 'test.csv', '-s', '64'])
+    args = parser.parse_args()
     
     main(args.input, args.start_time, args.output)
