@@ -380,6 +380,7 @@ def write_history_information(logfile_name,
                 v = o.split('\n')
                 logfile.write(str(v[0]+"\n"))
         if path_to_vt is not None:
+            logfile.write("# VT path: '" + str(path_to_vt) + "'\n")
             logfile.write("# VT version: ")
             pipe = subprocess.Popen("cd "+path_to_vt+"; git describe; cd "+str(os.getcwd()),
                                     shell=True, stdout=subprocess.PIPE).stdout
