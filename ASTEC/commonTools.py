@@ -365,17 +365,26 @@ def _write_git_information(path, logfile, desc):
     #     return
 
     pipe = subprocess.Popen("cd " + path + "; " + gitdescribe + "; cd " + str(os.getcwd()),
-                            shell=True, stdout=subprocess.PIPE).stdout
-    o = pipe.next()
-    v = o.split('\n')
-    logfile.write(str(v[0] + "\n"))
+                            shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (stdoutData, stderrData) = pipe.communicate()
 
-    pipe = subprocess.Popen("cd " + path + "; " + gitlog + "; cd " + str(os.getcwd()),
-                            shell=True, stdout=subprocess.PIPE).stdout
+    if len(stderrData) > 6:
+        if stderrData[0:6] == "fatal:":
+            logfile.write("no a git repository\n")
+        else:
+            logfile.write("no a git repository?\n")
+    elif len(stderrData) > 0:
+        logfile.write("no a git repository?!\n")
+    else:
+        v = stdoutData.split('\n')
+        logfile.write(str(v[0] + "\n"))
+        
+        pipe = subprocess.Popen("cd " + path + "; " + gitlog + "; cd " + str(os.getcwd()),
+                                shell=True, stdout=subprocess.PIPE).stdout
+        o = pipe.next()
+        v = o.split('\n')
+        logfile.write("#\t" + str(v[0] + "\n"))
 
-    o = pipe.next()
-    v = o.split('\n')
-    logfile.write("\t" + str(v[0] + "\n"))
     return
 
 
