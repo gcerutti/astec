@@ -752,7 +752,6 @@ def _transformations_and_template(experiment, environment, parameters, temporary
     elif parameters.template_type.lower() == 'post-segmentation' \
             or parameters.template_type.lower() == 'post_segmentation' or parameters.template_type.lower() == 'post':
         suffix = _get_file_suffix(experiment, environment.path_post_exp, environment.path_post_exp_files)
-        exit(1)
 
         if suffix is None:
             monitoring.to_log_and_console(proc + ": no consistent naming was found in '"
@@ -801,7 +800,7 @@ def _transformations_and_template(experiment, environment, parameters, temporary
     cpp_wrapping.change_multiple_trsfs(format_input, format_output, first_time_point, last_time_point, reference_index,
                                        result_template, trsf_type=parameters.registration.transformation_type,
                                        resolution=parameters.resolution, threshold=parameters.template_threshold,
-                                       margin=parameters.margin, format_template=template_format, monitoring=None)
+                                       margin=parameters.margin, format_template=template_format, monitoring=monitoring)
 
     return
 
@@ -834,11 +833,11 @@ def _resample_images(experiment, environment, parameters, dir_input, format_inpu
     b = os.path.basename(template_image)
     d = os.path.dirname(template_image)
     local_template_name = commonTools.find_file(d, b, monitoring)
-    local_template_image = os.path.join(d, local_template_name)
-    if local_template_image is None:
+    if local_template_name is None:
         monitoring.to_log_and_console(proc + ": template '" + str(b) + "' was not found in '" + str(d) + "'", 1)
         monitoring.to_log_and_console("\t resampling will not be done")
         return
+    local_template_image = os.path.join(d, local_template_name)
 
     #
     #

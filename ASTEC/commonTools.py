@@ -378,7 +378,7 @@ def _write_git_information(path, logfile, desc):
     else:
         v = stdoutData.split('\n')
         logfile.write(str(v[0] + "\n"))
-        
+
         pipe = subprocess.Popen("cd " + path + "; " + gitlog + "; cd " + str(os.getcwd()),
                                 shell=True, stdout=subprocess.PIPE).stdout
         o = pipe.next()
