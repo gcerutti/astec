@@ -1,9 +1,15 @@
 #!/usr/bin/env/python
 
-from TGMMlibraries import lineageTree
 import argparse
 import os
 import numpy as np
+import warnings
+try:
+    from TGMMlibraries import lineageTree
+except Exception as e:
+    warnings.warn('TGMMlibraries required and not loaded properly.')
+    print('error raised: {:s}\n'.format(e))
+    exit()
 
 def get_daughters(n):
     if len(n) == 0:
@@ -93,12 +99,13 @@ def find_inconsistancies(lT, em):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Read a pkl ASTEC file and check for inconsistencies.')
+    parser = argparse.ArgumentParser(description='Read a pkl ASTEC file and check for inconsistencies.' +
+                                                 'To work, the lineage tree library is necessary')
     parser.add_argument('-i', '--input', help='input ASTEC .pkl file', required=True)
     parser.add_argument('-o', '--output', help='path to the output folder that will contain the csv files)', 
                             required=False, default = '.')
     
-    args = parser.parse_args(['-i', '/media/RAMDISK/pkl_em/180910-Ines-St8_final_properties_corrected.pkl', '-o', 'output'])
+    args = parser.parse_args()
     
     if os.path.exists(args.output) and not os.path.isdir(args.output):
         print('Output has to be a folder ({:s})'.format(args.output))
