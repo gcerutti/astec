@@ -689,42 +689,42 @@ def light_LACE(parameters):
     assert ( os.path.exists(path_membrane_prefix+".ext.inr")) and ( os.path.exists(path_membrane_prefix+".theta.inr")) and ( os.path.exists(path_membrane_prefix+".phi.inr"))
 
     if bbox:
-        cropImage(path_mask, path_mask_dil, bbox, verbose=verbose )
-        seuillage(path_mask_dil, path_output=path_mask_dil,sb=label_of_interest, sh=label_of_interest, verbose=verbose )
+        cpp_wrapping.obsolete_cropImage(path_mask, path_mask_dil, bbox, verbose=verbose )
+        cpp_wrapping.obsolete_seuillage(path_mask_dil, path_output=path_mask_dil,sb=label_of_interest, sh=label_of_interest, verbose=verbose )
     else:
-        seuillage(path_mask, path_output=path_mask_dil,sb=label_of_interest, sh=label_of_interest, verbose=verbose )
+        cpp_wrapping.obsolete_seuillage(path_mask, path_output=path_mask_dil,sb=label_of_interest, sh=label_of_interest, verbose=verbose )
 
     # Dilation of the ROI at t+1
     # Dilatation de la zone d'interet a l'instant t+1
     if True: # Computation of the dilation ray in real coordinates / Calcul du rayon de dilatation en coordonnees reelles
         rayon_dil /= imread(path_mask).voxelsize[0]
         rayon_dil = int(rayon_dil+0.5)
-    morpho(path_mask_dil, path_mask_dil, ' -dil -R '+str(rayon_dil), verbose=verbose)
+    cpp_wrapping.obsolete_morpho(path_mask_dil, path_mask_dil, ' -dil -R '+str(rayon_dil), verbose=verbose)
 
     # Here, path_mask_dil defines the ROI in which LACE should apply the segmentation
     # Ici, path_mask_dil definit la zone d'interet dans laquelle LACE doit realiser la segmentation
 
     if bbox:
-        cropImage(path_membrane_prefix+".ext.inr", path_ext_tmp, bbox, verbose=verbose )
+        cpp_wrapping.obsolete_cropImage(path_membrane_prefix+".ext.inr", path_ext_tmp, bbox, verbose=verbose )
 
     # Membranes binarization
     if not hard_thresholding:
         # Anisotropic threshold of membranes (the choice of the sensitivity parameter may be critical)
         # Seuillage anisotropique des membranes (parametre de sensitivite potentiellement critique)
         if bbox:
-            cropImage(path_membrane_prefix+".theta.inr", path_theta_tmp, bbox, verbose=verbose )
-            cropImage(path_membrane_prefix+".phi.inr", path_phi_tmp, bbox, verbose=verbose )
-            anisotropicHist(path_input=path_ext_tmp, path_output=path_bin, path_mask=path_mask_dil, manual=manual, manual_sigma=manual_sigma, sensitivity=sensitivity, keepAll=False, verbose=verbose)
+            cpp_wrapping.obsolete_cropImage(path_membrane_prefix+".theta.inr", path_theta_tmp, bbox, verbose=verbose )
+            cpp_wrapping.obsolete_cropImage(path_membrane_prefix+".phi.inr", path_phi_tmp, bbox, verbose=verbose )
+            cpp_wrapping.obsolete_anisotropicHist(path_input=path_ext_tmp, path_output=path_bin, path_mask=path_mask_dil, manual=manual, manual_sigma=manual_sigma, sensitivity=sensitivity, keepAll=False, verbose=verbose)
         else:
-            anisotropicHist(path_input=path_membrane_prefix+".ext.inr", path_output=path_bin, path_mask=path_mask_dil, manual=manual, manual_sigma=manual_sigma, sensitivity=sensitivity, keepAll=False, verbose=verbose)
+            cpp_wrapping.obsolete_anisotropicHist(path_input=path_membrane_prefix+".ext.inr", path_output=path_bin, path_mask=path_mask_dil, manual=manual, manual_sigma=manual_sigma, sensitivity=sensitivity, keepAll=False, verbose=verbose)
     else:
         if bbox:
-            seuillage(path_input=path_ext_tmp, path_output=path_bin,sb=hard_threshold, verbose=verbose)
+            cpp_wrapping.obsolete_seuillage(path_input=path_ext_tmp, path_output=path_bin,sb=hard_threshold, verbose=verbose)
         else:
-            seuillage(path_input=path_membrane_prefix+".ext.inr", path_output=path_bin,sb=hard_threshold, verbose=verbose)
+            cpp_wrapping.obsolete_seuillage(path_input=path_membrane_prefix+".ext.inr", path_output=path_bin,sb=hard_threshold, verbose=verbose)
 
     # Mask application on the binary image
-    Logic(path_mask_dil, path_bin, path_bin, Mode='mask', verbose=verbose)
+    cpp_wrapping.obsolete_Logic(path_mask_dil, path_bin, path_bin, Mode='mask', verbose=verbose)
 
 
     if os.path.exists(path_mask_dil):
@@ -976,7 +976,7 @@ def LACE(path_fused_0, path_fused_1, path_seg_0, label_of_interest, path_membran
         morpho(path_mask_dil, path_mask_dil, ' -dil -R '+str(rayon_dil_vox), verbose=verbose)
         # Local enhancement of membranes from fused image at t+1 and extraction of the directional maxima (generates the '.[ext|theta|phi].inr')
         # Renforcement local des membranes de l'image fusionnee a l'instant t+1 + extraction des maxima directionnels
-        membrane_renforcement(path_fused_1, prefix_output=path_membrane_prefix, path_mask=path_mask_dil,  init=sigma_membrane, verbose=verbose)
+        cpp_wrapping.obsolete_membrane_renforcement(path_fused_1, prefix_output=path_membrane_prefix, path_mask=path_mask_dil,  init=sigma_membrane, verbose=verbose)
         if path_mask_dil and os.path.exists(path_mask_dil):
             cmd='rm ' + path_mask_dil
             if verbose:
@@ -1476,11 +1476,11 @@ def GLACE_from_resampled_segmentation(path_fused_1, path_seg_trsf, labels_of_int
     if (not os.path.exists(path_membrane_prefix+".ext.inr")) or (not os.path.exists(path_membrane_prefix+".theta.inr")) or (not os.path.exists(path_membrane_prefix+".phi.inr")):
         # Local enhancement of membranes from fused image at t+1 and extraction of the directional maxima (generates the '.[ext|theta|phi].inr')
         # Renforcement des membranes de l'image fusionnee a l'instant t+1 + extraction des maxima directionnels
-        membrane_renforcement(path_fused_1, prefix_output=path_membrane_prefix, path_mask=None,  init=sigma_membrane, verbose=verbose)
+        cpp_wrapping.obsolete_membrane_renforcement(path_fused_1, prefix_output=path_membrane_prefix, path_mask=None,  init=sigma_membrane, verbose=verbose)
 
     # Second step
 
-    bboxes=boudingboxes(path_seg_trsf, verbose=verbose)
+    bboxes=cpp_wrapping.obsolete_boudingboxes(path_seg_trsf, verbose=verbose)
     if rayon_dil:	# dilation of all the bounding boxes
         rayon_dil_voxel = rayon_dil / imread(path_fused_1).voxelsize[0]
         rayon_dil_voxel = int(rayon_dil_voxel+0.5)
@@ -1522,13 +1522,13 @@ def GLACE_from_resampled_segmentation(path_fused_1, path_seg_trsf, labels_of_int
     pool.terminate()
 
     path_union_of_local_bins=path_membrane_prefix+'.bin_union.inr'
-    createImage(path_union_of_local_bins, path_fused_1, '-o 1', verbose=verbose)
+    cpp_wrapping.obsolete_createImage(path_union_of_local_bins, path_fused_1, '-o 1', verbose=verbose)
 
     for path_local_bin in outputs:
         # Second step part 2
         label_of_interest = int(path_local_bin.split(os.path.sep)[-1].split('.')[-2])
         bbox=bboxes[label_of_interest]
-        patchLogic(path_local_bin, path_union_of_local_bins, path_union_of_local_bins, bbox, Mode='or', verbose=verbose)
+        cpp_wrapping.obsolete_patchLogic(path_local_bin, path_union_of_local_bins, path_union_of_local_bins, bbox, Mode='or', verbose=verbose)
         if not keep_all:
             cmd='rm ' + path_local_bin
             print cmd
@@ -1538,7 +1538,7 @@ def GLACE_from_resampled_segmentation(path_fused_1, path_seg_trsf, labels_of_int
     if path_bin:
         if path_bin != path_union_of_local_bins:
             keep_union_of_local_bins=False
-            copy(path_union_of_local_bins, path_bin, verbose)
+            cpp_wrapping.obsolete_copy(path_union_of_local_bins, path_bin, verbose)
         else:
             keep_union_of_local_bins=True
 
@@ -1770,7 +1770,7 @@ def GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=Non
             '.'.join(binary_file_decomp[:-1]) + '.theta.inr') and os.path.exists('.'.join(binary_file_decomp[
                                                                                           :-1]) + '.phi.inr')), "Error : unexpectedly, <prefix>.theta.inr and/or <prefix>.phi.inr not found for file " + path_tv_input + " before tensor voting step"
 
-    TVmembrane(path_input=path_tv_input, path_output=path_TV, path_mask=None, scale=sigma_TV, sample=sample,
+    cpp_wrapping.obsolete_TVmembrane(path_input=path_tv_input, path_output=path_TV, path_mask=None, scale=sigma_TV, sample=sample,
                sigma_LF=sigma_LF, realScale=True, keepAll=False, verbose=verbose)
 
     # Reading of the reconstructed image (the one returned by the function)
@@ -1778,7 +1778,7 @@ def GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=Non
 
     # Copy to the output image to the provided output path
     if path_output and path_TV != path_output:
-        copy(path_TV, path_output, verbose=verbose)
+        cpp_wrapping.obsolete_copy(path_TV, path_output, verbose=verbose)
 
     # Deletion of intermediary images
     files_to_rm = ""

@@ -9,7 +9,7 @@ from ImageHandling import imread, imsave, SpatialImage
 # path_to_bins = '/user/gmicheli/home/DIG-EM/Codes/Packages/ASTEC-170210/ASTEC/CommunFunctions/cpp/build/bin/'
 #
 #
-# path_to_bins = os.path.join(os.path.dirname(__file__), 'cpp')+os.path.sep
+path_to_bins = os.path.join(os.path.dirname(__file__), 'cpp')+os.path.sep
 #
 # path_filters = path_to_bins + 'recfilters'
 # path_linearfilters = path_to_bins + 'linearFilter'
@@ -1324,6 +1324,68 @@ def only_keep_seeds_in_cell(seed_image, cell_image, seed_result,
 #
 ############################################################
 
+def obsolete_seuillage(path_input, path_output='tmp_threshold.inr',sb=1, sh=None,grey=False,lazy=True, verbose=False):
+    ''' Manual image threshold
+    path_input : path to the image to threshold
+    path_output: image threshold
+    sb : low threshold (seuil bas) (defalut : 1)
+    sh : high threshold (seuil haut) (optional)
+    grey : set to True if the user wants to keep original voxel values for the thresholded ones.
+           if set to False (default), the output image will be binary
+           (out[i][j][k]=255 iif sb<=in[i][j][k](<=sh), out[i][j][k]=0 otherwise)
+    lazy : do not return the output image if True
+    '''
+    options=""
+    if sh:
+      options+=" -sh " + str(sh)
+    path_seuillage = _find_exec('seuillage')
+    cmd=path_seuillage + ' ' + path_input + ' ' + path_output +\
+              ' -sb '+str(sb) + options
+    if verbose:
+      print cmd
+    os.system(cmd)
+    if not lazy:
+        out = imread(path_output)
+        os.system('rm ' + path_output)
+        return out
+
+def obsolete_membrane_renforcement(path_input, prefix_output='tmp_membrane', path_mask=None, init=0.9, realScale=True, lazy=True, verbose=False):
+    '''
+    Membrane (plane-like) structures enhancement and oriented centerplanes extraction
+    (using the method detailed in [Michelin et al. 2014] inspired by [Krissian 2000])
+    path_input : path to the image to filter
+    prefix_output : Write 3 files call <prefix_output>.ext.inr,<prefix_output>.theta.inr,<prefix_output>.phi.inr
+    path_mask : binary image (u8 or u16) such that the response function is only computed for non-null voxels from this mask
+    init : enhancement scale parameter (should be set as the semi-thickness of the membrane)
+    realScale : set as True if the scale parameter is given in real coordinates system (defaut), set as False if given in voxel coordinates
+    lazy : do not return the output image if True
+    '''
+    options=''
+    if path_mask:
+      assert(os.path.exists(path_mask))
+      options += ' -mask ' + str(path_mask)
+    if realScale:
+      options += ' -real'
+
+    path_membrane = _find_exec('membrane')
+    cmd=path_membrane + ' ' + path_input + ' ' + prefix_output +\
+              ' -single -init '+str(init) + options
+    if verbose:
+      print cmd
+    os.system(cmd)
+    if os.path.exists(prefix_output+'.rep.inr'):
+      cmd='rm ' + prefix_output+'.rep.inr'
+      if verbose:
+        print cmd
+      os.system(cmd)
+
+    if not lazy:
+        out_ext = imread(prefix_output+'.ext.inr')
+        out_theta = imread(prefix_output+'.theta.inr')
+        out_phi = imread(prefix_output+'.phi.inr')
+        os.system('rm ' + prefix_output+'.*')
+        return out_ext, out_theta, out_phi
+
 def _recfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, lazy=False):
     ''' Perform a gaussian filtering on an intensity image
     path_input : path to the image to filter
@@ -1343,6 +1405,35 @@ def _recfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, laz
         return out  
 
 
+def obsolete_linearfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, realScale=False, type='deriche', verbose=False, lazy=False):
+    ''' Perform a gaussian filtering on an intensity image
+    path_input : path to the image to filter
+    path_output : path to the temporary output image
+    filter_value : sigma of the gaussian filter for each axis (default is 1.0)
+    rad_min : TO REMOVE, NOT USED
+    realScale : scale values are in 'real' units (will be divided by the voxel size to get 'voxel' values) if this option is at True (default=False)
+    type : gaussian type, which can be ['deriche'|'fidrich'|'young-1995'|'young-2002'|'gabor-young-2002'|'convolution'] or None (default is 'deriche')
+    lazy : do not return the output image if True
+    '''
+    opt=""
+    path_linearfilters = _find_exec('linearFilter')
+    if realScale:
+      opt += " -unit real"
+    else:
+      opt += ' -unit voxel'
+    if type:
+      opt += " -gaussian-type " + str(type)
+    cmd=path_linearfilters + ' ' + path_input +\
+              ' ' + path_output +\
+              ' -cont 10 -sigma ' + str(filter_value) + opt +\
+              ' -x 0 -y 0 -z 0 -o 2'
+    if verbose:
+      print cmd
+    os.system(cmd)
+    if not lazy:
+        out = imread(path_output)
+        os.system('rm ' + path_output)
+        return out
 
 def _regionalmax(path_input, path_output, h_min):
     ''' Perform the h-minima operation on a given image
@@ -1383,7 +1474,7 @@ def _connexe(path_input, path_output, high_th):
               ' -labels -o 2')
 
 
-def _watershed(path_seeds, path_int, path_output=None, lazy=True, temporary_folder='', verbose=False):
+def obsolete_watershed(path_seeds, path_int, path_output=None, lazy=True, temporary_folder='', verbose=False):
     ''' Perform the watershed operation
     path_seeds : path to the seeds image
     path_int : path to the intensity image
@@ -1391,7 +1482,8 @@ def _watershed(path_seeds, path_int, path_output=None, lazy=True, temporary_fold
     lazy : do not return the output image if True
     temporary_folder : folder for temporary files 
                        (by default, temporary files are written in the workspace)
-    ''' 
+    '''
+    path_watershed = _find_exec('watershed')
     cmd=""   
     if type(path_seeds)!=str:
         imsave(os.path.join(temporary_folder,"seeds.inr"), path_seeds)
@@ -1454,7 +1546,7 @@ def _reech(path_flo, path_output, voxelsize):
 
 
 
-def _non_linear_registration(image_file_flo,image_file_ref, affine_image, affine_trsf,vectorfield_image,vectorfield_trsf, verbose=False):
+def obsolete_non_linear_registration(image_file_flo,image_file_ref, affine_image, affine_trsf,vectorfield_image,vectorfield_trsf, verbose=False):
     ''' Compute the non-linear transformation that register the floating image onto the reference image
     image_file_flo : path to the floating image
     image_file_ref : path to the reference image
@@ -1463,6 +1555,7 @@ def _non_linear_registration(image_file_flo,image_file_ref, affine_image, affine
     vectorfield_image : path to the floating image after affine o non-linear registration
     vectorfield_trsf : path to the non-linear registration (affine o non-linear)
     '''
+    path_block = _find_exec('blockmatching')
     cmd=path_block +\
               " -ref " + image_file_ref+\
               " -flo " + image_file_flo+\
@@ -1562,7 +1655,9 @@ def apply_trsf(path_flo, path_trsf=None, path_output="tmp_seeds.inr",
     '''
     #assert path_trsf != None 
 
-    command_line = path_apply_trsf + " " + path_flo + " " + path_output 
+    path_to_exec = _find_exec('applyTrsf')
+    # command_line = path_apply_trsf + " " + path_flo + " " + path_output
+    command_line = path_to_exec + " " + path_flo + " " + path_output
     if path_trsf:
       command_line += " -trsf " + path_trsf
     if not template is None:
@@ -1589,7 +1684,7 @@ def apply_trsf(path_flo, path_trsf=None, path_output="tmp_seeds.inr",
         return out
 
 
-def find_local_minima(path_out, path_ref, h_min, mask=None, sigma=0.6, verbose=False):
+def obsolete_find_local_minima(path_out, path_ref, h_min, mask=None, sigma=0.6, verbose=False):
     ''' Find local minima in an intensity image
     path_out : path to the output seeds image
     path_ref : path to the reference intensity image
@@ -1603,51 +1698,28 @@ def find_local_minima(path_out, path_ref, h_min, mask=None, sigma=0.6, verbose=F
     tmp_filt=path_out.replace('.inr','_local_minima_filter'+str(sigma)+'.inr') 
     if not path.exists(tmp_filt) and mask==None:
         #recfilter(path_ref, tmp_filt, filter_value=sigma, lazy=True)
-        linearfilter(path_ref, tmp_filt, filter_value=sigma, realScale=True, type='deriche', lazy=True, verbose=verbose)
+        obsolete_linearfilter(path_ref, tmp_filt, filter_value=sigma, realScale=True, type='deriche', lazy=True, verbose=verbose)
+
+    path_regional_ext = _find_exec('regionalext')
     if mask==None:
-        if os.path.exists(path_regional_max):
-          cmd=path_regional_max + ' ' + tmp_filt + ' ' +\
-                  ' -diff ' + path_mask_out + ' ' +\
-                  tmp_min + ' ' +\
-                  '-h ' + str(h_min) + ' ' +\
-                  '-inv'
-          if verbose:
+        cmd=path_regional_ext + ' ' + tmp_filt + ' ' +\
+              ' -diff ' + path_mask_out + ' ' +\
+              tmp_min + ' ' +\
+              '-h ' + str(h_min) + ' ' +\
+              '-min'
+        if verbose:
             print cmd
-          os.system(cmd)
-        else :
-          if os.path.exists(path_regional_ext):
-            cmd=path_regional_ext + ' ' + tmp_filt + ' ' +\
-                  ' -diff ' + path_mask_out + ' ' +\
-                  tmp_min + ' ' +\
-                  '-h ' + str(h_min) + ' ' +\
-                  '-min'
-            if verbose:
-              print cmd
-            os.system(cmd)
-          else: 
-            print "Error : did not found " + path_regional_max + " neither "+ path_regional_ext + " binary functions. Exiting."
-            return
+        os.system(cmd)
     else:
-        if os.path.exists(path_regional_max):
-            cmd=path_regional_max + ' ' + mask + ' ' + \
-                  '-diff ' + path_mask_out + ' ' +\
-                  tmp_min + ' ' +\
-                  '-h ' + str(h_min)
-            if verbose:
-              print cmd
-            os.system(cmd)
-        else:
-          if os.path.exists(path_regional_ext):
-            cmd=path_regional_ext + ' ' + mask + ' ' +\
-                  '-diff ' + path_mask_out + ' ' +\
-                  tmp_min + ' ' +\
-                  '-h ' + str(h_min) + ' -max'
-            if verbose:
-              print cmd
-            os.system(cmd)
-          else: 
-            print "Error : did not found " + path_regional_max + " neither "+ path_regional_ext + " binary functions. Exiting."
-            return
+        cmd=path_regional_ext + ' ' + mask + ' ' + \
+            '-diff ' + path_mask_out + ' ' + \
+            tmp_min + ' ' + \
+            '-h ' + str(h_min) + ' -max'
+        if verbose:
+            print cmd
+        os.system(cmd)
+
+    path_connexe = _find_exec('connexe')
     cmd=path_connexe + ' ' + path_mask_out + ' ' +\
               path_out + ' ' +\
               '-sb 1 -sh ' + str(h_min) +\
@@ -1665,9 +1737,10 @@ def find_local_minima(path_out, path_ref, h_min, mask=None, sigma=0.6, verbose=F
     os.system(cmd);
     return im, path_mask_out
 
-def _morpho(image_input,image_output,paramstre,verbose=False):
+def obsolete_morpho(image_input,image_output,paramstre,verbose=False):
   ''' Morphological operation
   '''
+  path_morpho = _find_exec('morpho')
   cmd=path_morpho+' '+image_input+' '+' '+image_output+' '+ paramstre
   if verbose:
     print cmd
@@ -1683,6 +1756,7 @@ def outer_detection(im_ref_tmp, radius, seg_ref_tmp):
     radius : radius of the grey closing to perform
     seg_ref_tmp : segmented reference image (SpatialImage)
     '''
+    path_morpho = _find_exec('morpho')
     from copy import deepcopy
     if radius!='0':
         imsave("tmp_bounds.inr", im_ref_tmp)
@@ -1714,12 +1788,13 @@ def outer_detection(im_ref_tmp, radius, seg_ref_tmp):
     os.system(path_filters + " tmp.inr out_bounds.inr -x 0 -y 0 -z 0 -sigma 1 -o 2")
     return imread('out_bounds.inr'), bounds.astype(np.bool)
 
-def gradient_norm(image_input,gradient_output):
+def obsolete_gradient_norm(image_input,gradient_output):
     ''' Perform the gradient norm of an intensity image
     im_input : input image (SpatialImage)
     path_input : path to the input image
     path_output : path to the output image
     '''
+    path_gradient_norm = _find_exec('norme_gradient')
     os.system(path_gradient_norm + ' ' + image_input + ' ' + gradient_output + ' -sigma 1')
 
 def readMatrixFile(file,t=int,comments='#'):
@@ -1748,7 +1823,7 @@ def readMatrixFile(file,t=int,comments='#'):
 
 
 
-def _anisotropicHist(path_input="temp_membrane.ext.inr", path_output='tmp_membrane.bin.inr', path_mask=None, manual=False,manual_sigma=7,sensitivity=0.98, keepAll=False, lazy=True, verbose=False):
+def obsolete_anisotropicHist(path_input="temp_membrane.ext.inr", path_output='tmp_membrane.bin.inr', path_mask=None, manual=False,manual_sigma=7,sensitivity=0.98, keepAll=False, lazy=True, verbose=False):
     ''' binarisation des membranes par seuillage anisotropic adaptatif
     Centerplanes image binarisation using an adaptative anisotropic threshold method detailed in [Michelin 2016]
     Generate temp_membrane.bin.inr and path_output
@@ -1774,6 +1849,7 @@ def _anisotropicHist(path_input="temp_membrane.ext.inr", path_output='tmp_membra
     assert(os.path.exists(path_input) and os.path.exists(path_theta) and os.path.exists(path_phi))
 
     path_hist = ".".join(path_input.rstrip('.gz').split('.')[0:-2])+".hist.txt"
+    path_anisotropicHist = _find_exec('anisotropicHist')
     if not manual:
         #For Autoparametrization
         cmd=path_anisotropicHist + ' ' + path_input + ' ' + path_hist + ' -bin-out ' + str(path_output) +' -v -auto -sensitivity '+str(sensitivity) + mask_option
@@ -1826,10 +1902,11 @@ def _anisotropicHist(path_input="temp_membrane.ext.inr", path_output='tmp_membra
         os.system('rm ' + path_output)
         return out        
 
-def nonZerosImage(image_in, verbose=False):
+def obsolete_nonZerosImage(image_in, verbose=False):
   """
   Returns True if image_in contains only zeros, False otherwise.  
   """
+  path_non_zeros_image = _find_exec('nonZerosImage')
   cmd=path_non_zeros_image + ' ' + str(image_in) 
 
   if verbose:
@@ -1838,7 +1915,7 @@ def nonZerosImage(image_in, verbose=False):
 
   return bool(os.system(cmd))
 
-def _TVmembrane(path_input="temp_membrane.bin.inr", path_output='tmp_TVmembrane.VP31.inr', path_mask=None, scale=3.6, sigma_LF=0.9, realScale=True, sample=0.2, keepAll=False, lazy=True, verbose=False):
+def obsolete_TVmembrane(path_input="temp_membrane.bin.inr", path_output='tmp_TVmembrane.VP31.inr', path_mask=None, scale=3.6, sigma_LF=0.9, realScale=True, sample=0.2, keepAll=False, lazy=True, verbose=False):
     '''
     Grey-level image reconstruction from an image of binarised membranes associated to images of orientations.
     path_input : path to input image which is contains binarised planar structures, 
@@ -1865,16 +1942,18 @@ def _TVmembrane(path_input="temp_membrane.bin.inr", path_output='tmp_TVmembrane.
     assert(os.path.exists(path_input))
     assert(os.path.exists(os.path.dirname(path_output)))
 
-    if nonZerosImage(path_input):
+    if obsolete_nonZerosImage(path_input):
       # Tensor Voting
       tvOpt=""
       if realScale:
         tvOpt += ' -real'
+      path_TVmembrane = _find_exec('TVmembrane')
       cmd=path_TVmembrane + ' ' + path_input +' -output-eigenvalues ' + prefixe_output + mask_option + ' -scale '+str(scale) +' -hessian -sample '+str(sample) + tvOpt
       if verbose:
         print cmd
       os.system(cmd)
       #Substract eigenvalues
+      path_Arit = _find_exec('Arit')
       cmd=path_Arit + ' ' + prefixe_output+'.imvp3.inr' +' ' + prefixe_output+'.imvp1.inr ' +prefixe_output+'.tv.inr  -sub '
       if verbose:
         print cmd
@@ -1885,13 +1964,15 @@ def _TVmembrane(path_input="temp_membrane.bin.inr", path_output='tmp_TVmembrane.
         lfOpt += " -unit real"
       else:
         lfOpt += " -unit voxel"
+      path_linearFilter = _find_exec('linearFilter')
       cmd=path_linearFilter + ' ' + prefixe_output+'.tv.inr' +' ' +prefixe_output+'.lf.inr  -x 0 -y 0 -z 0 -sigma ' + str(sigma_LF) + lfOpt 
       if verbose:
         print cmd
       os.system(cmd)
       #u16 conversion  
       #os.system(path_copy + ' ' + path_output+'.lf.inr' +' ' +path_output+'.u16.inr  -norma -o 2')
-      #u8 conversion  
+      #u8 conversion
+      path_copy = _find_exec('copy')
       cmd=path_copy + ' ' + prefixe_output+'.lf.inr' +' ' +path_output + ' -norma -o 1'
       if verbose:
         print cmd
@@ -1911,6 +1992,7 @@ def _TVmembrane(path_input="temp_membrane.bin.inr", path_output='tmp_TVmembrane.
       # The input image is only compounded of zeros : the output image will only contain zeros too
       if verbose:
         print "WARNING : TVmembrane INPUT IMAGE " + path_input + " SEEMS TO CONTAIN ONLY VOXELS WITH NULL VALUE /!\\"
+      path_copy = _find_exec('copy')
       cmd=path_copy + ' ' + path_input + ' ' + path_output + ' -o 1'
       if verbose:
         print cmd
@@ -1921,7 +2003,7 @@ def _TVmembrane(path_input="temp_membrane.bin.inr", path_output='tmp_TVmembrane.
         os.system('rm ' + path_output)
         return out  
 
-def copy(path_input, path_output, normalize=False, lazy=True, verbose=False):
+def obsolete_copy(path_input, path_output, normalize=False, lazy=True, verbose=False):
     ''' copy of the input image
     path_input : path for input image
     path_output : path for output image
@@ -1931,6 +2013,7 @@ def copy(path_input, path_output, normalize=False, lazy=True, verbose=False):
     lazy : do not return the output image if True
 
     '''
+    path_copy = _find_exec('copy')
     if normalize:
       cmd=path_copy + ' ' + path_input + ' ' + path_output + '-norma -o 1'
       if verbose:
@@ -2808,7 +2891,7 @@ verbose      # vorbose mode
     print cmd
   os.system(cmd)
 
-def Arit(image_in, image_ext_or_out, image_out=None, Mode=None, Type='', lazy=True, verbose=False):
+def obsolete_Arit(image_in, image_ext_or_out, image_out=None, Mode=None, Type='', lazy=True, verbose=False):
   """
   Addition, soustraction, multiplication, division, minimum, maximum d'images
   accepted modes : {'add', 'sub', 'mul', 'div', 'min', 'max'}
@@ -2824,6 +2907,7 @@ def Arit(image_in, image_ext_or_out, image_out=None, Mode=None, Type='', lazy=Tr
   assert(existing_modes.count(mode)), "Mode option is wrong or missing, see help."
   existing_types=['-o 1', '-o 2', '-o 2 -s', '-o 4 -s', '-r', '']
   assert(existing_types.count(Type)), "Type option is wrong, see help"
+  path_Arit = _find_exec('Arit')
   cmd=path_Arit + ' ' + str(image_in) + ' ' + str(image_ext_or_out)
   if image_out:
     cmd += ' ' + str(image_out)
@@ -2843,7 +2927,7 @@ def Arit(image_in, image_ext_or_out, image_out=None, Mode=None, Type='', lazy=Tr
     os.system(cmd)
     return out
 
-def _Logic(image_in, image_ext_or_out, image_out=None, Mode=None, lazy=True, verbose=False):
+def obsolete_Logic(image_in, image_ext_or_out, image_out=None, Mode=None, lazy=True, verbose=False):
   """
   Usage : Logic [-inv | [-et|-and] | [-ou|-or] | [-xou|-xor] | -mask]
   accepted modes : {'inv', 'et', 'and', 'ou', 'or', 'xou', 'xor', 'mask'}
@@ -2851,6 +2935,7 @@ def _Logic(image_in, image_ext_or_out, image_out=None, Mode=None, lazy=True, ver
   mode=Mode.lstrip('-')
   existing_modes=['inv', 'et', 'and', 'ou', 'or', 'xou', 'xor', 'mask']
   assert(existing_modes.count(mode)), "Mode option is wrong or missing, see help."
+  path_Logic = _find_exec('Logic')
   cmd=path_Logic + ' ' + str(image_in) + ' ' + str(image_ext_or_out)
   if image_out:
     cmd += ' ' + str(image_out)
@@ -2870,7 +2955,7 @@ def _Logic(image_in, image_ext_or_out, image_out=None, Mode=None, lazy=True, ver
     os.system(cmd)
     return out
 
-def _createImage(image_out, image_template, options='', lazy=True, verbose=False):
+def obsolete_createImage(image_out, image_template, options='', lazy=True, verbose=False):
   """
   Creation d'image vide a partir de template
   accepted types :   '-o 1'    : unsigned char
@@ -2883,6 +2968,7 @@ def _createImage(image_out, image_template, options='', lazy=True, verbose=False
                      [-voxel | -pixel | -vs %f %f [%f] | [-vx %f] [-vy %f] [-vz %f] ]
                      [-value %lf]
   """
+  path_create_image = _find_exec('createImage')
   cmd=path_create_image + ' ' + str(image_out) + ' -template ' + str(image_template) + ' ' + options
 
   if verbose:
@@ -3008,7 +3094,7 @@ def labelBorders(image_in, image_out, lazy=True, verbose=False):
     return out
 
 #####
-def _boudingboxes(image_labels, file_out=None, verbose=False):
+def obsolete_boudingboxes(image_labels, file_out=None, verbose=False):
   """
   Calcul des bounding-boxes de chaque label de l'image d'entree.
   Si file_out est renseigne, le resultat est sauvegarde dans ce fichier.
@@ -3022,6 +3108,7 @@ def _boudingboxes(image_labels, file_out=None, verbose=False):
   if not file_out:
     keep_file=False
     file_out='boundingboxes.txt'
+  path_boundingboxes = _find_exec('boundingboxes')
   cmd=path_boundingboxes+' '+image_labels+' '+file_out
   if verbose:
     print cmd
@@ -3046,7 +3133,7 @@ def _boudingboxes(image_labels, file_out=None, verbose=False):
 
   return D
 
-def _cropImage(image_in, image_out, bbox, verbose=False):
+def obsolete_cropImage(image_in, image_out, bbox, verbose=False):
   """
   Croping an image.
   Inputs:
@@ -3057,12 +3144,13 @@ def _cropImage(image_in, image_out, bbox, verbose=False):
   """
   assert(os.path.exists(image_in))
   bbox=bbox[-6:]
+  path_cropImage = _find_exec('cropImage')
   cmd=path_cropImage + ' ' + image_in + " " + image_out + " -origin " + str(bbox[0]) + ' ' + str(bbox[1]) + ' ' + str(bbox[2]) + ' -dim ' + str(bbox[3]-bbox[0]+1) + " " + str(bbox[4]-bbox[1]+1) + " " + str(bbox[5]-bbox[2]+1)
   if verbose:
     print cmd
   os.system(cmd)
 
-def _patchLogic(image_patch, image_ext, image_out, origin, Mode=None, verbose=False):
+def obsolete_patchLogic(image_patch, image_ext, image_out, origin, Mode=None, verbose=False):
   '''
   Usage : Logic [[-et|-and] | [-ou|-or] | [-xou|-xor]]
   accepted modes : {'et', 'and', 'ou', 'or', 'xou', 'xor'}
@@ -3075,12 +3163,13 @@ def _patchLogic(image_patch, image_ext, image_out, origin, Mode=None, verbose=Fa
   assert(os.path.exists(image_patch) and os.path.exists(image_ext))
   if len(origin)==7:
     origin=origin[-6:]
+  path_patchLogic = _find_exec('patchLogic')
   cmd = path_patchLogic + ' ' + image_patch + " " + image_ext + " " + image_out + " -origin " + str(origin[0]) + ' ' + str(origin[1]) + ' ' + str(origin[2]) + ' -' + mode
   if verbose:
     print cmd
   os.system(cmd)
 
-def mc_adhocFuse(image_fuse, image_seg, image_out, min_percentile=0.01, max_percentile=0.99, min_method='cellinterior', max_method='cellborder', sigma=5.0, verbose=False):
+def obsolete_mc_adhocFuse(image_fuse, image_seg, image_out, min_percentile=0.01, max_percentile=0.99, min_method='cellinterior', max_method='cellborder', sigma=5.0, verbose=False):
   '''
   Function for fused images enhancement knowing a segmentation propagation
   Usage: mc-adhocFuse -intensity-image|-ii %s
@@ -3159,6 +3248,7 @@ def mc_adhocFuse(image_fuse, image_seg, image_out, min_percentile=0.01, max_perc
   '''
   assert(os.path.exists(image_fuse))
   assert(os.path.exists(image_seg))
+  path_mc_adhocfuse = _find_exec('mc-adhocFuse')
   arguments=[path_mc_adhocfuse, '-intensity-image ', image_fuse, '-segmentation-image', image_seg, \
   '-min-percentile', str(min_percentile), '-max-percentile', str(max_percentile), \
   '-min-method', min_method, '-max-method', max_method, '-sigma', str(sigma), '-result-intensity-image',\

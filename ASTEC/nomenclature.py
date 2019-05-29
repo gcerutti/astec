@@ -396,7 +396,7 @@ def replaceTIME(filename, time, flag=FLAG_TIME, timeDigits=3):
 #    return filename.replace(FLAG_TIMEREF, time_point)
 
 
-def replaceTimes(filename, D, _format="%03d"):
+def replaceTimes(filename, d, _format="%03d"):
     """
     Replaces all the occurrences of each key from the dictionnary d given in 
     parameter with its corresponding value of type int at the format 

@@ -1917,7 +1917,6 @@ def fusion_preprocess(input_images, fused_image, time_point, environment, parame
 
     if do_something is False:
         monitoring.to_log_and_console('    nothing to do', 2)
-        monitoring.to_log_and_console('', 1)
         return
 
     #

@@ -6,9 +6,9 @@ from ImageHandling import imread, imsave, SpatialImage
 from scipy import ndimage as nd
 
 from ACE import GLACE_from_resampled_segmentation, GACE
-from cpp_wrapping import (non_linear_registration, apply_trsf, watershed,
-                          find_local_minima, outer_detection,
-                          gradient_norm,morpho, copy, mc_adhocFuse, Arit)
+from cpp_wrapping import (obsolete_non_linear_registration, apply_trsf, obsolete_watershed,
+                          obsolete_find_local_minima, outer_detection,
+                          obsolete_gradient_norm, obsolete_morpho, obsolete_copy, obsolete_mc_adhocFuse, obsolete_Arit)
 
 
 def compute_volumes(im, labels = None, real = True):
@@ -190,7 +190,7 @@ def get_seeds(seg, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min, bo
     mask=None
     temp_path_h_min=path_h_min.replace('$HMIN',str(h_min_max))
     if not os.path.exists(temp_path_h_min):
-        seeds_not_prop, mask=find_local_minima(temp_path_h_min, fused_file, h_min_max, sigma=sigma, verbose=verbose)
+        seeds_not_prop, mask=obsolete_find_local_minima(temp_path_h_min, fused_file, h_min_max, sigma=sigma, verbose=verbose)
     else:
         seeds_not_prop=imread(temp_path_h_min)
 
@@ -224,7 +224,7 @@ def get_seeds(seg, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min, bo
         if checking :
             temp_path_h_min=path_h_min.replace('$HMIN',str(h_min))
             if not os.path.exists(temp_path_h_min):
-                seeds_not_prop, mask=find_local_minima(temp_path_h_min,fused_file, h_min, mask=mask, sigma=sigma, verbose=verbose)
+                seeds_not_prop, mask=obsolete_find_local_minima(temp_path_h_min,fused_file, h_min, mask=mask, sigma=sigma, verbose=verbose)
             else:
                 seeds_not_prop=imread(temp_path_h_min)
             if seeds_not_prop is None:
@@ -364,7 +364,7 @@ def get_seeds_from_optimized_parameters(t, seg, cells, cells_with_no_seed, right
             label_max+=1
 
     print 'Watershed '
-    seg_from_opt_h=watershed(SpatialImage(seeds_from_opt_h, voxelsize=seeds_from_opt_h.voxelsize), im_ref, temporary_folder=os.path.dirname(path_h_min), verbose=verbose)
+    seg_from_opt_h=obsolete_watershed(SpatialImage(seeds_from_opt_h, voxelsize=seeds_from_opt_h.voxelsize), im_ref, temporary_folder=os.path.dirname(path_h_min), verbose=verbose)
     for l in exterior_corres:
         seg_from_opt_h[seg_from_opt_h==l]=1
     corres[1]=[1]
@@ -392,7 +392,7 @@ def perform_ac(parameters):
     image_input='tmp_'+str(cell_num)+'.inr'
     gradient_output='tmp_out_'+str(cell_num)+'.inr'
     imsave(image_input, I)
-    gradient_norm(image_input,gradient_output)
+    obsolete_gradient_norm(image_input,gradient_output)
     gI = imread(gradient_output)
     os.system('rm -f '+image_input+' '+gradient_output)
     gI=1./np.sqrt(1+100*gI)
@@ -583,7 +583,7 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
             change_happen=True
 
     if change_happen:
-        seg_from_opt_h=watershed(SpatialImage(seeds_from_opt_h,voxelsize=seeds_from_opt_h.voxelsize), im_ref, temporary_folder=os.path.dirname(path_h_min))
+        seg_from_opt_h=obsolete_watershed(SpatialImage(seeds_from_opt_h,voxelsize=seeds_from_opt_h.voxelsize), im_ref, temporary_folder=os.path.dirname(path_h_min))
         for l in exterior_corres:
             seg_from_opt_h[seg_from_opt_h==l]=1  
             
@@ -677,7 +677,7 @@ def outer_correction(seg_from_opt_h, exterior_correction,segmentation_file_ref,R
     	image_input=segmentation_file_ref.replace('.inr','.seg_from_opt_h.inr')
         imsave(image_input, SpatialImage(seg_from_opt_h!=1, voxelsize=seg_from_opt_h.voxelsize).astype(np.uint8))
         image_output=segmentation_file_ref.replace('.inr','.seg_out_h.inr')
-        morpho(image_input,image_output,' -ope -R '+str(RadiusOpening))
+        obsolete_morpho(image_input,image_output,' -ope -R '+str(RadiusOpening))
         opened=imread(image_output)
         cells_to_correct=[i for j in exterior_correction for i in j[1]]
         os.system('rm -f '+image_input+' '+image_output)
@@ -734,7 +734,7 @@ def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file,  f
     #
     # segmentation par watershed a l'aide des graines extraites de la segmentation precedente
     #
-    segmentation=watershed(seeds_file, im_fused_8, temporary_folder=os.path.dirname(path_seg_trsf), verbose=verbose)
+    segmentation=obsolete_watershed(seeds_file, im_fused_8, temporary_folder=os.path.dirname(path_seg_trsf), verbose=verbose)
     seeds=imread(seeds_file)
     if delSeedsASAP:
         cmd='rm %s'%seeds_file
@@ -891,7 +891,7 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
 
 
     print 'Compute Vector Fields from '+str(t)+' to '+str(t+delta_t)
-    non_linear_registration(fused_file_ref,\
+    obsolete_non_linear_registration(fused_file_ref,\
                         fused_file, \
                         vf_file.replace('.inr','_affine.inr'), \
                         vf_file.replace('.inr','_affine.trsf'),\
@@ -928,15 +928,15 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
     # fused file u8 vconversion if needed
     if flag_hybridation or not membrane_reconstruction_method:
         if  fusion_u8_method==1:
-            mc_adhocFuse(fused_file, path_seg_trsf, fused_file_u8, min_percentile=min_percentile, max_percentile=max_percentile, 
+            obsolete_mc_adhocFuse(fused_file, path_seg_trsf, fused_file_u8, min_percentile=min_percentile, max_percentile=max_percentile,
                          min_method=min_method, max_method=max_method, sigma=sigma_hybridation, verbose=verbose)
         else:
             imsave(fused_file_u8, to_u8(imread(fused_file)))
 
     # Switch membrane_reconstruction_method
     if not membrane_reconstruction_method:
-        copy(fused_file_u8, graylevel_file_u8, verbose=verbose)
-        copy(fused_file, graylevel_file, verbose=verbose)
+        obsolete_copy(fused_file_u8, graylevel_file_u8, verbose=verbose)
+        obsolete_copy(fused_file, graylevel_file, verbose=verbose)
     if membrane_reconstruction_method == 1:
         # GLACE reconstruction 
         GLACE_from_resampled_segmentation(fused_file, path_seg_trsf, labels_of_interest='all', background=[0,1], 
@@ -956,8 +956,8 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
     # reconstructed image and fused image hybridation if needed
     if membrane_reconstruction_method:
         if flag_hybridation:
-            Arit(fused_file_u8, graylevel_file, graylevel_file, Mode='max', Type='-o 1', verbose=verbose)
-        copy(graylevel_file, graylevel_file_u8, verbose=verbose)
+            obsolete_Arit(fused_file_u8, graylevel_file, graylevel_file, Mode='max', Type='-o 1', verbose=verbose)
+            obsolete_copy(graylevel_file, graylevel_file_u8, verbose=verbose)
 
     # temporary images deletion
     if keepTemporaryFiles == False:
@@ -969,7 +969,7 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
 
     # u8 image copy if asked
     if path_u8_images:
-        copy(graylevel_file_u8, path_u8_images, verbose=verbose)
+        obsolete_copy(graylevel_file_u8, path_u8_images, verbose=verbose)
 
     # segmentation propagation stuff from seeds
     seg_from_opt_h, lin_tree_information = segmentation_propagation_from_seeds(t, segmentation_file_ref, graylevel_file, graylevel_file_u8, seeds_file,path_seg_trsf, 
