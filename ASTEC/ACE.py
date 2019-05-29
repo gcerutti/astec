@@ -2,6 +2,8 @@
 import os
 import sys
 import imp
+import operator
+import multiprocessing
 
 import commonTools
 from CommunFunctions.ImageHandling import SpatialImage, imread, imsave
@@ -57,8 +59,15 @@ monitoring = commonTools.Monitoring()
 class AceParameters(object):
 
     def __init__(self):
+
+        #
+        # parameters for filtering and membrane extrema extraction
+        #
         self.sigma_membrane = 0.9
 
+        #
+        # parameters for binarization
+        #
         self.hard_thresholding = False
         self.hard_threshold = 1.0
 
@@ -66,11 +75,22 @@ class AceParameters(object):
         self.manual_sigma = 7
         self.sensitivity = 0.99
 
+        #
+        # parameters for tensor voting
+        #
         self.sigma_TV = 3.6
         self.sigma_LF = 0.9
         self.sample = 0.2
 
-        self.keep_membrane = False
+        #
+        # for cell-based enhancement
+        # dilation (in real unit)
+        #
+        self.bounding_box_dilation = 3.6
+
+        #
+        #
+        #
         self.default_image_suffix = 'inr'
 
     def write_parameters(self, log_file_name):
@@ -91,7 +111,8 @@ class AceParameters(object):
             logfile.write('- sigma_LF = ' + str(self.sigma_LF) + '\n')
             logfile.write('- sample = ' + str(self.sample) + '\n')
 
-            logfile.write('- keep_membrane = ' + str(self.keep_membrane) + '\n')
+            logfile.write('- bounding_box_dilation = ' + str(self.bounding_box_dilation) + '\n')
+
             logfile.write('- default_image_suffix = ' + str(self.default_image_suffix) + '\n')
 
             logfile.write("\n")
@@ -114,7 +135,8 @@ class AceParameters(object):
         print('- sigma_LF = ' + str(self.sigma_LF))
         print('- sample = ' + str(self.sample))
 
-        print('- keep_membrane = ' + str(self.keep_membrane))
+        print('- bounding_box_dilation = ' + str(self.bounding_box_dilation))
+
         print('- default_image_suffix = ' + str(self.default_image_suffix))
 
         print("")
@@ -169,22 +191,6 @@ class AceParameters(object):
 #
 #
 ########################################################################################
-
-
-def random_number():
-    """
-    Function which generates a random number made of 8 characters.
-    :return:
-    """
-    import uuid
-    return str(uuid.uuid4().fields[-1])[:5]+str(uuid.uuid4().fields[-1])[:5]
-
-
-########################################################################################
-#
-#
-#
-########################################################################################
 #
 # sigma_membrane=0.9, manual=False, manual_sigma=7, sensitivity=0.99, hard_thresholding=False,
 # hard_threshold=1.0,
@@ -219,12 +225,6 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
         sys.exit(1)
 
     #
-    # to be done
-    #
-    if monitoring.keepTemporaryFiles is True:
-        parameters.keep_membrane = True
-
-    #
     # set names
     #
 
@@ -240,13 +240,11 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
 
     path_tv_input = path_input
 
-    if binary_input:
-        
-        pass
+    if binary_input is False:
 
-    else:
         #
         # get a binary image of membranes
+        #
         # 1. surface extrema extraction
         #    it will generate (in the 'temporary_path' directory)
         #    - 'tmp_prefix_name'.ext
@@ -254,14 +252,9 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
         #    - 'tmp_prefix_name'.theta
         #    - 'tmp_prefix_name'.phi
         #      the two angle images that give the direction of the vector orthogonal to the membrane
-        # 2. threshold
-        #    - 'tmp_prefix_name'.bin
-        #      the thresholded directional extrema image
-        #    - 'tmp_prefix_name'.hist.txt
-        #      a text file describing the image histogram
         #
         if (not os.path.isfile(tmp_prefix_name + ".ext.inr") or not os.path.exists(tmp_prefix_name + ".theta.inr")
-                or not os.path.exists(tmp_prefix_name + ".phi.inr")):
+                or not os.path.exists(tmp_prefix_name + ".phi.inr")) or monitoring.forceResultsToBeBuilt is True:
             monitoring.to_log_and_console("       membrane extraction of '"
                                           + str(path_input).split(os.path.sep)[-1] + "'", 2)
             #
@@ -274,13 +267,20 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
         #
         # Membranes binarization
         #
+        # 2. threshold
+        #    it will generate (in the 'temporary_path' directory)
+        #    - 'tmp_prefix_name'.bin
+        #      the thresholded directional extrema image
+        #    - 'tmp_prefix_name'.hist.txt
+        #      a text file describing the image histogram
+        #
         if not os.path.isfile(tmp_prefix_name + ".ext.inr"):
             monitoring.to_log_and_console("       '" + str(tmp_prefix_name + ".ext.inr").split(os.path.sep)[-1]
                                           + "' does not exist", 2)
             monitoring.to_log_and_console("\t Exiting.")
             sys.exit(1)
 
-        if not os.path.isfile(tmp_prefix_name + ".bin.inr"):
+        if not os.path.isfile(tmp_prefix_name + ".bin.inr") or monitoring.forceResultsToBeBuilt is True:
             if parameters.hard_thresholding is True:
                 #
                 # hard threshold
@@ -289,7 +289,7 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
                                               + str(tmp_prefix_name + ".ext.inr").split(os.path.sep)[-1] + "'", 2)
                 cpp_wrapping.seuillage(path_input=tmp_prefix_name + ".ext.inr",
                                        path_output=tmp_prefix_name + ".bin.inr",
-                                       low_threshold=hard_threshold, monitoring=monitoring)
+                                       low_threshold=parameters.hard_threshold, monitoring=monitoring)
             else:
                 #
                 # Anisotropic threshold of membranes (the choice of the sensitivity parameter may be critical)
@@ -300,6 +300,7 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
                                                    path_output=tmp_prefix_name + ".bin.inr",
                                                    manual=parameters.manual, manual_sigma=parameters.manual_sigma,
                                                    sensitivity=parameters.sensitivity, monitoring=monitoring)
+                os.remove(tmp_prefix_name + '.hist.txt')
 
         path_tv_input = tmp_prefix_name + ".bin.inr"
 
@@ -323,13 +324,316 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
     b = os.path.basename(path_tv_input)
     prefix_name = b[0:len(b) - len(e)]
 
-    tmp_prefix_name = temporary_path + os.path.sep + prefix_name
+    bin_prefix_name = temporary_path + os.path.sep + prefix_name
 
-    cpp_wrapping.tensor_voting_membrane(path_tv_input, tmp_prefix_name, path_output,
-                                        scale_tensor_voting=parameters.sigma_TV,
-                                        sample=parameters.sample, sigma_smoothing=parameters.sigma_LF,
-                                        monitoring=monitoring)
+    if not os.path.isfile(path_output) or monitoring.forceResultsToBeBuilt is True:
+        cpp_wrapping.tensor_voting_membrane(path_tv_input, bin_prefix_name, path_output,
+                                            scale_tensor_voting=parameters.sigma_TV,
+                                            sample=parameters.sample, sigma_smoothing=parameters.sigma_LF,
+                                            monitoring=monitoring)
+
+    if binary_input is False:
+        os.remove(tmp_prefix_name + '.ext.inr')
+        os.remove(tmp_prefix_name + '.phi.inr')
+        os.remove(tmp_prefix_name + '.theta.inr')
+        os.remove(tmp_prefix_name + '.bin.inr')
+
+    os.remove(bin_prefix_name + '.imvp1.inr')
+    os.remove(bin_prefix_name + '.imvp2.inr')
+    os.remove(bin_prefix_name + '.imvp3.inr')
+    os.remove(bin_prefix_name + '.tv.inr')
+    os.remove(bin_prefix_name + '.lf.inr')
+
     return
+
+
+########################################################################################
+#
+#
+#
+########################################################################################
+
+
+def cell_binarization(parameters_for_parallelism):
+    """
+
+    :param parameters_for_parallelism:
+    :return:
+    """
+
+    label_of_interest, bbox, previous_deformed_segmentation, tmp_prefix_name, parameters = parameters_for_parallelism
+    label_width = 5
+
+    #
+    # the GACE output images are cropped accordingly to the cell (ie label) bounding box
+    #
+
+    cellid = str('{:0{width}d}'.format(label_of_interest, width=label_width))
+    cell_prefix_name = tmp_prefix_name + "_cell" + cellid
+
+    cell_mask = cell_prefix_name + ".mask" + "." + parameters.default_image_suffix
+
+    #
+    # defines the dilated cell mask
+    #
+
+    cpp_wrapping.crop_image(previous_deformed_segmentation, cell_mask, bbox, monitoring=monitoring)
+    cpp_wrapping.seuillage(cell_mask, cell_mask, low_threshold=label_of_interest, high_threshold=label_of_interest,
+                           monitoring=monitoring)
+
+    immask = imread(cell_mask)
+    voxelsize = immask._get_resolution()
+    del immask
+
+    #
+    # bounding_box_dilation was already used for the bounding box dilation,
+    # thus it remains consistent
+    # default value for bounding_box_dilation is 3.6 um, thus 12 voxels
+    # for an image of resolution 0.3 um
+    #
+
+    rx = int(parameters.bounding_box_dilation / voxelsize[0] + 0.5)
+    ry = int(parameters.bounding_box_dilation / voxelsize[1] + 0.5)
+    rz = int(parameters.bounding_box_dilation / voxelsize[2] + 0.5)
+    dilation_radius = max(rx, ry, rz)
+    cpp_wrapping.mathematical_morphology(cell_mask, cell_mask, other_options=" -dil -R " + str(dilation_radius),
+                                         monitoring=monitoring)
+
+    #
+    # threshold extrema
+    #
+
+    full_ext = tmp_prefix_name + ".ext.inr"
+    cell_ext = cell_prefix_name + ".ext" + ".inr"
+    cell_bin = cell_prefix_name + ".bin" + "." + parameters.default_image_suffix
+
+    cpp_wrapping.crop_image(full_ext, cell_ext, bbox, monitoring=monitoring)
+
+    if parameters.hard_thresholding is True:
+        #
+        # hard threshold
+        #
+        cpp_wrapping.seuillage(path_input=cell_ext, path_output=cell_bin,
+                               low_threshold=parameters.hard_threshold, monitoring=monitoring)
+    else:
+        full_theta = tmp_prefix_name + ".theta.inr"
+        full_phi = tmp_prefix_name + ".phi.inr"
+        cell_theta = cell_prefix_name + ".theta" + ".inr"
+        cell_phi = cell_prefix_name + ".phi" + ".inr"
+
+        cpp_wrapping.crop_image(full_theta, cell_theta, bbox, monitoring=monitoring)
+        cpp_wrapping.crop_image(full_phi, cell_phi, bbox, monitoring=monitoring)
+
+        cpp_wrapping.anisotropic_histogram(path_input_prefix=cell_prefix_name, path_output=cell_bin,
+                                           manual=parameters.manual, manual_sigma=parameters.manual_sigma,
+                                           sensitivity=parameters.sensitivity, monitoring=monitoring)
+
+        os.remove(cell_theta)
+        os.remove(cell_phi)
+        os.remove(cell_prefix_name + ".hist.txt")
+
+    os.remove(cell_ext)
+
+    cpp_wrapping.logical_operation(cell_mask, cell_bin, cell_bin, other_options="-mask", monitoring=monitoring)
+
+    os.remove(cell_mask)
+
+    return label_of_interest, cell_bin
+
+
+#
+#
+#
+
+
+def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_output,
+                              temporary_path=None, parameters=None, n_processor=7):
+    """
+
+    :param path_input:
+    :param previous_deformed_segmentation:
+    :param path_output:
+    :param temporary_path:
+    :param parameters:
+    :param n_processor:
+    :return:
+    """
+
+    #
+    # set names
+    #
+
+    e = commonTools.get_extension(path_input)
+    b = os.path.basename(path_input)
+    prefix_name = b[0:len(b) - len(e)]
+
+    tmp_prefix_name = os.path.join(temporary_path, prefix_name)
+
+    #
+    # first step
+    # membrane extrema computation
+    #
+    #    it will generate (in the 'temporary_path' directory)
+    #    - 'tmp_prefix_name'.ext
+    #      the directional extrema image
+    #    - 'tmp_prefix_name'.theta
+    #    - 'tmp_prefix_name'.phi
+    #      the two angle images that give the direction of the vector orthogonal to the membrane
+
+    if (not os.path.isfile(tmp_prefix_name + ".ext.inr") or not os.path.exists(tmp_prefix_name + ".theta.inr")
+        or not os.path.exists(tmp_prefix_name + ".phi.inr")) or monitoring.forceResultsToBeBuilt is True:
+        monitoring.to_log_and_console("       membrane extraction of '"
+                                      + str(path_input).split(os.path.sep)[-1] + "'", 2)
+        #
+        # Local enhancement of membranes from 'path_input' image and extraction of the directional maxima
+        # (generates the tmp_prefix_name+'.[ext|theta|phi].inr') images
+        #
+        cpp_wrapping.membrane_extraction(path_input, tmp_prefix_name,
+                                         scale=parameters.sigma_membrane, monitoring=monitoring)
+
+    #
+    # second step
+    # cell-based thresholding
+    #
+
+    #
+    # bounding boxes of all labels
+    # bboxes is a list of tuples [volume, xmin, ymin, zmin, xmax, ymax, zmax]
+    #
+    path_bboxes = commonTools.add_suffix(previous_deformed_segmentation, '_bounding_boxes',
+                                         new_dirname=temporary_path, new_extension='txt')
+    bboxes = cpp_wrapping.bounding_boxes(previous_deformed_segmentation, path_bboxes=path_bboxes)
+
+    #
+    # dilation of bounding boxes
+    # default value for bounding_box_dilation is 3.6 um
+    # which yield 12 voxels for a image of resolution 0.3 um
+    #
+    if parameters.bounding_box_dilation > 0:
+
+        imseg = imread(previous_deformed_segmentation)
+        voxelsize = imseg._get_resolution()
+        xdim = imseg.shape[0]
+        ydim = imseg.shape[1]
+        zdim = imseg.shape[2]
+        del imseg
+
+        dx = int(parameters.bounding_box_dilation/voxelsize[0] + 0.5)
+        if len(voxelsize) >= 2:
+            dy = int(parameters.bounding_box_dilation / voxelsize[1] + 0.5)
+        else:
+            dy = int(parameters.bounding_box_dilation / voxelsize[0] + 0.5)
+        if len(voxelsize) >= 3:
+            dz = int(parameters.bounding_box_dilation / voxelsize[2] + 0.5)
+        else:
+            dz = int(parameters.bounding_box_dilation / voxelsize[0] + 0.5)
+
+        dilation_operator = (0, -dx, -dy, -dz, dx, dy, dz)
+
+        for x, b in bboxes.iteritems():
+            b = map(operator.add, b, dilation_operator)
+            #
+            # Note of Gael:
+            # the coordinates of the "final" point of the bounding box can "go" out of the original image dimensions
+            # without affecting the following of the program
+            #
+            if b[1] < 0:
+                b[1] = 0
+            if b[2] < 0:
+                b[2] = 0
+            if b[3] < 0:
+                b[3] = 0
+            if b[4] >= xdim:
+                b[4] = xdim-1
+            if b[5] >= ydim:
+                b[5] = ydim-1
+            if b[6] >= zdim:
+                b[6] = zdim-1
+            bboxes[x] = tuple(b)
+
+    #
+    # selection of cells to be enhanced
+    # Gael choice was to define two parameters:
+    # - labels_of_interest that can either be a list of labels, ie [3, 4, 7] or the string 'all'
+    # - background that is nothing but [0,1], ie the two possible labels for the backgroung
+    #
+    # if type(labels_of_interest)==int:
+    #     labels_of_interest=[labels_of_interest]
+    # if type(labels_of_interest)==str and labels_of_interest=='all':
+    #     labels_of_interest=[x for x in bboxes.keys() if not background.count(x)]
+    #
+
+    labels_of_interest = [x for x in bboxes.keys() if x != 0 and x != 1]
+
+    #
+    # parallel cell-based binarization
+    # light_LACE METHOD INTERFACE (since ASTEC-170327) for each cell
+    #
+
+    monitoring.to_log_and_console(" ", 3)
+    monitoring.to_log_and_console("       ----- start: cell-based parallel binarization -----", 3)
+
+    pool = multiprocessing.Pool(processes = n_processor)
+    mapping = []
+
+    for label_of_interest in labels_of_interest:
+        monitoring.to_log_and_console("       membrane binarization of cell '" + str(label_of_interest) + "'", 3)
+
+        parameters_for_parallelism = (label_of_interest, bboxes[label_of_interest],
+                                      previous_deformed_segmentation, tmp_prefix_name, parameters)
+        # print str(parameters_for_parallelism)
+        mapping.append(parameters_for_parallelism)
+
+    outputs = pool.map(cell_binarization, mapping)
+    pool.close()
+    pool.terminate()
+
+    monitoring.to_log_and_console("       ----- end:   cell-based parallel binarization -----", 3)
+    monitoring.to_log_and_console(" ", 3)
+
+    #
+    # gather all cell binary images
+    #
+
+    bin_image = tmp_prefix_name + ".bin." + parameters.default_image_suffix
+    cpp_wrapping.create_image(bin_image, tmp_prefix_name + ".ext.inr", "-o 1", monitoring=monitoring)
+
+    for binary_output_cell in outputs:
+        cell_label = binary_output_cell[0]
+        cell_bin = binary_output_cell[1]
+        bbox = bboxes[cell_label]
+        cpp_wrapping.patch_logical_operation(cell_bin, bin_image, bin_image, bbox, "-or", monitoring=monitoring)
+        os.remove(cell_bin)
+
+    #
+    # tensor voting
+    #
+
+    global_membrane_enhancement(bin_image, path_output, binary_input=True,
+                                temporary_path=temporary_path, parameters=parameters)
+
+    os.remove(tmp_prefix_name + '.ext.inr')
+    os.remove(tmp_prefix_name + '.phi.inr')
+    os.remove(tmp_prefix_name + '.theta.inr')
+    os.remove(tmp_prefix_name + ".bin." + parameters.default_image_suffix)
+
+    return
+
+
+########################################################################################
+#
+#
+#
+########################################################################################
+
+
+def random_number():
+    """
+    Function which generates a random number made of 8 characters.
+    :return:
+    """
+    import uuid
+    return str(uuid.uuid4().fields[-1])[:5]+str(uuid.uuid4().fields[-1])[:5]
 
 
 ########################################################################################
@@ -746,6 +1050,11 @@ def LACE(path_fused_0, path_fused_1, path_seg_0, label_of_interest, path_membran
 
 
 
+########################################################################################
+#
+#
+#
+########################################################################################
 
 def GLACE(path_fused_0, path_fused_1, path_seg_0, labels_of_interest='all', background=[0,1], path_membrane_prefix=None, path_vector=None, path_bin=None, path_output=None, rayon_dil=3.6, 
     sigma_membrane=0.9, manual=False, manual_sigma=7, hard_thresholding=False, hard_threshold=1.0, sensitivity=0.99, sigma_TV=3.6, sigma_LF=0.9, sample=0.2,
@@ -1018,8 +1327,13 @@ def GLACE(path_fused_0, path_fused_1, path_seg_0, labels_of_interest='all', back
 
     return reconstructed_image_1
 
+########################################################################################
+#
+#
+#
+########################################################################################
 
-def GLACE_from_resampled_segmentation(path_fused_1, path_seg_trsf, labels_of_interest='all', background=[0,1], path_membrane_prefix=None, path_bin=None, path_output=None, rayon_dil=3.6, 
+def GLACE_from_resampled_segmentation(path_fused_1, path_seg_trsf, labels_of_interest='all', background=[0,1], path_membrane_prefix=None, path_bin=None, path_output=None, rayon_dil=3.6,
     sigma_membrane=0.9, manual=False, manual_sigma=7, hard_thresholding=False, hard_threshold=1.0, sensitivity=0.99, sigma_TV=3.6, sigma_LF=0.9, sample=0.2,
     keep_membrane=False, keep_all=False,  nb_proc=7, verbose=False):
     '''
@@ -1255,6 +1569,11 @@ def GLACE_from_resampled_segmentation(path_fused_1, path_seg_trsf, labels_of_int
             print "Deleting temporary files: \n" + files_to_rm
         os.system("rm " + files_to_rm)
 
+########################################################################################
+#
+#
+#
+########################################################################################
 
 def GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=None, path_output=None,
          sigma_membrane=0.9, manual=False, manual_sigma=7, sensitivity=0.99, hard_thresholding=False,

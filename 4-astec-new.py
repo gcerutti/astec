@@ -24,6 +24,11 @@ from ASTEC.CommunFunctions.cpp_wrapping import path_to_vt
 
 
 def _set_options(my_parser):
+    """
+
+    :param my_parser:
+    :return:
+    """
     proc = "_set_options"
     if not isinstance(my_parser, ArgumentParser):
         print proc + ": argument is not of type ArgumentParser"
@@ -36,7 +41,7 @@ def _set_options(my_parser):
                            action='store', dest='parameterFile', const=None,
                            help='python file containing parameters definition')
     my_parser.add_argument('-e', '--embryo-rep',
-                           action='store', dest='embryoPath', const=None,
+                           action='store', dest='embryo_path', const=None,
                            help='path to the embryo data')
 
     #
@@ -71,13 +76,12 @@ def _set_options(my_parser):
 
 #
 #
-# main 
+# main function
 #
 #
 
 
-if __name__ == '__main__':
-
+def main():
     #
     # initialization
     #
@@ -94,9 +98,6 @@ if __name__ == '__main__':
     _set_options(parser)
     args = parser.parse_args()
 
-    print 'file=' + str(__file__)
-    print 'name=' + str(__name__)
-
     monitoring.update_from_args(args)
     experiment.update_from_args(args)
 
@@ -108,8 +109,6 @@ if __name__ == '__main__':
     environment.update_from_file(parameterFile, start_time)
     environment.path_history_file = nomenclature.replaceEXECUTABLE(environment.path_history_file, __file__)
     environment.path_log_file = nomenclature.replaceEXECUTABLE(environment.path_log_file, __file__)
-
-    environment.print_parameters()
 
     if not os.path.isdir(environment.path_logdir):
         os.makedirs(environment.path_logdir)
@@ -170,3 +169,14 @@ if __name__ == '__main__':
     with open(environment.path_history_file, 'a') as logfile:
         logfile.write('# Total execution time = '+str(time.mktime(endtime)-time.mktime(start_time))+' sec\n')
         logfile.write("\n\n")
+
+
+#
+#
+# main call
+#
+#
+
+
+if __name__ == '__main__':
+    main()

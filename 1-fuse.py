@@ -40,7 +40,7 @@ def _set_options(my_parser):
                            action='store', dest='parameterFile', const=None,
                            help='python file containing parameters definition')
     my_parser.add_argument('-e', '--embryo-rep',
-                           action='store', dest='embryoPath', const=None,
+                           action='store', dest='embryo_path', const=None,
                            help='path to the embryo data')
 
     #
@@ -75,12 +75,12 @@ def _set_options(my_parser):
 
 #
 #
-# main 
+# main function
 #
 #
 
 
-if __name__ == '__main__':
+def main():
 
     #
     # initialization
@@ -172,3 +172,14 @@ if __name__ == '__main__':
     with open(environment.path_history_file, 'a') as logfile:
         logfile.write('# Total execution time = '+str(time.mktime(endtime)-time.mktime(start_time))+' sec\n')
         logfile.write("\n\n")
+
+
+#
+#
+# main call
+#
+#
+
+
+if __name__ == '__main__':
+    main()

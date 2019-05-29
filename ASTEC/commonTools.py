@@ -53,6 +53,8 @@ class Monitoring(object):
         self.forceResultsToBeBuilt = args.forceResultsToBeBuilt
 
     def copy(self, m):
+        if m is None:
+            return
         self.verbose = m.verbose
         self.debug = m.debug
         self.logfile = m.logfile
@@ -84,12 +86,12 @@ class Monitoring(object):
 class Experiment(object):
 
     def __init__(self):
-        self.embryoPath = None
+        self.embryo_path = None
         self.embryoName = None
-        self.firstTimePoint = -1
-        self.lastTimePoint = -1
-        self.deltaTimePoint = 1
-        self.delayTimePoint = 0
+        self.first_time_point = -1
+        self.last_time_point = -1
+        self.delta_time_point = 1
+        self.delay_time_point = 0
 
     #
     #
@@ -98,36 +100,36 @@ class Experiment(object):
         with open(logfilename, 'a') as logfile:
             logfile.write("\n")
             logfile.write('Experiment parameters\n')
-            logfile.write('- embryoPath is ' + str(self.embryoPath)+'\n')
+            logfile.write('- embryo_path is ' + str(self.embryo_path)+'\n')
             logfile.write('- embryoName is ' + str(self.embryoName)+'\n')
-            logfile.write('- firstTimePoint is ' + str(self.firstTimePoint)+'\n')
-            logfile.write('- lastTimePoint is ' + str(self.lastTimePoint)+'\n')
-            logfile.write('- deltaTimePoint is ' + str(self.deltaTimePoint)+'\n')
-            logfile.write('- delayTimePoint is ' + str(self.delayTimePoint)+'\n')
+            logfile.write('- first_time_point is ' + str(self.first_time_point)+'\n')
+            logfile.write('- last_time_point is ' + str(self.last_time_point)+'\n')
+            logfile.write('- delta_time_point is ' + str(self.delta_time_point)+'\n')
+            logfile.write('- delay_time_point is ' + str(self.delay_time_point)+'\n')
             logfile.write("\n")
         return
 
     def print_parameters(self):
         print("")
         print('Experiment parameters')
-        print('- embryoPath is ' + str(self.embryoPath))
+        print('- embryo_path is ' + str(self.embryo_path))
         print('- embryoName is ' + str(self.embryoName))
-        print('- firstTimePoint is ' + str(self.firstTimePoint))
-        print('- lastTimePoint is ' + str(self.lastTimePoint))
-        print('- deltaTimePoint is ' + str(self.deltaTimePoint))
-        print('- delayTimePoint is ' + str(self.delayTimePoint))
+        print('- first_time_point is ' + str(self.first_time_point))
+        print('- last_time_point is ' + str(self.last_time_point))
+        print('- delta_time_point is ' + str(self.delta_time_point))
+        print('- delay_time_point is ' + str(self.delay_time_point))
         print("")
 
     #
     #
     #
     def update_from_args(self, args):
-        if args.embryoPath is None:
+        if args.embryo_path is None:
             return
-        if not os.path.isdir(args.embryoPath):
-            print ("Experiment.updateFromArgs: '" + args.embryoPath + "' is not a valid directory. Exiting.")
+        if not os.path.isdir(args.embryo_path):
+            print ("Experiment.updateFromArgs: '" + args.embryo_path + "' is not a valid directory. Exiting.")
             sys.exit(1)
-        self.embryoPath = args.embryoPath
+        self.embryo_path = args.embryo_path
         return
 
     #
@@ -151,9 +153,9 @@ class Experiment(object):
                     print ("Experiment.updateFromFile: '" + parameters.PATH_EMBRYO
                            + "' is not a valid directory. Exiting.")
                     sys.exit(1)
-                self.embryoPath = parameters.PATH_EMBRYO
+                self.embryo_path = parameters.PATH_EMBRYO
             else:
-                self.embryoPath = os.getcwd()
+                self.embryo_path = os.getcwd()
 
         if hasattr(parameters, 'EN'):
             if parameters.EN is not None:
@@ -173,7 +175,7 @@ class Experiment(object):
 
         if hasattr(parameters, 'begin'):
             if parameters.begin is not None:
-                self.firstTimePoint = parameters.begin
+                self.first_time_point = parameters.begin
             else:
                 print proc + ": it is mandatory to specify the first time point"
                 print "\t Exiting."
@@ -181,7 +183,7 @@ class Experiment(object):
 
         if hasattr(parameters, 'end'):
             if parameters.end is not None:
-                self.lastTimePoint = parameters.end
+                self.last_time_point = parameters.end
             else:
                 print proc + ": it is mandatory to specify the last time point"
                 print "\t Exiting."
@@ -189,13 +191,125 @@ class Experiment(object):
 
         if hasattr(parameters, 'delta'):
             if parameters.delta is not None:
-                self.deltaTimePoint = parameters.delta
+                self.delta_time_point = parameters.delta
 
         if hasattr(parameters, 'raw_delay'):
             if parameters.raw_delay is not None:
-                self.delayTimePoint = parameters.raw_delay
+                self.delay_time_point = parameters.raw_delay
 
         return
+
+
+########################################################################################
+#
+#
+#
+########################################################################################
+
+
+def _fullname(prefix, desc):
+    if prefix is not None:
+        return prefix + desc
+    else:
+        return desc
+
+
+def _fulldesc(prefix, desc):
+    return '- ' + _fullname(prefix, desc) + ' = '
+
+
+class RegistrationParameters(object):
+
+    def __init__(self):
+        #
+        # prefix is for naming the parameters
+        #
+        self.prefix = None
+        #
+        #
+        #
+        self.compute_registration = True
+
+        #
+        # parameters
+        #
+        self.transformation_type = 'affine'
+        self.transformation_estimation_type = 'wlts'
+        self.lts_fraction = 0.55
+        self.pyramid_highest_level = 6
+        self.pyramid_lowest_level = 3
+        self.normalization = True
+
+    def write_parameters(self, log_file_name):
+        with open(log_file_name, 'a') as logfile:
+            logfile.write("\n")
+            logfile.write('RegistrationParameters\n')
+            logfile.write(_fulldesc(None, 'prefix')+str(self.prefix)+'\n')
+            logfile.write(_fulldesc(self.prefix, 'compute_registration') + str(self.compute_registration) + '\n')
+
+            logfile.write(_fulldesc(self.prefix, 'transformation_type')+str(self.transformation_type)+'\n')
+            logfile.write(_fulldesc(self.prefix, 'transformation_estimation_type')
+                          + str(self.transformation_estimation_type)+'\n')
+            logfile.write(_fulldesc(self.prefix, 'lts_fraction')+str(self.lts_fraction)+'\n')
+            logfile.write(_fulldesc(self.prefix, 'pyramid_highest_level')+str(self.pyramid_highest_level)+'\n')
+            logfile.write(_fulldesc(self.prefix, 'pyramid_lowest_level')+str(self.pyramid_lowest_level)+'\n')
+            logfile.write(_fulldesc(self.prefix, 'normalization')+str(self.normalization)+'\n')
+
+            logfile.write("\n")
+        return
+
+    def print_parameters(self):
+        print("")
+        print('RegistrationParameters')
+
+        print(_fulldesc(None, 'prefix') + str(self.prefix))
+        print(_fulldesc(self.prefix, 'compute_registration') + str(self.compute_registration))
+
+        print(_fulldesc(self.prefix, 'transformation_type') + str(self.transformation_type))
+        print(_fulldesc(self.prefix, 'transformation_estimation_type') + str(self.transformation_estimation_type))
+        print(_fulldesc(self.prefix, 'lts_fraction') + str(self.lts_fraction))
+        print(_fulldesc(self.prefix, 'pyramid_highest_level') + str(self.pyramid_highest_level))
+        print(_fulldesc(self.prefix, 'pyramid_lowest_level') + str(self.pyramid_lowest_level))
+        print(_fulldesc(self.prefix, 'normalization') + str(self.normalization))
+
+        print("")
+
+    def update_from_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+
+        if hasattr(parameters, _fullname(self.prefix, 'compute_registration')):
+            if getattr(parameters, _fullname(self.prefix, 'compute_registration'), 'None') is not None:
+                self.compute_registration = getattr(parameters, _fullname(self.prefix, 'compute_registration'))
+
+        if hasattr(parameters, _fullname(self.prefix, 'transformation_type')):
+            if getattr(parameters, _fullname(self.prefix, 'transformation_type'), 'None') is not None:
+                self.transformation_type = getattr(parameters, _fullname(self.prefix, 'transformation_type'))
+
+        if hasattr(parameters, _fullname(self.prefix, 'transformation_estimation_type')):
+            if getattr(parameters, _fullname(self.prefix, 'transformation_estimation_type'), 'None') is not None:
+                self.transformation_estimation_type = getattr(parameters,
+                                                     _fullname(self.prefix, 'transformation_estimation_type'))
+
+        if hasattr(parameters, _fullname(self.prefix, 'lts_fraction')):
+            if getattr(parameters, _fullname(self.prefix, 'lts_fraction'), 'None') is not None:
+                self.lts_fraction = getattr(parameters, _fullname(self.prefix, 'lts_fraction'))
+
+        if hasattr(parameters, _fullname(self.prefix, 'pyramid_highest_level')):
+            if getattr(parameters, _fullname(self.prefix, 'pyramid_highest_level'), 'None') is not None:
+                self.pyramid_highest_level = getattr(parameters, _fullname(self.prefix, 'pyramid_highest_level'))
+        if hasattr(parameters, _fullname(self.prefix, 'pyramid_lowest_level')):
+            if getattr(parameters, _fullname(self.prefix, 'pyramid_lowest_level'), 'None') is not None:
+                self.pyramid_lowest_level = getattr(parameters, _fullname(self.prefix, 'pyramid_lowest_level'))
+
+        if hasattr(parameters, _fullname(self.prefix, 'normalization')):
+            if getattr(parameters, _fullname(self.prefix, 'normalization'), 'None') is not None:
+                self.normalization = getattr(parameters, _fullname(self.prefix, 'normalization'))
 
 
 ########################################################################################
@@ -225,6 +339,57 @@ def get_parameter_file(parameter_file):
 #
 ########################################################################################
 
+def _write_git_information(path, logfile, desc):
+    """
+
+    :param path:
+    :param logfile:
+    :param desc:
+    :return:
+    """
+    gitdescribe = 'git describe'
+    gitlog = 'git log -n 1 --format="Commit (tag, date, ref): %H -- %cD -- %D"'
+
+    logfile.write(str(desc) + " path: ")
+
+    pipe = subprocess.Popen("cd " + path + "; " + "pwd" + "; cd " + str(os.getcwd()),
+                            shell=True, stdout=subprocess.PIPE).stdout
+    o = pipe.next()
+    v = o.split('\n')
+    logfile.write(str(v[0] + "\n"))
+
+    logfile.write(str(desc) + " version: ")
+
+    # if not os.path.exists(path + os.path.sep + '.git'):
+    #     logfile.write("not found\n")
+    #     return
+
+    pipe = subprocess.Popen("cd " + path + "; " + gitdescribe + "; cd " + str(os.getcwd()),
+                            shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (stdoutData, stderrData) = pipe.communicate()
+
+    if len(stderrData) > 6:
+        if stderrData[0:6] == "fatal:":
+            logfile.write("no a git repository\n")
+        else:
+            logfile.write("no a git repository?\n")
+    elif len(stderrData) > 0:
+        logfile.write("no a git repository?!\n")
+    else:
+        v = stdoutData.split('\n')
+        logfile.write(str(v[0] + "\n"))
+
+        pipe = subprocess.Popen("cd " + path + "; " + gitlog + "; cd " + str(os.getcwd()),
+                                shell=True, stdout=subprocess.PIPE).stdout
+        o = pipe.next()
+        v = o.split('\n')
+        logfile.write("#\t" + str(v[0] + "\n"))
+
+    return
+
+
+
+
 
 def write_history_information(logfile_name,
                               experiment=None,
@@ -247,7 +412,7 @@ def write_history_information(logfile_name,
         if start_time is not None:
             logfile.write("# "+time.strftime("%a, %d %b %Y %H:%M:%S", start_time)+"\n")
         if experiment is not None:
-            logfile.write("# Embryo path: '"+str(experiment.embryoPath)+"'\n")
+            logfile.write("# Embryo path: '"+str(experiment.embryo_path)+"'\n")
             logfile.write("# Embryo name: '"+str(experiment.embryoName)+"'\n")
         if parameter_file is not None:
             logfile.write("# Parameter file: '" + str(parameter_file) + "'\n")
@@ -256,22 +421,9 @@ def write_history_information(logfile_name,
         logfile.write("# User: '" + str(getpass.getuser()) + "'\n")
         logfile.write("# Python executable: " + sys.executable + "\n")
         if path_to_exe is not None:
-            logfile.write("# ASTEC version: ")
-            if not os.path.exists(path_to_exe+os.path.sep+'.git'):
-                logfile.write("not found\n")
-            else:
-                pipe = subprocess.Popen("cd "+path_to_exe+"; git describe; cd "+str(os.getcwd()),
-                                        shell=True, stdout=subprocess.PIPE).stdout
-                o = pipe.next()
-                v = o.split('\n')
-                logfile.write(str(v[0]+"\n"))
+            _write_git_information(path_to_exe, logfile, "# ASTEC")
         if path_to_vt is not None:
-            logfile.write("# VT version: ")
-            pipe = subprocess.Popen("cd "+path_to_vt+"; git describe; cd "+str(os.getcwd()),
-                                    shell=True, stdout=subprocess.PIPE).stdout
-            o = pipe.next()
-            v = o.split('\n')
-            logfile.write(str(v[0]+"\n"))
+            _write_git_information(path_to_vt, logfile, "# VT")
         logfile.write("# \n")
     return
 
@@ -310,14 +462,14 @@ def copy_date_stamped_file(thefile, directory, timestamp):
 def read_lut(filename):
     """
     Return a dictionnary of integer key-to-key correspondances
-    :param file:
+    :param filename:
     :return:
     """
-    proc = 'read_lut'
+    # proc = 'read_lut'
     lut = {}
 
     if not os.path.isfile(filename):
-        monitoring.to_log_and_console(proc + ": file '" + str(filename) + "' does not exists", 0)
+        # monitoring.to_log_and_console(proc + ": file '" + str(filename) + "' does not exists", 0)
         return lut
 
     f = open(filename)
@@ -367,7 +519,7 @@ def get_extension(filename):
 
 def add_suffix(filename, suffix, new_dirname=None, new_extension=None):
     """
-    Add a suffix to a filenename (ie before the extension)
+    Add a suffix to a filename (ie before the extension)
     :param filename:
     :param suffix: suffix to be added
     :param new_dirname: change the directory name of the file
@@ -375,19 +527,27 @@ def add_suffix(filename, suffix, new_dirname=None, new_extension=None):
     :return: the transformed file name
     """
     proc = 'add_suffix'
+    if filename is None:
+        print(proc + ": was called with '" + str(filename) + "'")
+        return
     b = os.path.basename(filename)
     d = os.path.dirname(filename)
     e = get_extension(b)
     if e is None:
-        monitoring.to_log_and_console(proc + ": file extension of '"+str(filename)+"' was not recognized", 0)
-        monitoring.to_log_and_console("\t Exiting", 0)
+        print(proc + ": file extension of '"+str(filename)+"' was not recognized")
+        print("\t Exiting")
+#        monitoring.to_log_and_console(proc + ": file extension of '"+str(filename)+"' was not recognized", 0)
+#        monitoring.to_log_and_console("\t Exiting", 0)
         sys.exit(1)
     new_basename = b[0:len(b)-len(e)]
     new_basename += suffix
     if new_extension is None:
         new_basename += e
     else:
-        new_basename += '.' + new_extension
+        if new_extension[0] == '.':
+            new_basename += new_extension
+        else:
+            new_basename += '.' + new_extension
     if new_dirname is None:
         res_name = os.path.join(d, new_basename)
     else:
@@ -401,19 +561,21 @@ def add_suffix(filename, suffix, new_dirname=None, new_extension=None):
 #
 #
 
-def find_file(data_path, file_prefix, monitoring=None):
+def find_file(data_path, file_prefix, monitoring=None, verbose=True):
     """
-    find a file in a directory with a given prefix. The suffix is unknowm
+    find a file in a directory with a given prefix. The suffix is unknown
 
     :param data_path:
     :param file_prefix:
     :param monitoring:
+    :param verbose:
     :return:
     """
     proc = "find_file"
 
     if not os.path.isdir(data_path):
         if monitoring is not None:
+            monitoring.to_log_and_console("Error:")
             monitoring.to_log_and_console(proc + ": '" + str(data_path) + "' is not a valid directory ?!")
             monitoring.to_log_and_console("\t Exiting.")
         else:
@@ -421,30 +583,45 @@ def find_file(data_path, file_prefix, monitoring=None):
             print("\t Exiting.")
         sys.exit(1)
 
+    #
+    # if there is any extension, remove if from the file_prefix length
+    # recall that the '.' is part of the extension
+    #
+    extension = get_extension(file_prefix)
+    if extension is not None:
+        length_file_prefix = len(file_prefix) - len(extension)
+    else:
+        length_file_prefix = len(file_prefix)
+
+    #
+    # get all file names beginning by the given prefix followed by '.'
+    #
     file_names = []
     for f in os.listdir(data_path):
-        if len(f) <= len(file_prefix):
+        if len(f) <= length_file_prefix:
             pass
-        if f[0:len(file_prefix)] == file_prefix:
+        if f[0:length_file_prefix] == file_prefix[0:length_file_prefix] and f[length_file_prefix] == '.':
             file_names.append(f)
 
     if len(file_names) == 0:
         if monitoring is not None:
             monitoring.to_log_and_console(proc + ": no image with name '" + str(file_prefix)
                                           + "' was found in '" + str(data_path) + "'", 4)
-        else:
+        elif verbose is True:
             print(proc + ": no image with name '" + str(file_prefix) + "' was found in '" + str(data_path) + "'")
         return None
 
     if len(file_names) > 1:
         if monitoring is not None:
-            monitoring.to_log_and_console(proc + ": several images with name '"
-                                          + str(file_prefix) + "' were found in '" + str(data_path) + "'")
-            monitoring.to_log_and_console("\t "+str(file_names))
+            monitoring.to_log_and_console("\t " + proc + ": warning")
+            monitoring.to_log_and_console("\t several images with name '" + str(file_prefix) + "' were found in")
+            monitoring.to_log_and_console("\t    '" + str(data_path) + "'")
+            monitoring.to_log_and_console("\t    -> "+str(file_names))
+            monitoring.to_log_and_console("\t returned file is '" + str(file_names[0]) + "'")
         else:
             print(proc + ": several images with name '"
                   + str(file_prefix) + "' were found in '" + str(data_path) + "'")
             print("\t "+str(file_names))
-        return None
+        # return None
 
     return file_names[0]

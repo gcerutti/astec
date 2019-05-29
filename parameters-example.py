@@ -139,7 +139,8 @@
 #
 #
 
-# EXP_REG = ''
+
+# EXP_INTRAREG = ''
 
 
 # ##### explanation #####
@@ -275,7 +276,7 @@ raw_delay = 0
 # 4. Optionally, a mirroring of the 'right' image
 #    depends of the 'raw_mirrors' value (see supra)
 # 5. Linear registration of the 3 last images on the first one (considered as the reference)
-#    The reference image is resmapled again, to get an isotropic voxel
+#    The reference image is resampled again, to get an isotropic voxel
 #    (same voxel size in the 3 directions: X, Y, Z)
 # 6. Linear combination of images, weighted by an ad-hoc function
 # 7. Crop of the fused image
@@ -332,9 +333,21 @@ target_resolution = .3
 # fusion_registration_pyramid_lowest_level: lowest level of the pyramid image for registration
 #
 
+# fusion_preregistration_compute_registration = False
+# fusion_preregistration_transformation_type = 'translation'
+# fusion_preregistration_transformation_estimation_type = 'wlts'
+# fusion_preregistration_lts_fraction = 0.55
+# fusion_preregistration_pyramid_highest_level = 6
+# fusion_preregistration_pyramid_lowest_level = 3
+# fusion_preregistration_normalization = True
+
+# fusion_registration_compute_registration = True
+# fusion_registration_transformation_type = 'affine'
+# fusion_registration_transformation_estimation_type = 'wlts'
+# fusion_registration_lts_fraction = 0.55
 # fusion_registration_pyramid_highest_level = 6
 # fusion_registration_pyramid_lowest_level = 3
-
+# fusion_registration_normalization = True
 
 #
 # step 7. parameters
@@ -361,6 +374,92 @@ target_resolution = .3
 # fusion_margin_y_0 = 40
 # fusion_margin_y_1 = 40
 
+
+######################################################################
+#
+# intra-registration parameters
+#
+######################################################################
+
+# ##### explanation #####
+#
+# Intra-registration results are stored into 'PATH_EMBRYO'/INTRAREG/INTRAREG_'EXP_INTRAREG'
+#
+
+
+#
+# parameters for the co-registration of successive fused images
+#
+
+# intra_registration_compute_registration = True
+# intra_registration_transformation_type = 'rigid'
+# intra_registration_transformation_estimation_type = 'wlts'
+# intra_registration_lts_fraction = 0.55
+# intra_registration_pyramid_highest_level = 6
+# intra_registration_pyramid_lowest_level = 3
+# intra_registration_normalization = True
+
+#
+# parameters for template building
+# the 'intra_registration_resolution' parameter gives the resulting (isotropic) voxel size
+# (as the 'target_resolution' gives the voxel size of the fused images). However, for
+# visualization purposes, it may be indicated to have a larger voxel size (hence the 0.6
+# instead the 0.3)
+#
+# The template is built so that the useful information of all resampled images fits into it.
+# Useful information can be issued from either the fused sequence, the segmentation sequence or
+# the post-segmentation sequence. It can be indicated by the 'intra_registration_template_type'
+# parameter:
+#  - intra_registration_template_type = 'FUSION' | 'SEGMENTATION' | 'POST-SEGMENTATION'
+# By default, the useful information is the whole image, which may yield a huge template image.
+#
+# Giving a threshold with the 'intra_registration_template_type', only points above the threshold
+# are considered to be included in the template after resampling, this allows to reduce the template.
+# According the background value is either 0 or 1 in both the segmentation and the post-segmentation
+# sequences, setting this threshold to 2 for these sequences allows to keep the entire embryo in the
+# resampled/reconstructed sequence.
+#
+# In addition, a margin can be given for a more comfortable visualization. By default, it is 0 when only
+# fusion images are used, and 10 if either segmentation or post-segmentation images are also used
+#
+
+# intra_registration_reference_index = None
+# intra_registration_template_type = "FUSION"
+# intra_registration_template_threshold = None
+# intra_registration_resolution = 0.6
+# intra_registration_margin = None
+
+#
+# outputs
+# 1. resampled images (in the 'template' geometry)
+#    If required, it assumes that segmentation and post-segmentation images exists
+#    and are respectively located in 'PATH_EMBRYO'/SEG/SEG_'EXP_SEG' and
+#    'PATH_EMBRYO'/POST/POST_'EXP_POST'
+# 2. movies (ie 2D+t images)
+#    each 'intra_registration_[xy|xz|yz]_movie_fusion_images
+#
+
+# intra_registration_sigma_segmentation_images = 1.0
+
+# intra_registration_resample_fusion_images = True
+# intra_registration_resample_segmentation_images = False
+# intra_registration_resample_post_segmentation_images = False
+
+# intra_registration_movie_fusion_images = True
+# intra_registration_movie_segmentation_images = False
+# intra_registration_movie_post_segmentation_images = False
+
+# intra_registration_xy_movie_fusion_images = [];
+# intra_registration_xz_movie_fusion_images = [];
+# intra_registration_yz_movie_fusion_images = [];
+
+# intra_registration_xy_movie_segmentation_images = [];
+# intra_registration_xz_movie_segmentation_images = [];
+# intra_registration_yz_movie_segmentation_images = [];
+
+# intra_registration_xy_movie_post_segmentation_images = [];
+# intra_registration_xz_movie_post_segmentation_images = [];
+# intra_registration_yz_movie_post_segmentation_images = [];
 
 ######################################################################
 #
@@ -394,9 +493,7 @@ target_resolution = .3
 # - None
 # - GACE: 'Global Automated Cell Extractor'
 #
-# This choice can be tuned either with
-# - mars_method
-# or with the two parameters
+# This choice can be tuned with the two parameters
 # - mars_intensity_transformation
 # - mars_intensity_enhancement
 #
@@ -530,6 +627,57 @@ mancor_mapping_file=''
 30 1 
 89 1 
 '''
+
+
+######################################################################
+#
+# astec parameters
+#
+######################################################################
+
+
+# ##### explanation #####
+#
+# ASTEC method (nothing but a cell-based seeded watershed) may be applied on
+# a transformed input image or on the original image (eg the result of
+# the fusion step). This transformed imaged is made of a combination
+# (by the maximum operator) of the transformed intensity image and a
+# membrane-enhanced image.
+# The transformed intensity image can be
+# - None
+# - Identity (the input image)
+# - Normalization_to_u8 (a normalized version of the input image on 1 byte)
+# - Cell_Normalization_to_u8 (a cell-based normalized version of the input image on 1 byte)
+# The membrane-enhanced image can be
+# - None
+# - GACE: 'Global Automated Cell Extractor'
+# - GLACE:
+#
+# This choice can be tuned with the two parameters
+# - astec_intensity_transformation
+# - astec_intensity_enhancement
+#
+# astec_intensity_transformation can be chosen in [None, 'Identity', 'Normalization_to_u8', 'Cell_Normalization_to_u8']
+# astec_intensity_enhancement can be chosen in [None, 'GACE', 'GLACE']
+#
+# The 'Cell_Normalization_to_u8' intensity transformation method can be tuned with
+# - astec_cell_normalization_min_method
+# - astec_cell_normalization_min_method
+# both variable are to be chosen in ['global', 'cell', 'cellborder', 'cellinterior', 'voxel']
+# Choosing both of them as 'global' comes to choose 'Normalization_to_u8'
+
+# astec_intensity_transformation = 'Identity'
+# astec_intensity_enhancement = None
+# astec_cell_normalization_min_method = 'cellinterior'
+# astec_cell_normalization_max_method = 'cellborder'
+
+# ##### explanation #####
+#
+# Previous tuning enables to perform the watershed segmentation on an image that is not
+# the original image. If one does not want to keep such images, please turn the next variable to False
+
+# astec_keep_reconstruction = True
+
 
 
 

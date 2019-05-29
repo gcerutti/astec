@@ -127,11 +127,37 @@ def path_to_vt():
 ############################################################
 
 
+def _launch_inline_cmd(command_line, monitoring=None):
+    """
+
+    :param command_line:
+    :param monitoring:
+    :return:
+    """
+
+    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
+        monitoring.to_log("* Launch: " + command_line)
+        with open(monitoring.logfile, 'a') as logfile:
+            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    else:
+        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    return
+
+
+############################################################
+#
+# function for the fusion steps
+#
+############################################################
+
+
 def apply_transformation(the_image, res_image, the_transformation=None,
                          template_image=None,
                          voxel_size=None,
                          dimensions=None,
-                         nearest=False,
+                         interpolation_mode='linear',
+                         cell_based_sigma=0.0,
                          monitoring=None,
                          return_image=False):
     """
@@ -146,6 +172,8 @@ def apply_transformation(the_image, res_image, the_transformation=None,
                 resolution by resampling
     :param nearest: do not interpolate (take the nearest value)
              to be used when applying on label images (default = False)
+    :param cell_based_sigma: smoothing parameter when resampling with nearest=True.
+           cell_based_sigma=0.0 means no smoothing.
     :param monitoring: control structure (for verboseness and log informations)
     :param return_image: if True, return the result image as an spatial image
                   (default = False; nothing is returned)
@@ -165,8 +193,22 @@ def apply_transformation(the_image, res_image, the_transformation=None,
     if template_image is not None:
         command_line += " -template " + template_image
 
-    if nearest is True:
-        command_line += " -nearest"
+    if type(interpolation_mode) == str:
+        if interpolation_mode.lower() == 'linear':
+            command_line += " -linear"
+        elif interpolation_mode.lower() == 'nearest':
+            if (type(cell_based_sigma) == int and cell_based_sigma > 0) \
+                    or (type(cell_based_sigma) == float and cell_based_sigma > 0.0):
+                command_line += " -cellbased"
+                command_line += " -cell-based-sigma " + str(cell_based_sigma)
+            else:
+                command_line += " -nearest"
+        else:
+            # default
+            pass
+    else:
+        # default
+        pass
 
     if voxel_size is not None:
         if type(voxel_size) == int or type(voxel_size) == float:
@@ -196,12 +238,7 @@ def apply_transformation(the_image, res_image, the_transformation=None,
             _write_error_msg("\t Exiting", monitoring)
             sys.exit(1)
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     if return_image is True:
         out = imread(res_image)
@@ -245,12 +282,7 @@ def slitline_correction(the_image, res_image,
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -272,12 +304,7 @@ def mip_projection_for_crop(the_image, res_image, other_options=None, monitoring
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -288,6 +315,7 @@ def linear_registration(path_ref, path_flo, path_output,
                         transformation_type='affine',
                         transformation_estimator='wlts',
                         lts_fraction=0.55,
+                        normalization=True,
                         other_options=None,
                         monitoring=None):
     """
@@ -296,12 +324,16 @@ def linear_registration(path_ref, path_flo, path_output,
     :param path_flo: path to the floating image
     :param path_output: path to the floating image after registration and resampling
     :param path_output_trsf: path to the computed transformation
-    :param path_init_trsf: path to the initial registration (default=None)
+
+    :param py_ll: pyramid lowes
+        :param path_init_trsf: path to the initial registration (default=None)
     :param py_hl: pyramid highest level (default = 6)
-    :param py_ll: pyramid lowest level (default = 3)
+
+    t level (default = 3)
     :param transformation_type: type of transformation to be computed (default is 'affine')
     :param transformation_estimator: transformation estimator (default is 'wlts')
     :param lts_fraction: least trimmed squares fraction (default = 0.55)
+    :param normalization:
     :param other_options: other options to be passed to 'blockmatching'
            see blockmatching options for details
     :param monitoring: control structure (for verboseness and log informations)
@@ -310,27 +342,184 @@ def linear_registration(path_ref, path_flo, path_output,
 
     path_to_exec = _find_exec('blockmatching')
 
-    command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo + " -res " + path_output
+    command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo
+    if path_output is not None:
+        command_line += " -res " + path_output
     if path_init_trsf is not None:
         command_line += " -init-res-trsf " + path_init_trsf + " -composition-with-initial"
     command_line += " -res-trsf " + path_output_trsf
 
     command_line += " -pyramid-highest-level " + str(py_hl) + " -pyramid-lowest-level " + str(py_ll)
-
     command_line += " -trsf-type " + transformation_type
-
     command_line += " -estimator " + transformation_estimator
     command_line += " -lts-fraction " + str(lts_fraction)
+    if normalization is False:
+        # monitoring.to_log_and_console("       non-normalized registration", 2)
+        command_line += " -no-normalisation"
 
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def linear_combination(the_weights, the_images, res_image, other_options=None, monitoring=None):
+    """
+
+    :param the_weights:
+    :param the_images:
+    :param res_image:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('mc-linearCombination')
+
+    command_line = path_to_exec + " -weights"
+    for i in range(len(the_weights)):
+        command_line += " " + str(the_weights[i])
+
+    command_line += " -images"
+    for i in range(len(the_images)):
+        command_line += " " + str(the_images[i])
+
+    command_line += " -res " + str(res_image)
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+############################################################
+#
+# functions for intra-registration
+#
+############################################################
+
+
+def multiple_trsfs(format_input, format_output, first, last, reference, trsf_type='rigid', other_options=None,
+                   monitoring=None):
+    """
+
+    :param format_input:
+    :param format_output:
+    :param first:
+    :param last:
+    :param reference:
+    :param trsf_type:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('multipleTrsfs')
+
+    command_line = path_to_exec + " " + format_input + " -res " + format_output
+    command_line += " -method propagation "
+    command_line += " -first " + str(first) + " -last " + str(last)
+    command_line += " -reference " + str(reference)
+    command_line += " -trsf-type " + trsf_type
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def change_multiple_trsfs(format_input, format_output, first, last, reference, result_template, trsf_type='rigid',
+                          resolution=None, threshold=None, margin=None, format_template=None, other_options=None,
+                          monitoring=None):
+    """
+
+    :param format_input:
+    :param format_output:
+    :param first:
+    :param last:
+    :param reference:
+    :param result_template:
+    :param trsf_type:
+    :param resolution:
+    :param threshold:
+    :param margin:
+    :param format_template:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('changeMultipleTrsfs')
+
+    command_line = path_to_exec + " -format " + format_input + " -res-format " + format_output
+    command_line += " -first " + str(first) + " -last " + str(last)
+    command_line += " -reference " + str(reference)
+    command_line += " -result-template " + str(result_template)
+
+    command_line += " -trsf-type " + trsf_type
+
+    if resolution is not None:
+        if (type(resolution) is tuple or type(resolution) is list) and len(resolution) == 3:
+            command_line += " -result-voxel-size "
+            command_line += str(resolution[0]) + " " + str(resolution[1]) + " " + str(resolution[2])
+        elif type(resolution) is int or type(resolution) is float:
+            command_line += " -result-isotropic " + str(resolution)
+
+    if threshold is not None:
+        command_line += " -threshold " + str(threshold)
+
+    if margin is not None:
+        command_line += " -margin " + str(margin)
+
+    if format_template is not None:
+        command_line += " -template-format " + str(format_template)
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def crop_sequence(format_input, path_output, firstindex, lastindex, orientation, sliceindex, monitoring=None):
+    """
+
+    :param format_input:
+    :param path_output:
+    :param firstindex:
+    :param lastindex:
+    :param orientation:
+    :param sliceindex:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('cropImage')
+    command_line = path_to_exec + " -format " + format_input + " " + path_output
+    command_line += " -first " + str(firstindex) + " -last " + str(lastindex)
+    if orientation.lower() == 'xy':
+        command_line += " -xy " + str(sliceindex)
+    elif orientation.lower() == 'xz':
+        command_line += " -xz " + str(sliceindex)
+    elif orientation.lower() == 'yz':
+        command_line += " -yz " + str(sliceindex)
     else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        return
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -342,7 +531,7 @@ def linear_registration(path_ref, path_flo, path_output,
 ############################################################
 
 
-def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False, type='deriche',
+def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False, filter_type='deriche',
                      other_options=None, monitoring=None):
     """
 
@@ -351,8 +540,8 @@ def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False
     :param filter_value: sigma of the gaussian filter for each axis (default is 1.0)
     :param real_scale: scale values are in 'real' units (will be divided by the voxel size to get 'voxel' values)
            if this option is at True (default=False)
-    :param type: gaussian type, can be ['deriche'|'fidrich'|'young-1995'|'young-2002'|'gabor-young-2002'|'convolution']
-           or None (default is 'deriche')
+    :param filter_type: gaussian type, can be ['deriche'|'fidrich'|'young-1995'|'young-2002'|...
+           ...|'gabor-young-2002'|'convolution'] or None (default is 'deriche')
     :param other_options:
     :param monitoring:
     :return:
@@ -375,7 +564,7 @@ def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False
     # filter type
     #
     if type is not None:
-        command_line += " -gaussian-type " + str(type)
+        command_line += " -gaussian-type " + str(filter_type)
     command_line += " -x 0 -y 0 -z 0"
 
     #
@@ -389,22 +578,17 @@ def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
 
-def regional_minima(path_input, path_output, h_min=1, other_options=None, monitoring=None):
+def regional_maxima(path_input, path_output, h=1, other_options=None, monitoring=None):
     """
 
     :param path_input: path to the input image
     :param path_output: path to the output image
-    :param h_min: h-minima parameter value
+    :param h: h-maxima parameter value
     :param other_options:
     :param monitoring:
     :return:
@@ -416,7 +600,7 @@ def regional_minima(path_input, path_output, h_min=1, other_options=None, monito
     #
     #
     command_line = path_to_exec + " " + path_input + " -diff " + path_output
-    command_line += " -min -h " + str(h_min)
+    command_line += " -max -h " + str(h)
 
     #
     #
@@ -424,12 +608,37 @@ def regional_minima(path_input, path_output, h_min=1, other_options=None, monito
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def regional_minima(path_input, path_output, h=1, other_options=None, monitoring=None):
+    """
+
+    :param path_input: path to the input image
+    :param path_output: path to the output image
+    :param h: h-minima parameter value
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('regionalext')
+
+    #
+    #
+    #
+    command_line = path_to_exec + " " + path_input + " -diff " + path_output
+    command_line += " -min -h " + str(h)
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -473,12 +682,7 @@ def connected_components(path_input, path_output, low_threshold=1, high_threshol
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -507,18 +711,13 @@ def watershed(path_seeds, path_gradient, path_output, other_options=None, monito
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
 
-def inline_to_u8(path_input, path_output, min_percentile=0.01, max_percentile=0.99,
-                 other_options=None, monitoring=None):
+def global_normalization_to_u8(path_input, path_output, min_percentile=0.01, max_percentile=0.99,
+                               other_options=None, monitoring=None):
     """
 
     :param path_input:
@@ -544,12 +743,48 @@ def inline_to_u8(path_input, path_output, min_percentile=0.01, max_percentile=0.
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def cell_normalization_to_u8(path_input, path_segmentation, path_output, min_percentile=0.01, max_percentile=0.99,
+                             cell_normalization_min_method='cellinterior',
+                             cell_normalization_max_method='cellborder',
+                             other_options=None, monitoring=None):
+    """
+
+    :param path_input:
+    :param path_segmentation:
+    :param path_output:
+    :param min_percentile:
+    :param max_percentile:
+    :param cell_normalization_min_method:
+    :param cell_normalization_max_method:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('mc-adhocFuse')
+
+    #
+    #
+    #
+    command_line = path_to_exec + " -intensity-image " + path_input + " -segmentation-image " + path_segmentation
+    command_line += " -result-intensity-image " + path_output
+    command_line += " -min-method " + cell_normalization_min_method
+    command_line += " -max-method " + cell_normalization_max_method
+    command_line += " -min-percentile " + str(min_percentile) + " -max-percentile " + str(max_percentile)
+    command_line += " -sigma 5.0"
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -596,12 +831,7 @@ def membrane_extraction(path_input, prefix_output='tmp_membrane',
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -627,8 +857,6 @@ def seuillage(path_input, path_output, low_threshold=1, high_threshold=None, oth
     command_line += " -sb " + str(low_threshold)
     if high_threshold is not None:
         command_line += " -sh " + str(high_threshold)
-    if realScale is True:
-        command_line += " -real"
 
     #
     #
@@ -636,12 +864,7 @@ def seuillage(path_input, path_output, low_threshold=1, high_threshold=None, oth
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -691,17 +914,12 @@ def anisotropic_histogram(path_input_prefix, path_output, path_mask=None,
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
 
-def arithmetic(path_first_input, path_second_input, path_output, other_options=None, monitoring=None):
+def arithmetic_operation(path_first_input, path_second_input, path_output, other_options=None, monitoring=None):
     """
 
     :param path_first_input:
@@ -721,12 +939,7 @@ def arithmetic(path_first_input, path_second_input, path_output, other_options=N
     if other_options is not None:
         command_line += " " + other_options
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -778,17 +991,13 @@ def tensor_voting_membrane(path_input, prefix_input, path_output, path_mask=None
     command_line += " -scale " + str(scale_tensor_voting) + " -hessian"
     command_line += " -sample " + str(sample)
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
-    else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     #
     # eigenvalues substraction
     #
-    arithmetic(prefix_input + ".imvp3.inr", prefix_input + ".imvp1.inr", prefix_input + ".tv.inr", other_options='-sub')
+    arithmetic_operation(prefix_input + ".imvp3.inr", prefix_input + ".imvp1.inr", prefix_input + ".tv.inr",
+                         other_options='-sub')
 
     #
     # smoothing
@@ -806,12 +1015,192 @@ def tensor_voting_membrane(path_input, prefix_input, path_output, path_mask=None
     path_to_exec = _find_exec('copy')
     command_line = path_to_exec + " -norma -o 1 " + input_image + " " + path_output
 
-    if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
-        monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
-            subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def bounding_boxes(image_labels, path_bboxes=None, monitoring=None):
+    """
+    Calcul des bounding-boxes de chaque label de l'image d'entree.
+    Si path_bboxes est renseigne, le resultat est sauvegarde dans ce fichier.
+    Output : dictionnaire D dont les cles sont les labels d'image et les
+    valeurs sont les listes contenant dans l'ordre les informations de
+    [volume, xmin, ymin, zmin, xmax, ymax, zmax] correspondant a ces labels
+    avec volume > 0 et label > 0.
+    :param image_labels:
+    :param path_bboxes:
+    :param monitoring:
+    :return:
+    """
+
+    if path_bboxes is None:
+        file_boxes = 'tmp_bounding_boxes.txt'
     else:
-        subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        file_boxes = path_bboxes
+
+    #
+    #
+    #
+
+    path_to_exec = _find_exec('boundingboxes')
+    command_line = path_to_exec + " " + image_labels + " " + file_boxes
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    #
+    #
+    #
+
+    f = open(file_boxes, 'r')
+    lines = f.readlines()
+    f.close()
+
+    boxes = {}
+
+    for line in lines:
+        if not line.lstrip().startswith('#'):
+            li = line.split()
+            if int(li[1]):
+                boxes[int(li[0])] = map(int, li[1:])
+
+    if path_bboxes is None:
+        os.remove(file_boxes)
+
+    return boxes
+
+
+def crop_image(path_input, path_output, bbox, monitoring=None):
+    """
+    crop an image on disk
+    :param path_input:
+    :param path_output:
+    :param bbox: [volume, xmin, ymin, zmin, xmax, ymax, zmax]
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('cropImage')
+    command_line = path_to_exec + " " + path_input + " " + path_output
+    command_line += " -origin " + str(bbox[1]) + " " + str(bbox[2]) + " " + str(bbox[3])
+    command_line += " -dim " + str(bbox[4]-bbox[1]+1) + " " + str(bbox[5]-bbox[2]+1) + " " + str(bbox[6]-bbox[3]+1)
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def mathematical_morphology(path_input, path_output, other_options=None, monitoring=None):
+    """
+
+    :param path_input:
+    :param path_output:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('morpho')
+    command_line = path_to_exec + " " + path_input + " " + path_output
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def logical_operation(path_first_input, path_second_input, path_output, other_options=None, monitoring=None):
+    """
+
+    :param path_first_input:
+    :param path_second_input:
+    :param path_output:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('Logic')
+
+    #
+    #
+    #
+    command_line = path_to_exec
+    if other_options is not None:
+        command_line += " " + other_options
+
+    command_line += " " + path_first_input
+
+    if path_second_input is not None:
+        command_line += " " + path_second_input
+
+    command_line += " " + path_output
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def patch_logical_operation(path_first_input, path_second_input, path_output, bbox,
+                            other_options=None, monitoring=None):
+    """
+
+    :param path_first_input:
+    :param path_second_input:
+    :param path_output:
+    :param bbox: [volume, xmin, ymin, zmin, xmax, ymax, zmax]
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('patchLogic')
+
+    #
+    #
+    #
+    command_line = path_to_exec
+    if other_options is not None:
+        command_line += " " + other_options
+
+    command_line += " " + path_first_input
+
+    if path_second_input is not None:
+        command_line += " " + path_second_input
+
+    command_line += " " + path_output
+
+    command_line += " -origin " + str(bbox[1]) + " " + str(bbox[2]) + " " + str(bbox[3])
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def create_image(image_out, image_template, other_options=None, monitoring=None):
+    """
+
+    :param image_out:
+    :param image_template:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('createImage')
+
+    #
+    #
+    #
+    command_line = path_to_exec + " " + image_out
+
+    if image_template is not None:
+        command_line += " -template " + image_template
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
 
@@ -822,6 +1211,118 @@ def tensor_voting_membrane(path_input, prefix_input, path_output, path_mask=None
 #
 ############################################################
 
+
+def non_linear_registration(path_ref, path_flo, path_affine, path_vector, affine_trsf, vector_trsf,
+                            py_hl=5, py_ll=3,
+                            transformation_estimator='wlts',
+                            lts_fraction=0.55,
+                            other_options=None,
+                            monitoring=None):
+    """
+    Compute the non-linear transformation that register the floating image onto the reference image
+    :param path_ref: path to the reference image
+    :param path_flo: path to the floating image
+    :param path_affine: path to the floating image after affine registration
+    :param path_vector: path to the floating image after affine o non-linear registration
+    :param affine_trsf: path to the affine transformation
+    :param vector_trsf: path to the non-linear registration (affine o non-linear)
+    :param py_hl:
+    :param py_ll:
+    :param transformation_estimator:
+    :param lts_fraction:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('blockmatching')
+
+    #
+    # affine registration
+    #
+
+    command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo + " -res " + path_affine
+    command_line += " -res-trsf " + affine_trsf
+
+    command_line += " -pyramid-highest-level " + str(py_hl) + " -pyramid-lowest-level " + str(py_ll)
+
+    command_line += " -trsf-type affine"
+
+    command_line += " -estimator " + transformation_estimator
+    command_line += " -lts-fraction " + str(lts_fraction)
+    command_line += " -py-gf"
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    #
+    # non-linear registration
+    #
+
+    command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo + " -res " + path_vector
+    command_line += " -init-trsf " + affine_trsf
+    command_line += " -res-trsf " + vector_trsf
+    command_line += " -composition-with-initial"
+
+    command_line += " -pyramid-highest-level " + str(py_hl) + " -pyramid-lowest-level " + str(py_ll)
+
+    command_line += " -trsf-type vectorfield"
+
+    command_line += " -estimator " + transformation_estimator
+    #
+    # was not set in previous version ...
+    #
+    # command_line += " -lts-fraction " + str(lts_fraction)
+    #
+    command_line += " -py-gf"
+    command_line += " -elastic-sigma 2.0 2.0 2.0"
+    command_line += " -fluid-sigma 2.0 2.0 2.0"
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def only_keep_seeds_in_cell(seed_image, cell_image, seed_result,
+                            other_options=None, monitoring=None):
+    """
+
+    :param seed_image:
+    :param cell_image:
+    :param seed_result:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('mc-maskSeeds')
+
+    #
+    #
+    #
+    command_line = path_to_exec
+
+    command_line += " -seed-image " + seed_image
+    command_line += " -cell-image " + cell_image
+    command_line += " -output-image " + seed_result
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+############################################################
+#
+#
+#
+############################################################
 
 def _recfilter(path_input, path_output='tmp.inr', filter_value=2, rad_min=1, lazy=False):
     ''' Perform a gaussian filtering on an intensity image
@@ -953,7 +1454,7 @@ def _reech(path_flo, path_output, voxelsize):
 
 
 
-def non_linear_registration(image_file_flo,image_file_ref, affine_image, affine_trsf,vectorfield_image,vectorfield_trsf, verbose=False):
+def _non_linear_registration(image_file_flo,image_file_ref, affine_image, affine_trsf,vectorfield_image,vectorfield_trsf, verbose=False):
     ''' Compute the non-linear transformation that register the floating image onto the reference image
     image_file_flo : path to the floating image
     image_file_ref : path to the reference image
@@ -1164,7 +1665,7 @@ def find_local_minima(path_out, path_ref, h_min, mask=None, sigma=0.6, verbose=F
     os.system(cmd);
     return im, path_mask_out
 
-def morpho(image_input,image_output,paramstre,verbose=False):
+def _morpho(image_input,image_output,paramstre,verbose=False):
   ''' Morphological operation
   '''
   cmd=path_morpho+' '+image_input+' '+' '+image_output+' '+ paramstre
@@ -2209,7 +2710,7 @@ def compose_trsf(path_trsf_1, path_trsf_2, path_output="tmp_compose.inr", lazy=T
     os.system(cmd)
     return out
 
-def multiple_trsfs(format_in, format_out, first_index, last_index, reference_index, trsf_type='rigid', method='propagation', nfloatingbefore=None, nfloatingafter=None, verbose=False):
+def _multiple_trsfs(format_in, format_out, first_index, last_index, reference_index, trsf_type='rigid', method='propagation', nfloatingbefore=None, nfloatingafter=None, verbose=False):
   '''
   Given the transformations between couple of images (typically successive
   images in a series), compute the transformations for every images with
@@ -2250,7 +2751,7 @@ def multiple_trsfs(format_in, format_out, first_index, last_index, reference_ind
     print cmd
   os.system(cmd)
 
-def change_multiple_trsfs(format_trsf_in, 
+def _change_multiple_trsfs(format_trsf_in,
                           format_trsf_out, 
                           format_image_in, template_image_out, 
                           first_index, last_index, 
@@ -2342,7 +2843,7 @@ def Arit(image_in, image_ext_or_out, image_out=None, Mode=None, Type='', lazy=Tr
     os.system(cmd)
     return out
 
-def Logic(image_in, image_ext_or_out, image_out=None, Mode=None, lazy=True, verbose=False):
+def _Logic(image_in, image_ext_or_out, image_out=None, Mode=None, lazy=True, verbose=False):
   """
   Usage : Logic [-inv | [-et|-and] | [-ou|-or] | [-xou|-xor] | -mask]
   accepted modes : {'inv', 'et', 'and', 'ou', 'or', 'xou', 'xor', 'mask'}
@@ -2369,7 +2870,7 @@ def Logic(image_in, image_ext_or_out, image_out=None, Mode=None, lazy=True, verb
     os.system(cmd)
     return out
 
-def createImage(image_out, image_template, options='', lazy=True, verbose=False):
+def _createImage(image_out, image_template, options='', lazy=True, verbose=False):
   """
   Creation d'image vide a partir de template
   accepted types :   '-o 1'    : unsigned char
@@ -2507,7 +3008,7 @@ def labelBorders(image_in, image_out, lazy=True, verbose=False):
     return out
 
 #####
-def boudingboxes(image_labels, file_out=None, verbose=False):
+def _boudingboxes(image_labels, file_out=None, verbose=False):
   """
   Calcul des bounding-boxes de chaque label de l'image d'entree.
   Si file_out est renseigne, le resultat est sauvegarde dans ce fichier.
@@ -2545,7 +3046,7 @@ def boudingboxes(image_labels, file_out=None, verbose=False):
 
   return D
 
-def cropImage(image_in, image_out, bbox, verbose=False):
+def _cropImage(image_in, image_out, bbox, verbose=False):
   """
   Croping an image.
   Inputs:
@@ -2561,7 +3062,7 @@ def cropImage(image_in, image_out, bbox, verbose=False):
     print cmd
   os.system(cmd)
 
-def patchLogic(image_patch, image_ext, image_out, origin, Mode=None, verbose=False):
+def _patchLogic(image_patch, image_ext, image_out, origin, Mode=None, verbose=False):
   '''
   Usage : Logic [[-et|-and] | [-ou|-or] | [-xou|-xor]]
   accepted modes : {'et', 'and', 'ou', 'or', 'xou', 'xor'}
