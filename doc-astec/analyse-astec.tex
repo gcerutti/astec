@@ -173,10 +173,15 @@ Un appel \`a l'algorithme de ligne de partage des eaux permet de calculer l'imag
 \begin{itemize}
 
 \item On classe les cellules (ou les couples (m\`ere, fille(s))) selon les variations de volume entre la m\`ere (calcul\'e dans $S^{\star}_t$ ou issu du lin\'eage), et le volume des filles (calcul\'e dans $\hat{S}_{t+1}$).
+On calcule 
+\begin{displaymath}
+volume_{ratio} = 1 - \frac{vol_{mother}}{\sum_{fille} vol_{fille}}
+\end{displaymath}
+
 \begin{itemize}
-\item \verb|bigger| contient les couples (m\`ere, fille(s)) avec une augmentation de volume de plus de 10\%
-\item \verb|lower| contient les couples (m\`ere, fille(s)) avec une diminution de volume de plus de 10\%
-\item \verb|to_look_at| contient les couples (m\`ere, fille(s)) avec une diminution de volume de plus de 50\% (c'est donc un sous-ensemble de \verb|lower|)
+\item \verb|bigger| contient les couples (m\`ere, fille(s)) avec une augmentation de volume de plus de 10\% ($vol_{mother} < \sum_{fille} vol_{fille}$)
+\item \verb|lower| contient les couples (m\`ere, fille(s)) avec une diminution de volume de plus de 10\% ($vol_{mother} > \sum_{fille} vol_{fille}$)
+\item \verb|to_look_at| contient les couples (m\`ere, fille(s)) avec une diminution de volume de plus de 50\%, c'est donc un sous-ensemble de \verb|lower| ($vol_{mother} >> \sum_{fille} vol_{fille}$)
 \item \verb|too_little| contient les couples (m\`ere, fille) o\`u la fille a un volume de moins de 1000 voxels
 \end{itemize}
 
