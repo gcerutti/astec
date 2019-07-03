@@ -1,9 +1,16 @@
 # specific files and folders     #
 ##################################
-ASTEC/CommunFunctions/cpp
-ASTEC/CommunFunctions/cpp_old
-ASTEC/CommunFunctions/libtiff-0.4.0.zip
-ASTEC/CommunFunctions/ImageHandling.zip
+src/ASTEC/CommunFunctions/libtiff-0.4.0.zip
+src/ASTEC/CommunFunctions/ImageHandling.zip
+
+# astec generated files #
+#########################
+*.pkl
+FUSE
+INTRAREG
+LOGS
+POST
+SEG
 
 # Compiled source #
 ###################
@@ -15,6 +22,15 @@ ASTEC/CommunFunctions/ImageHandling.zip
 *.so
 *.a
 *.pyc
+
+# Compiled LaTeX #
+###################
+*.aux
+*.blg
+*.bbl
+*.toc
+*.log
+*.synctex.gz
 
 # Packages #
 ############
@@ -46,12 +62,12 @@ Icon?
 ehthumbs.db
 Thumbs.db
 
-# Merge files
-######################
+# Merge files #
+###############
 *.orig
 
 # particular directories #
-######################
+##########################
 .idea/
 .svn/
 build/
@@ -62,8 +78,8 @@ external/*/doc
 Doc/
 lib/
 
-#CMakeLists temporray files
-###########################
+# CMakeLists temporary files #
+##############################
 CMakeLists.txt.user
 CMakeLists.txt.user.*
 
