@@ -92,66 +92,89 @@ class ExperimentGenericSubdirectory(object):
     # how to build sub-directories of /path/to/experiment
     # <main_directory>/<sub_directory_prefix><sub_directory_suffix>
     #
+    #
     def __init__(self):
-        self.main_directory = None
-        self.sub_directory_prefix = None
-        self.sub_directory_suffix = None
-        self.directory = None
+        self._main_directory = None
+        self._sub_directory_prefix = None
+        self._sub_directory_suffix = None
+        self._directory = None
 
     #
     #
     #
 
-    def write_parameters(self, directory_type, logfilename):
-        with open(logfilename, 'a') as logfile:
-            if type(directory_type) is not str:
-                logfile.write('ExperimentGenericSubdirectory.set_default: unknown arg type.\n')
-            if directory_type.lower() == 'fuse':
-                logfile.write("- subpath/to/fusion is '" + str(self.get_directory()) + "'\n")
-            elif directory_type.lower() == 'intrareg':
-                logfile.write("- subpath/to/intraregistration is '" + str(self.get_directory()) + "'\n")
-            elif directory_type.lower() == 'mars':
-                logfile.write("- subpath/to/mars is '" + str(self.get_directory()) + "'\n")
-            elif directory_type.lower() == 'post':
-                logfile.write("- subpath/to/postcorrection is '" + str(self.get_directory()) + "'\n")
-            elif directory_type.lower() == 'seg':
-                logfile.write("- subpath/to/segmentation is '" + str(self.get_directory()) + "'\n")
+    def _write_directory_list(self, logfile):
+        self._set_directory()
+        if self._directory is None:
+            logfile.write("             None\n")
+        else:
+            if len(self._directory) <= 0:
+                logfile.write("             Empty list\n")
             else:
-                logfile.write('ExperimentGenericSubdirectory.set_default: unknown arg.\n')
-        return
+                for i in range(len(self._directory)):
+                    logfile.write("             #" + str(i) + ": '" + str(self.get_directory(i)) + "'\n")
 
     def write_parameters_in_file(self, directory_type, logfile):
+        self._set_directory()
         if type(directory_type) is not str:
             logfile.write('ExperimentGenericSubdirectory.set_default: unknown arg type.\n')
         if directory_type.lower() == 'fuse':
-            logfile.write("- subpath/to/fusion is '" + str(self.get_directory()) + "'\n")
+            logfile.write("- subpath/to/fusion is \n")
+            self._write_directory_list(logfile)
         elif directory_type.lower() == 'intrareg':
-            logfile.write("- subpath/to/intraregistration is '" + str(self.get_directory()) + "'\n")
+            logfile.write("- subpath/to/intraregistration is \n")
+            self._write_directory_list(logfile)
         elif directory_type.lower() == 'mars':
-            logfile.write("- subpath/to/mars is '" + str(self.get_directory()) + "'\n")
+            logfile.write("- subpath/to/mars is \n")
+            self._write_directory_list(logfile)
         elif directory_type.lower() == 'post':
             logfile.write("- subpath/to/postcorrection is '" + str(self.get_directory()) + "'\n")
+            self._write_directory_list(logfile)
         elif directory_type.lower() == 'seg':
-            logfile.write("- subpath/to/segmentation is '" + str(self.get_directory()) + "'\n")
+            logfile.write("- subpath/to/segmentation is \n")
+            self._write_directory_list(logfile)
         else:
-            logfile.write('ExperimentGenericSubdirectory.set_default: unknown arg.\n')
+            logfile.write('ExperimentGenericSubdirectory.write_parameters_in_file: unknown arg.\n')
         return
 
+    def write_parameters(self, directory_type, logfilename):
+        self._set_directory()
+        with open(logfilename, 'a') as logfile:
+            self.write_parameters_in_file(directory_type, logfile)
+        return
+
+    def _print_directory_list(self):
+        self._set_directory()
+        if self._directory is None:
+            print("             None")
+        else:
+            if len(self._directory) <= 0:
+                print("             Empty list")
+            else:
+                for i in range(len(self._directory)):
+                    print("             #" + str(i) + ": '" + str(self.get_directory(i)) + "'")
+
     def print_parameters(self, directory_type):
+        self._set_directory()
         if type(directory_type) is not str:
             print('ExperimentGenericSubdirectory.set_default: unknown arg type.')
         if directory_type.lower() == 'fuse':
-            print("- subpath/to/fusion is '" + str(self.get_directory()) + "'")
+            print("- subpath/to/fusion is")
+            self._print_directory_list()
         elif directory_type.lower() == 'intrareg':
-            print("- subpath/to/intraregistration is '" + str(self.get_directory()) + "'")
+            print("- subpath/to/intraregistration is")
+            self._print_directory_list()
         elif directory_type.lower() == 'mars':
-            print("- subpath/to/mars is '" + str(self.get_directory()) + "'")
+            print("- subpath/to/mars is")
+            self._print_directory_list()
         elif directory_type.lower() == 'post':
-            print("- subpath/to/postcorrection is '" + str(self.get_directory()) + "'")
+            print("- subpath/to/postcorrection is")
+            self._print_directory_list()
         elif directory_type.lower() == 'seg':
-            print("- subpath/to/segmentation is '" + str(self.get_directory()) + "'")
+            print("- subpath/to/segmentation is")
+            self._print_directory_list()
         else:
-            print('ExperimentGenericSubdirectory.set_default: unknown arg.\n')
+            print('ExperimentGenericSubdirectory.print_parameters: unknown arg.\n')
         return
 
     #
@@ -164,40 +187,40 @@ class ExperimentGenericSubdirectory(object):
             print("ExperimentGenericSubdirectory.set_default: unknown arg type. Exiting.")
             sys.exit(1)
         if directory_type.lower() == 'fuse':
-            if self.main_directory is None:
-                self.main_directory = 'FUSE'
-            if self.sub_directory_prefix is None:
-                self.sub_directory_prefix = 'FUSE_'
-            if self.sub_directory_suffix is None:
-                self.sub_directory_suffix = 'RELEASE'
+            if self._main_directory is None:
+                self._main_directory = 'FUSE'
+            if self._sub_directory_prefix is None:
+                self._sub_directory_prefix = 'FUSE_'
+            if self._sub_directory_suffix is None:
+                self._sub_directory_suffix = 'RELEASE'
         elif directory_type.lower() == 'intrareg':
-            if self.main_directory is None:
-                self.main_directory = 'INTRAREG'
-            if self.sub_directory_prefix is None:
-                self.sub_directory_prefix = 'INTRAREG_'
-            if self.sub_directory_suffix is None:
-                self.sub_directory_suffix = 'RELEASE'
+            if self._main_directory is None:
+                self._main_directory = 'INTRAREG'
+            if self._sub_directory_prefix is None:
+                self._sub_directory_prefix = 'INTRAREG_'
+            if self._sub_directory_suffix is None:
+                self._sub_directory_suffix = 'RELEASE'
         elif directory_type.lower() == 'mars':
-            if self.main_directory is None:
-                self.main_directory = 'SEG'
-            if self.sub_directory_prefix is None:
-                self.sub_directory_prefix = 'EXP_'
-            if self.sub_directory_suffix is None:
-                self.sub_directory_suffix = 'RELEASE'
+            if self._main_directory is None:
+                self._main_directory = 'SEG'
+            if self._sub_directory_prefix is None:
+                self._sub_directory_prefix = 'SEG_'
+            if self._sub_directory_suffix is None:
+                self._sub_directory_suffix = 'RELEASE'
         elif directory_type.lower() == 'post':
-            if self.main_directory is None:
-                self.main_directory = 'POST'
-            if self.sub_directory_prefix is None:
-                self.sub_directory_prefix = 'POST_'
-            if self.sub_directory_suffix is None:
-                self.sub_directory_suffix = 'RELEASE'
+            if self._main_directory is None:
+                self._main_directory = 'POST'
+            if self._sub_directory_prefix is None:
+                self._sub_directory_prefix = 'POST_'
+            if self._sub_directory_suffix is None:
+                self._sub_directory_suffix = 'RELEASE'
         elif directory_type.lower() == 'seg':
-            if self.main_directory is None:
-                self.main_directory = 'SEG'
-            if self.sub_directory_prefix is None:
-                self.sub_directory_prefix = 'EXP_'
-            if self.sub_directory_suffix is None:
-                self.sub_directory_suffix = 'RELEASE'
+            if self._main_directory is None:
+                self._main_directory = 'SEG'
+            if self._sub_directory_prefix is None:
+                self._sub_directory_prefix = 'SEG_'
+            if self._sub_directory_suffix is None:
+                self._sub_directory_suffix = 'RELEASE'
         else:
             print("ExperimentGenericSubdirectory.set_default: unknown arg.")
         return
@@ -206,12 +229,88 @@ class ExperimentGenericSubdirectory(object):
     #
     #
 
-    def get_directory(self):
-        if self.directory is not None:
-            return self.directory
-        self.directory = os.path.join(str(self.main_directory),
-                                      str(self.sub_directory_prefix)+str(self.sub_directory_suffix))
-        return self.directory
+    def _set_directory(self):
+        """
+
+        :return:
+        """
+        proc = "ExperimentGenericSubdirectory.set_directory"
+        if self._directory is not None:
+            return
+        self._directory = []
+        if type(self._sub_directory_suffix) == str:
+            subdir = str(self._sub_directory_prefix) + str(self._sub_directory_suffix)
+            self._directory.append(os.path.join(str(self._main_directory), subdir))
+        elif type(self._sub_directory_suffix) == list or type(self._sub_directory_suffix) == tuple:
+            for s in self._sub_directory_suffix:
+                subdir = str(self._sub_directory_prefix) + str(s)
+                self._directory.append(os.path.join(str(self._main_directory), subdir))
+        else:
+            monitoring.to_log_and_console("Warning: " + proc + ", unhandled _sub_directory_suffix type")
+
+    def get_number_directories(self):
+        #
+        # self._directory is None
+        # build directory list
+        #
+        if self._directory is None:
+            self._set_directory()
+
+        if len(self._directory) <= 0:
+            return 0
+
+        if type(self._directory) == str:
+            return 1
+
+        if type(self._directory) == list or type(self._directory) == tuple:
+            return len(self._directory)
+
+        return 0
+
+    def get_directory(self, i=0):
+        """
+        return the ith directory
+        :param i:
+        :return:
+        """
+        proc = "ExperimentGenericSubdirectory.get_directory"
+
+        #
+        # self._directory is None
+        # build directory list
+        #
+        if self._directory is None:
+            self._set_directory()
+
+        if len(self._directory) <= 0:
+            return None
+
+        #
+        # self._directory is not None and not empty
+        #
+
+        if type(self._directory) == str:
+            return self._directory
+        # list = ['a', 'b']
+        elif type(self._directory) == list:
+            if i < len(self._directory):
+                return self._directory[i]
+            else:
+                monitoring.to_log_and_console("Warning: " + proc + ", index out of range")
+                return None
+        # tuple = ('a', 'b')
+        elif type(self._directory) == tuple:
+            if i < len(self._directory):
+                return self._directory[i]
+            else:
+                monitoring.to_log_and_console("Warning: " + proc + ", index out of range")
+                return None
+        else:
+            monitoring.to_log_and_console("Warning: " + proc + ", unhandled _directory type")
+            return None
+
+        monitoring.to_log_and_console("Warning: " + proc + ", this should not be reached")
+        return None
 
     #
     # read values of sub-directory template according to type
@@ -226,26 +325,26 @@ class ExperimentGenericSubdirectory(object):
         if directory_type.lower() == 'fuse':
             if hasattr(parameters, 'EXP_FUSE'):
                 if parameters.EXP_FUSE is not None:
-                    self.sub_directory_suffix = parameters.EXP_FUSE
+                    self._sub_directory_suffix = parameters.EXP_FUSE
         elif directory_type.lower() == 'intrareg':
             if hasattr(parameters, 'EXP_INTRAREG'):
                 if parameters.EXP_INTRAREG is not None:
-                    self.sub_directory_suffix = parameters.EXP_INTRAREG
+                    self._sub_directory_suffix = parameters.EXP_INTRAREG
         elif directory_type.lower() == 'mars':
             if hasattr(parameters, 'EXP_SEG'):
                 if parameters.EXP_SEG is not None:
-                    self.sub_directory_suffix = parameters.EXP_SEG
+                    self._sub_directory_suffix = parameters.EXP_SEG
             if hasattr(parameters, 'EXP_MARS'):
                 if parameters.EXP_MARS is not None:
-                    self.sub_directory_suffix = parameters.EXP_MARS
+                    self._sub_directory_suffix = parameters.EXP_MARS
         elif directory_type.lower() == 'post':
             if hasattr(parameters, 'EXP_POST'):
                 if parameters.EXP_POST is not None:
-                    self.sub_directory_suffix = parameters.EXP_POST
+                    self._sub_directory_suffix = parameters.EXP_POST
         elif directory_type.lower() == 'seg':
             if hasattr(parameters, 'EXP_SEG'):
                 if parameters.EXP_SEG is not None:
-                    self.sub_directory_suffix = parameters.EXP_SEG
+                    self._sub_directory_suffix = parameters.EXP_SEG
         else:
             print("ExperimentGenericSubdirectory.set_default: unknown arg.")
 
@@ -348,7 +447,103 @@ class Experiment(object):
     #
     #
     #
+    def get_time_format(self, time_digits=3):
+        """
+
+        :param time_digits:
+        :return:
+        """
+        form = "%0" + str(time_digits) + "d"
+        return form
+
+    def get_time_index(self, index, time_digits=3):
+        """
+
+        :param index:
+        :param time_digits:
+        :return:
+        """
+        ind = '{:0{width}d}'.format(index, width=time_digits)
+        return ind
+
+    def get_image_suffix(self, directory_type, subdirectory_type='fuse'):
+        """
+
+        :param directory_type:
+        :param subdirectory_type:
+        :return:
+        """
+        if directory_type.lower() == 'fuse':
+            return self.embryoName + '_fuse'
+        elif directory_type.lower() == 'intrareg':
+            if subdirectory_type.lower() == 'fuse':
+                return self.embryoName + '_intrareg_fuse'
+            elif subdirectory_type.lower() == 'post':
+                return self.embryoName + '_intrareg_post'
+            elif subdirectory_type.lower() == 'seg':
+                return self.embryoName + '_intrareg_seg'
+            else:
+                print("Experiment.get_image_name: unknown arg #2.")
+                return None
+        elif directory_type.lower() == 'post':
+            return self.embryoName + '_post'
+        elif directory_type.lower() == 'seg':
+            return self.embryoName + '_seg'
+        else:
+            print("Experiment.get_image_name: unknown arg.")
+            return None
+
+    def get_image_name(self, index, directory_type, subdirectory_type='fuse'):
+        """
+
+        :param index:
+        :param directory_type:
+        :param subdirectory_type:
+        :return:
+        """
+        ind = self.get_time_index(index)
+        suffix = self.get_image_suffix(directory_type, subdirectory_type)
+        if suffix is None:
+            return None
+        return suffix + '_t' + str(ind)
+
+    def get_image_format(self, directory_type, subdirectory_type='fuse'):
+        """
+
+        :param directory_type:
+        :param subdirectory_type:
+        :return:
+        """
+        suffix = self.get_image_suffix(directory_type, subdirectory_type)
+        if suffix is None:
+            return None
+        return suffix + '_t' + self.get_time_format()
+
+    def get_movie_name(self, first, last, directory_type, subdirectory_type='fuse'):
+        """
+
+        :param first:
+        :param last:
+        :param directory_type:
+        :param subdirectory_type:
+        :return:
+        """
+        f = self.get_time_index(first)
+        l = self.get_time_index(last)
+        suffix = self.get_image_suffix(directory_type, subdirectory_type)
+        if suffix is None:
+            return None
+        return suffix + '_t' + str(f) + '-' + str(l)
+
+    #
+    #
+    #
     def update_from_args(self, args):
+        """
+
+        :param args:
+        :return:
+        """
         if args.embryo_path is None:
             return
         if not os.path.isdir(args.embryo_path):
@@ -361,6 +556,11 @@ class Experiment(object):
     #
     #
     def update_from_file(self, parameter_file):
+        """
+
+        :param parameter_file:
+        :return:
+        """
 
         proc = "Experiment.updateFromFile"
         if parameter_file is None:
@@ -430,6 +630,13 @@ class Experiment(object):
     #
     #
     def update_from_stage(self, stage, executable, timestamp):
+        """
+
+        :param stage:
+        :param executable:
+        :param timestamp:
+        :return:
+        """
         if stage.lower() == 'fuse':
             self.path_logdir = os.path.join(self.fusion.get_directory(), "LOGS")
         elif stage.lower() == 'mars':
@@ -438,7 +645,7 @@ class Experiment(object):
             self.path_logdir = os.path.join(self.seg.get_directory(), "LOGS")
         elif stage.lower() == 'seg':
             self.path_logdir = os.path.join(self.seg.get_directory(), "LOGS")
-        elif stage.lower() == 'post-correction':
+        elif stage.lower() == 'post' or stage.lower() == 'post-correction':
             self.path_logdir = os.path.join(self.post.get_directory(), "LOGS")
         elif stage.lower() == 'intrareg' or stage.lower() == 'intraregistration':
             self.path_logdir = os.path.join(self.intrareg.get_directory(), "LOGS")
@@ -614,7 +821,6 @@ def _write_git_information(path, logfile, desc):
     gitremote = 'git remote get-url origin'
     gitdescribe = 'git describe'
     gitlog = 'git log -n 1 --format="Commit (tag, date, ref): %H -- %cD -- %D"'
-
 
     logfile.write(str(desc) + " path: ")
 
@@ -834,26 +1040,31 @@ def add_suffix(filename, suffix, new_dirname=None, new_extension=None):
 #
 #
 
-def find_file(data_path, file_prefix, monitoring=None, verbose=True):
+def find_file(data_path, file_prefix, local_monitoring=None, verbose=True):
     """
     find a file in a directory with a given prefix. The suffix is unknown
 
     :param data_path:
     :param file_prefix:
-    :param monitoring:
+    :param local_monitoring:
     :param verbose:
     :return:
     """
     proc = "find_file"
 
     if not os.path.isdir(data_path):
-        if monitoring is not None:
-            monitoring.to_log_and_console("Error:")
-            monitoring.to_log_and_console(proc + ": '" + str(data_path) + "' is not a valid directory ?!")
-            monitoring.to_log_and_console("\t Exiting.")
+        if local_monitoring is not None:
+            local_monitoring.to_log_and_console("Error:")
+            local_monitoring.to_log_and_console(proc + ": '" + str(data_path) + "' is not a valid directory ?!")
+            local_monitoring.to_log_and_console("\t Exiting.")
         else:
             print(proc + ": '" + str(data_path) + "' is not a valid directory ?!")
             print("\t Exiting.")
+        sys.exit(1)
+
+    if file_prefix is None:
+        print(proc + ": file prefix was 'None'?!")
+        print("\t Exiting.")
         sys.exit(1)
 
     #
@@ -877,20 +1088,20 @@ def find_file(data_path, file_prefix, monitoring=None, verbose=True):
             file_names.append(f)
 
     if len(file_names) == 0:
-        if monitoring is not None:
-            monitoring.to_log_and_console(proc + ": no image with name '" + str(file_prefix)
-                                          + "' was found in '" + str(data_path) + "'", 4)
+        if local_monitoring is not None:
+            local_monitoring.to_log_and_console(proc + ": no image with name '" + str(file_prefix)
+                                                + "' was found in '" + str(data_path) + "'", 4)
         elif verbose is True:
             print(proc + ": no image with name '" + str(file_prefix) + "' was found in '" + str(data_path) + "'")
         return None
 
     if len(file_names) > 1:
-        if monitoring is not None:
-            monitoring.to_log_and_console("\t " + proc + ": warning")
-            monitoring.to_log_and_console("\t several images with name '" + str(file_prefix) + "' were found in")
-            monitoring.to_log_and_console("\t    '" + str(data_path) + "'")
-            monitoring.to_log_and_console("\t    -> "+str(file_names))
-            monitoring.to_log_and_console("\t returned file is '" + str(file_names[0]) + "'")
+        if local_monitoring is not None:
+            local_monitoring.to_log_and_console("\t " + proc + ": warning")
+            local_monitoring.to_log_and_console("\t several images with name '" + str(file_prefix) + "' were found in")
+            local_monitoring.to_log_and_console("\t    '" + str(data_path) + "'")
+            local_monitoring.to_log_and_console("\t    -> "+str(file_names))
+            local_monitoring.to_log_and_console("\t returned file is '" + str(file_names[0]) + "'")
         else:
             print(proc + ": several images with name '"
                   + str(file_prefix) + "' were found in '" + str(data_path) + "'")
@@ -912,10 +1123,15 @@ def get_file_suffix(experiment, data_path, file_format, flag_time=None):
     :param experiment:
     :param data_path:
     :param file_format:
+    :param flag_time:
     :return:
     """
 
     proc = "get_file_suffix"
+
+    if not os.path.isdir(data_path):
+        monitoring.to_log_and_console(proc + ": weird, data path '" + str(data_path) + "' is not a valid directory", 0)
+        return None
 
     first_time_point = experiment.first_time_point + experiment.delay_time_point
     last_time_point = experiment.last_time_point + experiment.delay_time_point
@@ -925,10 +1141,9 @@ def get_file_suffix(experiment, data_path, file_format, flag_time=None):
     nfiles = 0
 
     if flag_time is not None:
-        FLAG_TIME = flag_time
+        flag = flag_time
     else:
-        FLAG_TIME = "$TIME"
-
+        flag = "$TIME"
 
     #
     # get and count suffixes for images
@@ -937,7 +1152,7 @@ def get_file_suffix(experiment, data_path, file_format, flag_time=None):
                               last_time_point + experiment.delay_time_point + 1, experiment.delta_time_point):
 
         time_point = '{:0{width}d}'.format(current_time, width=experiment.time_digits)
-        file_prefix = file_format.replace(FLAG_TIME, time_point)
+        file_prefix = file_format.replace(flag, time_point)
 
         for f in os.listdir(data_path):
             if len(f) <= len(file_prefix):

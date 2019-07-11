@@ -71,11 +71,10 @@ class CellPropertiesParameters(object):
 #
 ########################################################################################
 
-def property_computation(experiment, parameters):
+def property_computation(experiment):
     """
 
-    :param experiment:
-    :param parameters:
+    :param experiment: commonTools.Experiment
     :return:
     """
 
@@ -87,14 +86,17 @@ def property_computation(experiment, parameters):
     #
 
     stage = None
-    intrareg_path = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory(), 'POST')
+    intrareg_path = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory(),
+                                 experiment.post.get_directory())
     if not os.path.isdir(intrareg_path):
         monitoring.to_log(proc + ": '" + str(intrareg_path) + "' does not exist")
-        intrareg_path = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory(), 'SEG')
+        intrareg_path = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory(),
+                                     experiment.seg.get_directory())
         if not os.path.isdir(intrareg_path):
             monitoring.to_log(proc + ": '" + str(intrareg_path) + "' does not exist")
             intrareg_path = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory())
-            monitoring.to_log_and_console(proc + ": neither POST/ or SEG/ directory in '" + str(intrareg_path) + "'", 0)
+            monitoring.to_log_and_console(proc + ": neither POST/ or SEG/ sub-directories in '"
+                                          + str(intrareg_path) + "'", 0)
             monitoring.to_log_and_console("Exiting.", 0)
             return None
         else:
@@ -104,39 +106,48 @@ def property_computation(experiment, parameters):
 
     monitoring.to_log_and_console("... will compute sequence properties from '" + str(intrareg_path) + "'", 0)
 
+    #
+    # build name format for (post-corrected) segmentation images
+    #
+
     if stage.lower() == 'post':
-        name_format = experiment.embryoName + "_intrareg" + "_post"
+        name_format = experiment.get_image_format('intrareg', 'post')
     elif stage.lower() == 'seg':
-        name_format = experiment.embryoName + "_intrareg" + "_seg"
+        name_format = experiment.get_image_format('intrareg', 'seg')
     else:
         monitoring.to_log_and_console(proc + ": weird, this should not be reached", 0)
         monitoring.to_log_and_console("Exiting.", 0)
         sys.exit(1)
 
-    suffix = commonTools.get_file_suffix(experiment, intrareg_path, name_format + "_t<TIME>", "<TIME>")
+    suffix = commonTools.get_file_suffix(experiment, intrareg_path, name_format, flag_time=experiment.get_time_format())
     if suffix is None:
         monitoring.to_log_and_console(proc + ": no consistent naming was found in '"
                                       + str(intrareg_path) + "'", 1)
         monitoring.to_log_and_console("Exiting.", 0)
         sys.exit(1)
-
-    #
-    #
-    #
-
-    output_name = os.path.join(intrareg_path, name_format + "_lineage" + ".xml")
-    diagnosis_name = os.path.join(intrareg_path, name_format + "_lineage" + ".txt")
-
-    name_format += "_t%0" + str(experiment.time_digits) + "d" + "." + str(suffix)
+    name_format += "." + str(suffix)
     template_format = os.path.join(intrareg_path, name_format)
+
+    #
+    #
+    #
+
+    output_name = os.path.join(intrareg_path, experiment.get_image_suffix('intrareg', stage) + "_lineage")
+
+    if os.path.isfile(output_name + ".xml") and os.path.isfile(output_name + ".pkl"):
+        if not monitoring.forceResultsToBeBuilt:
+            monitoring.to_log_and_console('    xml file already existing', 2)
+            return output_name + ".xml"
+        else:
+            monitoring.to_log_and_console('    xml file already existing, but forced', 2)
 
     first_time_point = experiment.first_time_point + experiment.delay_time_point
     last_time_point = experiment.last_time_point + experiment.delay_time_point
 
-    cpp_wrapping.cell_properties(template_format, output_name, first_time_point, last_time_point,
-                                 diagnosis_file=diagnosis_name, monitoring=monitoring)
+    cpp_wrapping.cell_properties(template_format, output_name + ".xml", first_time_point, last_time_point,
+                                 diagnosis_file=output_name + ".txt", monitoring=monitoring)
 
-    return output_name
+    return output_name + ".xml"
 
 
 ########################################################################################
@@ -726,7 +737,6 @@ def read_dictionary(inputfilenames, inputpropertiesdict={}):
     #
 
     for filename in inputfilenames:
-
 
         if not os.path.isfile(filename):
             monitoring.to_log_and_console(proc + ": error, file '" + str(filename) + "' does not exist")
@@ -1608,7 +1618,7 @@ def write_tlp_file(dictionary, tlpfilename):
     nodes = set(lineage.keys()).union(set([v for values in lineage.values() for v in values]))
     f.write("(nodes ")
     for n in nodes:
-        f.write(str(n)+ " ")
+        f.write(str(n) + " ")
     f.write(")\n")
 
     #
@@ -1641,13 +1651,13 @@ def write_tlp_file(dictionary, tlpfilename):
         # property as single double
         #
         elif p == keydictionary['volume']['output_key'] or p == keydictionary['surface']['output_key'] \
-            or p == keydictionary['compactness']['output_key']:
-            property = dictionary[p]
-            default = np.median(property.values())
+                or p == keydictionary['compactness']['output_key']:
+            prop = dictionary[p]
+            default = np.median(prop.values())
             f.write("(property 0 double \"" + str(p) + "\"\n")
             f.write("\t(default \"" + str(default) + "\" \"0\")\n")
             for node in nodes:
-                f.write("\t(node " + str(node) + str(" \"") + str(property.get(node, default)) + "\")\n")
+                f.write("\t(node " + str(node) + str(" \"") + str(prop.get(node, default)) + "\")\n")
             f.write(")\n")
         #
         # property as string
@@ -1655,11 +1665,11 @@ def write_tlp_file(dictionary, tlpfilename):
         elif p == keydictionary['fate']['output_key'] or p == keydictionary['fate2']['output_key'] \
                 or p == keydictionary['fate3']['output_key'] or p == keydictionary['fate4']['output_key'] \
                 or p == keydictionary['name']['output_key']:
-            property = dictionary[p]
+            prop = dictionary[p]
             f.write("(property 0 string \"" + str(p) + "\"\n")
             f.write("\t(default \"" + "no string" + "\" \"0\")\n")
             for node in nodes:
-                f.write("\t(node " + str(node) + str(" \"") + str(property.get(node, "no string")) + "\")\n")
+                f.write("\t(node " + str(node) + str(" \"") + str(prop.get(node, "no string")) + "\")\n")
             f.write(")\n")
         #
         #
@@ -1674,7 +1684,7 @@ def write_tlp_file(dictionary, tlpfilename):
                 or p == keydictionary['name-score']['output_key']:
             pass
         else:
-            monitoring.to_log_and_console(proc + ": property '" + str(p) +"' not handled yet for writing.")
+            monitoring.to_log_and_console(proc + ": property '" + str(p) + "' not handled yet for writing.")
 
     #
     # close file
@@ -1683,4 +1693,3 @@ def write_tlp_file(dictionary, tlpfilename):
     f.write("(nodes ")
 
     f.close()
-

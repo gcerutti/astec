@@ -217,12 +217,15 @@ The \texttt{INTRAREG/} directory contains
 .4 \ldots.
 .4 2019-Tutorial100\_intrareg\_flo019\_ref020.trsf.
 .3 FUSE/.
-.4 2019-Tutorial100\_intrareg\_fuse\_t000.inr.
-.4 \ldots.
-.4 2019-Tutorial100\_intrareg\_fuse\_t020.inr.
+.4 FUSE\_RELEASE/.
+.5 2019-Tutorial100\_intrareg\_fuse\_t000.inr.
+.5 \ldots.
+.5 2019-Tutorial100\_intrareg\_fuse\_t020.inr.
 .3 LOGS/.
 .3 MOVIES/.
-.4 2019-Tutorial100\_intrareg\_fuse\_t0-20\_xy205.inr.
+.4 FUSE/.
+.5 FUSE\_RELEASE/.
+.6 2019-Tutorial100\_intrareg\_fuse\_t000-020\_xy0205.inr.
 .3 TRSFS\_t0-20/.
 .4 2019-Tutorial100\_intrareg\_t000.trsf.
 .4 \ldots.
@@ -235,13 +238,13 @@ The \texttt{INTRAREG/} directory contains
 \itemsep -1ex
 \item The directory \texttt{CO-TRSF/} contains the co-registration
   transformations.
-\item The directory \texttt{FUSE/} contains the resampled fused images
+\item The directory \texttt{FUSE/FUSE\_RELEASE/} contains the resampled fused images
   in the same geometry (images have the same dimensions along X, Y and
   Z), with drift compensation (the eventual motion of the sample under the
   microscope has been compensated). 
-\item The directory \texttt{MOVIES/} contains a 3D (which is a 2D+t)
+\item The directory \texttt{MOVIES/FUSE/FUSE\_RELEASE/} contains a 3D (which is a 2D+t)
   image, here
-  \texttt{2019-Tutorial100\_intrareg\_fuse\_t0-20\_xy205.inr}, which
+  \texttt{2019-Tutorial100\_intrareg\_fuse\_t000-020\_xy0205.inr}, which
   the \#205 XY-section of the resampled fused images for all the time
   points.
 \item The directory \texttt{TRSFS/}  contains the transformation of
@@ -631,17 +634,23 @@ been created and the \texttt{INTRAREG/} directory now contains
 .4 \ldots.
 .4 2019-Tutorial100\_intrareg\_flo019\_ref020.trsf.
 .3 FUSE/.
-.4 2019-Tutorial100\_intrareg\_fuse\_t000.inr.
-.4 \ldots.
-.4 2019-Tutorial100\_intrareg\_fuse\_t020.inr.
+.4 FUSE\_RELEASE/.
+.5 2019-Tutorial100\_intrareg\_fuse\_t000.inr.
+.5 \ldots.
+.5 2019-Tutorial100\_intrareg\_fuse\_t020.inr.
 .3 LOGS/.
 .3 MOVIES/.
-.4 2019-Tutorial100\_intrareg\_fuse\_t0-20\_xy174.inr.
-.4 2019-Tutorial100\_intrareg\_seg\_t0-20\_xy174.inr.
+.4 FUSE/.
+.5 FUSE\_RELEASE/.
+.6 2019-Tutorial100\_intrareg\_fuse\_t0-20\_xy174.inr.
+.4 SEG/.
+.5 SEG\_RELEASE/.
+.6 2019-Tutorial100\_intrareg\_seg\_t0-20\_xy174.inr.
 .3 SEG/.
-.4 2019-Tutorial100\_intrareg\_seg\_t000.inr.
-.4 \ldots.
-.4 2019-Tutorial100\_intrareg\_seg\_t020.inr.
+.4 SEG\_RELEASE/.
+.5 2019-Tutorial100\_intrareg\_seg\_t000.inr.
+.5 \ldots.
+.5 2019-Tutorial100\_intrareg\_seg\_t020.inr.
 .3 TRSFS\_t0-20/.
 .4 2019-Tutorial100\_intrareg\_t000.trsf.
 .4 \ldots.
@@ -654,13 +663,13 @@ In addition to directories already described in section
 \ref{sec:tutorial:intra:registration:fuse}, the \texttt{INTRAREG\_SEG/} directory contains
 \begin{itemize}
 \itemsep -1ex
-\item The directory \texttt{SEG/} contains the resampled segmentation images
+\item The directory \texttt{SEG/SEG\_RELEASE} contains the resampled segmentation images
   in the same geometry (images have the same dimensions along X, Y and
   Z), with drift compensation (the eventual motion of the sample under the
   microscope has been compensated). 
 \item In addition to a 2D+t movie made from the resampled fusion
   images, the directory \texttt{MOVIES/} contains a 2D+t movie made from the resampled segmentation
-  images.
+  images in the sub-directory \texttt{SEG/SEG\_RELEASE}.
 \item The template image \texttt{template\_t0-20.inr} in the directory
   \texttt{TRSFS/} 
   is now of size $323 \times 265 \times 348$ with a voxel size of 0.6,
@@ -668,10 +677,11 @@ In addition to directories already described in section
   \ref{sec:tutorial:intra:registration:fuse}, even with the added
   margins.
   
-  Note that all resampled images (in both the \texttt{FUSE/} and the
-  \texttt{SEG/} directories have the same geometry than the template
+  Note that all resampled images (in both the \texttt{FUSE/FUSE\_RELEASE} and the
+  \texttt{SEG/SEG\_RELEASE} directories have the same geometry than the template
   image. 
 \end{itemize}
+
 
 
 \section{Sequence properties computation [1]}
@@ -725,13 +735,13 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:properties:seg}).
     sub-directory of the \texttt{INTRAREG/} directory where to search
     post-corrected segmentation or segmentation images.
 
-    Since the directory \texttt{INTRAREG/INTRAREG\_SEG/} does only
+    Since the directory \texttt{INTRAREG/INTRAREG\_SEG/}  only
     contains the co-registered segmentation images (in the
-    \texttt{SEG/} sub-directory), properties will be computed from
+    \texttt{SEG/SEG\_RELEASE/} sub-directory), properties will be computed from
     these images.
 \end{itemize}
 
-After processing, some files appears in the \texttt{INTRAREG/INTRAREG\_SEG/SEG/} sub-directory 
+After processing, some files appears in the \texttt{INTRAREG/INTRAREG\_SEG/SEG/SEG\_RELEASE/} sub-directory 
 
 \mbox{}
 \dirtree{%
@@ -747,12 +757,13 @@ After processing, some files appears in the \texttt{INTRAREG/INTRAREG\_SEG/SEG/}
 .3 MOVIES/.
 .4 \ldots.
 .3 SEG/.
-.4 2019-Tutorial100\_intrareg\_seg\_lineage.pkl.
-.4 2019-Tutorial100\_intrareg\_seg\_lineage.txt.
-.4 2019-Tutorial100\_intrareg\_seg\_lineage.xml.
-.4 2019-Tutorial100\_intrareg\_seg\_t000.inr.
-.4 \ldots.
-.4 2019-Tutorial100\_intrareg\_seg\_t020.inr.
+.4 SEG\_RELEASE/.
+.5 2019-Tutorial100\_intrareg\_seg\_lineage.pkl.
+.5 2019-Tutorial100\_intrareg\_seg\_lineage.txt.
+.5 2019-Tutorial100\_intrareg\_seg\_lineage.xml.
+.5 2019-Tutorial100\_intrareg\_seg\_t000.inr.
+.5 \ldots.
+.5 2019-Tutorial100\_intrareg\_seg\_t020.inr.
 .3 TRSFS\_t0-20/.
 .4 \ldots.
 }
@@ -823,6 +834,8 @@ same information than the pickle file, but in xml format (see figure
 \texttt{2019-Tutorial100\_intrareg\_seg\_lineage.tst} contains some
 \textit{diagnosis} information (smallest and largest cells, weird
 lineages, etc.). 
+
+
 
 \section{Segmentation post-correction}
 
@@ -988,22 +1001,31 @@ been created and the \texttt{INTRAREG/} directory now contains
 .4 \ldots.
 .4 2019-Tutorial100\_intrareg\_flo019\_ref020.trsf.
 .3 FUSE/.
-.4 2019-Tutorial100\_intrareg\_fuse\_t000.inr.
-.4 \ldots.
-.4 2019-Tutorial100\_intrareg\_fuse\_t020.inr.
+.4 FUSE\_RELEASE/.
+.5 2019-Tutorial100\_intrareg\_fuse\_t000.inr.
+.5 \ldots.
+.5 2019-Tutorial100\_intrareg\_fuse\_t020.inr.
 .3 LOGS/.
 .3 MOVIES/.
-.4 2019-Tutorial100\_intrareg\_fuse\_t0-20\_xy174.inr.
-.4 2019-Tutorial100\_intrareg\_post\_t0-20\_xy174.inr.
-.4 2019-Tutorial100\_intrareg\_seg\_t0-20\_xy174.inr.
+.4 FUSE/.
+.5 FUSE\_RELEASE/.
+.6 2019-Tutorial100\_intrareg\_fuse\_t0-20\_xy174.inr.
+.4 POST/.
+.5 POST\_RELEASE/.
+.6 2019-Tutorial100\_intrareg\_post\_t0-20\_xy174.inr.
+.4 SEG/.
+.5 SEG\_RELEASE/.
+.6 2019-Tutorial100\_intrareg\_seg\_t0-20\_xy174.inr.
 .3 POST/.
-.4 2019-Tutorial100\_intrareg\_post\_t000.inr.
-.4 \ldots.
-.4 2019-Tutorial100\_intrareg\_post\_t020.inr.
+.4 POST\_RELEASE/.
+.5 2019-Tutorial100\_intrareg\_post\_t000.inr.
+.5 \ldots.
+.5 2019-Tutorial100\_intrareg\_post\_t020.inr.
 .3 SEG/.
-.4 2019-Tutorial100\_intrareg\_seg\_t000.inr.
-.4 \ldots.
-.4 2019-Tutorial100\_intrareg\_seg\_t020.inr.
+.4 SEG\_RELEASE/.
+.5 2019-Tutorial100\_intrareg\_seg\_t000.inr.
+.5 \ldots.
+.5 2019-Tutorial100\_intrareg\_seg\_t020.inr.
 .3 TRSFS\_t0-20/.
 .4 2019-Tutorial100\_intrareg\_t000.trsf.
 .4 \ldots.
@@ -1020,7 +1042,7 @@ In addition to directories already described in section
 \ref{sec:tutorial:intra:registration:fuse}, the \texttt{INTRAREG\_POST/} directory contains
 \begin{itemize}
 \itemsep -1ex
-\item The directory \texttt{POST/} contains the resampled
+\item The directory \texttt{POST/POST\_RELEASE/} contains the resampled
   post-corrected segmentation images
   in the same geometry (images have the same dimensions along X, Y and
   Z), with drift compensation (the eventual motion of the sample under the
@@ -1028,16 +1050,16 @@ In addition to directories already described in section
 \item In addition to a 2D+t movie made from the resampled fusion
   and the segmentation images, the directory \texttt{MOVIES/} contains
   a 2D+t movie made from the resampled post-corrected segmentation
-  images.
+  images in the sub-directory \texttt{POST/POST\_RELEASE/}.
 \item The template image \texttt{template\_t0-20.inr} in the directory
   \texttt{TRSFS/} 
   is now of size $323 \times 265 \times 348$ with a voxel size of 0.6,
   has the same size than the one computed in section
   \ref{sec:tutorial:intra:registration:seg},  which is expected since
   the post-correction does not change the background.
-  Note that all resampled images (in the \texttt{FUSE/}, the
-  \texttt{POST/}, and the
-  \texttt{SEG/} directories have the same geometry than the template
+  Note that all resampled images (in the \texttt{FUSE/FUSE\_RELEASE/}, the
+  \texttt{POST/POST\_RELEASE/}, and the
+  \texttt{SEG/SEG\_RELEASE/} directories have the same geometry than the template
   image. 
 \end{itemize}
 
@@ -1094,11 +1116,11 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:properties:post}).
     sub-directory of the \texttt{INTRAREG/} directory where to search
     post-corrected segmentation or segmentation images.
 
-    Since the directory \texttt{INTRAREG/INTRAREG\_POST/} does only
+    Since the directory \texttt{INTRAREG/INTRAREG\_POST/} 
     contains the co-registered post-corrected segmentation images (in the
-    \texttt{POST/} sub-directory), properties will be computed from
+    \texttt{POST/POST\_RELEASE/} sub-directory), properties will be computed from
     these images preferably to the co-registered segmentation images (in the
-    \texttt{SEG/} sub-directory).
+    \texttt{SEG/SEG\_RELEASE/} sub-directory).
 \end{itemize}
 
 After processing, some files appears in the \texttt{INTRAREG/INTRAREG\_POST/POST/} sub-directory 
@@ -1117,20 +1139,19 @@ After processing, some files appears in the \texttt{INTRAREG/INTRAREG\_POST/POST
 .3 MOVIES/.
 .4 \ldots.
 .3 POST/.
-.4 2019-Tutorial100\_intrareg\_post\_lineage.pkl.
-.4 2019-Tutorial100\_intrareg\_post\_lineage.txt.
-.4 2019-Tutorial100\_intrareg\_post\_lineage.xml.
-.4 2019-Tutorial100\_intrareg\_post\_t000.inr.
-.4 \ldots.
-.4 2019-Tutorial100\_intrareg\_post\_t020.inr.
+.4 POST\_RELEASE/.
+.5 2019-Tutorial100\_intrareg\_post\_lineage.pkl.
+.5 2019-Tutorial100\_intrareg\_post\_lineage.txt.
+.5 2019-Tutorial100\_intrareg\_post\_lineage.xml.
+.5 2019-Tutorial100\_intrareg\_post\_t000.inr.
+.5 \ldots.
+.5 2019-Tutorial100\_intrareg\_post\_t020.inr.
 .3 SEG/.
-.4 2019-Tutorial100\_intrareg\_seg\_t000.inr.
 .4 \ldots.
-.4 2019-Tutorial100\_intrareg\_seg\_t020.inr.
 .3 TRSFS\_t0-20/.
 .4 \ldots.
 }
 \mbox{}
 
-Those files have the same meaning than the ones already presented in
+Those files have the same content than the ones already presented in
 section \ref{sec:tutorial:properties:seg}.

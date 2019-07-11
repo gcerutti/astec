@@ -44,15 +44,20 @@ The following options are available:
 
 When a parameter file is passed after the \texttt{-p} option, \texttt{X-embryoproperties.py} will compute image sequence properties.
 Computing cell related informations as well as the lineage tree requires that the (post-corrected) segmentation images have already been co-registered (with \texttt{1.5-intraregistration.py} see section \ref{sec:cli:intraregistration}). 
-\texttt{X-embryoproperties.py} will parse the \texttt{INTRAREG/INTRAREG\_<EXP\_INTRAREG>/} directory, and will compute the properties from the images in the \texttt{POST/} sub-directory, if existing, else of from the \texttt{SEG/} sub-directory.
+\texttt{X-embryoproperties.py} will parse the \texttt{INTRAREG/INTRAREG\_<EXP\_INTRAREG>/} directory, and will compute the properties from the images in the \texttt{POST/POST\_<EXP\_POST>/} sub-directory, if existing, else of from the \texttt{SEG/SEG\_<EXP\_SEG>/} sub-directory.
+
+
 
 \subsubsection{Output data}
-The results are stored in the \texttt{POST/} or \texttt{SEG/} sub-directory 
-under the \texttt{INTRAREG/INTRAREG\_<EXP\_INTRAREG>} under the directory where \texttt{<EXP\_INTRAREG>} is the value of the variable \texttt{EXP\_INTRAREG} (its
-default value is '\texttt{RELEASE}').
+
+The results are stored in the \texttt{POST/POST\_<EXP\_POST>/} or
+\texttt{SEG/SEG\_<EXP\_SEG>/} sub-directory under the
+\texttt{INTRAREG/INTRAREG\_<EXP\_INTRAREG>} where
+\texttt{<EXP\_INTRAREG>} is the value of the variable
+\texttt{EXP\_INTRAREG} (its default value is '\texttt{RELEASE}').  
 The resulting properties will be stored in the same directory than the images they are issued. It will be stored as a pickle python file, and also as a XML file. Both files contain exactly the same information.
 
-According that the \texttt{POST/} sub-directory exists (that post-corrected segmentation images have been co-registered), 3 files will be created, named after \texttt{<EN>}
+According that the \texttt{POST/POST\_<EXP\_POST>/} sub-directory exists (that post-corrected segmentation images have been co-registered), 3 files will be created, named after \texttt{<EN>}
 
 \dirtree{%
 .1 /path/to/experiment/.
@@ -61,9 +66,10 @@ According that the \texttt{POST/} sub-directory exists (that post-corrected segm
 .3 INTRAREG\_<EXP\_INTRAREG>/.
 .4 \ldots.
 .4 POST/.
-.5 <EN>\_intrareg\_post\_lineage.pkl.
-.5 <EN>\_intrareg\_post\_lineage.txt.
-.5 <EN>\_intrareg\_post\_lineage.xml.
+.5 POST\_<EXP\_POST>/.
+.6 <EN>\_intrareg\_post\_lineage.pkl.
+.6 <EN>\_intrareg\_post\_lineage.txt.
+.6 <EN>\_intrareg\_post\_lineage.xml.
 .5 \ldots.
 .4 \ldots.
 .2 \ldots.
@@ -101,6 +107,8 @@ Please also refer to the file
 \itemsep -1ex
 \item \texttt{EN}
 \item \texttt{EXP\_INTRAREG}
+\item \texttt{EXP\_POST}
+\item \texttt{EXP\_SEG}
 \item \texttt{PATH\_EMBRYO}
 \item \texttt{begin}
 \item \texttt{end}
@@ -117,7 +125,14 @@ Please also refer to the file
   \begin{code}{0.8}
   \$ X-embryoproperties.py -i file.pkl -o file.xml
   \end{code}
-  convert the pickle file \texttt{file.pkl} into the xml file  \texttt{file.xml}
+  convert the pickle file \texttt{file.pkl} into the \texttt{xml} file  \texttt{file.xml}
+\item Converting the lineage information from either an \texttt{xml}
+  or an \texttt{pkl} file to a \texttt{tlp}\footnote{Tulip is a Data
+    Visualization Software, see \url{tulip.labri.fr}.} file for lineage visualization
+  \begin{code}{0.8}
+  \$ X-embryoproperties.py -i file.pkl -o file.tlp
+  \end{code}
+  convert the pickle file \texttt{file.pkl} into the \texttt{tlp} file  \texttt{file.tlp}
 \item Merging files.
   \begin{code}{0.8}
   \$ X-embryoproperties.py -i file1.pkl file2.xml \ldots filen.pkl -o merge.xml merge.pkl

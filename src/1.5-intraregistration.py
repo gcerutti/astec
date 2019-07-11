@@ -12,7 +12,6 @@ from argparse import ArgumentParser
 
 import ASTEC.commonTools as commonTools
 import ASTEC.INTRAREGISTRATION as INTRAREG
-import ASTEC.nomenclature as nomenclature
 from ASTEC.CommunFunctions.cpp_wrapping import path_to_vt
 
 
@@ -110,7 +109,6 @@ def main():
     monitoring = commonTools.Monitoring()
     experiment = commonTools.Experiment()
     parameters = INTRAREG.IntraRegParameters()
-    environment = INTRAREG.IntraRegEnvironment()
 
     #
     # reading command line arguments
@@ -127,29 +125,18 @@ def main():
     # and updating parameters
     #
     parameterFile = commonTools.get_parameter_file(args.parameterFile)
-    environment.update_from_file(parameterFile, start_time)
-    environment.path_history_file = nomenclature.replaceEXECUTABLE(environment.path_history_file, __file__)
-    environment.path_log_file = nomenclature.replaceEXECUTABLE(environment.path_log_file, __file__)
-
-    if not os.path.isdir(environment.path_logdir):
-        os.makedirs(environment.path_logdir)
-
     experiment.update_from_file(parameterFile)
-    parameters.update_from_file(parameterFile)
+    experiment.update_from_stage("intrareg", __file__, start_time)
 
-    #
-    # make fusion directory and subdirectory if required
-    # => allows to write log and history files
-    #    and to copy parameter file
-    #
-    # for i in range(0, len(environment.channel)):
-    #    if not os.path.isdir(environment.channel[i].path_fuse_exp):
-    #        os.makedirs(environment.channel[i].path_fuse_exp)
+    if not os.path.isdir(experiment.path_logdir):
+        os.makedirs(experiment.path_logdir)
+
+    parameters.update_from_file(parameterFile)
 
     #
     # write history information in history file
     #
-    commonTools.write_history_information(environment.path_history_file,
+    commonTools.write_history_information(experiment.path_history_file,
                                           experiment,
                                           parameterFile,
                                           start_time,
@@ -160,35 +147,34 @@ def main():
     # define log file
     # and write some information
     #
-    monitoring.logfile = environment.path_log_file
+    monitoring.logfile = experiment.path_log_file
     INTRAREG.monitoring.copy(monitoring)
 
     monitoring.write_parameters(monitoring.logfile)
     experiment.write_parameters(monitoring.logfile)
-    environment.write_parameters(monitoring.logfile)
     parameters.write_parameters(monitoring.logfile)
 
     #
     # copy parameter file
     #
-    commonTools.copy_date_stamped_file(parameterFile, environment.path_logdir, start_time)
+    commonTools.copy_date_stamped_file(parameterFile, experiment.path_logdir, start_time)
 
     #
     # processing
     #
-    INTRAREG.intraregistration_control(experiment, environment, parameters)
+    INTRAREG.intraregistration_control(experiment, parameters)
 
     #
     # end of execution
     # write execution time in both log and history file
     #
     endtime = time.localtime()
-    with open(environment.path_log_file, 'a') as logfile:
+    with open(experiment.path_log_file, 'a') as logfile:
         logfile.write("\n")
         logfile.write('Total execution time = '+str(time.mktime(endtime)-time.mktime(start_time))+' sec\n')
         logfile.write("\n")
 
-    with open(environment.path_history_file, 'a') as logfile:
+    with open(experiment.path_history_file, 'a') as logfile:
         logfile.write('# Total execution time = '+str(time.mktime(endtime)-time.mktime(start_time))+' sec\n')
         logfile.write("\n\n")
 

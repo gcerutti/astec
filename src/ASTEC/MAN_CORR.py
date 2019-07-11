@@ -389,7 +389,7 @@ def correction_control(experiment, environment, parameters):
         else:
             input_name = nomenclature.replaceTIME(environment.path_mars_exp_files,
                                                   experiment.first_time_point + experiment.delay_time_point)
-            input_name = commonTools.find_file(environment.path_mars_exp, input_name, monitoring=monitoring)
+            input_name = commonTools.find_file(environment.path_mars_exp, input_name, local_monitoring=monitoring)
             input_image = os.path.join(environment.path_mars_exp, input_name)
 
         #
@@ -434,7 +434,7 @@ def correction_control(experiment, environment, parameters):
                                 parameters.last_time_point + experiment.delay_time_point + 1, experiment.delta_time_point):
 
             input_mars_name = nomenclature.replaceTIME(environment.path_mars_exp_files, time_value)
-            input_name = commonTools.find_file(environment.path_seg_exp, input_mars_name, monitoring=monitoring)
+            input_name = commonTools.find_file(environment.path_seg_exp, input_mars_name, local_monitoring=monitoring)
             if input_name is None:
                 monitoring.to_log_and_console("    mars image '" + str(input_mars_name) + "' not found: skip time "
                                               + str(time_value), 1)

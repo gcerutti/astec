@@ -144,6 +144,7 @@ end = 0
 # intra_registration_template_type = "FUSION"
 # intra_registration_template_threshold = None
 # intra_registration_margin = None
+# intra_registration_rebuild_template = False
 
 ## ##### explanation #####
 ##
@@ -168,6 +169,11 @@ end = 0
 ##   In addition, a margin can be given for a more comfortable visualization. By default, it is
 ##   0 when only fusion images are used, and 10 if either segmentation or post-segmentation 
 ##   images are also used
+## intra_registration_rebuild_template
+##   if True, force to recompute the template as well as the transformations from the co-registrations
+##   (that are not re-computed). It is useful when a first intra-registration has been done with
+##   only the fusion images: a second intra-registration with the segmentation images as template
+##   can be done without recomputing the co-registration
 ##
 
 

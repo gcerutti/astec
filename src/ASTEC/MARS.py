@@ -568,7 +568,7 @@ def mars_process(current_time, environment, parameters):
     #
 
     mars_name = nomenclature.replaceTIME(environment.path_mars_exp_files, current_time)
-    mars_image = commonTools.find_file(environment.path_seg_exp, mars_name, monitoring=None, verbose=False)
+    mars_image = commonTools.find_file(environment.path_seg_exp, mars_name, local_monitoring=None, verbose=False)
 
     if mars_image is not None:
         if monitoring.forceResultsToBeBuilt is False:
@@ -589,7 +589,7 @@ def mars_process(current_time, environment, parameters):
     #
 
     input_name = nomenclature.replaceTIME(environment.path_fuse_exp_files, current_time)
-    input_image = commonTools.find_file(environment.path_fuse_exp, input_name, monitoring)
+    input_image = commonTools.find_file(environment.path_fuse_exp, input_name, local_monitoring=monitoring)
     if input_image is None:
         monitoring.to_log_and_console("    .. image '" + input_name + "' not found in '"
                                       + str(environment.path_fuse_exp) + "'", 2)

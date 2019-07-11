@@ -190,17 +190,26 @@ if __name__ == '__main__':
         #
         # compute sequence properties in xml format
         #
-        xml_output = embryoProp.property_computation(experiment, parameters)
+        xml_output = embryoProp.property_computation(experiment)
 
         #
         # copy sequence properties in pkl format
         #
         pkl_output = xml_output[0:len(xml_output)-4] + ".pkl"
+        pkl_is_to_be_done = True
 
-        inputdict = embryoProp.read_dictionary(xml_output)
-        propertiesfile = open(pkl_output, 'w')
-        pkl.dump(inputdict, propertiesfile)
-        propertiesfile.close()
+        if os.path.isfile(pkl_output):
+            if not monitoring.forceResultsToBeBuilt:
+                monitoring.to_log_and_console('    pkl file already existing', 2)
+                pkl_is_to_be_done = False
+            else:
+                monitoring.to_log_and_console('    pkl file already existing, but forced', 2)
+
+        if pkl_is_to_be_done is True:
+            inputdict = embryoProp.read_dictionary(xml_output)
+            propertiesfile = open(pkl_output, 'w')
+            pkl.dump(inputdict, propertiesfile)
+            propertiesfile.close()
 
         endtime = time.localtime()
 
@@ -315,5 +324,3 @@ if __name__ == '__main__':
         # monitoring.to_log_and_console("")
         # monitoring.to_log_and_console("Total execution time = "+str(time.mktime(endtime)-time.mktime(start_time))+"sec")
         # monitoring.to_log_and_console("")
-
-
