@@ -173,7 +173,9 @@ begin = 0
 ## Or mars_hard_thresholding is set to False, meaning that an adaptative thresholding is computed
 ## by histogram fitting. This adaptative thresholding is governed by three parameters
 ## - mars_sensitivity:
-##   membrane binarization parameter, /!\ if failure, one should enter in "manual" mode of the function
+##   membrane binarization parameter, use larger values (smaller than or equal to 1.0) to increase the quantity
+##   of binarized membranes to be used for tensor voting. Default value is 0.99.
+##   # /!\ if failure, one should enter in "manual" mode of the function
 ##   anisotropicHist via activation of 'manual' option
 ## - mars_manual:
 ##   By default, this parameter is set to False. If failure, (meaning that thresholds are very bad,
@@ -193,6 +195,7 @@ begin = 0
 ##   (big gaps in the binarized membrane image)
 ## - mars_sample:
 ##   Parameter for tensor voting computation speed optimisation (do not touch if not bewared)
+##   set the fraction of binarized membrane image used for tensor voting (default is 0.2).
 ## - mars_sigma_LF:
 ##   Additional smoothing parameter for reconstructed image (in real coordinates).
 ##   It seems that the default value = 0.9 um is ok for standard use.

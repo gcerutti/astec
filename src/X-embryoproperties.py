@@ -193,7 +193,7 @@ if __name__ == '__main__':
         xml_output = embryoProp.property_computation(experiment)
 
         #
-        # copy sequence properties in pkl format
+        # prepare the copy of the sequence properties in pkl format
         #
         pkl_output = xml_output[0:len(xml_output)-4] + ".pkl"
         pkl_is_to_be_done = True
@@ -205,11 +205,32 @@ if __name__ == '__main__':
             else:
                 monitoring.to_log_and_console('    pkl file already existing, but forced', 2)
 
-        if pkl_is_to_be_done is True:
+        #
+        # prepare the copy of the sequence properties in tlp format
+        #
+        tlp_output = xml_output[0:len(xml_output)-4] + ".tlp"
+        tlp_is_to_be_done = True
+
+        if os.path.isfile(tlp_output):
+            if not monitoring.forceResultsToBeBuilt:
+                monitoring.to_log_and_console('    tlp file already existing', 2)
+                tlp_is_to_be_done = False
+            else:
+                monitoring.to_log_and_console('    tlp file already existing, but forced', 2)
+
+        #
+        # copy properties
+        #
+
+        if pkl_is_to_be_done is True or tlp_is_to_be_done is True:
             inputdict = embryoProp.read_dictionary(xml_output)
-            propertiesfile = open(pkl_output, 'w')
-            pkl.dump(inputdict, propertiesfile)
-            propertiesfile.close()
+            if pkl_is_to_be_done is True:
+                propertiesfile = open(pkl_output, 'w')
+                pkl.dump(inputdict, propertiesfile)
+                propertiesfile.close()
+            if tlp_is_to_be_done is True:
+                embryoProp.write_tlp_file(inputdict, tlp_output)
+            del inputdict
 
         endtime = time.localtime()
 
