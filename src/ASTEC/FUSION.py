@@ -1796,6 +1796,20 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
                                                  res_trsfs[i], init_trsfs[i], parameters.registration)
                     else:
                         monitoring.to_log_and_console("       already existing", 2)
+
+                    #
+                    # check whether the registration was successful
+                    #
+                    if not os.path.isfile(res_images[i]) or not os.path.isfile(res_trsfs[i]):
+                        monitoring.to_log_and_console(proc + ": error when registering image " + str(i), 0)
+                        monitoring.to_log_and_console("   image " + str(res_images[i]) + " or transformation "
+                                                      + str(res_trsfs[i]) + " is not existing", 0)
+                        monitoring.to_log_and_console("Exiting.", 0)
+                        sys.exit(1)
+
+
+
+
                 #
                 # other channels
                 #
