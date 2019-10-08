@@ -305,6 +305,8 @@ target_resolution = .3
 
 
 
+# fusion_method = 'direct-fusion'
+
 # fusion_preregistration_compute_registration = False
 # fusion_preregistration_transformation_type = 'translation'
 # fusion_preregistration_transformation_estimation_type = 'wlts'
@@ -321,14 +323,56 @@ target_resolution = .3
 # fusion_registration_pyramid_lowest_level = 3
 # fusion_registration_normalization = True
 
+# fusion_stack_preregistration_compute_registration = True
+# fusion_stack_preregistration_transformation_type = 'affine'
+# fusion_stack_preregistration_transformation_estimation_type = 'wlts'
+# fusion_stack_preregistration_lts_fraction = 0.55
+# fusion_stack_preregistration_pyramid_highest_level = 6
+# fusion_stack_preregistration_pyramid_lowest_level = 3
+# fusion_stack_preregistration_normalization = True
+
+# fusion_stack_registration_compute_registration = True
+# fusion_stack_registration_transformation_type = 'vectorfield'
+# fusion_stack_registration_transformation_estimation_type = 'wlts'
+# fusion_stack_registration_lts_fraction = 1.0
+# fusion_stack_registration_pyramid_highest_level = 6
+# fusion_stack_registration_pyramid_lowest_level = 3
+# fusion_stack_registration_normalization = True
+
 ##
-## step 5. parameters
+## step 5. co-registration of acquisitions ('direct-fusion' and 'hierarchical-fusion')
+##
+
+## ##### explanation #####
+##
+## there are two ways to perform the fusion of the 4 acquisitions:
+##
+## 1. 'direct-fusion'
+##    each acquisition is linearly co-registered with the first acquisition (stack #0, left camera).
+##    Then weights and images are transformed thanks to the computed transformations.
+##    Finally a weighted linear combination gives the result.
+## 2. 'hierarchical-fusion;
+##    from the couple (left camera, right camera), each stack is reconstructed, following the same scheme than
+##    the direct fusion but with only 2 images. Then stack#1 is (non-)linearly co-registered with stack #0.
+##    Images and weights associated with stack#1 are then (non-)linearly transformed.
+##    Finally a weighted linear combination gives the result.
+##
+
+##
+## fusion_preregistration_* and fusion_registration_* control the co-registration of two acquisitions
+## it is either used in the 'direct-fusion' method (to co-register each acquisition onto the first one)
+## or in the 'hierarchical-fusion' method (to co-register couple of opposite acquisitions to reconstruct stacks)
 ##
 ## fusion_registration_pyramid_highest_level: highest level of the pyramid image for registration
 ##   registration is done hierarchically with a pyramid of images at each level, image dimensions are divided by 2.
 ##   'fusion_registration_pyramid_highest_level = 6' means that registration starts with images whose dimensions
 ##   are 1/64th of the original image
 ## fusion_registration_pyramid_lowest_level: lowest level of the pyramid image for registration
+##
+
+##
+## fusion_stack_preregistration_* and fusion_stack_registration_* control the co-registration of two stacks
+## it is only used in the 'hierarchical-fusion' method (to co-register the reconstructed stacks)
 ##
 
 

@@ -237,6 +237,9 @@ class ExperimentGenericSubdirectory(object):
         proc = "ExperimentGenericSubdirectory.set_directory"
         if self._directory is not None:
             return
+        #
+        # empty list
+        #
         self._directory = []
         if type(self._sub_directory_suffix) == str:
             subdir = str(self._sub_directory_prefix) + str(self._sub_directory_suffix)
@@ -704,11 +707,14 @@ class RegistrationParameters(object):
         #
         # parameters
         #
-        self.transformation_type = 'affine'
-        self.transformation_estimation_type = 'wlts'
-        self.lts_fraction = 0.55
         self.pyramid_highest_level = 6
         self.pyramid_lowest_level = 3
+        self.transformation_type = 'affine'
+        self.elastic_sigma = 4.0
+        self.transformation_estimation_type = 'wlts'
+        self.lts_fraction = 0.55
+        self.fluid_sigma = 4.0
+
         self.normalization = True
 
     def write_parameters(self, log_file_name):
@@ -718,12 +724,18 @@ class RegistrationParameters(object):
             logfile.write(_fulldesc(None, 'prefix')+str(self.prefix)+'\n')
             logfile.write(_fulldesc(self.prefix, 'compute_registration') + str(self.compute_registration) + '\n')
 
-            logfile.write(_fulldesc(self.prefix, 'transformation_type')+str(self.transformation_type)+'\n')
+            logfile.write(_fulldesc(self.prefix, 'pyramid_highest_level') + str(self.pyramid_highest_level) + '\n')
+            logfile.write(_fulldesc(self.prefix, 'pyramid_lowest_level') + str(self.pyramid_lowest_level) + '\n')
+
+            logfile.write(_fulldesc(self.prefix, 'transformation_type') + str(self.transformation_type) + '\n')
+
+            logfile.write(_fulldesc(self.prefix, 'elastic_sigma') + str(self.elastic_sigma) + '\n')
+
             logfile.write(_fulldesc(self.prefix, 'transformation_estimation_type')
                           + str(self.transformation_estimation_type)+'\n')
             logfile.write(_fulldesc(self.prefix, 'lts_fraction')+str(self.lts_fraction)+'\n')
-            logfile.write(_fulldesc(self.prefix, 'pyramid_highest_level')+str(self.pyramid_highest_level)+'\n')
-            logfile.write(_fulldesc(self.prefix, 'pyramid_lowest_level')+str(self.pyramid_lowest_level)+'\n')
+            logfile.write(_fulldesc(self.prefix, 'fluid_sigma') + str(self.fluid_sigma) + '\n')
+
             logfile.write(_fulldesc(self.prefix, 'normalization')+str(self.normalization)+'\n')
 
             logfile.write("\n")
@@ -736,11 +748,17 @@ class RegistrationParameters(object):
         print(_fulldesc(None, 'prefix') + str(self.prefix))
         print(_fulldesc(self.prefix, 'compute_registration') + str(self.compute_registration))
 
-        print(_fulldesc(self.prefix, 'transformation_type') + str(self.transformation_type))
-        print(_fulldesc(self.prefix, 'transformation_estimation_type') + str(self.transformation_estimation_type))
-        print(_fulldesc(self.prefix, 'lts_fraction') + str(self.lts_fraction))
         print(_fulldesc(self.prefix, 'pyramid_highest_level') + str(self.pyramid_highest_level))
         print(_fulldesc(self.prefix, 'pyramid_lowest_level') + str(self.pyramid_lowest_level))
+
+        print(_fulldesc(self.prefix, 'transformation_type') + str(self.transformation_type))
+
+        print(_fulldesc(self.prefix, 'elastic_sigma') + str(self.elastic_sigma))
+
+        print(_fulldesc(self.prefix, 'transformation_estimation_type') + str(self.transformation_estimation_type))
+        print(_fulldesc(self.prefix, 'lts_fraction') + str(self.lts_fraction))
+        print(_fulldesc(self.prefix, 'fluid_sigma') + str(self.fluid_sigma))
+
         print(_fulldesc(self.prefix, 'normalization') + str(self.normalization))
 
         print("")

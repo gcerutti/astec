@@ -12,7 +12,12 @@ The fusion is made of the following steps.
 
 \item Optionally, a mirroring of the 'right' image. It depends on the value of  \verb|raw_mirrors| variable.
 
-\item \label{it:fusion:registration} Linear registration of the 3 last images on the first one (considered as the reference). The reference image is resampled again, to get an isotropic voxel (whose size is given by \verb|target_resolution|), i.e. the voxel size is the same along the 3 directions: X, Y, Z.
+\item \label{it:fusion:registration} Co-registration of the 3 last images onto the first one (the acquisition from the left camera for stack \#0) considered as a reference. The reference image is resampled again, to get an isotropic voxel (whose size is given by \verb|target_resolution|), i.e. the voxel size is the same along the 3 directions: X, Y, Z. There are two alternative methods.
+\begin{enumerate}
+\itemsep -1ex
+\item The direct fusion method. Each of the  3 last images is \textit{linearly} co-registered onto the reference image.
+\item The hierarchical method. Each stack is first reconstructed (with the acquisition couple of both left and right cameras), then stack \#1 is \textit{non-linearly} co-registered onto stack \#0. From this last registration, non-linear co-registrations are deduced for the stack \#1 acquisitions, while linear co-registration is still considered for the right camera acquisition of stack \#0.
+\end{enumerate}
 
 \item Linear combination of images, weighted by an ad-hoc function.
 
@@ -389,8 +394,29 @@ raw_crop = False
 \end{verbatim}
 has to be added in the parameter file.
 
-\subsubsection{Step \ref{it:fusion:registration}: linear registration}
-\label{sec:cli:fuse:linear:registration}
+\subsubsection{Step \ref{it:fusion:registration}: image co-registration}
+\label{sec:cli:fuse:image:coregistration}
+
+To fuse the images, they are co-registered onto a reference one. Co-registration are conducted only on the first channel (in case of multiple channel acquisitions), and the computed transformations are also applied onto the other channels. The reference image is chosen as being the acquisition from the left camera for the first stack (also denoted stack \#0). The co-registration strategy is given by the variable \texttt{fusion\_method}.
+
+\begin{itemize}
+\item The line
+\begin{verbatim}
+fusion\_method = 'direct-fusion'
+\end{verbatim}
+will set the co-registration strategy to the one described in \cite{guignard:tel-01278725,guignard:hal-01938126}: each acquisition image is linearly co-registered with the referenceone, i.e. the one from the left camera and for the first stack.
+\item The line
+\begin{verbatim}
+fusion\_method = 'hierarchical-fusion'
+\end{verbatim}
+defines a hierarchical  co-registration  strategy. First, stacks are reconstructed with the two acquisition from the left and the right cameras: here the left and right acquisitions are linearly co-registered. Then, the second stack (stack \#1) is non-linearly co-registered onto the first one (stack \#0). Transformation compositions yield the final transformations that co-registered each acquisition onto the reference one. Note that the acquisition from the right camera of the first stack is only linearly co-registered with the reference acquisition, while both acquisitions for the second stack are non-linearly co-registered.
+\end{itemize}
+
+
+\paragraph{Acquisitions linear co-registration}
+
+The linear co-registrations are either used to co-registered each acquisition onto the reference one in the \texttt{'direct-fusion'} strategy, or to build stacks from the left and right cameras in the \texttt{'hierarchical-fusion'} strategy.
+Variables that controls the linear co-registrations are either prefixed by \texttt{fusion\_preregistration\_} or by \texttt{fusion\_registration\_}.
 
 To decrease the computational cost, images are normalized and cast on one byte before registration. While it generally does not degrade the registration quality, it may induce troubles when hyper-intensities areas are present in the image. In such a case, the useful information may then be summarized in only a few intensity values.
 
@@ -418,7 +444,9 @@ fusion_preregistration_normalization = False
 fusion_registration_normalization = False
 \end{verbatim}
 
+\paragraph{Stacks non-linear co-registration}
 
+Variables that controls the non-linear co-registrations are either prefixed by \texttt{fusion\_stack\_preregistration\_} or by \texttt{fusion\_stack\_registration\_}.
 
 \subsubsection{Step \ref{it:fusion:crop:2}: fused data cropping}
 \label{sec:cli:fuse:fused:data:cropping}
@@ -432,13 +460,14 @@ has to be added in the parameter file.
 \subsection{Troubleshooting}
 
 \begin{itemize}
+
 \item The fused images are obviously wrong.
   \begin{enumerate}
   \item Are the values of the variable couple (\texttt{raw\_ori}, \texttt{raw\_mirrors}) the right ones? Conduct experiments as suggested in section \ref{sec:cli:fuse:important:parameters}  (see also section \ref{sec:cli:fuse:output:data}) to get the right values.
   \item The registration may have failed.
     \begin{enumerate}
-    \item Deactivate the 1-byte normalization (see section \ref{sec:cli:fuse:linear:registration}).
-    \item Try to register with a simpler transformation type (i.e. translation) and/or with a two-steps registration (see section \ref{sec:cli:fuse:linear:registration}).
+    \item Deactivate the 1-byte normalization (see section \ref{sec:cli:fuse:image:coregistration}).
+    \item Try to register with a simpler transformation type (i.e. translation) and/or with a two-steps registration (see section \ref{sec:cli:fuse:image:coregistration}).
     \end{enumerate}
   \end{enumerate}
 \item The imaged sample is cropped by the image border in the fused image.
@@ -491,20 +520,35 @@ Please also refer to the file
 \item \texttt{fusion\_margin\_x\_1}
 \item \texttt{fusion\_margin\_y\_0}
 \item \texttt{fusion\_margin\_y\_1}
-\item \texttt{fusion\_preregistration\_compute\_registration} see section \ref{sec:cli:fuse:linear:registration}
+\item \texttt{fusion\_method}  see section \ref{sec:cli:fuse:image:coregistration}
+\item \texttt{fusion\_preregistration\_compute\_registration} see section \ref{sec:cli:fuse:image:coregistration}
 \item \texttt{fusion\_preregistration\_lts\_fraction}
-\item \texttt{fusion\_preregistration\_normalization} see section \ref{sec:cli:fuse:linear:registration}
+\item \texttt{fusion\_preregistration\_normalization} see section \ref{sec:cli:fuse:image:coregistration}
 \item \texttt{fusion\_preregistration\_pyramid\_highest\_level}
 \item \texttt{fusion\_preregistration\_pyramid\_lowest\_level}
 \item \texttt{fusion\_preregistration\_transformation\_estimation\_type}
 \item \texttt{fusion\_preregistration\_transformation\_type}
 \item \texttt{fusion\_registration\_compute\_registration}
 \item \texttt{fusion\_registration\_lts\_fraction}
-\item \texttt{fusion\_registration\_normalization} see section \ref{sec:cli:fuse:linear:registration}
+\item \texttt{fusion\_registration\_normalization} see section \ref{sec:cli:fuse:image:coregistration}
 \item \texttt{fusion\_registration\_pyramid\_highest\_level}
 \item \texttt{fusion\_registration\_pyramid\_lowest\_level}
 \item \texttt{fusion\_registration\_transformation\_estimation\_type}
-\item \texttt{fusion\_registration\_transformation\_type} see section \ref{sec:cli:fuse:linear:registration}
+\item \texttt{fusion\_registration\_transformation\_type} see section \ref{sec:cli:fuse:image:coregistration}
+\item \texttt{fusion\_stack\_preregistration\_compute\_registration}
+\item \texttt{fusion\_stack\_preregistration\_lts\_fraction}
+\item \texttt{fusion\_stack\_preregistration\_normalization}
+\item \texttt{fusion\_stack\_preregistration\_pyramid\_highest\_level}
+\item \texttt{fusion\_stack\_preregistration\_pyramid\_lowest\_level}
+\item \texttt{fusion\_stack\_preregistration\_transformation\_estimation\_type}
+\item \texttt{fusion\_stack\_preregistration\_transformation\_type}
+\item \texttt{fusion\_stack\_registration\_compute\_registration}
+\item \texttt{fusion\_stack\_registration\_lts\_fraction}
+\item \texttt{fusion\_stack\_registration\_normalization}
+\item \texttt{fusion\_stack\_registration\_pyramid\_highest\_level}
+\item \texttt{fusion\_stack\_registration\_pyramid\_lowest\_level}
+\item \texttt{fusion\_stack\_registration\_transformation\_estimation\_type}
+\item \texttt{fusion\_stack\_registration\_transformation\_type}
 \item \texttt{raw\_crop} see section \ref{sec:cli:fuse:raw:data:cropping}
 \item \texttt{raw\_delay}
 \item \texttt{raw\_margin\_x\_0}

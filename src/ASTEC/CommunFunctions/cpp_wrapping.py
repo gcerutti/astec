@@ -99,6 +99,7 @@ def __find_exec(executable_file):
 
     return path_to_exec
 
+
 def _find_exec(executable_file, monitoring=None):
     """
     Try to find the executable file 'executable_file'
@@ -152,41 +153,31 @@ def _launch_inline_cmd(command_line, monitoring=None):
 
 ############################################################
 #
-# function for the fusion steps
+# interfaces
 #
 ############################################################
 
-
-def apply_transformation(the_image, res_image, the_transformation=None,
-                         template_image=None,
-                         voxel_size=None,
-                         dimensions=None,
-                         interpolation_mode='linear',
-                         cell_based_sigma=0.0,
-                         monitoring=None,
-                         return_image=False):
+def applyTrsf(the_image, res_image, the_transformation=None, template_image=None, res_transformation=None,
+              voxel_size=None, dimensions=None, interpolation_mode='linear', cell_based_sigma=0.0,
+              monitoring=None):
     """
 
     :param the_image: path to the image to be resampled
     :param res_image: path to the resampled image (ie result)
     :param the_transformation: path to the transformation to be used
     :param template_image: path to the template image (used to specify result image geometry)
+    :param res_transformation:
     :param voxel_size: to specify the output voxel size(s); may be used to change image
                 resolution by resampling
     :param dimensions: dimensions of the result image; may be used to change image
                 resolution by resampling
-    :param nearest: do not interpolate (take the nearest value)
-             to be used when applying on label images (default = False)
+    :param interpolation_mode:
     :param cell_based_sigma: smoothing parameter when resampling with nearest=True.
            cell_based_sigma=0.0 means no smoothing.
     :param monitoring: control structure (for verboseness and log informations)
-    :param return_image: if True, return the result image as an spatial image
-                  (default = False; nothing is returned)
-    :return: no returned value if return_image = False
-            if return_image = True, return the result image as an spatial image
     """
 
-    proc = "apply_transformation"
+    proc = "applyTrsf"
 
     path_to_exec = _find_exec('applyTrsf')
 
@@ -197,6 +188,9 @@ def apply_transformation(the_image, res_image, the_transformation=None,
 
     if template_image is not None:
         command_line += " -template " + template_image
+
+    if res_transformation is not None:
+        command_line += " -result-transformation " + res_transformation
 
     if type(interpolation_mode) == str:
         if interpolation_mode.lower() == 'linear':
@@ -244,6 +238,137 @@ def apply_transformation(the_image, res_image, the_transformation=None,
             sys.exit(1)
 
     _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def blockmatching(path_ref, path_flo, path_output, path_output_trsf, path_init_trsf=None,
+                  py_hl=6, py_ll=3, gaussian_pyramid=False,
+                  transformation_type='affine',
+                  elastic_sigma=4.0,
+                  transformation_estimator='wlts',
+                  lts_fraction=0.55,
+                  fluid_sigma=4.0,
+                  normalization=True,
+                  other_options=None,
+                  monitoring=None):
+    """
+
+    :param path_ref:
+    :param path_flo:
+    :param path_output:
+    :param path_output_trsf:
+    :param path_init_trsf:
+    :param py_hl:
+    :param py_ll:
+    :param gaussian_pyramid:
+    :param transformation_type:
+    :param elastic_sigma:
+    :param transformation_estimator:
+    :param lts_fraction:
+    :param fluid_sigma:
+    :param normalization:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('blockmatching')
+
+    #
+    # affine registration
+    #
+
+    command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo + " -res " + path_output
+    command_line += " -res-trsf " + path_output_trsf
+    if path_init_trsf is not None:
+        command_line += " -left-trsf " + path_init_trsf + " -composition-with-initial"
+
+    command_line += " -pyramid-highest-level " + str(py_hl) + " -pyramid-lowest-level " + str(py_ll)
+    if gaussian_pyramid is True:
+        command_line += " -py-gf"
+
+    command_line += " -trsf-type " + transformation_type
+    if transformation_type.lower() == 'vectorfield' or transformation_type.lower() == 'vectorfield2d' \
+            or transformation_type.lower() == 'vectorfield3d':
+        command_line += " -elastic-sigma " + str(elastic_sigma) + " " + str(elastic_sigma) + " " + str(elastic_sigma)
+
+    command_line += " -estimator " + transformation_estimator
+    command_line += " -lts-fraction " + str(lts_fraction)
+    if transformation_type.lower() == 'vectorfield' or transformation_type.lower() == 'vectorfield2d' \
+            or transformation_type.lower() == 'vectorfield3d':
+        command_line += " -fluid-sigma " + str(fluid_sigma) + " " + str(fluid_sigma) + " " + str(fluid_sigma)
+
+    if normalization is False:
+        # monitoring.to_log_and_console("       non-normalized registration", 2)
+        command_line += " -no-normalisation"
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def composeTrsf(the_trsfs, res_trsf, other_options=None,
+                  monitoring=None):
+    path_to_exec = _find_exec('composeTrsf')
+
+    command_line = path_to_exec + " -res " + res_trsf
+    command_line += " -trsfs"
+    for i in range(len(the_trsfs)):
+        command_line += " " + the_trsfs[i]
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+
+############################################################
+#
+# function for the fusion steps
+#
+############################################################
+
+
+def apply_transformation(the_image, res_image, the_transformation=None,
+                         template_image=None,
+                         res_transformation=None,
+                         voxel_size=None,
+                         dimensions=None,
+                         interpolation_mode='linear',
+                         cell_based_sigma=0.0,
+                         monitoring=None,
+                         return_image=False):
+    """
+
+    :param the_image: path to the image to be resampled
+    :param res_image: path to the resampled image (ie result)
+    :param the_transformation: path to the transformation to be used
+    :param template_image: path to the template image (used to specify result image geometry)
+    :param res_transformation:
+    :param voxel_size: to specify the output voxel size(s); may be used to change image
+                resolution by resampling
+    :param dimensions: dimensions of the result image; may be used to change image
+                resolution by resampling
+    :param interpolation_mode:
+    :param cell_based_sigma: smoothing parameter when resampling with nearest=True.
+           cell_based_sigma=0.0 means no smoothing.
+    :param monitoring: control structure (for verboseness and log informations)
+    :param return_image: if True, return the result image as an spatial image
+                  (default = False; nothing is returned)
+    :return: no returned value if return_image = False
+            if return_image = True, return the result image as an spatial image
+    """
+
+    applyTrsf(the_image, res_image, the_transformation=the_transformation, template_image=template_image,
+              res_transformation=res_transformation, voxel_size=voxel_size, dimensions=dimensions,
+              interpolation_mode=interpolation_mode, cell_based_sigma=cell_based_sigma, monitoring=monitoring)
 
     if return_image is True:
         out = imread(res_image)
@@ -1218,9 +1343,11 @@ def create_image(image_out, image_template, other_options=None, monitoring=None)
 
 
 def non_linear_registration(path_ref, path_flo, path_affine, path_vector, affine_trsf, vector_trsf,
-                            py_hl=5, py_ll=3,
+                            py_hl=5, py_ll=3, gaussian_pyramid=True,
                             transformation_estimator='wlts',
-                            lts_fraction=0.55,
+                            lts_fraction=1.0,
+                            elastic_sigma=2.0,
+                            fluid_sigma=2.0,
                             other_options=None,
                             monitoring=None):
     """
@@ -1233,8 +1360,11 @@ def non_linear_registration(path_ref, path_flo, path_affine, path_vector, affine
     :param vector_trsf: path to the non-linear registration (affine o non-linear)
     :param py_hl:
     :param py_ll:
+    :param gaussian_pyramid:
     :param transformation_estimator:
     :param lts_fraction:
+    :param elastic_sigma:
+    :param fluid_sigma:
     :param other_options:
     :param monitoring:
     :return:
@@ -1272,18 +1402,15 @@ def non_linear_registration(path_ref, path_flo, path_affine, path_vector, affine
     command_line += " -composition-with-initial"
 
     command_line += " -pyramid-highest-level " + str(py_hl) + " -pyramid-lowest-level " + str(py_ll)
+    if ( gaussian_pyramid ):
+        command_line += " -py-gf"
 
     command_line += " -trsf-type vectorfield"
 
     command_line += " -estimator " + transformation_estimator
-    #
-    # was not set in previous version ...
-    #
-    # command_line += " -lts-fraction " + str(lts_fraction)
-    #
-    command_line += " -py-gf"
-    command_line += " -elastic-sigma 2.0 2.0 2.0"
-    command_line += " -fluid-sigma 2.0 2.0 2.0"
+    command_line += " -lts-fraction " + str(lts_fraction)
+    command_line += " -elastic-sigma " + str(elastic_sigma) + " "  + str(elastic_sigma) + " " + str(elastic_sigma)
+    command_line += " -fluid-sigma " + str(fluid_sigma) + " "  + str(fluid_sigma) + " " + str(fluid_sigma)
 
     if other_options is not None:
         command_line += " " + other_options

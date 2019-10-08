@@ -392,6 +392,11 @@ class FusionParameters(object):
         self.target_resolution = (0.3, 0.3, 0.3)
 
         #
+        # fusion method
+        #
+        self.fusion_method = 'direct-fusion'
+
+        #
         # Cropping of acquisition images (before fusion)
         #
         self.acquisition_cropping = True
@@ -402,14 +407,30 @@ class FusionParameters(object):
 
         #
         # Registration parameters
+        # 1. acquisition_registration[] are the parameters for the registration
+        #    of two acquisitions (ie a camera image)
+        # 2. stack_registration are the parameters for the registration
+        #    of two stacks (ie reconstruction from two opposite cameras)
         #
-        self.pre_registration = commonTools.RegistrationParameters()
-        self.pre_registration.prefix = 'fusion_preregistration_'
-        self.pre_registration.compute_registration = False
-        self.pre_registration.transformation_type = 'translation'
+        self.acquisition_registration = []
 
-        self.registration = commonTools.RegistrationParameters()
-        self.registration.prefix = 'fusion_registration_'
+        self.acquisition_registration.append(commonTools.RegistrationParameters())
+        self.acquisition_registration[0].prefix = 'fusion_preregistration_'
+        self.acquisition_registration[0].compute_registration = False
+        self.acquisition_registration[0].transformation_type = 'translation'
+
+        self.acquisition_registration.append(commonTools.RegistrationParameters())
+        self.acquisition_registration[1].prefix = 'fusion_registration_'
+
+        self.stack_registration = []
+
+        self.stack_registration.append(commonTools.RegistrationParameters())
+        self.stack_registration[0].prefix = 'fusion_stack_preregistration_'
+
+        self.stack_registration.append(commonTools.RegistrationParameters())
+        self.stack_registration[1].prefix = 'fusion_stack_registration_'
+        self.stack_registration[1].transformation_type = 'vectorfield'
+        self.stack_registration[1].lts_fraction = 1.0
 
         #
         # Cropping of fused image (after fusion)
@@ -439,14 +460,18 @@ class FusionParameters(object):
 
             logfile.write('- target_resolution  = '+str(self.target_resolution)+'\n')
 
+            logfile.write('- fusion_method  = ' + str(self.fusion_method) + '\n')
+
             logfile.write('- acquisition_cropping = '+str(self.acquisition_cropping)+'\n')
             logfile.write('- acquisition_cropping_margin_x_0 = '+str(self.acquisition_cropping_margin_x_0)+'\n')
             logfile.write('- acquisition_cropping_margin_x_1 = '+str(self.acquisition_cropping_margin_x_1)+'\n')
             logfile.write('- acquisition_cropping_margin_y_0 = '+str(self.acquisition_cropping_margin_y_0)+'\n')
             logfile.write('- acquisition_cropping_margin_y_1 = '+str(self.acquisition_cropping_margin_y_1)+'\n')
 
-            self.pre_registration.write_parameters(log_file_name)
-            self.registration.write_parameters(log_file_name)
+            for p in self.acquisition_registration:
+                p.write_parameters(log_file_name)
+            for p in self.stack_registration:
+                p.write_parameters(log_file_name)
 
             logfile.write('- fusion_cropping = '+str(self.fusion_cropping)+'\n')
             logfile.write('- fusion_cropping_margin_x_0 = '+str(self.fusion_cropping_margin_x_0)+'\n')
@@ -472,14 +497,18 @@ class FusionParameters(object):
 
         print('- target_resolution  = '+str(self.target_resolution))
 
+        print('- fusion_method  = ' + str(self.fusion_method))
+
         print('- acquisition_cropping = '+str(self.acquisition_cropping))
         print('- acquisition_cropping_margin_x_0 = '+str(self.acquisition_cropping_margin_x_0))
         print('- acquisition_cropping_margin_x_1 = '+str(self.acquisition_cropping_margin_x_1))
         print('- acquisition_cropping_margin_y_0 = '+str(self.acquisition_cropping_margin_y_0))
         print('- acquisition_cropping_margin_y_1 = '+str(self.acquisition_cropping_margin_y_1))
 
-        self.pre_registration.print_parameters()
-        self.registration.print_parameters()
+        for p in self.acquisition_registration:
+            p.print_parameters()
+        for p in self.stack_registration:
+            p.print_parameters()
 
         print('- fusion_cropping = '+str(self.fusion_cropping))
         print('- fusion_cropping_margin_x_0 = '+str(self.fusion_cropping_margin_x_0))
@@ -568,6 +597,13 @@ class FusionParameters(object):
                 self.target_resolution = parameters.target_resolution
 
         #
+        # fusion method
+        #
+        if hasattr(parameters, 'fusion_method'):
+            if parameters.fusion_method is not None:
+                self.fusion_method = parameters.fusion_method
+
+        #
         # Cropping of acquisition images (before fusion)
         #
         if hasattr(parameters, 'raw_crop'):
@@ -588,8 +624,10 @@ class FusionParameters(object):
 
         #
         # registration parameters
-        self.pre_registration.update_from_file(parameter_file)
-        self.registration.update_from_file(parameter_file)
+        for p in self.acquisition_registration:
+            p.update_from_file(parameter_file)
+        for p in self.stack_registration:
+            p.update_from_file(parameter_file)
 
         #
         # Cropping of fused image (after fusion)
@@ -1252,6 +1290,34 @@ def _build_mask(image, direction):
 #
 ########################################################################################
 
+def _blockmatching(path_ref, path_flo, path_output, path_output_trsf, path_init_trsf=None,
+                   parameters=None):
+    """
+
+    :param path_ref:
+    :param path_flo:
+    :param path_output:
+    :param path_output_trsf:
+    :param path_init_trsf:
+    :param parameters:
+    :return:
+    """
+    if parameters is not None:
+        cpp_wrapping.blockmatching(path_ref, path_flo, path_output, path_output_trsf, path_init_trsf=path_init_trsf,
+                                   py_hl=parameters.pyramid_highest_level,
+                                   py_ll=parameters.pyramid_lowest_level,
+                                   transformation_type=parameters.transformation_type,
+                                   elastic_sigma=parameters.elastic_sigma,
+                                   transformation_estimator=parameters.transformation_estimation_type,
+                                   lts_fraction=parameters.lts_fraction,
+                                   fluid_sigma=parameters.fluid_sigma,
+                                   normalization=parameters.normalization,
+                                   monitoring=monitoring)
+    else:
+        cpp_wrapping.blockmatching(path_ref, path_flo, path_output, path_output_trsf, path_init_trsf=path_init_trsf,
+                                   monitoring=monitoring)
+
+
 def _linear_registration(path_ref, path_flo, path_output, path_output_trsf, path_init_trsf=None,
                          parameters=None):
     if parameters is not None:
@@ -1274,11 +1340,893 @@ def _linear_registration(path_ref, path_flo, path_output, path_output_trsf, path
 #
 ########################################################################################
 
-def fusion_process(input_image_list, fused_image, channel, parameters):
+#
+# historical fusion procedure
+# each image is co-registered with the left camera acquisition of stack 30
+#
+
+def _direct_fusion_process(input_image_list, the_image_list, fused_image, channel, parameters):
+    """
+
+    :param input_image_list:
+    :param the_image_list: list of list of preprocessed images (in the temporary directory), ie after
+        1. (optional) slit line correction
+        2. resolution change (only in X and Y directions)
+        3. (optional) 2D crop
+        4. mirroring of the right camera images (parameter dependent)
+
+    :param fused_image:
+    :param channel:
+    :param parameters:
+    :return:
+    """
+
+    proc = "_direct_fusion_process"
+
+    if monitoring.debug > 1:
+        print ""
+        print proc + " was called with:"
+        print "- input_image_list = " + str(input_image_list)
+        print "- the_image_list = " + str(the_image_list)
+        print "- fused_image = " + str(fused_image)
+        for c in range(0, len(channel)):
+            channel[c].print_parameters('channel #' + str(c))
+        print ""
+
+    #
+    # list of registered images 
+    #
+
+    res_image_list = list()
+    for c in range(0, len(channel)):
+
+        the_images = the_image_list[c]
+        res_images = []
+
+        for i in range(0, len(the_images)):
+            res_images.append(commonTools.add_suffix(input_image_list[c][i], "_reg",
+                                                     new_dirname=channel[c].temporary_paths[i],
+                                                     new_extension=parameters.default_image_suffix))
+        res_image_list.append(res_images)
+
+    #
+    # is there something to do ?
+    # check whether fused images are missing
+    # - if one fusion image is missing, re-process channel #0 to get weights and sum of weights
+    # - if the fusion image exists, check whether the registered images exists
+    #
+
+    do_something = [False] * len(input_image_list[0])
+
+    for c in range(0, len(channel)):
+
+        the_images = the_image_list[c]
+        res_images = res_image_list[c]
+
+        if not os.path.isfile(os.path.join(channel[c].path_fuse_exp, fused_image)):
+            do_something = [True] * len(input_image_list[0])
+            break
+
+        for i in range(0, len(the_images)):
+            if os.path.isfile(res_images[i]):
+                if monitoring.forceResultsToBeBuilt is True:
+                    do_something[i] = True
+            else:
+                do_something[i] = True
+
+    for i in range(1, len(input_image_list[0])):
+        if do_something[i] is True:
+            do_something[0] = True
+
+    #
+    # additional file names for channel #0
+    #
+
+    init_trsfs = []
+    prereg_trsfs = []
+    res_trsfs = []
+    unreg_weight_images = []
+    weight_images = []
+
+    #
+    # build the file names after the input file names
+    #
+    the_images = the_image_list[0]
+    for i in range(0, len(the_images)):
+        init_trsfs.append(commonTools.add_suffix(input_image_list[0][i], "_init",
+                                                 new_dirname=channel[0].temporary_paths[i], new_extension="trsf"))
+        prereg_trsfs.append(commonTools.add_suffix(input_image_list[0][i], "_prereg",
+                                                   new_dirname=channel[0].temporary_paths[i],
+                                                   new_extension="trsf"))
+        res_trsfs.append(commonTools.add_suffix(input_image_list[0][i], "_reg",
+                                                new_dirname=channel[0].temporary_paths[i],
+                                                new_extension="trsf"))
+        unreg_weight_images.append(commonTools.add_suffix(input_image_list[0][i], "_init_weight",
+                                                          new_dirname=channel[0].temporary_paths[i],
+                                                          new_extension=parameters.default_image_suffix))
+        weight_images.append(commonTools.add_suffix(input_image_list[0][i], "_weight",
+                                                    new_dirname=channel[0].temporary_paths[i],
+                                                    new_extension=parameters.default_image_suffix))
+
+    #
+    # 1. Putting all images in a common reference
+    # - resampling of first image in an isotropic grid = reference image
+    # - co-registration of other images
+    # 2. Compute weights with an ad-hoc method
+    #
+
+    #
+    # default angle for initial rotation matrix
+    #
+
+    if parameters.acquisition_orientation.lower() == 'left':
+        default_angle = 270.0
+    elif parameters.acquisition_orientation.lower() == 'right':
+        default_angle = 90.0
+    else:
+        monitoring.to_log_and_console(proc + ": unknown acquisition orientation '"
+                                      + str(parameters.acquisition_orientation) + "'", 0)
+        monitoring.to_log_and_console("Exiting.", 0)
+        sys.exit(1)
+
+    #
+    # process
+    # transformations and weights are computed on channel #0
+    # and are used for other channels
+    # - first image is just resampled to the destination resolution
+    # - other images are co-registered with the first image
+    #
+
+    #
+    # fusion_box is the croping information computed only on the first channel
+    # and then used for all other channels
+    #
+    fusion_box = None
+
+    for c in range(0, len(channel)):
+
+        if len(channel) > 1:
+            monitoring.to_log_and_console("    .. process channel #" + str(c), 2)
+
+        the_images = the_image_list[c]
+        res_images = res_image_list[c]
+
+        for i in range(0, len(the_images)):
+
+            monitoring.to_log_and_console("    .. process '"
+                                          + the_images[i].split(os.path.sep)[-1] + "' for fusion", 2)
+
+            if do_something[i] is False:
+                monitoring.to_log_and_console("       nothing to do", 2)
+                continue
+
+            #
+            # first image: resampling only
+            #
+            if i == 0:
+                #
+                # image center
+                #
+                im = imread(the_images[i])
+                ref_center = np.multiply(im.shape[:3], im.resolution) / 2.0
+                del im
+
+                #
+                # resampling first image
+                #
+                monitoring.to_log_and_console("       resampling '" + the_images[i].split(os.path.sep)[-1]
+                                              + "' at " + str(parameters.target_resolution), 2)
+                if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                    cpp_wrapping.apply_transformation(the_images[i], res_images[i], the_transformation=None,
+                                                      template_image=None,
+                                                      voxel_size=parameters.target_resolution,
+                                                      interpolation_mode='linear',
+                                                      monitoring=monitoring)
+                else:
+                    monitoring.to_log_and_console("       already existing", 2)
+
+            #
+            # other images:
+            # - channel #0: co-registration
+            # - other channels: resampling with transformation of channel #0
+            #
+            else:
+
+                if c == 0:
+
+                    monitoring.to_log_and_console("       co-registering '" + the_images[i].split(os.path.sep)[-1]
+                                                  + "'", 2)
+
+                    #
+                    # initial transformation
+                    #
+                    if not os.path.isfile(init_trsfs[i]) or monitoring.forceResultsToBeBuilt is True:
+                        if i == 1:
+                            angle = 0.0
+                        else:
+                            angle = default_angle
+                        monitoring.to_log_and_console("       angle used for '" + init_trsfs[i].split(os.path.sep)[-1]
+                                                      + "' is " + str(angle), 2)
+                        im = imread(the_images[i])
+                        flo_center = np.multiply(im.shape[:3], im.resolution) / 2.0
+                        del im
+
+                        #
+                        # the initial transformation was computed with _axis_rotation_matrix(). To compute the
+                        # translation, it preserves the center of the field of view of the floating image.
+                        # However it seems more coherent to compute a translation that put the center of FOV of the
+                        # floating image onto he FOV of the reference one.
+                        #
+                        # the call to _axis_rotation_matrix() was
+                        # rotation_matrix = _axis_rotation_matrix(axis="Y", angle=angle, min_space=(0, 0, 0),
+                        #                                         max_space=np.multiply(im.shape[:3], im.resolution))
+                        # Note: it requires that 'im' is deleted after the call
+                        #
+                        # it can be mimicked by
+                        # _ init_rotation_matrix(axis="Y", angle=angle, ref_center=flo_center, flo_center=flo_center)
+                        #
+
+                        rotation_matrix = _init_rotation_matrix(axis="Y", angle=angle, ref_center=ref_center,
+                                                                flo_center=flo_center)
+
+                        np.savetxt(init_trsfs[i], rotation_matrix)
+                        del rotation_matrix
+
+                    #
+                    # a two-fold registration, translation then affine, could be preferable
+                    #
+                    if not os.path.isfile(res_images[i]) or not os.path.isfile(res_trsfs[i]) \
+                            or monitoring.forceResultsToBeBuilt is True:
+                        if parameters.acquisition_registration[0].compute_registration is True:
+                            _linear_registration(res_images[0], the_images[i], res_images[i],
+                                                 prereg_trsfs[i], init_trsfs[i], parameters.acquisition_registration[0])
+                            _linear_registration(res_images[0], the_images[i], res_images[i],
+                                                 res_trsfs[i], prereg_trsfs[i], parameters.acquisition_registration[1])
+                        else:
+                            _linear_registration(res_images[0], the_images[i], res_images[i],
+                                                 res_trsfs[i], init_trsfs[i], parameters.acquisition_registration[1])
+                    else:
+                        monitoring.to_log_and_console("       already existing", 2)
+
+                    #
+                    # check whether the registration was successful
+                    #
+                    if not os.path.isfile(res_images[i]) or not os.path.isfile(res_trsfs[i]):
+                        monitoring.to_log_and_console(proc + ": error when registering image " + str(i), 0)
+                        monitoring.to_log_and_console("   image " + str(res_images[i]) + " or transformation "
+                                                      + str(res_trsfs[i]) + " is not existing", 0)
+                        monitoring.to_log_and_console("Exiting.", 0)
+                        sys.exit(1)
+
+                #
+                # other channels
+                #
+                else:
+
+                    monitoring.to_log_and_console("       resampling '" + the_images[i].split(os.path.sep)[-1] + "'", 2)
+                    if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                        cpp_wrapping.apply_transformation(the_images[i], res_images[i],
+                                                          the_transformation=res_trsfs[i], template_image=res_images[0],
+                                                          voxel_size=None, interpolation_mode='linear',
+                                                          monitoring=monitoring)
+                    else:
+                        monitoring.to_log_and_console("       already existing", 2)
+
+            #
+            # compute weighting masks on channel #0
+            # - mask is computed on an untransformed image
+            #   however, resolution may have changed, or it can be cropped
+            #   or it can be mirrored (default behavior is that mask are computed on the '_crop' images
+            # - mask are then transformed with the computed transformation
+            #
+            if c == 0:
+
+                monitoring.to_log_and_console("       computing weights for fusion", 2)
+
+                if i % 2 == 1:
+                    direction = False
+                else:
+                    direction = True
+
+                if not os.path.isfile(unreg_weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                    #
+                    #
+                    #
+                    im = imread(the_images[i])
+                    unreg_weight = _build_mask(im, direction)
+                    unreg_weight._set_resolution(im._get_resolution())
+                    imsave(unreg_weight_images[i], unreg_weight)
+                    del im
+                    del unreg_weight
+                else:
+                    monitoring.to_log_and_console("       already existing", 2)
+
+                monitoring.to_log_and_console("       resampling '" + unreg_weight_images[i].split(os.path.sep)[-1]
+                                              + "'", 2)
+                if i == 0:
+                    if not os.path.isfile(weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                        cpp_wrapping.apply_transformation(unreg_weight_images[i], weight_images[i],
+                                                          the_transformation=None, template_image=None,
+                                                          voxel_size=parameters.target_resolution,
+                                                          interpolation_mode='linear', monitoring=monitoring)
+                    else:
+                        monitoring.to_log_and_console("       already existing", 2)
+                else:
+                    if not os.path.isfile(weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                        cpp_wrapping.apply_transformation(unreg_weight_images[i], weight_images[i],
+                                                          the_transformation=res_trsfs[i], template_image=res_images[0],
+                                                          voxel_size=None, interpolation_mode='linear',
+                                                          monitoring=monitoring)
+                    else:
+                        monitoring.to_log_and_console("       already existing", 2)
+
+        #
+        # compute fused image as a linear combination of co-registered images
+        # the sun of weights have been precomputed to mimic historical behavior
+        #
+        # do not forget to cast the result on 16 bits
+        #
+
+        monitoring.to_log_and_console("    .. combining images", 2)
+
+        if parameters.fusion_cropping is True:
+            tmp_fused_image = commonTools.add_suffix(fused_image, "_uncropped_fusion",
+                                                     new_dirname=channel[c].temporary_paths[4],
+                                                     new_extension=parameters.default_image_suffix)
+        else:
+            tmp_fused_image = os.path.join(channel[c].path_fuse_exp, fused_image)
+
+        cpp_wrapping.linear_combination(weight_images, res_images, tmp_fused_image, monitoring=monitoring)
+
+        #
+        # save image if fusion is required
+        #
+        if parameters.fusion_cropping is True:
+
+            if c == 0:
+                fusion_box = _crop_bounding_box(tmp_fused_image)
+
+            monitoring.to_log_and_console("    .. cropping '" + fused_image.split(os.path.sep)[-1], 2)
+            _crop_disk_image(tmp_fused_image, os.path.join(channel[c].path_fuse_exp, fused_image), fusion_box,
+                             parameters.fusion_cropping_margin_x_0,
+                             parameters.fusion_cropping_margin_x_1,
+                             parameters.fusion_cropping_margin_y_0,
+                             parameters.fusion_cropping_margin_y_1)
+    return
+
+
+#
+# hierarchical fusion procedure
+# - each stack is reconstructed
+# - stack are co-registered
+# - all acquisitions are fused
+#
+
+def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, channel, parameters):
+    """
+
+    :param input_image_list:
+    :param the_image_list: list of list of preprocessed images (in the temporary directory), ie after
+        1. (optional) slit line correction
+        2. resolution change (only in X and Y directions)
+        3. (optional) 2D crop
+        4. mirroring of the right camera images (parameter dependent)
+
+    :param fused_image:
+    :param channel:
+    :param parameters:
+    :return:
+    """
+
+
+    proc = "_hierarchical_fusion_process"
+
+    if monitoring.debug > 1:
+        print ""
+        print proc + " was called with:"
+        print "- input_image_list = " + str(input_image_list)
+        print "- the_image_list = " + str(the_image_list)
+        print "- fused_image = " + str(fused_image)
+        for c in range(0, len(channel)):
+            channel[c].print_parameters('channel #' + str(c))
+        print ""
+
+    #
+    # list of registered images
+    #
+
+    res_image_list = list()
+
+    for c in range(0, len(channel)):
+        the_images = the_image_list[c]
+        res_images = []
+        for i in range(0, len(the_images)):
+            res_images.append(commonTools.add_suffix(input_image_list[c][i], "_reg",
+                                                     new_dirname=channel[c].temporary_paths[i],
+                                                     new_extension=parameters.default_image_suffix))
+        res_image_list.append(res_images)
+
+    #
+    # is there something to do ?
+    # check whether fused images are missing
+    # - if one fusion image is missing, re-process channel #0 to get weights and sum of weights
+    # - if the fusion image exists, check whether the registered images exists
+    #
+
+    do_something = [False] * len(input_image_list[0])
+
+    for c in range(0, len(channel)):
+
+        the_images = the_image_list[c]
+        res_images = res_image_list[c]
+
+        if not os.path.isfile(os.path.join(channel[c].path_fuse_exp, fused_image)):
+            do_something = [True] * len(input_image_list[0])
+            break
+
+        for i in range(0, len(the_images)):
+            if os.path.isfile(res_images[i]):
+                if monitoring.forceResultsToBeBuilt is True:
+                    do_something[i] = True
+            else:
+                do_something[i] = True
+
+    for i in range(1, len(input_image_list[0])):
+        if do_something[i] is True:
+            do_something[0] = True
+
+
+    #
+    # stack reconstruction on channel #0
+    #
+
+    the_images = the_image_list[0]
+    stack_res_images = []
+    res_images = res_image_list[0]
+    stack_resample_trsfs = []
+    res_trsfs = []
+
+    stack_prereg_trsfs = []
+    stack_res_trsfs = []
+    unreg_weight_images = []
+    stack_weight_images = []
+    weight_images = []
+
+
+    #
+    # additional files only for the first channel
+    #
+
+    for i in range(0, len(the_images)):
+        if i == 0 or i == 1:
+            stack_res_images.append(commonTools.add_suffix(input_image_list[0][i], "_reg",
+                                                           new_dirname=channel[0].temporary_paths[i],
+                                                           new_extension=parameters.default_image_suffix))
+            stack_res_trsfs.append(commonTools.add_suffix(input_image_list[0][i], "_reg",
+                                                          new_dirname=channel[0].temporary_paths[i],
+                                                          new_extension="trsf"))
+        else:
+            stack_res_images.append(commonTools.add_suffix(input_image_list[0][i], "_stack_reg",
+                                                           new_dirname=channel[0].temporary_paths[i],
+                                                           new_extension=parameters.default_image_suffix))
+            stack_res_trsfs.append(commonTools.add_suffix(input_image_list[0][i], "_stack_reg",
+                                                          new_dirname=channel[0].temporary_paths[i],
+                                                          new_extension="trsf"))
+
+        stack_resample_trsfs.append(commonTools.add_suffix(input_image_list[0][i], "_resolutionchange",
+                                                           new_dirname=channel[0].temporary_paths[i],
+                                                           new_extension="trsf"))
+
+        res_trsfs.append(commonTools.add_suffix(input_image_list[0][i], "_reg",
+                                                new_dirname=channel[0].temporary_paths[i],
+                                                new_extension="trsf"))
+
+        stack_prereg_trsfs.append(commonTools.add_suffix(input_image_list[0][i], "_stack_prereg",
+                                                         new_dirname=channel[0].temporary_paths[i],
+                                                         new_extension="trsf"))
+        unreg_weight_images.append(commonTools.add_suffix(input_image_list[0][i], "_init_weight",
+                                                          new_dirname=channel[0].temporary_paths[i],
+                                                          new_extension=parameters.default_image_suffix))
+
+        if i == 0 or i == 1:
+            stack_weight_images.append(commonTools.add_suffix(input_image_list[0][i], "_weight",
+                                                              new_dirname=channel[0].temporary_paths[i],
+                                                              new_extension=parameters.default_image_suffix))
+        else:
+            stack_weight_images.append(commonTools.add_suffix(input_image_list[0][i], "_stack_weight",
+                                                              new_dirname=channel[0].temporary_paths[i],
+                                                              new_extension=parameters.default_image_suffix))
+        weight_images.append(commonTools.add_suffix(input_image_list[0][i], "_weight",
+                                                    new_dirname=channel[0].temporary_paths[i],
+                                                    new_extension=parameters.default_image_suffix))
+    #
+    # there is one temporary path per acquisition (from 0 to 3) and an additional one which is the
+    # parent directory (see _fusion_preprocess())
+    #
+    stack_fused_images = []
+    for stack in range(2):
+        stack_fused_images.append(commonTools.add_suffix(fused_image, "_stack_" + str(stack),
+                                                         new_dirname=channel[0].temporary_paths[4],
+                                                         new_extension=parameters.default_image_suffix))
+
+
+    #
+    # stack #0, co-register acquisitions #0 and #1
+    # stack #1, co-register acquisitions #2 and #3
+    #
+
+    if len(channel) > 1:
+        monitoring.to_log_and_console("    .. process channel #0", 2)
+
+    for stack in range(2):
+
+        monitoring.to_log_and_console("    .. reconstruct stack #" + str(stack))
+
+        #
+        # resample acquisition 2*stack+0 [0, 2]
+        # co-register acquisition 2*stack+1 [1, 3]
+        #
+
+        for j in range(2):
+            i = 2*stack+j
+            r = 2*stack
+            monitoring.to_log_and_console("      .. process '"
+                                        + the_images[i].split(os.path.sep)[-1] + "' for fusion", 2)
+
+            if do_something[i] is False:
+                monitoring.to_log_and_console("         nothing to do", 2)
+                continue
+
+            #
+            # first image: resampling only
+            #
+            if j == 0:
+                #
+                # image center
+                #
+                im = imread(the_images[i])
+                ref_center = np.multiply(im.shape[:3], im.resolution) / 2.0
+                del im
+
+                #
+                # resampling first image
+                #
+                monitoring.to_log_and_console("         resampling '" + the_images[i].split(os.path.sep)[-1]
+                                              + "' at " + str(parameters.target_resolution), 2)
+                if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                    cpp_wrapping.apply_transformation(the_images[i], stack_res_images[i],
+                                                      the_transformation=None,
+                                                      template_image=None,
+                                                      res_transformation=stack_resample_trsfs[i],
+                                                      voxel_size=parameters.target_resolution,
+                                                      interpolation_mode='linear',
+                                                      monitoring=monitoring)
+                else:
+                    monitoring.to_log_and_console("         already existing", 2)
+
+                #
+                # other image:
+                # - channel #0: co-registration
+                # - other channels: resampling with transformation of channel #0
+                #
+            else:
+
+                monitoring.to_log_and_console("         co-registering '" + the_images[i].split(os.path.sep)[-1]
+                                              + "'", 2)
+
+                #
+                # a two-fold registration, translation then affine, could be preferable
+                #
+                if not os.path.isfile(stack_res_images[i]) or not os.path.isfile(stack_res_trsfs[i]) \
+                        or monitoring.forceResultsToBeBuilt is True:
+                    if parameters.acquisition_registration[0].compute_registration is True:
+                        _linear_registration(stack_res_images[r], the_images[i], res_images[i],
+                                             stack_prereg_trsfs[i], None, parameters.acquisition_registration[0])
+                        _linear_registration(stack_res_images[r], the_images[i], stack_res_images[i],
+                                             stack_res_trsfs[i], stack_prereg_trsfs[i],
+                                             parameters.acquisition_registration[1])
+                    else:
+                        _linear_registration(stack_res_images[r], the_images[i], stack_res_images[i],
+                                             stack_res_trsfs[i], None, parameters.acquisition_registration[1])
+                else:
+                    monitoring.to_log_and_console("         already existing", 2)
+
+                #
+                # check whether the registration was successful
+                #
+                if not os.path.isfile(stack_res_images[i]) or not os.path.isfile(stack_res_trsfs[i]):
+                    monitoring.to_log_and_console(proc + ": error when registering image " + str(i), 0)
+                    monitoring.to_log_and_console("   image " + str(stack_res_images[i]) + " or transformation "
+                                                  + str(stack_res_trsfs[i]) + " is not existing", 0)
+                    monitoring.to_log_and_console("Exiting.", 0)
+                    sys.exit(1)
+
+        #
+        # compute weights
+        #
+        monitoring.to_log_and_console("         computing weights for stack fusion of stack #" + str(stack), 2)
+        for j in range(2):
+            i = 2 * stack + j
+            r = 2 * stack
+            monitoring.to_log_and_console("      .. process '"
+                                          + the_images[i].split(os.path.sep)[-1] + "' for weight", 2)
+
+            if j == 1:
+                direction = False
+            else:
+                direction = True
+
+            if not os.path.isfile(unreg_weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
+            #
+            #
+            #
+                im = imread(the_images[i])
+                unreg_weight = _build_mask(im, direction)
+                unreg_weight._set_resolution(im._get_resolution())
+                imsave(unreg_weight_images[i], unreg_weight)
+                del im
+                del unreg_weight
+            else:
+                monitoring.to_log_and_console("         already existing", 2)
+
+            monitoring.to_log_and_console("         resampling '" + unreg_weight_images[i].split(os.path.sep)[-1]
+                                          + "'", 2)
+            if j == 0:
+                if not os.path.isfile(stack_weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                    cpp_wrapping.apply_transformation(unreg_weight_images[i], stack_weight_images[i],
+                                                      the_transformation=None, template_image=None,
+                                                      voxel_size=parameters.target_resolution,
+                                                      interpolation_mode='linear', monitoring=monitoring)
+                else:
+                    monitoring.to_log_and_console("         already existing", 2)
+            else:
+                if not os.path.isfile(stack_weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                    cpp_wrapping.apply_transformation(unreg_weight_images[i], stack_weight_images[i],
+                                                      the_transformation=stack_res_trsfs[i],
+                                                      template_image=stack_res_images[r],
+                                                      voxel_size=None, interpolation_mode='linear',
+                                                      monitoring=monitoring)
+                else:
+                    monitoring.to_log_and_console("         already existing", 2)
+
+        #
+        # compute fused image as a linear combination of co-registered images
+        # the sun of weights have been precomputed to mimic historical behavior
+        #
+        # do not forget to cast the result on 16 bits
+        #
+
+        monitoring.to_log_and_console("      .. combining images for stack #" + str(stack), 2)
+
+        if not os.path.isfile(stack_fused_images[stack]) or monitoring.forceResultsToBeBuilt is True:
+            cpp_wrapping.linear_combination(stack_weight_images[2*stack:2*(stack+1)],
+                                            stack_res_images[2*stack:2*(stack+1)],
+                                            stack_fused_images[stack], monitoring=monitoring)
+
+    #
+    # stacks #0 and #1 have been reconstructed, now we co-registered them
+    #
+
+    #
+    # compute initial rotation matrix
+    #
+
+    monitoring.to_log_and_console("    .. registering stack #1 onto stack #0", 2)
+    monitoring.to_log_and_console("       initial transformation", 2)
+
+    init_trsfs = commonTools.add_suffix(input_image_list[0][2], "_init", new_dirname=channel[0].temporary_paths[2],
+                                        new_extension="trsf")
+    if parameters.acquisition_orientation.lower() == 'left':
+        angle = 270.0
+    elif parameters.acquisition_orientation.lower() == 'right':
+        angle = 90.0
+    im = imread(the_images[0])
+    ref_center = np.multiply(im.shape[:3], im.resolution) / 2.0
+    del im
+    im = imread(the_images[2])
+    flo_center = np.multiply(im.shape[:3], im.resolution) / 2.0
+    del im
+    rotation_matrix = _init_rotation_matrix(axis="Y", angle=angle, ref_center=ref_center, flo_center=flo_center)
+    np.savetxt(init_trsfs, rotation_matrix)
+    del rotation_matrix
+
+    monitoring.to_log_and_console("       registration", 2)
+
+    reg_stack_image = commonTools.add_suffix(fused_image, "_stack_" + str(stack) + "_reg",
+                                                  new_dirname=channel[0].temporary_paths[4],
+                                                  new_extension=parameters.default_image_suffix)
+    reg_stack_trsf = commonTools.add_suffix(fused_image, "_stack_" + str(stack) + "_reg",
+                                                 new_dirname=channel[0].temporary_paths[4],
+                                                 new_extension="trsf")
+
+    if not os.path.isfile(reg_stack_image) or not os.path.isfile(reg_stack_trsf) \
+            or monitoring.forceResultsToBeBuilt is True:
+        if parameters.stack_registration[0].compute_registration is True and \
+                parameters.stack_registration[1].compute_registration is True:
+            monitoring.to_log_and_console("           registration 1/2", 2)
+            _blockmatching(stack_fused_images[0], stack_fused_images[1], reg_stack_image,
+                           reg_stack_trsf, path_init_trsf=init_trsfs, parameters=parameters.stack_registration[0])
+            monitoring.to_log_and_console("           registration 2/2", 2)
+            _blockmatching(stack_fused_images[0], stack_fused_images[1], reg_stack_image,
+                           reg_stack_trsf, path_init_trsf=init_trsfs, parameters=parameters.stack_registration[1])
+        elif parameters.stack_registration[0].compute_registration is True and \
+                parameters.stack_registration[1].compute_registration is False:
+            _blockmatching( stack_fused_images[0], stack_fused_images[1], reg_stack_image,
+                            reg_stack_trsf, path_init_trsf=init_trsfs, parameters=parameters.stack_registration[0])
+        elif parameters.stack_registration[0].compute_registration is False and \
+                parameters.stack_registration[1].compute_registration is True:
+            _blockmatching(stack_fused_images[0], stack_fused_images[1], reg_stack_image,
+                           reg_stack_trsf, path_init_trsf=init_trsfs, parameters=parameters.stack_registration[1])
+        else:
+            monitoring.to_log_and_console(proc + ': no registration to be done ?!', 0)
+            monitoring.to_log_and_console("Exiting.", 0)
+            sys.exit(1)
+
+    monitoring.to_log_and_console("       transform angle 2 data", 2)
+
+    i = 2
+    cpp_wrapping.composeTrsf([stack_resample_trsfs[i],reg_stack_trsf],res_trsfs[i], monitoring=monitoring)
+    cpp_wrapping.applyTrsf(the_images[i], res_images[i], the_transformation=res_trsfs[i],
+                           template_image=res_images[0], monitoring=monitoring)
+    cpp_wrapping.applyTrsf(unreg_weight_images[i], weight_images[i], the_transformation=res_trsfs[i],
+                           template_image=res_images[0], monitoring=monitoring)
+
+    monitoring.to_log_and_console("       transform angle 3 data", 2)
+
+    i = 3
+    cpp_wrapping.composeTrsf([stack_res_trsfs[i], reg_stack_trsf], res_trsfs[i], monitoring=monitoring)
+    cpp_wrapping.applyTrsf(the_images[i], res_images[i], the_transformation=res_trsfs[i],
+                           template_image=res_images[0], monitoring=monitoring)
+    cpp_wrapping.applyTrsf(unreg_weight_images[i], weight_images[i], the_transformation=res_trsfs[i],
+                           template_image=res_images[0], monitoring=monitoring)
+
+    #
+    # compute fused image as a linear combination of co-registered images
+    # the sun of weights have been precomputed to mimic historical behavior
+    #
+    # do not forget to cast the result on 16 bits
+    #
+
+    monitoring.to_log_and_console("    .. combining images", 2)
+
+    if parameters.fusion_cropping is True:
+        tmp_fused_image = commonTools.add_suffix(fused_image, "_uncropped_fusion",
+                                                 new_dirname=channel[0].temporary_paths[4],
+                                                 new_extension=parameters.default_image_suffix)
+    else:
+        tmp_fused_image = os.path.join(channel[0].path_fuse_exp, fused_image)
+
+    cpp_wrapping.linear_combination(weight_images, res_images, tmp_fused_image, monitoring=monitoring)
+
+    #
+    # save image if fusion is required
+    #
+    if parameters.fusion_cropping is True:
+
+        fusion_box = _crop_bounding_box(tmp_fused_image)
+
+        monitoring.to_log_and_console("    .. cropping '" + fused_image.split(os.path.sep)[-1], 2)
+        _crop_disk_image(tmp_fused_image, os.path.join(channel[0].path_fuse_exp, fused_image), fusion_box,
+                         parameters.fusion_cropping_margin_x_0,
+                         parameters.fusion_cropping_margin_x_1,
+                         parameters.fusion_cropping_margin_y_0,
+                         parameters.fusion_cropping_margin_y_1)
+
+    #
+    # other channels
+    #
+    for c in range(1, len(channel)):
+
+        if len(channel) > 1:
+            monitoring.to_log_and_console("    .. process channel #" + str(c), 2)
+
+        the_images = the_image_list[c]
+        res_images = res_image_list[c]
+
+        for i in range(0, len(the_images)):
+
+            monitoring.to_log_and_console("    .. process '"
+                                          + the_images[i].split(os.path.sep)[-1] + "' for fusion", 2)
+
+            if do_something[i] is False:
+                monitoring.to_log_and_console("       nothing to do", 2)
+                continue
+
+            #
+            # first image: resampling only
+            #
+            if i == 0:
+                #
+                # image center
+                #
+                im = imread(the_images[i])
+                ref_center = np.multiply(im.shape[:3], im.resolution) / 2.0
+                del im
+
+                #
+                # resampling first image
+                #
+                monitoring.to_log_and_console("       resampling '" + the_images[i].split(os.path.sep)[-1]
+                                              + "' at " + str(parameters.target_resolution), 2)
+                if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                    cpp_wrapping.apply_transformation(the_images[i], res_images[i], the_transformation=None,
+                                                      template_image=None,
+                                                      voxel_size=parameters.target_resolution,
+                                                      interpolation_mode='linear',
+                                                      monitoring=monitoring)
+                else:
+                    monitoring.to_log_and_console("       already existing", 2)
+
+            #
+            # other images:
+            # - channel #0: co-registration
+            # - other channels: resampling with transformation of channel #0
+            #
+            else:
+                monitoring.to_log_and_console("       resampling '" + the_images[i].split(os.path.sep)[-1] + "'", 2)
+                if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                    cpp_wrapping.apply_transformation(the_images[i], res_images[i],
+                                                      the_transformation=res_trsfs[i], template_image=res_images[0],
+                                                      voxel_size=None, interpolation_mode='linear',
+                                                      monitoring=monitoring)
+                else:
+                    monitoring.to_log_and_console("       already existing", 2)
+
+
+        #
+        # compute fused image as a linear combination of co-registered images
+        # the sun of weights have been precomputed to mimic historical behavior
+        #
+        # do not forget to cast the result on 16 bits
+        #
+
+        monitoring.to_log_and_console("    .. combining images", 2)
+
+        if parameters.fusion_cropping is True:
+            tmp_fused_image = commonTools.add_suffix(fused_image, "_uncropped_fusion",
+                                                     new_dirname=channel[c].temporary_paths[4],
+                                                     new_extension=parameters.default_image_suffix)
+        else:
+            tmp_fused_image = os.path.join(channel[c].path_fuse_exp, fused_image)
+
+        cpp_wrapping.linear_combination(weight_images, res_images, tmp_fused_image, monitoring=monitoring)
+
+        #
+        # save image if fusion is required
+        #
+        if parameters.fusion_cropping is True:
+
+            monitoring.to_log_and_console("    .. cropping '" + fused_image.split(os.path.sep)[-1], 2)
+            _crop_disk_image(tmp_fused_image, os.path.join(channel[c].path_fuse_exp, fused_image), fusion_box,
+                             parameters.fusion_cropping_margin_x_0,
+                             parameters.fusion_cropping_margin_x_1,
+                             parameters.fusion_cropping_margin_y_0,
+                             parameters.fusion_cropping_margin_y_1)
+
+    return
+
+
+#
+# raw data have been read and eventually converted
+# do some pre-processing of each acquisition
+# 1. (optional) slit line correction
+# 2. resolution change (only in X and Y directions)
+# 3. (optional) 2D crop
+# 4. mirroring of the right camera images (parameter dependent)
+# then call a fusion method
+#
+
+def _fusion_process(input_image_list, fused_image, channel, parameters):
     """
     
     :param input_image_list: a list of list of images to be fused. One list per channel
+           the list of images to be fused contains successively
+           - the left camera of stack #0
+           - the right camera of stack #0
+           - the left camera of stack #1
+           - the right camera of stack #1
     :param fused_image: a generic name for the fusion result
+           the same name will be used for each cahnnel
     :param channel:
     :param parameters:
     :return:
@@ -1321,7 +2269,15 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
     res_image_list = input_image_list[:]
 
     #
-    # slit line correction
+    # First steps:
+    # 1. (optional) slit line correction
+    # 2. resolution change (only in X and Y directions)
+    # 3. (optional) 2D crop
+    # 4. mirroring of the right camera images (parameter dependent)
+    #
+
+    #
+    # 1. slit line correction
     # these corrections are done on original data (without resampling) on channel[0]
     # the compute corrections are then used for the other channels
     # Crop could be done beforehand to reduce the computational burden
@@ -1414,7 +2370,7 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
     #
 
     #
-    # first change of resolution
+    # 2. first change of resolution
     # - for X and Y: target resolution (supposed to be larger than original)
     # - for Z: original resolution (supposed to be larger than target)
     #
@@ -1469,7 +2425,7 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
                 monitoring.to_log_and_console("       already existing", 2)
 
     #
-    # 2D crop of resampled acquisition images
+    # 3. 2D crop of resampled acquisition images
     #
 
     if parameters.acquisition_cropping is True:
@@ -1549,7 +2505,7 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
                     monitoring.to_log_and_console("       already existing", 2)
 
     #
-    # Mirroring of 'right' images if required
+    # 4. Mirroring of 'right' images if required
     #
 
     if parameters.acquisition_mirrors is False:
@@ -1596,311 +2552,17 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
                     monitoring.to_log_and_console("       already existing", 2)
 
     #
-    # 1. Putting all images in a common reference
-    # - resampling of first image in an isotropic grid = reference image
-    # - co-registration of other images
-    # 2. Compute weights with an ad-hoc method
     #
-
-    the_image_list = res_image_list[:]
-    res_image_list = list()
-    init_trsfs = []
-    prereg_trsfs = []
-    res_trsfs = []
-    unreg_weight_images = []
-    weight_images = []
-
     #
-    # build the file names
-    #
-
-    for c in range(0, len(channel)):
-
-        the_images = the_image_list[c]
-        res_images = []
-
-        for i in range(0, len(the_images)):
-            res_images.append(commonTools.add_suffix(input_image_list[c][i], "_reg",
-                                                     new_dirname=channel[c].temporary_paths[i],
-                                                     new_extension=parameters.default_image_suffix))
-            if c == 0:
-                init_trsfs.append(
-                    commonTools.add_suffix(input_image_list[c][i], "_init",
-                                           new_dirname=channel[c].temporary_paths[i], new_extension="trsf"))
-                prereg_trsfs.append(commonTools.add_suffix(input_image_list[c][i], "_prereg",
-                                                           new_dirname=channel[c].temporary_paths[i],
-                                                           new_extension="trsf"))
-                res_trsfs.append(commonTools.add_suffix(input_image_list[c][i], "_reg",
-                                                        new_dirname=channel[c].temporary_paths[i],
-                                                        new_extension="trsf"))
-                unreg_weight_images.append(commonTools.add_suffix(input_image_list[c][i], "_init_weight",
-                                                                  new_dirname=channel[c].temporary_paths[i],
-                                                                  new_extension=parameters.default_image_suffix))
-                weight_images.append(commonTools.add_suffix(input_image_list[c][i], "_weight",
-                                                            new_dirname=channel[c].temporary_paths[i],
-                                                            new_extension=parameters.default_image_suffix))
-
-        res_image_list.append(res_images)
-
-    #
-    # is there something to do ?
-    # check whether fused images are missing
-    # if one image is missing, re-process channel #0 to get weights and sum of weights
-    #
-
-    do_something = [False] * len(input_image_list[0])
-
-    for c in range(0, len(channel)):
-
-        the_images = the_image_list[c]
-        res_images = res_image_list[c]
-
-        if not os.path.isfile(os.path.join(channel[c].path_fuse_exp, fused_image)):
-            do_something = [True] * len(input_image_list[0])
-            break
-
-        for i in range(0, len(the_images)):
-            if os.path.isfile(res_images[i]):
-                if monitoring.forceResultsToBeBuilt is True:
-                    do_something[i] = True
-            else:
-                do_something[i] = True
-
-    for i in range(1, len(input_image_list[0])):
-        if do_something[i] is True:
-            do_something[0] = True
-
-    #
-    # default angle for initial rotation matrix
-    #
-
-    if parameters.acquisition_orientation.lower() == 'left':
-        default_angle = 270.0
-    elif parameters.acquisition_orientation.lower() == 'right':
-        default_angle = 90.0
+    if parameters.fusion_method.lower() == 'hierarchical-fusion':
+        monitoring.to_log_and_console("    .. hierarchical fusion", 2)
+        _hierarchical_fusion_process(input_image_list, res_image_list, fused_image, channel, parameters)
     else:
-        monitoring.to_log_and_console(proc + ": unknown acquisition orientation '"
-                                      + str(parameters.acquisition_orientation) + "'", 0)
-        monitoring.to_log_and_console("Exiting.", 0)
-        sys.exit(1)
-
-    #
-    # process
-    # transformations and weights are computed on channel #0
-    # and are used for other channels
-    # - first image is just resampled to the destination resolution
-    # - other images are co-registered with the first image
-    #
-
-    fusion_box = None
-
-    for c in range(0, len(channel)):
-
-        the_images = the_image_list[c]
-        res_images = res_image_list[c]
-        full_image = None
-
-        for i in range(0, len(the_images)):
-
-            monitoring.to_log_and_console("    .. process '"
-                                          + the_images[i].split(os.path.sep)[-1] + "' for fusion", 2)
-
-            if do_something[i] is False:
-                monitoring.to_log_and_console("       nothing to do", 2)
-                continue
-
-            #
-            # first image: resampling only
-            #
-            if i == 0:
-                #
-                # image center
-                #
-                im = imread(the_images[i])
-                ref_center = np.multiply(im.shape[:3], im.resolution) / 2.0
-                del im
-
-                #
-                # resampling first image
-                #
-                monitoring.to_log_and_console("       resampling '" + the_images[i].split(os.path.sep)[-1]
-                                              + "' at " + str(parameters.target_resolution), 2)
-                if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                    cpp_wrapping.apply_transformation(the_images[i], res_images[i], the_transformation=None,
-                                                      template_image=None,
-                                                      voxel_size=parameters.target_resolution,
-                                                      interpolation_mode='linear',
-                                                      monitoring=monitoring)
-                else:
-                    monitoring.to_log_and_console("       already existing", 2)
-
-            #
-            # other images:
-            # - channel #0: co-registration
-            # - other channels: resampling with transformation of channel #0
-            #
-            else:
-
-                if c == 0:
-
-                    monitoring.to_log_and_console("       co-registering '" + the_images[i].split(os.path.sep)[-1]
-                                                  + "'", 2)
-
-                    #
-                    # initial transformation
-                    #
-                    if not os.path.isfile(init_trsfs[i]) or monitoring.forceResultsToBeBuilt is True:
-                        if i == 1:
-                            angle = 0.0
-                        else:
-                            angle = default_angle
-                        monitoring.to_log_and_console("       angle used for '" + init_trsfs[i].split(os.path.sep)[-1]
-                                                      + "' is " + str(angle), 2)
-                        im = imread(the_images[i])
-                        flo_center = np.multiply(im.shape[:3], im.resolution) / 2.0
-                        del im
-
-                        #
-                        # the initial transformation was computed with _axis_rotation_matrix(). To compute the
-                        # translation, it preserves the center of the field of view of the floating image.
-                        # However it seems more coherent to compute a translation that put the center of FOV of the
-                        # floating image onto he FOV of the reference one.
-                        #
-                        # the call to _axis_rotation_matrix() was
-                        # rotation_matrix = _axis_rotation_matrix(axis="Y", angle=angle, min_space=(0, 0, 0),
-                        #                                         max_space=np.multiply(im.shape[:3], im.resolution))
-                        # Note: it requires that 'im' is deleted after the call
-                        #
-                        # it can be mimicked by
-                        # _ init_rotation_matrix(axis="Y", angle=angle, ref_center=flo_center, flo_center=flo_center)
-                        #
-
-                        rotation_matrix = _init_rotation_matrix(axis="Y", angle=angle, ref_center=ref_center,
-                                                                flo_center=flo_center)
-
-                        np.savetxt(init_trsfs[i], rotation_matrix)
-                        del rotation_matrix
-
-                    #
-                    # a two-fold registration, translation then affine, could be preferable
-                    #
-                    if not os.path.isfile(res_images[i]) or not os.path.isfile(res_trsfs[i]) \
-                            or monitoring.forceResultsToBeBuilt is True:
-                        if parameters.pre_registration.compute_registration is True:
-                            _linear_registration(res_images[0], the_images[i], res_images[i],
-                                                 prereg_trsfs[i], init_trsfs[i], parameters.pre_registration)
-                            _linear_registration(res_images[0], the_images[i], res_images[i],
-                                                 res_trsfs[i], prereg_trsfs[i], parameters.registration)
-                        else:
-                            _linear_registration(res_images[0], the_images[i], res_images[i],
-                                                 res_trsfs[i], init_trsfs[i], parameters.registration)
-                    else:
-                        monitoring.to_log_and_console("       already existing", 2)
-
-                    #
-                    # check whether the registration was successful
-                    #
-                    if not os.path.isfile(res_images[i]) or not os.path.isfile(res_trsfs[i]):
-                        monitoring.to_log_and_console(proc + ": error when registering image " + str(i), 0)
-                        monitoring.to_log_and_console("   image " + str(res_images[i]) + " or transformation "
-                                                      + str(res_trsfs[i]) + " is not existing", 0)
-                        monitoring.to_log_and_console("Exiting.", 0)
-                        sys.exit(1)
-
-
-
-
-                #
-                # other channels
-                #
-                else:
-
-                    monitoring.to_log_and_console("       resampling '" + the_images[i].split(os.path.sep)[-1] + "'", 2)
-                    if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                        cpp_wrapping.apply_transformation(the_images[i], res_images[i],
-                                                          the_transformation=res_trsfs[i], template_image=res_images[0],
-                                                          voxel_size=None, interpolation_mode='linear',
-                                                          monitoring=monitoring)
-                    else:
-                        monitoring.to_log_and_console("       already existing", 2)
-
-            #
-            # compute weighting masks on channel #0
-            # - mask is computed on an untransformed image
-            #   however, resolution may have changes, or it can be cropped
-            #   or it can be mirrored
-            # - mask are then transformed with the computed transformation
-            #
-            if c == 0:
-
-                monitoring.to_log_and_console("       computing weights for fusion", 2)
-
-                if i % 2 == 1:
-                    direction = False
-                else:
-                    direction = True
-
-                if not os.path.isfile(unreg_weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                    im = imread(the_images[i])
-                    unreg_weight = _build_mask(im, direction)
-                    unreg_weight._set_resolution(im._get_resolution())
-                    imsave(unreg_weight_images[i], unreg_weight)
-                    del im
-                    del unreg_weight
-                else:
-                    monitoring.to_log_and_console("       already existing", 2)
-
-                monitoring.to_log_and_console("       resampling '" + unreg_weight_images[i].split(os.path.sep)[-1]
-                                              + "'", 2)
-                if i == 0:
-                    if not os.path.isfile(weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                        cpp_wrapping.apply_transformation(unreg_weight_images[i], weight_images[i],
-                                                          the_transformation=None, template_image=None,
-                                                          voxel_size=parameters.target_resolution,
-                                                          interpolation_mode='linear', monitoring=monitoring)
-                    else:
-                        monitoring.to_log_and_console("       already existing", 2)
-                else:
-                    if not os.path.isfile(weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                        cpp_wrapping.apply_transformation(unreg_weight_images[i], weight_images[i],
-                                                          the_transformation=res_trsfs[i], template_image=res_images[0],
-                                                          voxel_size=None, interpolation_mode='linear',
-                                                          monitoring=monitoring)
-                    else:
-                        monitoring.to_log_and_console("       already existing", 2)
-
         #
-        # compute fused image as a linear combination of co-registered images
-        # the sun of weights have been precomputed to mimic historical behavior
-        #
-        # do not forget to cast the result on 16 bits
-        #
-
-        monitoring.to_log_and_console("    .. combining images", 2)
-
-        if parameters.fusion_cropping is True:
-            tmp_fused_image = commonTools.add_suffix(fused_image, "_uncropped_fusion",
-                                                     new_dirname=channel[c].temporary_paths[4],
-                                                     new_extension=parameters.default_image_suffix)
-        else:
-            tmp_fused_image = os.path.join(channel[c].path_fuse_exp, fused_image)
-
-        cpp_wrapping.linear_combination(weight_images, res_images, tmp_fused_image, monitoring=monitoring)
-
-        #
-        # save image if fusion is required
-        #
-        if parameters.fusion_cropping is True:
-
-            if c == 0:
-                fusion_box = _crop_bounding_box(tmp_fused_image)
-
-            monitoring.to_log_and_console("    .. cropping '" + fused_image.split(os.path.sep)[-1], 2)
-            _crop_disk_image(tmp_fused_image, os.path.join(channel[c].path_fuse_exp, fused_image), fusion_box,
-                             parameters.fusion_cropping_margin_x_0,
-                             parameters.fusion_cropping_margin_x_1,
-                             parameters.fusion_cropping_margin_y_0,
-                             parameters.fusion_cropping_margin_y_1)
+        # direct fusion
+        # each acquisition is co-registered with the left camera of stack #0
+        monitoring.to_log_and_console("    .. direct fusion", 2)
+        _direct_fusion_process(input_image_list, res_image_list, fused_image, channel, parameters)
 
     return
 
@@ -1912,7 +2574,7 @@ def fusion_process(input_image_list, fused_image, channel, parameters):
 #
 
 
-def fusion_preprocess(input_images, fused_image, time_point, environment, parameters):
+def _fusion_preprocess(input_images, fused_image, time_point, environment, parameters):
     """
 
     :param input_images:
@@ -1965,10 +2627,10 @@ def fusion_preprocess(input_images, fused_image, time_point, environment, parame
     #
     # directory for auxiliary files
     #
-    # ANGLE_0: LC/Stack0000
-    # ANGLE_1: RC/Stack0000
-    # ANGLE_2: LC/Stack0001
-    # ANGLE_3: RC/Stack0001
+    # ANGLE_0: LC/Stack0000 ; stack_0_channel_0/Cam_Left_*
+    # ANGLE_1: RC/Stack0000 ; stack_0_channel_0/Cam_Right_*
+    # ANGLE_2: LC/Stack0001 ; stack_1_channel_0/Cam_Left_*
+    # ANGLE_3: RC/Stack0001 ; stack_1_channel_0/Cam_Right_*
     #
 
     for c in range(0, len(environment.channel)):
@@ -2026,9 +2688,9 @@ def fusion_preprocess(input_images, fused_image, time_point, environment, parame
     #
     #
     #
-    monitoring.to_log_and_console('    fuse images', 2)
 
-    fusion_process(image_list, fused_image, environment.channel, parameters)
+    monitoring.to_log_and_console('    fuse images', 2)
+    _fusion_process(image_list, fused_image, environment.channel, parameters)
 
     #
     # remove temporary files if required
@@ -2179,7 +2841,7 @@ def fusion_control(experiment, environment, parameters):
                 # process
                 #
 
-                fusion_preprocess(images, fused_image, extra_zeros + time_point, environment, parameters)
+                _fusion_preprocess(images, fused_image, extra_zeros + time_point, environment, parameters)
 
         else:
 
@@ -2245,7 +2907,7 @@ def fusion_control(experiment, environment, parameters):
                 # process
                 #
 
-                fusion_preprocess(images, fused_image, extra_zeros + acquisition_time, environment, parameters)
+                _fusion_preprocess(images, fused_image, extra_zeros + acquisition_time, environment, parameters)
 
     #
     # here data directories are not different, we have to rely on built names
@@ -2321,6 +2983,6 @@ def fusion_control(experiment, environment, parameters):
             # process
             #
 
-            fusion_preprocess(images, fused_image, acquisition_time, environment, parameters)
+            _fusion_preprocess(images, fused_image, acquisition_time, environment, parameters)
 
     return
