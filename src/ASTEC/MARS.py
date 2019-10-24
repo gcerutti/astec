@@ -521,7 +521,7 @@ def _volume_diagnosis(mars_image, ncells=10):
     volumes = nd.sum(np.ones_like(image), image, index=np.int16(labels))
     list_for_sort = list()
     for i in range(len(labels)):
-        list_for_sort.append([volumes[i],labels[i]])
+        list_for_sort.append([volumes[i], labels[i]])
 
     #
     # statistics without the background
@@ -536,7 +536,7 @@ def _volume_diagnosis(mars_image, ncells=10):
     for i in range(len(labels)):
         if i <= ncells or list_for_sort[i][0] <= m - 2*s:
             monitoring.to_log_and_console('       cell #'+'{:3d}'.format(list_for_sort[i][1])+' volume='
-                                          +'{:10.1f}'.format(list_for_sort[i][0]), 1)
+                                          + '{:10.1f}'.format(list_for_sort[i][0]), 1)
 
     del image
     return
