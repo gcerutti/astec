@@ -215,6 +215,12 @@ keydictionary = {'lineage': {'output_key': 'cell_lineage',
                                 'input_keys': ['cell_naming_score', 'Scores', 'scores']},
                  'problems': {'output_key': 'problematic_cells',
                               'input_keys': ['problematic_cells']},
+                 'apicobasal_length': {'output_key': 'cell_apicobasal_length',
+                              'input_keys': ['cell_apicobasal_length']},
+                 'basal_cell': {'output_key': 'cell_basal_cell',
+                                       'input_keys': ['cell_basal_cell']},
+                 'apicobasal_segment': {'output_key': 'cell_apicobasal_segment',
+                              'input_keys': ['cell_apicobasal_segment']},
                  'unknown': {'output_key': 'unknown_key',
                              'input_keys': ['unknown_key']}}
 
