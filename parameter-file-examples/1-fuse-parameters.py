@@ -305,7 +305,7 @@ target_resolution = .3
 
 
 
-# fusion_method = 'direct-fusion'
+# fusion_strategy = 'direct-fusion'
 
 # fusion_preregistration_compute_registration = False
 # fusion_preregistration_transformation_type = 'translation'
@@ -351,7 +351,7 @@ target_resolution = .3
 ##    each acquisition is linearly co-registered with the first acquisition (stack #0, left camera).
 ##    Then weights and images are transformed thanks to the computed transformations.
 ##    Finally a weighted linear combination gives the result.
-## 2. 'hierarchical-fusion;
+## 2. 'hierarchical-fusion'
 ##    from the couple (left camera, right camera), each stack is reconstructed, following the same scheme than
 ##    the direct fusion but with only 2 images. Then stack#1 is (non-)linearly co-registered with stack #0.
 ##    Images and weights associated with stack#1 are then (non-)linearly transformed.
@@ -374,6 +374,32 @@ target_resolution = .3
 ## fusion_stack_preregistration_* and fusion_stack_registration_* control the co-registration of two stacks
 ## it is only used in the 'hierarchical-fusion' method (to co-register the reconstructed stacks)
 ##
+
+
+
+# fusion_weighting = 'guignard-weighting'
+# fusion_weighting_channel_1 = 'guignard-weighting'
+# fusion_weighting_channel_2 = 'guignard-weighting'
+# fusion_weighting_channel_3 = 'guignard-weighting'
+
+##
+## step 6. weighted linear combination of the resampled co-registered acquisitions
+##
+
+## ##### explanation #####
+##
+## there are two ways to perform the fusion of the 4 acquisitions:
+##
+## 1. 'guignard-weighting'
+##    original historical weighting function, described in Leo Guignard's Phd thesis, that puts more weight to
+##    sections close to the camera and take also account the traversed material
+## 2. 'uniform'
+##    the average of the acquisitions
+##
+## The variable 'fusion_weighting' allows to set the fusion weighting for all the channels to be processed. Using
+## the variables 'fusion_weighting_channel_X' allows to set different weighting schemes for each channel.
+##
+
 
 
 # fusion_crop = True

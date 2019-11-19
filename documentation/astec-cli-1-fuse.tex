@@ -19,7 +19,7 @@ The fusion is made of the following steps.
 \item The hierarchical method. Each stack is first reconstructed (with the acquisition couple of both left and right cameras), then stack \#1 is \textit{non-linearly} co-registered onto stack \#0. From this last registration, non-linear co-registrations are deduced for the stack \#1 acquisitions, while linear co-registration is still considered for the right camera acquisition of stack \#0.
 \end{enumerate}
 
-\item Linear combination of images, weighted by an ad-hoc function.
+\item \label{it:fusion:combination}  Linear combination of images, weighted by an ad-hoc function.
 
 \item  \label{it:fusion:crop:2} Optionally, a crop of the fused image, still based on the analysis of a MIP view (in the Z direction). By default, it is done.
 \end{enumerate}
@@ -397,17 +397,17 @@ has to be added in the parameter file.
 \subsubsection{Step \ref{it:fusion:registration}: image co-registration}
 \label{sec:cli:fuse:image:coregistration}
 
-To fuse the images, they are co-registered onto a reference one. Co-registration are conducted only on the first channel (in case of multiple channel acquisitions), and the computed transformations are also applied onto the other channels. The reference image is chosen as being the acquisition from the left camera for the first stack (also denoted stack \#0). The co-registration strategy is given by the variable \texttt{fusion\_method}.
+To fuse the images, they are co-registered onto a reference one. Co-registration are conducted only on the first channel (in case of multiple channel acquisitions), and the computed transformations are also applied onto the other channels. The reference image is chosen as being the acquisition from the left camera for the first stack (also denoted stack \#0). The co-registration strategy is given by the variable \texttt{fusion\_strategy}.
 
 \begin{itemize}
 \item The line
 \begin{verbatim}
-fusion\_method = 'direct-fusion'
+fusion_strategy = 'direct-fusion'
 \end{verbatim}
-will set the co-registration strategy to the one described in \cite{guignard:tel-01278725,guignard:hal-01938126}: each acquisition image is linearly co-registered with the referenceone, i.e. the one from the left camera and for the first stack.
+will set the co-registration strategy to the one described in \cite{guignard:tel-01278725,guignard:hal-01938126}: each acquisition image is linearly co-registered with the reference one, i.e. the one from the left camera and for the first stack.
 \item The line
 \begin{verbatim}
-fusion\_method = 'hierarchical-fusion'
+fusion_strategy = 'hierarchical-fusion'
 \end{verbatim}
 defines a hierarchical  co-registration  strategy. First, stacks are reconstructed with the two acquisition from the left and the right cameras: here the left and right acquisitions are linearly co-registered. Then, the second stack (stack \#1) is non-linearly co-registered onto the first one (stack \#0). Transformation compositions yield the final transformations that co-registered each acquisition onto the reference one. Note that the acquisition from the right camera of the first stack is only linearly co-registered with the reference acquisition, while both acquisitions for the second stack are non-linearly co-registered.
 \end{itemize}
@@ -447,6 +447,31 @@ fusion_registration_normalization = False
 \paragraph{Stacks non-linear co-registration}
 
 Variables that controls the non-linear co-registrations are either prefixed by \texttt{fusion\_stack\_preregistration\_} or by \texttt{fusion\_stack\_registration\_}.
+
+\subsubsection{Step \ref{it:fusion:combination}: linear combination of co-registered stacks}
+
+The resampled co-registered stacks are fused together by the means of a weighted linear combination.  The choice of the weighting function is controlled by the variable \texttt{fusion\_weighting}, eventually suffixed by \texttt{\_channel\_[1,2,3]}.
+
+\begin{itemize}
+\item The line
+\begin{verbatim}
+fusion_weighting = 'guignard-weighting'
+\end{verbatim}
+will set the weighting function to the one described in \cite{guignard:tel-01278725}: more weight are given to sections close to the camera and it also takes into account the traversed material. Such a weighting depends on the stacks to be fused.
+\item The line
+\begin{verbatim}
+fusion_weighting = 'uniform'
+\end{verbatim}
+comes to the average of the resampled co-registered stacks. Such a weighting does not depend on the stacks to be fused.
+\end{itemize}
+
+
+When using the variable \texttt{fusion\_weighting}, the same weights (computed on the first channel to be processed) are used for all fusion. However, different weighting functions can be used for the channels to be fused by using the variables  \texttt{fusion\_weighting\_channel\_[1,2,3]}, eg
+\begin{verbatim}
+fusion_weighting_channel_1 = 'guignard-weighting'
+fusion_weighting_channel_2 = 'uniform'
+\end{verbatim}
+
 
 \subsubsection{Step \ref{it:fusion:crop:2}: fused data cropping}
 \label{sec:cli:fuse:fused:data:cropping}
@@ -520,7 +545,7 @@ Please also refer to the file
 \item \texttt{fusion\_margin\_x\_1}
 \item \texttt{fusion\_margin\_y\_0}
 \item \texttt{fusion\_margin\_y\_1}
-\item \texttt{fusion\_method}  see section \ref{sec:cli:fuse:image:coregistration}
+\item \texttt{fusion\_strategy}  see section \ref{sec:cli:fuse:image:coregistration}
 \item \texttt{fusion\_preregistration\_compute\_registration} see section \ref{sec:cli:fuse:image:coregistration}
 \item \texttt{fusion\_preregistration\_lts\_fraction}
 \item \texttt{fusion\_preregistration\_normalization} see section \ref{sec:cli:fuse:image:coregistration}
@@ -549,6 +574,10 @@ Please also refer to the file
 \item \texttt{fusion\_stack\_registration\_pyramid\_lowest\_level}
 \item \texttt{fusion\_stack\_registration\_transformation\_estimation\_type}
 \item \texttt{fusion\_stack\_registration\_transformation\_type}
+\item \texttt{fusion\_weighting}
+\item \texttt{fusion\_weighting\_channel\_1}
+\item \texttt{fusion\_weighting\_channel\_2}
+\item \texttt{fusion\_weighting\_channel\_3}
 \item \texttt{raw\_crop} see section \ref{sec:cli:fuse:raw:data:cropping}
 \item \texttt{raw\_delay}
 \item \texttt{raw\_margin\_x\_0}

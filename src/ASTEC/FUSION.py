@@ -56,6 +56,11 @@ class FusionChannel(object):
         #
         self.temporary_paths = list()
 
+        #
+        #
+        #
+        self.fusion_weighting = 'guignard-weighting'
+
     def update_main_channel_from_file(self, parameter_file):
         proc = 'FusionChannel.update_main_channel_from_file'
         if parameter_file is None:
@@ -82,6 +87,11 @@ class FusionChannel(object):
             sys.exit(1)
 
         self.path_fuse_exp = nomenclature.replaceFlags(nomenclature.path_fuse_exp, parameters)
+
+        if hasattr(parameters, 'fusion_weighting_channel_1'):
+            if parameters.fusion_weighting_channel_1 is not None:
+                self.fusion_weighting = parameters.fusion_weighting_channel_1
+
         return
 
     def update_channel_x_from_file(self, channel_id, parameter_file):
@@ -186,6 +196,10 @@ class FusionChannel(object):
             self.path_fuse_exp = os.path.join(nomenclature.path_fuse, nomenclature.DIR_STAGE_FUSE + '_'
                                               + getattr(parameters, 'EXP_FUSE_CHANNEL' + str(channel_id)))
 
+        if hasattr(parameters, 'fusion_weighting_channel_' + str(channel_id)):
+            if getattr(parameters, 'fusion_weighting_channel_' + str(channel_id)) is not None:
+                self.fusion_weighting = getattr(parameters, 'fusion_weighting_channel_' + str(channel_id))
+
         return True
 
     def has_same_raw_data_dirs(self, c):
@@ -195,6 +209,13 @@ class FusionChannel(object):
         return True
 
     def update_path_fuse_exp(self, c, suffixe):
+        """
+        update path_fuse_exp by adding suffix. Used for channel #2 and #3, to build path_fuse_exp
+        after 
+        :param c: 
+        :param suffixe: 
+        :return: 
+        """
         self.path_fuse_exp = c.path_fuse_exp + suffixe
 
     def write_parameters(self, log_file_name, desc=None):
@@ -215,6 +236,8 @@ class FusionChannel(object):
             for j in range(0, len(self.temporary_paths)):
                 logfile.write('  - temporary path #' + str(j) + ' = ' + str(self.temporary_paths[j]) + '\n')
 
+            logfile.write('  - fusion_weighting = ' + str(self.fusion_weighting) + '\n')
+
             logfile.write("\n")
         return
 
@@ -234,6 +257,8 @@ class FusionChannel(object):
 
         for j in range(0, len(self.temporary_paths)):
             print('  - temporary path #' + str(j) + ' = ' + str(self.temporary_paths[j]))
+
+        print('  - fusion_weighting = ' + str(self.fusion_weighting))
 
         print("")
 
@@ -307,6 +332,14 @@ class FusionEnvironment(object):
                     print ("Error: channel #3 result directory is the same than channel #2. Exiting.")
                     sys.exit(1)
                 self.channel.append(channel3)
+
+        #
+        # fusion weighting
+        #
+        if hasattr(parameters, 'fusion_weighting'):
+            if parameters.fusion_weighting is not None:
+                for c in self.channel:
+                    c.fusion_weighting = parameters.fusion_weighting
 
         self.path_angle1_files = nomenclature.replaceFlags(nomenclature.path_rawdata_angle1_files, parameters)
         self.path_angle2_files = nomenclature.replaceFlags(nomenclature.path_rawdata_angle2_files, parameters)
@@ -394,7 +427,7 @@ class FusionParameters(object):
         #
         # fusion method
         #
-        self.fusion_method = 'direct-fusion'
+        self.fusion_strategy = 'direct-fusion'
 
         #
         # Cropping of acquisition images (before fusion)
@@ -460,7 +493,7 @@ class FusionParameters(object):
 
             logfile.write('- target_resolution  = '+str(self.target_resolution)+'\n')
 
-            logfile.write('- fusion_method  = ' + str(self.fusion_method) + '\n')
+            logfile.write('- fusion_strategy  = ' + str(self.fusion_strategy) + '\n')
 
             logfile.write('- acquisition_cropping = '+str(self.acquisition_cropping)+'\n')
             logfile.write('- acquisition_cropping_margin_x_0 = '+str(self.acquisition_cropping_margin_x_0)+'\n')
@@ -497,7 +530,7 @@ class FusionParameters(object):
 
         print('- target_resolution  = '+str(self.target_resolution))
 
-        print('- fusion_method  = ' + str(self.fusion_method))
+        print('- fusion_strategy  = ' + str(self.fusion_strategy))
 
         print('- acquisition_cropping = '+str(self.acquisition_cropping))
         print('- acquisition_cropping_margin_x_0 = '+str(self.acquisition_cropping_margin_x_0))
@@ -599,9 +632,12 @@ class FusionParameters(object):
         #
         # fusion method
         #
-        if hasattr(parameters, 'fusion_method'):
+        if hasattr(parameters, 'fusion_strategy'):
+            if parameters.fusion_strategy is not None:
+                self.fusion_strategy = parameters.fusion_strategy
+        elif hasattr(parameters, 'fusion_method'):
             if parameters.fusion_method is not None:
-                self.fusion_method = parameters.fusion_method
+                self.fusion_strategy = parameters.fusion_method
 
         #
         # Cropping of acquisition images (before fusion)
@@ -662,7 +698,7 @@ class FusionParameters(object):
             if parameters.default_image_suffix is not None:
                 self.default_image_suffix = parameters.default_image_suffix
                 if not hasattr(parameters, 'result_image_suffix') \
-                    and not hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
+                        and not hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
                     self.result_image_suffix = parameters.default_image_suffix
 
 
@@ -1261,19 +1297,19 @@ def _exp_func(x, length=500, speed=5):
     return .1+np.exp(-((np.float32(x)*speed)/length))
 
 
-def _build_mask(image, direction):
+def _build_guignard_weighting(image, direction):
     """Return the mask on a given image from the decay function
     im : intensity image (SpatialImage)
     direction : if True the camera is in the side of the first slices in Z
     """
 
-    proc = "_build_mask"
+    proc = "_build_guignard_weighting"
     if not isinstance(image, SpatialImage):
         print proc + ": argument image is not an ndarray"
         return
 
     th = _threshold_otsu(image)
-    im_th = np.zeros_like(image)
+    im_th = np.zeros_like(image, dtype=np.float32)
     im_th[image > th] = 1
     if direction is False:
         im_th = im_th[:, :, -1::-1]
@@ -1282,6 +1318,49 @@ def _build_mask(image, direction):
         im_th_sum = im_th_sum[:, :, -1::-1]
     mask = _exp_func(im_th_sum, np.max(im_th_sum))
     return mask
+
+
+def _build_uniform_weighting(image):
+    """
+
+    :param image:
+    :return:
+    """
+
+    proc = "_build_uniform_weighting"
+    if not isinstance(image, SpatialImage):
+        print proc + ": argument image is not an ndarray"
+        return
+
+    mask = np.ones_like(image, dtype=np.float32)
+    return mask
+
+
+def _build_unreg_weighting_image(template_image_name, weighting_image_name, direction, fusion_weighting='none'):
+    """
+
+    :param template_image_name:
+    :param weighting_image_name:
+    :param direction:
+    :return:
+    """
+    proc = "_build_unreg_weighting_image"
+
+    im = imread(template_image_name)
+    if fusion_weighting.lower() == 'none' or fusion_weighting.lower() == 'uniform' \
+            or fusion_weighting.lower() == 'uniform-weighting':
+        unreg_weight = _build_uniform_weighting(im)
+    elif fusion_weighting.lower() == 'guignard' or fusion_weighting.lower() == 'guignard-weighting':
+        unreg_weight = _build_guignard_weighting(im, direction)
+    else:
+        print proc + ": unknown weighting function, switch to uniform"
+        unreg_weight = _build_uniform_weighting(im)
+
+    unreg_weight._set_resolution(im._get_resolution())
+    imsave(weighting_image_name, unreg_weight)
+    del im
+    del unreg_weight
+    return
 
 
 ########################################################################################
@@ -1374,6 +1453,22 @@ def _direct_fusion_process(input_image_list, the_image_list, fused_image, channe
         print ""
 
     #
+    #
+    #
+
+    if not isinstance(parameters, FusionParameters):
+        monitoring.to_log_and_console(proc + ": unknown type/class for parameters '"
+                                      + str(type(parameters)) + "'", 0)
+        monitoring.to_log_and_console("Exiting.", 0)
+        sys.exit(1)
+
+    if not isinstance(channel[0], FusionChannel):
+        monitoring.to_log_and_console(proc + ": unknown type/class for channel[0] '"
+                                      + str(type(channel[0])) + "'", 0)
+        monitoring.to_log_and_console("Exiting.", 0)
+        sys.exit(1)
+
+    #
     # list of registered images 
     #
 
@@ -1425,8 +1520,8 @@ def _direct_fusion_process(input_image_list, the_image_list, fused_image, channe
     init_trsfs = []
     prereg_trsfs = []
     res_trsfs = []
-    unreg_weight_images = []
-    weight_images = []
+    unreg_weight_images_list = []
+    weight_images_list = []
 
     #
     # build the file names after the input file names
@@ -1441,12 +1536,35 @@ def _direct_fusion_process(input_image_list, the_image_list, fused_image, channe
         res_trsfs.append(commonTools.add_suffix(input_image_list[0][i], "_reg",
                                                 new_dirname=channel[0].temporary_paths[i],
                                                 new_extension="trsf"))
-        unreg_weight_images.append(commonTools.add_suffix(input_image_list[0][i], "_init_weight",
-                                                          new_dirname=channel[0].temporary_paths[i],
-                                                          new_extension=parameters.default_image_suffix))
-        weight_images.append(commonTools.add_suffix(input_image_list[0][i], "_weight",
-                                                    new_dirname=channel[0].temporary_paths[i],
-                                                    new_extension=parameters.default_image_suffix))
+
+    #
+    # the final image is a weighting sum of the transformed acquisition image
+    # weighting may be different for all channel
+    #
+    for c in range(0, len(channel)):
+        unreg_weight_images = []
+        weight_images = []
+        cref = c
+        for i in range(0, c):
+            if channel[c].fusion_weighting == channel[i].fusion_weighting:
+                cref = i
+        #
+        # check if the weighting mode was used for previous channels (ie weights have already been computed)
+        #
+        if cref == c:
+            for i in range(0, len(the_images)):
+                unreg_weight_images.append(commonTools.add_suffix(input_image_list[c][i], "_init_weight_" + str(c),
+                                           new_dirname=channel[c].temporary_paths[i],
+                                           new_extension=parameters.default_image_suffix))
+                weight_images.append(commonTools.add_suffix(input_image_list[c][i], "_weight_" + str(c),
+                                                            new_dirname=channel[c].temporary_paths[i],
+                                                            new_extension=parameters.default_image_suffix))
+        else:
+            unreg_weight_images = unreg_weight_images_list[cref]
+            weight_images = weight_images_list[cref]
+
+        unreg_weight_images_list.append(unreg_weight_images)
+        weight_images_list.append(weight_images)
 
     #
     # 1. Putting all images in a common reference
@@ -1490,6 +1608,8 @@ def _direct_fusion_process(input_image_list, the_image_list, fused_image, channe
 
         the_images = the_image_list[c]
         res_images = res_image_list[c]
+        unreg_weight_images = unreg_weight_images_list[c]
+        weight_images = weight_images_list[c]
 
         for i in range(0, len(the_images)):
 
@@ -1613,52 +1733,47 @@ def _direct_fusion_process(input_image_list, the_image_list, fused_image, channe
                         monitoring.to_log_and_console("       already existing", 2)
 
             #
-            # compute weighting masks on channel #0
+            # compute weighting masks on every channel
             # - mask is computed on an untransformed image
             #   however, resolution may have changed, or it can be cropped
             #   or it can be mirrored (default behavior is that mask are computed on the '_crop' images
             # - mask are then transformed with the computed transformation
             #
-            if c == 0:
 
-                monitoring.to_log_and_console("       computing weights for fusion", 2)
+            monitoring.to_log_and_console("       .. computing weights for fusion", 2)
 
-                if i % 2 == 1:
-                    direction = False
+            if i % 2 == 1:
+                direction = False
+            else:
+                direction = True
+
+            if not os.path.isfile(unreg_weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                #
+                #
+                #
+                _build_unreg_weighting_image(the_images[i], unreg_weight_images[i], direction,
+                                             channel[c].fusion_weighting)
+            else:
+                monitoring.to_log_and_console("          already existing", 2)
+
+            monitoring.to_log_and_console("          resampling '" + unreg_weight_images[i].split(os.path.sep)[-1]
+                                          + "'", 2)
+            if i == 0:
+                if not os.path.isfile(weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                    cpp_wrapping.apply_transformation(unreg_weight_images[i], weight_images[i],
+                                                      the_transformation=None, template_image=None,
+                                                      voxel_size=parameters.target_resolution,
+                                                      interpolation_mode='linear', monitoring=monitoring)
                 else:
-                    direction = True
-
-                if not os.path.isfile(unreg_weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                    #
-                    #
-                    #
-                    im = imread(the_images[i])
-                    unreg_weight = _build_mask(im, direction)
-                    unreg_weight._set_resolution(im._get_resolution())
-                    imsave(unreg_weight_images[i], unreg_weight)
-                    del im
-                    del unreg_weight
+                    monitoring.to_log_and_console("          already existing", 2)
+            else:
+                if not os.path.isfile(weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                    cpp_wrapping.apply_transformation(unreg_weight_images[i], weight_images[i],
+                                                      the_transformation=res_trsfs[i], template_image=res_images[0],
+                                                      voxel_size=None, interpolation_mode='linear',
+                                                      monitoring=monitoring)
                 else:
-                    monitoring.to_log_and_console("       already existing", 2)
-
-                monitoring.to_log_and_console("       resampling '" + unreg_weight_images[i].split(os.path.sep)[-1]
-                                              + "'", 2)
-                if i == 0:
-                    if not os.path.isfile(weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                        cpp_wrapping.apply_transformation(unreg_weight_images[i], weight_images[i],
-                                                          the_transformation=None, template_image=None,
-                                                          voxel_size=parameters.target_resolution,
-                                                          interpolation_mode='linear', monitoring=monitoring)
-                    else:
-                        monitoring.to_log_and_console("       already existing", 2)
-                else:
-                    if not os.path.isfile(weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                        cpp_wrapping.apply_transformation(unreg_weight_images[i], weight_images[i],
-                                                          the_transformation=res_trsfs[i], template_image=res_images[0],
-                                                          voxel_size=None, interpolation_mode='linear',
-                                                          monitoring=monitoring)
-                    else:
-                        monitoring.to_log_and_console("       already existing", 2)
+                    monitoring.to_log_and_console("          already existing", 2)
 
         #
         # compute fused image as a linear combination of co-registered images
@@ -1677,6 +1792,11 @@ def _direct_fusion_process(input_image_list, the_image_list, fused_image, channe
             tmp_fused_image = os.path.join(channel[c].path_fuse_exp, fused_image)
 
         cpp_wrapping.linear_combination(weight_images, res_images, tmp_fused_image, monitoring=monitoring)
+
+        if not os.path.isfile(tmp_fused_image):
+            monitoring.to_log_and_console(proc + ': fused image has not been generated', 0)
+            monitoring.to_log_and_console("Exiting.", 0)
+            sys.exit(1)
 
         #
         # save image if fusion is required
@@ -1788,9 +1908,9 @@ def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, 
 
     stack_prereg_trsfs = []
     stack_res_trsfs = []
-    unreg_weight_images = []
+    unreg_weight_images_list = []
     stack_weight_images = []
-    weight_images = []
+    weight_images_list = []
 
 
     #
@@ -1824,21 +1944,45 @@ def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, 
         stack_prereg_trsfs.append(commonTools.add_suffix(input_image_list[0][i], "_stack_prereg",
                                                          new_dirname=channel[0].temporary_paths[i],
                                                          new_extension="trsf"))
-        unreg_weight_images.append(commonTools.add_suffix(input_image_list[0][i], "_init_weight",
-                                                          new_dirname=channel[0].temporary_paths[i],
-                                                          new_extension=parameters.default_image_suffix))
 
         if i == 0 or i == 1:
-            stack_weight_images.append(commonTools.add_suffix(input_image_list[0][i], "_weight",
+            stack_weight_images.append(commonTools.add_suffix(input_image_list[0][i], "_weight_0",
                                                               new_dirname=channel[0].temporary_paths[i],
                                                               new_extension=parameters.default_image_suffix))
         else:
-            stack_weight_images.append(commonTools.add_suffix(input_image_list[0][i], "_stack_weight",
+            stack_weight_images.append(commonTools.add_suffix(input_image_list[0][i], "_stack_weight_0",
                                                               new_dirname=channel[0].temporary_paths[i],
                                                               new_extension=parameters.default_image_suffix))
-        weight_images.append(commonTools.add_suffix(input_image_list[0][i], "_weight",
-                                                    new_dirname=channel[0].temporary_paths[i],
-                                                    new_extension=parameters.default_image_suffix))
+
+    #
+    # the final image is a weighting sum of the transformed acquisition image
+    # weighting may be different for all channel
+    #
+    for c in range(0, len(channel)):
+        unreg_weight_images = []
+        weight_images = []
+        cref = c
+        for i in range(0, c):
+            if channel[c].fusion_weighting == channel[i].fusion_weighting:
+                cref = i
+        #
+        # check if the weighting mode was used for previous channels (ie weights have already been computed)
+        #
+        if cref == c:
+            for i in range(0, len(the_images)):
+                unreg_weight_images.append(commonTools.add_suffix(input_image_list[c][i], "_init_weight_" + str(c),
+                                                                  new_dirname=channel[c].temporary_paths[i],
+                                                                  new_extension=parameters.default_image_suffix))
+                weight_images.append(commonTools.add_suffix(input_image_list[c][i], "_weight_" + str(c),
+                                                            new_dirname=channel[c].temporary_paths[i],
+                                                            new_extension=parameters.default_image_suffix))
+        else:
+            unreg_weight_images = unreg_weight_images_list[cref]
+            weight_images = weight_images_list[cref]
+
+        unreg_weight_images_list.append(unreg_weight_images)
+        weight_images_list.append(weight_images)
+
     #
     # there is one temporary path per acquisition (from 0 to 3) and an additional one which is the
     # parent directory (see _fusion_preprocess())
@@ -1857,6 +2001,9 @@ def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, 
 
     if len(channel) > 1:
         monitoring.to_log_and_console("    .. process channel #0", 2)
+
+    unreg_weight_images = unreg_weight_images_list[0]
+    weight_images = weight_images_list[0]
 
     for stack in range(2):
 
@@ -1944,11 +2091,11 @@ def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, 
         #
         # compute weights
         #
-        monitoring.to_log_and_console("         computing weights for stack fusion of stack #" + str(stack), 2)
+        monitoring.to_log_and_console("      .. computing weights for stack fusion of stack #" + str(stack), 2)
         for j in range(2):
             i = 2 * stack + j
             r = 2 * stack
-            monitoring.to_log_and_console("      .. process '"
+            monitoring.to_log_and_console("         process '"
                                           + the_images[i].split(os.path.sep)[-1] + "' for weight", 2)
 
             if j == 1:
@@ -1960,12 +2107,8 @@ def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, 
             #
             #
             #
-                im = imread(the_images[i])
-                unreg_weight = _build_mask(im, direction)
-                unreg_weight._set_resolution(im._get_resolution())
-                imsave(unreg_weight_images[i], unreg_weight)
-                del im
-                del unreg_weight
+                _build_unreg_weighting_image(the_images[i], unreg_weight_images[i], direction,
+                                             channel[0].fusion_weighting)
             else:
                 monitoring.to_log_and_console("         already existing", 2)
 
@@ -2011,7 +2154,7 @@ def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, 
     # compute initial rotation matrix
     #
 
-    monitoring.to_log_and_console("    .. registering stack #1 onto stack #0", 2)
+    monitoring.to_log_and_console("    .. co-registering stack #1 onto stack #0", 2)
     monitoring.to_log_and_console("       initial transformation", 2)
 
     init_trsfs = commonTools.add_suffix(input_image_list[0][2], "_init", new_dirname=channel[0].temporary_paths[2],
@@ -2098,6 +2241,11 @@ def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, 
 
     cpp_wrapping.linear_combination(weight_images, res_images, tmp_fused_image, monitoring=monitoring)
 
+    if not os.path.isfile(tmp_fused_image):
+        monitoring.to_log_and_console(proc + ': fused image has not been generated', 0)
+        monitoring.to_log_and_console("Exiting.", 0)
+        sys.exit(1)
+
     #
     # save image if fusion is required
     #
@@ -2122,6 +2270,8 @@ def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, 
 
         the_images = the_image_list[c]
         res_images = res_image_list[c]
+        unreg_weight_images = unreg_weight_images_list[c]
+        weight_images = weight_images_list[c]
 
         for i in range(0, len(the_images)):
 
@@ -2172,6 +2322,42 @@ def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, 
                 else:
                     monitoring.to_log_and_console("       already existing", 2)
 
+            #
+            # weighting masks on every channel
+            #
+            monitoring.to_log_and_console("       .. computing weights for fusion", 2)
+
+            if i % 2 == 1:
+                direction = False
+            else:
+                direction = True
+
+            if not os.path.isfile(unreg_weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                #
+                #
+                #
+                _build_unreg_weighting_image(the_images[i], unreg_weight_images[i], direction, channel[c].fusion_weighting)
+            else:
+                monitoring.to_log_and_console("          already existing", 2)
+
+            monitoring.to_log_and_console("          resampling '" + unreg_weight_images[i].split(os.path.sep)[-1]
+                                          + "'", 2)
+            if i == 0:
+                if not os.path.isfile(weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                    cpp_wrapping.apply_transformation(unreg_weight_images[i], weight_images[i],
+                                                      the_transformation=None, template_image=None,
+                                                      voxel_size=parameters.target_resolution,
+                                                      interpolation_mode='linear', monitoring=monitoring)
+                else:
+                    monitoring.to_log_and_console("          already existing", 2)
+            else:
+                if not os.path.isfile(weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                    cpp_wrapping.apply_transformation(unreg_weight_images[i], weight_images[i],
+                                                      the_transformation=res_trsfs[i], template_image=res_images[0],
+                                                      voxel_size=None, interpolation_mode='linear',
+                                                      monitoring=monitoring)
+                else:
+                    monitoring.to_log_and_console("          already existing", 2)
 
         #
         # compute fused image as a linear combination of co-registered images
@@ -2190,6 +2376,11 @@ def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, 
             tmp_fused_image = os.path.join(channel[c].path_fuse_exp, fused_image)
 
         cpp_wrapping.linear_combination(weight_images, res_images, tmp_fused_image, monitoring=monitoring)
+
+        if not os.path.isfile(tmp_fused_image):
+            monitoring.to_log_and_console(proc + ': fused image (channel #' + str(c) +') has not been generated', 0)
+            monitoring.to_log_and_console("Exiting.", 0)
+            sys.exit(1)
 
         #
         # save image if fusion is required
@@ -2554,7 +2745,7 @@ def _fusion_process(input_image_list, fused_image, channel, parameters):
     #
     #
     #
-    if parameters.fusion_method.lower() == 'hierarchical-fusion':
+    if parameters.fusion_strategy.lower() == 'hierarchical-fusion':
         monitoring.to_log_and_console("    .. hierarchical fusion", 2)
         _hierarchical_fusion_process(input_image_list, res_image_list, fused_image, channel, parameters)
     else:
