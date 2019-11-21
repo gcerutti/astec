@@ -64,6 +64,8 @@ The following options are available:
 \item[\texttt{-e \underline{path}}] set the
   \texttt{\underline{path}} to the directory where the
   \texttt{RAWDATA/} directory is located
+\item[\texttt{-t \underline{file}}] set the resampling transformation file for the reference image (see section \ref{sec:cli:intraregistration:template})
+\item[\texttt{-a \underline{string}}] set the resampling transformation angles for the reference image (see section \ref{sec:cli:intraregistration:template})
 \item[\texttt{-k}] allows to keep the temporary files
 \item[\texttt{-f}] forces execution, even if (temporary) result files
   are already existing
@@ -165,15 +167,30 @@ the fused images from \texttt{FUSE/FUSE\_MEMBRANES/}.
 
 \begin{verbatim}
 # intra_registration_reference_index = None
-# intra_registration_template_type = 'FUSION'
+# intra_registration_reference_resampling_transformation_file = None
+# intra_registration_reference_resampling_transformation_angles = None
+#
+# intra_registration_template_type = "FUSION"
 # intra_registration_template_threshold = None
-# intra_registration_resolution = 0.6
 # intra_registration_margin = None
+#
+# intra_registration_resolution = 0.6
+#
+# intra_registration_rebuild_template = False
 \end{verbatim}
 
-The \verb|intra_registration_reference_index| allows to choose the reference image (the one which remains still, i.e. is only displaced by a translation), by default it is the first image image of the series (associated to \verb|begin|).
+\begin{itemize}
+\itemsep -1ex
 
-Depending on \verb|intra_registration_template_type| (\verb|'FUSION'|,
+\item The \verb|intra_registration_reference_index| allows to choose the reference image (the one which remains still, i.e. up to a translation), by default it is the first image image of the series (associated to \verb|begin|). 
+However, it may happen that this image has to be reoriented to fit the user's expectation. The resampling transformation\footnote{The resampling transformation is the one that goes from the destination image towards the input image.}, that re-orient the reference image, can then be given and will be applied to the whole series.
+\begin{itemize}
+\itemsep -1ex
+\item \verb|intra_registration_reference_resampling_transformation_file| can be given a resampling transformation file name.
+\item \verb|intra_registration_reference_resampling_transformation_angles| can be given a string describing the successive rotations (with respect to the frame axis) to be applied. E.g. the string \verb|"X 30 Y 50"| defines a resampling transformation equal to $R_X(30) \circ R_Y(50)$ where $R_X(30)$ is a rotation of 30 degrees around the X axis and $R_Y(50)$ is a rotation of 50 degrees around the Y axis.
+\end{itemize}
+
+\item Depending on \verb|intra_registration_template_type| (\verb|'FUSION'|,
 \verb|'SEGMENTATION'| or \verb|'POST-SEGMENTATION'|), the two latter
 assume obviously that the segmentation has been done), the
 \textit{template} image can be built either after the fusion or the
@@ -195,22 +212,15 @@ include all the transformed points above the threshold. E.g., the
 background is labeled with either '1' or '0' in segmentation images,
 then a threshold of '2' ensures that all the embryo cells will not be
 cut by the resampling stage.  In this case, adding an additional
-margin to the template could be a good idea for visualization
-purpose. Last but not least, using a larger resolution than the
+margin (with \verb|intra_registration_margin|) to the template could be a good idea for visualization
+purpose. 
+
+\item Specifying  using a different resolution for the drift-compensated series than the
 \verb|target_resolution| (the resolution of the fused images) allows
 to decrease the resampled images volume. This can be achieved by
-setting \verb|intra_registration_resolution| to a larger value than
-the one of \verb|target_resolution| (default is 0.6).
+setting \verb|intra_registration_resolution| to the desired  value  (default is 0.6).
 
-Thus, building a \textit{template} image after the segmentation images can be done with
-\begin{verbatim}
-# intra_registration_reference_index = None
-intra_registration_template_type = "SEGMENTATION"
-intra_registration_template_threshold = 2
-# intra_registration_resolution = 0.6
-intra_registration_margin = 10
-\end{verbatim}
-
+\item 
 Last, co-registrations may have been computed during a first
 computation, fused images being used to compute the template. However,
 if  a subsequent segmentation has been conducted, a smaller template
@@ -222,6 +232,16 @@ If set to \texttt{True}, it forces to recompute the template as well
 as the transformations from the co-registrations (that are not
 re-computed). Obviously, resampling as well as 2D+t movies are also
 re-generated.
+\end{itemize}
+
+As an example, building a \textit{template} image after the segmentation images can be done with
+\begin{verbatim}
+# intra_registration_reference_index = None
+intra_registration_template_type = "SEGMENTATION"
+intra_registration_template_threshold = 2
+# intra_registration_resolution = 0.6
+intra_registration_margin = 10
+\end{verbatim}
 
 
 Computed transformations from the \textit{template} image as well as the \textit{template} image itself are stored in \verb|INTRAREG/INTRAREG<EXP_INTRAREG>/TRSFS_t<F>-<L>/| where \verb|<F>| and \verb|L| are the first and the last index of the series (specified by \verb|begin| and \verb|end| from the parameter file).
@@ -385,6 +405,8 @@ EXP_FUSE = ['exp1', 'exp2']
   done with only the fusion images: a second intra-registration with
   the segmentation images as template can be done without recomputing the co-registrations.
 \item \texttt{intra\_registration\_reference\_index}
+\item \texttt{intra\_registration\_reference\_resampling\_transformation\_file}
+\item \texttt{intra\_registration\_reference\_resampling\_transformation\_angles}
 \item \texttt{intra\_registration\_resample\_fusion\_images}
 \item \texttt{intra\_registration\_resample\_post\_segmentation\_images}
 \item \texttt{intra\_registration\_resample\_segmentation\_images}
