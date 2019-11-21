@@ -139,22 +139,33 @@ end = 0
 
 
 
-# intra_registration_resolution = 0.6
+
 # intra_registration_reference_index = None
+# intra_registration_reference_resampling_transformation_file = None
+# intra_registration_reference_resampling_transformation_angles = None
+#
 # intra_registration_template_type = "FUSION"
 # intra_registration_template_threshold = None
 # intra_registration_margin = None
+#
+# intra_registration_resolution = 0.6
+#
 # intra_registration_rebuild_template = False
 
 ## ##### explanation #####
 ##
 ## parameters for template building
 ##
-## intra_registration_resolution: gives the resulting (isotropic) voxel size
-##   (as the 'target_resolution' gives the voxel size of the fused images). However, for
-##   visualization purposes, it may be indicated to have a larger voxel size (hence the 0.6
-##   instead the 0.3)
-## intra_registration_reference_index: defines the still image after drift compensation
+## intra_registration_reference_index: defines the still image after transformation compositions
+##   it will only translated, except if 'intra_registration_reference_transformation_file' or
+##   'intra_registration_reference_transformation_angles'
+## intra_registration_reference_resampling_transformation_file: resampling transformation to be applied
+##   to the reference image (and to the whole serie) after transformation compositions
+## intra_registration_reference_resampling_transformation_angles: list of rotations wrt the X, Y,or Z axis
+##   that defines the resampling transformation
+##   syntax: "X 30 Y 50" means a rotation of 30 degree around X followed by a rotation of 50 around Y
+##   beware: rotation composition depends on the order, so "X 30 Y 50" is not equivalent to "Y 50 X 30"
+##
 ## intra_registration_template_type:  'FUSION' | 'SEGMENTATION' | 'POST-SEGMENTATION'
 ##   The template is built so that the useful information of all resampled images fits into it.
 ##   Useful information can be issued from either the fused sequence, the segmentation sequence or
@@ -169,6 +180,12 @@ end = 0
 ##   In addition, a margin can be given for a more comfortable visualization. By default, it is
 ##   0 when only fusion images are used, and 10 if either segmentation or post-segmentation 
 ##   images are also used
+##
+## intra_registration_resolution: gives the resulting (isotropic) voxel size
+##   (as the 'target_resolution' gives the voxel size of the fused images). However, for
+##   visualization purposes, it may be indicated to have a larger voxel size (hence the 0.6
+##   instead the 0.3)
+##
 ## intra_registration_rebuild_template
 ##   if True, force to recompute the template as well as the transformations from the co-registrations
 ##   (that are not re-computed). It is useful when a first intra-registration has been done with

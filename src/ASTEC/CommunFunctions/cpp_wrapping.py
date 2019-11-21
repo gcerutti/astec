@@ -568,8 +568,8 @@ def multiple_trsfs(format_input, format_output, first, last, reference, trsf_typ
 
 
 def change_multiple_trsfs(format_input, format_output, first, last, reference, result_template, trsf_type='rigid',
-                          resolution=None, threshold=None, margin=None, format_template=None, other_options=None,
-                          monitoring=None):
+                          resolution=None, threshold=None, margin=None, format_template=None,
+                          reference_transformation=None, other_options=None, monitoring=None):
     """
 
     :param format_input:
@@ -583,6 +583,7 @@ def change_multiple_trsfs(format_input, format_output, first, last, reference, r
     :param threshold:
     :param margin:
     :param format_template:
+    :param reference_transformation:
     :param other_options:
     :param monitoring:
     :return:
@@ -612,6 +613,9 @@ def change_multiple_trsfs(format_input, format_output, first, last, reference, r
 
     if format_template is not None:
         command_line += " -template-format " + str(format_template)
+
+    if reference_transformation is not None:
+        command_line += " -reference-transformation " + str(reference_transformation)
 
     #
     #
@@ -648,6 +652,30 @@ def crop_sequence(format_input, path_output, firstindex, lastindex, orientation,
         command_line += " -yz " + str(sliceindex)
     else:
         return
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def create_trsf(trsf_out, other_options=None, monitoring=None):
+    """
+
+    :param trsf_out:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('createTrsf')
+
+    #
+    #
+    #
+    command_line = path_to_exec + " " + trsf_out
+
+    if other_options is not None:
+        command_line += " " + other_options
 
     _launch_inline_cmd(command_line, monitoring=monitoring)
 

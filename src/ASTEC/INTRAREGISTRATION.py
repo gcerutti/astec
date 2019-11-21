@@ -39,13 +39,29 @@ class IntraRegParameters(object):
 
         #
         # intra-sequence transformation parameters
+        # reference, ie image to be still (up to a translation)
+        # while composing transformation
+        # 'reference_transformation_file' is the transformation
+        # that will be resampled the whole series afterwards
+        # (defined for the reference image)
         #
 
         self.reference_index = None
+        self.reference_transformation_file = None
+        self.reference_transformation_angles = None
+
+        #
+        # intra-sequence transformation parameters
+        # input template, ie how to define the useful information to be kept
+        #
         self.template_type = "FUSION"
         self.template_threshold = None
-        self.resolution = 0.6
         self.margin = None
+
+        #
+        # output template
+        #
+        self.resolution = 0.6
 
         #
         # force rebuilding of template and of transformations versus a reference
@@ -102,10 +118,15 @@ class IntraRegParameters(object):
             #
 
             logfile.write('- reference_index = ' + str(self.reference_index) + '\n')
+            logfile.write('- reference_transformation_file = ' + str(self.reference_transformation_file) + '\n')
+            logfile.write('- reference_transformation_angles = ' + str(self.reference_transformation_angles) + '\n')
+
             logfile.write('- template_type = ' + str(self.template_type) + '\n')
             logfile.write('- template_threshold = ' + str(self.template_threshold) + '\n')
-            logfile.write('- resolution = ' + str(self.resolution) + '\n')
             logfile.write('- margin = ' + str(self.margin) + '\n')
+
+            logfile.write('- resolution = ' + str(self.resolution) + '\n')
+
             logfile.write('- rebuild_template = ' + str(self.rebuild_template) + '\n')
 
             #
@@ -162,10 +183,15 @@ class IntraRegParameters(object):
         #
 
         print('- reference_index = ' + str(self.reference_index))
+        print('- reference_transformation_file = ' + str(self.reference_transformation_file))
+        print('- reference_transformation_angles = ' + str(self.reference_transformation_angles))
+
         print('- template_type = ' + str(self.template_type))
         print('- template_threshold = ' + str(self.template_threshold))
-        print('- resolution = ' + str(self.resolution))
         print('- margin = ' + str(self.margin))
+
+        print('- resolution = ' + str(self.resolution))
+
         print('- rebuild_template = ' + str(self.rebuild_template))
 
         #
@@ -206,6 +232,10 @@ class IntraRegParameters(object):
 
         print("")
 
+    def update_from_args(self, args):
+        self.reference_transformation_file = args.reference_transformation_file
+        self.reference_transformation_angles = args.reference_transformation_angles
+
     def update_from_file(self, parameter_file):
         if parameter_file is None:
             return
@@ -229,19 +259,28 @@ class IntraRegParameters(object):
         if hasattr(parameters, 'intra_registration_reference_index'):
             if parameters.intra_registration_reference_index is not None:
                 self.reference_index = parameters.intra_registration_reference_index
+        if hasattr(parameters, 'intra_registration_reference_resampling_transformation_file'):
+            if parameters.intra_registration_reference_resampling_transformation_file is not None:
+                self.reference_transformation_file = parameters.intra_registration_reference_resampling_transformation_file
+        if hasattr(parameters, 'intra_registration_reference_resampling_transformation_angles'):
+            if parameters.intra_registration_reference_resampling_transformation_angles is not None:
+                self.reference_transformation_angles = parameters.intra_registration_reference_resampling_transformation_angles
+
         if hasattr(parameters, 'intra_registration_template_type'):
             if parameters.intra_registration_template_type is not None:
                 self.template_type = parameters.intra_registration_template_type
         if hasattr(parameters, 'intra_registration_template_threshold'):
             if parameters.intra_registration_template_threshold is not None:
                 self.template_threshold = parameters.intra_registration_template_threshold
-        if hasattr(parameters, 'intra_registration_resolution'):
-            if parameters.intra_registration_resolution is not None:
-                self.resolution = parameters.intra_registration_resolution
         if hasattr(parameters, 'intra_registration_margin'):
             if parameters.intra_registration_margin is not None:
                 self.margin = parameters.intra_registration_margin
                 margin_is_updated = True
+
+        if hasattr(parameters, 'intra_registration_resolution'):
+            if parameters.intra_registration_resolution is not None:
+                self.resolution = parameters.intra_registration_resolution
+
         if hasattr(parameters, 'intra_registration_rebuild_template'):
             if parameters.intra_registration_rebuild_template is not None:
                 self.rebuild_template = parameters.intra_registration_rebuild_template
@@ -595,6 +634,64 @@ def _transformations_from_reference(experiment, parameters, temporary_dir):
     return
 
 
+def _is_float(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+
+def _get_reference_transformation(parameters, temporary_dir):
+    """
+
+    :param parameters:
+    :return:
+    """
+
+    proc = "_get_reference_transformation"
+
+    if parameters.reference_transformation_file is not None:
+        if os.path.isfile(parameters.reference_transformation_file):
+            return parameters.reference_transformation_file
+
+    if parameters.reference_transformation_angles is not None:
+        if type(parameters.reference_transformation_angles) == str:
+            s = parameters.reference_transformation_angles.split(' ')
+            create_trsf_option = "-angle-unit degree"
+            l = len(create_trsf_option)
+            i = 0
+            while i < len(s):
+                if s[i].lower() == 'x':
+                    if i+1 < len(s) and _is_float(s[i+1]):
+                        create_trsf_option += ' -xrotation ' + s[i + 1]
+                    else:
+                        monitoring.to_log_and_console(proc + ": weird value for 'X rotation' -> " + str(s[i + 1]), 1)
+                elif s[i].lower() == 'y':
+                    if i + 1 < len(s) and _is_float(s[i + 1]):
+                        create_trsf_option += ' -yrotation ' + s[i + 1]
+                    else:
+                        monitoring.to_log_and_console(proc + ": weird value for 'Y rotation' -> " + str(s[i + 1]), 1)
+                elif s[i].lower() == 'z':
+                    if i + 1 < len(s) and _is_float(s[i + 1]):
+                        create_trsf_option += ' -zrotation ' + s[i + 1]
+                    else:
+                        monitoring.to_log_and_console(proc + ": weird value for 'Z rotation' -> " + str(s[i + 1]), 1)
+                i += 2
+
+            if len(create_trsf_option) > l:
+                trsf_name = os.path.join(temporary_dir, "reference_transformation.trsf")
+                cpp_wrapping.create_trsf(trsf_name, other_options=create_trsf_option, monitoring=monitoring)
+                if os.path.isfile(trsf_name):
+                    return trsf_name
+                else:
+                    monitoring.to_log_and_console(proc + ": unable to compute reference transformation", 1)
+            else:
+                monitoring.to_log_and_console(proc + ": unable to translate reference transformation angles", 1)
+
+    return None
+
+
 def _transformations_and_template(experiment, parameters, temporary_dir):
     """
     From transformations from one given image, compute the template to resample all images.
@@ -605,6 +702,10 @@ def _transformations_and_template(experiment, parameters, temporary_dir):
     """
 
     proc = "_transformations_and_template"
+
+    if isinstance(parameters, IntraRegParameters) is False:
+        monitoring.to_log_and_console(proc + ": bad type for 'parameters' parameter", 1)
+        sys.exit(1)
 
     result_dir = _get_trsf_path(experiment)
     result_template = _get_template_path_name(experiment, parameters)
@@ -707,7 +808,9 @@ def _transformations_and_template(experiment, parameters, temporary_dir):
     cpp_wrapping.change_multiple_trsfs(format_input, format_output, first_time_point, last_time_point, reference_index,
                                        result_template, trsf_type=parameters.registration.transformation_type,
                                        resolution=parameters.resolution, threshold=parameters.template_threshold,
-                                       margin=parameters.margin, format_template=template_format, monitoring=monitoring)
+                                       margin=parameters.margin, format_template=template_format,
+                                       reference_transformation=_get_reference_transformation(parameters, temporary_dir),
+                                       monitoring=monitoring)
 
     return
 

@@ -90,6 +90,16 @@ if __name__ == '__main__':
                            action='store_const', dest='debug', const=0,
                            help='no debug information')
 
+    #
+    # specific args
+    #
+    my_parser.add_argument('-t', '--reference-transformation',
+                           action='store', dest='reference_transformation_file', const=None,
+                           help='resampling transformation to be applied to the reference image')
+    my_parser.add_argument('-a', '--reference-angles',
+                           action='store', dest='reference_transformation_angles', const=None,
+                           help='angles wrt to X, Y and Z axis to build the reference resampling transformation,' +
+                                'it is a string formed by the axis name then the angles, eg "X 70 Z -120"')
     return
 
 
@@ -119,6 +129,7 @@ def main():
 
     monitoring.update_from_args(args)
     experiment.update_from_args(args)
+    parameters.update_from_args(args)
 
     #
     # reading parameter files
