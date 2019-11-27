@@ -1227,7 +1227,8 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     #
 
     astec_name = nomenclature.replaceTIME(environment.path_seg_exp_files, current_time)
-    astec_image = commonTools.find_file(environment.path_seg_exp, astec_name, local_monitoring=None, verbose=False)
+    astec_image = commonTools.find_file(environment.path_seg_exp, astec_name, callfrom=proc, local_monitoring=None,
+                                        verbose=False)
 
     if astec_image is not None:
         if monitoring.forceResultsToBeBuilt is False:

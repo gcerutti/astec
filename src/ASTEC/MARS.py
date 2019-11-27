@@ -324,7 +324,7 @@ class MarsParameters(object):
 #
 ########################################################################################
 
-def build_seeds(input_image, output_difference_image, output_seed_image, sigma, h, environment, parameters,
+def _build_seeds(input_image, output_difference_image, output_seed_image, sigma, h, environment, parameters,
                 operation_type='min'):
     """
 
@@ -492,7 +492,7 @@ def _mars_watershed(template_image, membrane_image, mars_image, environment, par
                                         new_dirname=environment.temporary_path,
                                         new_extension=parameters.default_image_suffix)
     if not os.path.isfile(seed_image) or monitoring.forceResultsToBeBuilt is True:
-        build_seeds(membrane_image, None, seed_image, parameters.watershed_seed_sigma, parameters.watershed_seed_hmin,
+        _build_seeds(membrane_image, None, seed_image, parameters.watershed_seed_sigma, parameters.watershed_seed_hmin,
                     environment, parameters)
 
     #
@@ -563,12 +563,15 @@ def mars_process(current_time, environment, parameters):
     :return:
     """
 
+    proc = "mars_process"
+
     #
     # nothing to do if the segmentation image exists
     #
 
     mars_name = nomenclature.replaceTIME(environment.path_mars_exp_files, current_time)
-    mars_image = commonTools.find_file(environment.path_seg_exp, mars_name, local_monitoring=None, verbose=False)
+    mars_image = commonTools.find_file(environment.path_seg_exp, mars_name, callfrom=proc, local_monitoring=None,
+                                       verbose=False)
 
     if mars_image is not None:
         if monitoring.forceResultsToBeBuilt is False:
@@ -589,7 +592,8 @@ def mars_process(current_time, environment, parameters):
     #
 
     input_name = nomenclature.replaceTIME(environment.path_fuse_exp_files, current_time)
-    input_image = commonTools.find_file(environment.path_fuse_exp, input_name, local_monitoring=monitoring)
+    input_image = commonTools.find_file(environment.path_fuse_exp, input_name, callfrom=proc,
+                                        local_monitoring=monitoring)
     if input_image is None:
         monitoring.to_log_and_console("    .. image '" + input_name + "' not found in '"
                                       + str(environment.path_fuse_exp) + "'", 2)

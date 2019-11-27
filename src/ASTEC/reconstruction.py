@@ -40,7 +40,8 @@ def get_deformation_from_current_to_previous(current_time, environment, paramete
     #
 
     current_name = nomenclature.replaceTIME(environment.path_fuse_exp_files, current_time)
-    current_image = commonTools.find_file(environment.path_fuse_exp, current_name, local_monitoring=None, verbose=False)
+    current_image = commonTools.find_file(environment.path_fuse_exp, current_name, callfrom=proc, local_monitoring=None,
+                                          verbose=False)
 
     if current_image is None:
         monitoring.to_log_and_console("    .. " + proc + " no fused image was found for time "
@@ -50,7 +51,8 @@ def get_deformation_from_current_to_previous(current_time, environment, paramete
     current_image = os.path.join(environment.path_fuse_exp, current_image)
 
     previous_name = nomenclature.replaceTIME(environment.path_fuse_exp_files, previous_time)
-    previous_image = commonTools.find_file(environment.path_fuse_exp, previous_name, local_monitoring=None, verbose=False)
+    previous_image = commonTools.find_file(environment.path_fuse_exp, previous_name, callfrom=proc,
+                                           local_monitoring=None, verbose=False)
 
     if previous_image is None:
         monitoring.to_log_and_console("    .. " + proc + " no fused image was found for time "
@@ -122,11 +124,13 @@ def get_segmentation_image(current_time, environment):
         return None
 
     seg_name = nomenclature.replaceTIME(environment.path_seg_exp_files, current_time)
-    seg_image = commonTools.find_file(environment.path_seg_exp, seg_name, local_monitoring=None, verbose=False)
+    seg_image = commonTools.find_file(environment.path_seg_exp, seg_name, callfrom=proc, local_monitoring=None,
+                                      verbose=False)
 
     if seg_image is None:
         seg_name = nomenclature.replaceTIME(environment.path_mars_exp_files, current_time)
-        seg_image = commonTools.find_file(environment.path_seg_exp, seg_name, local_monitoring=None, verbose=False)
+        seg_image = commonTools.find_file(environment.path_seg_exp, seg_name, callfrom=proc, local_monitoring=None,
+                                          verbose=False)
 
     if seg_image is None:
         monitoring.to_log_and_console("    .. " + proc + ": no segmentation image was found for time "
@@ -234,8 +238,11 @@ def build_membrane_image(current_time, environment, parameters, previous_time=No
     #   is the intensity-transformed image (by normalization)
     #
 
+    proc = "build_membrane_image"
+
     input_name = nomenclature.replaceTIME(environment.path_fuse_exp_files, current_time)
-    input_image = commonTools.find_file(environment.path_fuse_exp, input_name, local_monitoring=monitoring)
+    input_image = commonTools.find_file(environment.path_fuse_exp, input_name, callfrom=proc,
+                                        local_monitoring=monitoring)
 
     if input_image is None:
         monitoring.to_log_and_console("    .. image '" + input_name + "' not found in '"

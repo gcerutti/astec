@@ -3131,7 +3131,8 @@ def fusion_control(experiment, environment, parameters):
             images = list()
 
             name = nomenclature.replaceTIME(environment.path_angle1_files, time_value)
-            im = commonTools.find_file(environment.channel[0].path_angle1, name, local_monitoring=monitoring)
+            im = commonTools.find_file(environment.channel[0].path_angle1, name, callfrom=proc,
+                                       local_monitoring=monitoring)
             if im is None:
                 monitoring.to_log_and_console("    .. image '" + name + "' not found in '"
                                               + environment.channel[0].path_angle1 + "'", 2)
@@ -3141,7 +3142,8 @@ def fusion_control(experiment, environment, parameters):
                 images.append(im)
 
             name = nomenclature.replaceTIME(environment.path_angle2_files, time_value)
-            im = commonTools.find_file(environment.channel[0].path_angle2, name, local_monitoring=monitoring)
+            im = commonTools.find_file(environment.channel[0].path_angle2, name, callfrom=proc,
+                                       local_monitoring=monitoring)
             if im is None:
                 monitoring.to_log_and_console("    .. image '" + name + "' not found in '"
                                               + environment.channel[0].path_angle2 + "'", 2)
@@ -3151,7 +3153,8 @@ def fusion_control(experiment, environment, parameters):
                 images.append(im)
 
             name = nomenclature.replaceTIME(environment.path_angle3_files, time_value)
-            im = commonTools.find_file(environment.channel[0].path_angle3, name, local_monitoring=monitoring)
+            im = commonTools.find_file(environment.channel[0].path_angle3, name, callfrom=proc,
+                                       local_monitoring=monitoring)
             if im is None:
                 monitoring.to_log_and_console("    .. image '" + name + "' not found in '"
                                               + environment.channel[0].path_angle3 + "'", 2)
@@ -3161,7 +3164,8 @@ def fusion_control(experiment, environment, parameters):
                 images.append(im)
 
             name = nomenclature.replaceTIME(environment.path_angle4_files, time_value)
-            im = commonTools.find_file(environment.channel[0].path_angle4, name, local_monitoring=monitoring)
+            im = commonTools.find_file(environment.channel[0].path_angle4, name, callfrom=proc,
+                                       local_monitoring=monitoring)
             if im is None:
                 monitoring.to_log_and_console("    .. image '" + name + "' not found in '"
                                               + environment.channel[0].path_angle4 + "'", 2)

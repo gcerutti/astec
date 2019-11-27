@@ -641,19 +641,19 @@ class Experiment(object):
         :return:
         """
         if stage.lower() == 'fuse':
-            self.path_logdir = os.path.join(self.fusion.get_directory(), "LOGS")
+            self.path_logdir = os.path.join(self.embryo_path, self.fusion.get_directory(), "LOGS")
         elif stage.lower() == 'mars':
-            self.path_logdir = os.path.join(self.mars.get_directory(), "LOGS")
+            self.path_logdir = os.path.join(self.embryo_path, self.mars.get_directory(), "LOGS")
         elif stage.lower() == 'man-correction' or stage.lower() == 'manual-correction':
-            self.path_logdir = os.path.join(self.seg.get_directory(), "LOGS")
+            self.path_logdir = os.path.join(self.embryo_path, self.seg.get_directory(), "LOGS")
         elif stage.lower() == 'seg':
-            self.path_logdir = os.path.join(self.seg.get_directory(), "LOGS")
+            self.path_logdir = os.path.join(self.embryo_path, self.seg.get_directory(), "LOGS")
         elif stage.lower() == 'post' or stage.lower() == 'post-correction':
-            self.path_logdir = os.path.join(self.post.get_directory(), "LOGS")
+            self.path_logdir = os.path.join(self.embryo_path, self.post.get_directory(), "LOGS")
         elif stage.lower() == 'intrareg' or stage.lower() == 'intraregistration':
-            self.path_logdir = os.path.join(self.intrareg.get_directory(), "LOGS")
+            self.path_logdir = os.path.join(self.embryo_path, self.intrareg.get_directory(), "LOGS")
         elif stage.lower() == 'properties':
-            self.path_logdir = os.path.join(self.intrareg.get_directory(), "LOGS")
+            self.path_logdir = os.path.join(self.embryo_path, self.intrareg.get_directory(), "LOGS")
         else:
             print("Experiment.update_from_stage: unknown stage.")
 
@@ -1058,7 +1058,7 @@ def add_suffix(filename, suffix, new_dirname=None, new_extension=None):
 #
 #
 
-def find_file(data_path, file_prefix, local_monitoring=None, verbose=True):
+def find_file(data_path, file_prefix, callfrom=None, local_monitoring=None, verbose=True, ):
     """
     find a file in a directory with a given prefix. The suffix is unknown
 
@@ -1066,6 +1066,7 @@ def find_file(data_path, file_prefix, local_monitoring=None, verbose=True):
     :param file_prefix:
     :param local_monitoring:
     :param verbose:
+    :param callfrom:
     :return:
     """
     proc = "find_file"
@@ -1074,14 +1075,20 @@ def find_file(data_path, file_prefix, local_monitoring=None, verbose=True):
         if local_monitoring is not None:
             local_monitoring.to_log_and_console("Error:")
             local_monitoring.to_log_and_console(proc + ": '" + str(data_path) + "' is not a valid directory ?!")
+            if callfrom is not None:
+                local_monitoring.to_log_and_console("\t call from '" + str(callfrom) + "'")
             local_monitoring.to_log_and_console("\t Exiting.")
         else:
             print(proc + ": '" + str(data_path) + "' is not a valid directory ?!")
+            if callfrom is not None:
+                print("\t call from '" + str(callfrom) + "'")
             print("\t Exiting.")
         sys.exit(1)
 
     if file_prefix is None:
         print(proc + ": file prefix was 'None'?!")
+        if callfrom is not None:
+            print("\t call from '" + str(callfrom) + "'")
         print("\t Exiting.")
         sys.exit(1)
 

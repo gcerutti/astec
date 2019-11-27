@@ -481,10 +481,12 @@ def _check_data(experiment, suffix=None):
     :return:
     """
 
+    proc = "_check_data"
+
     first_time_point = experiment.first_time_point + experiment.delay_time_point
     last_time_point = experiment.last_time_point + experiment.delay_time_point
 
-    path_fusion = experiment.fusion.get_directory()
+    path_fusion = os.path.join(experiment.embryo_path, experiment.fusion.get_directory())
 
     for current_time in range(first_time_point + experiment.delta_time_point,
                               last_time_point + 1, experiment.delta_time_point):
@@ -492,7 +494,7 @@ def _check_data(experiment, suffix=None):
         input_name = experiment.get_image_name(current_time, 'fuse')
 
         if suffix is None:
-            input_image = commonTools.find_file(path_fusion, input_name, local_monitoring=monitoring)
+            input_image = commonTools.find_file(path_fusion, input_name, local_monitoring=monitoring, callfrom=proc)
 
             if input_image is None:
                 monitoring.to_log_and_console("    .. image '" + input_name + "' not found in '"
@@ -541,7 +543,7 @@ def _coregistration_control(experiment, parameters):
     first_time_point = experiment.first_time_point + experiment.delay_time_point
     last_time_point = experiment.last_time_point + experiment.delay_time_point
 
-    path_fusion = experiment.fusion.get_directory()
+    path_fusion = os.path.join(experiment.embryo_path, experiment.fusion.get_directory())
 
     #
     # loop on time
@@ -556,14 +558,16 @@ def _coregistration_control(experiment, parameters):
         if not os.path.isfile(trsf_name) or monitoring.forceResultsToBeBuilt is True:
 
             floating_prefix = experiment.get_image_name(floating_time, 'fuse')
-            floating_name = commonTools.find_file(path_fusion, floating_prefix, local_monitoring=monitoring)
+            floating_name = commonTools.find_file(path_fusion, floating_prefix, local_monitoring=monitoring,
+                                                  callfrom=proc)
             if floating_name is None:
                 monitoring.to_log_and_console(proc + ": error, image '" + str(floating_prefix) + "' was not found", 1)
                 monitoring.to_log_and_console("\t Exiting")
                 sys.exit(1)
 
             reference_prefix = experiment.get_image_name(reference_time, 'fuse')
-            reference_name = commonTools.find_file(path_fusion, reference_prefix, local_monitoring=monitoring)
+            reference_name = commonTools.find_file(path_fusion, reference_prefix, local_monitoring=monitoring,
+                                                   callfrom=proc)
             if reference_name is None:
                 monitoring.to_log_and_console(proc + ": error, image '" + str(reference_prefix) + "' was not found", 1)
                 monitoring.to_log_and_console("\t Exiting")
@@ -730,8 +734,9 @@ def _transformations_and_template(experiment, parameters, temporary_dir):
         #
         # check whether segmentation image share a common suffix
         #
-        suffix = commonTools.get_file_suffix(experiment, experiment.seg.get_directory(),
-                                             experiment.get_image_format('seg'), flag_time=experiment.get_time_format())
+        path_template_format = os.path.join(experiment.embryo_path, experiment.seg.get_directory())
+        suffix = commonTools.get_file_suffix(experiment, path_template_format, experiment.get_image_format('seg'),
+                                             flag_time=experiment.get_time_format())
 
         if suffix is None:
             monitoring.to_log_and_console(proc + ": no consistent naming was found in '"
@@ -742,15 +747,15 @@ def _transformations_and_template(experiment, parameters, temporary_dir):
             monitoring.to_log_and_console("       ... build template from segmentation images of '"
                                           + experiment.seg.get_directory() + "'", 2)
             template_name = experiment.get_image_format('seg') + '.' + suffix
-            template_format = os.path.join(experiment.seg.get_directory(), template_name)
+            template_format = os.path.join(path_template_format, template_name)
 
     elif parameters.template_type.lower() == 'post-segmentation' \
             or parameters.template_type.lower() == 'post_segmentation' or parameters.template_type.lower() == 'post':
         #
         # check whether post-corrected segmentation image share a common suffix
         #
-        suffix = commonTools.get_file_suffix(experiment, experiment.post.get_directory(),
-                                             experiment.get_image_format('post'),
+        path_template_format = os.path.join(experiment.embryo_path, experiment.post.get_directory())
+        suffix = commonTools.get_file_suffix(experiment, path_template_format, experiment.get_image_format('post'),
                                              flag_time=experiment.get_time_format())
 
         if suffix is None:
@@ -762,17 +767,17 @@ def _transformations_and_template(experiment, parameters, temporary_dir):
             monitoring.to_log_and_console("       ... build template from post-segmentation images of '"
                                           + experiment.post.get_directory() + "'", 2)
             template_name = experiment.get_image_format('post') + '.' + suffix
-            template_format = os.path.join(experiment.post.get_directory(), template_name)
+            template_format = os.path.join(path_template_format, template_name)
 
     #
     # use fusion images to build the template
     #
     if template_format is None:
         #
-        # check whether post-corrected segmentation image share a common suffix
+        # check whether fusion image share a common suffix
         #
-        suffix = commonTools.get_file_suffix(experiment, experiment.fusion.get_directory(),
-                                             experiment.get_image_format('fuse'),
+        path_template_format = os.path.join(experiment.embryo_path, experiment.fusion.get_directory())
+        suffix = commonTools.get_file_suffix(experiment, path_template_format, experiment.get_image_format('fuse'),
                                              flag_time=experiment.get_time_format())
         if suffix is None:
             monitoring.to_log_and_console(proc + ": no consistent naming was found in '"
@@ -783,7 +788,7 @@ def _transformations_and_template(experiment, parameters, temporary_dir):
             monitoring.to_log_and_console("       ... build template from fusion images of '"
                                           + experiment.fusion.get_directory() + "'", 2)
             template_name = experiment.get_image_format('fuse') + '.' + suffix
-            template_format = os.path.join(experiment.fusion.get_directory(), template_name)
+            template_format = os.path.join(path_template_format, template_name)
 
     #
     # other parameters
@@ -834,7 +839,7 @@ def _resample_images(experiment, parameters, template_image, directory_type, int
 
     b = os.path.basename(template_image)
     d = os.path.dirname(template_image)
-    local_template_name = commonTools.find_file(d, b, local_monitoring=monitoring)
+    local_template_name = commonTools.find_file(d, b, local_monitoring=monitoring, callfrom=proc)
     if local_template_name is None:
         monitoring.to_log_and_console(proc + ": template '" + str(b) + "' was not found in '" + str(d) + "'", 1)
         monitoring.to_log_and_console("\t resampling will not be done")
@@ -889,11 +894,12 @@ def _resample_images(experiment, parameters, template_image, directory_type, int
             input_name = experiment.get_image_name(t, directory_type)
             output_name = experiment.get_image_name(t, 'intrareg', directory_type)
 
-            output_image = commonTools.find_file(dir_output, output_name, local_monitoring=None, verbose=False)
+            output_image = commonTools.find_file(dir_output, output_name, local_monitoring=None, verbose=False,
+                                                 callfrom=proc)
 
             if output_image is None or monitoring.forceResultsToBeBuilt is True or parameters.rebuild_template is True:
 
-                input_image = commonTools.find_file(dir_input, input_name, local_monitoring=monitoring)
+                input_image = commonTools.find_file(dir_input, input_name, local_monitoring=monitoring, callfrom=proc)
                 output_image = os.path.join(dir_output, output_name + '.' + str(parameters.result_image_suffix))
                 trsf_name = os.path.join(trsf_dir, _get_trsf_name(experiment, t))
 
@@ -986,7 +992,8 @@ def _make_movies(experiment, parameters, directory_type, xylist, xzlist, yzlist)
             # read the first image and set XY slice in the middle
             #
             first_prefix = experiment.get_image_name(first_time_point, 'intrareg', directory_type)
-            first_name = commonTools.find_file(dir_input, first_prefix, local_monitoring=None, verbose=False)
+            first_name = commonTools.find_file(dir_input, first_prefix, local_monitoring=None, verbose=False,
+                                               callfrom=proc)
             if first_name is None:
                 monitoring.to_log_and_console(proc + ": no file '" + str(first_prefix) + "' in '" + str(dir_input) + "'", 1)
                 monitoring.to_log_and_console("\t movies will not be done")
