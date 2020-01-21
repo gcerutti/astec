@@ -203,9 +203,30 @@ begin = 0
 
 
 
+# seed_edition_dir = None
+# seed_edition_files = None
+
+## ##### explanation #####
+##
+## if run with '-k', temporary files, including the computed seeds
+## are kept into a temporary directory, and can be corrected in several rounds
+## seed_edition_files = [['seeds_to_be_fused_001.txt', 'seeds_to_be_created_001.txt'], \
+##                       ['seeds_to_be_fused_002.txt', 'seeds_to_be_created_002.txt'],
+##                       ...
+##                       ['seeds_to_be_fused_00X.txt', 'seeds_to_be_created_00X.txt']]
+## each line of a 'seeds_to_be_fused_00x.txt' file contains the labels to be fused
+##    e.g. "10 4 2 24"
+##    a same label can be found in several lines, meaning that all the labels of these
+##    lines will be fused
+## each line of 'seeds_to_be_created_00x.txt' contains the coordinates of a seed to be added
+##
+
+
+
 # watershed_seed_sigma = 0.6
 # watershed_membrane_sigma = 0.15
 # watershed_seed_hmin = 4
+# watershed_seed_high_threshold = 4
 
 ## ##### explanation #####
 ##
@@ -226,4 +247,6 @@ begin = 0
 ##    default value is 4
 ##    Please note that this value may depend on the transformation applied on the input image, ie
 ##    h_min value should not be the same for the original image, or the image normalized into 1 byte.
+## 4. regional minima thresholding
+##    watershed_seed_high_threshold
 ##

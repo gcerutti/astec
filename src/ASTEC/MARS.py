@@ -126,10 +126,209 @@ class MarsEnvironment(object):
 #
 #
 
-
-class MarsParameters(object):
+class WatershedParameters(object):
 
     def __init__(self):
+        #
+        #
+        # gaussian standard deviation: smoothing input image for seed extraction
+        # h-value for regional minima extraction
+        # threshold for regional minima labeling (has to be in [1, h] range
+        # gaussian standard deviation: smoothing input image for watershed
+        #
+        #
+        self.watershed_seed_sigma = 0.6
+        self.watershed_seed_hmin = 4
+        self.watershed_seed_high_threshold = None
+        self.watershed_membrane_sigma = 0.15
+
+    def write_parameters(self, log_file_name):
+        with open(log_file_name, 'a') as logfile:
+            logfile.write("\n")
+            logfile.write('WatershedParameters\n')
+
+            logfile.write('- watershed_seed_sigma = ' + str(self.watershed_seed_sigma) + '\n')
+            logfile.write('- watershed_seed_hmin = ' + str(self.watershed_seed_hmin) + '\n')
+            logfile.write('- watershed_seed_high_threshold = ' + str(self.watershed_seed_high_threshold) + '\n')
+            logfile.write('- watershed_membrane_sigma = ' + str(self.watershed_membrane_sigma) + '\n')
+
+            logfile.write("\n")
+        return
+
+    def print_parameters(self):
+        print("")
+        print('WatershedParameters')
+
+        print('- watershed_seed_sigma = ' + str(self.watershed_seed_sigma))
+        print('- watershed_seed_hmin = ' + str(self.watershed_seed_hmin))
+        print('- watershed_seed_high_threshold = ' + str(self.watershed_seed_high_threshold))
+        print('- watershed_membrane_sigma = ' + str(self.watershed_membrane_sigma))
+
+        print("")
+
+    def update_from_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+
+        #
+        # watershed parameters
+        #
+        if hasattr(parameters, 'mars_sigma1'):
+            if parameters.mars_sigma1 is not None:
+                self.watershed_seed_sigma = parameters.mars_sigma1
+        if hasattr(parameters, 'mars_watershed_seed_sigma'):
+            if parameters.mars_watershed_seed_sigma is not None:
+                self.watershed_seed_sigma = parameters.mars_watershed_seed_sigma
+        if hasattr(parameters, 'watershed_seed_sigma'):
+            if parameters.watershed_seed_sigma is not None:
+                self.watershed_seed_sigma = parameters.watershed_seed_sigma
+
+        if hasattr(parameters, 'mars_h_min'):
+            if parameters.mars_h_min is not None:
+                self.watershed_seed_hmin = parameters.mars_h_min
+        if hasattr(parameters, 'mars_watershed_seed_hmin'):
+            if parameters.mars_watershed_seed_hmin is not None:
+                self.watershed_seed_hmin = parameters.mars_watershed_seed_hmin
+        if hasattr(parameters, 'watershed_seed_hmin'):
+            if parameters.watershed_seed_hmin is not None:
+                self.watershed_seed_hmin = parameters.watershed_seed_hmin
+
+        if hasattr(parameters, 'watershed_seed_high_threshold'):
+            if parameters.watershed_seed_high_threshold is not None:
+                self.watershed_seed_high_threshold = parameters.watershed_seed_high_threshold
+
+        if hasattr(parameters, 'mars_sigma2'):
+            if parameters.mars_sigma2 is not None:
+                self.watershed_membrane_sigma = parameters.mars_sigma2
+        if hasattr(parameters, 'mars_watershed_membrane_sigma'):
+            if parameters.mars_watershed_membrane_sigma is not None:
+                self.watershed_membrane_sigma = parameters.mars_watershed_membrane_sigma
+        if hasattr(parameters, 'watershed_membrane_sigma'):
+            if parameters.watershed_membrane_sigma is not None:
+                self.watershed_membrane_sigma = parameters.watershed_membrane_sigma
+
+
+#
+#
+#
+#
+#
+
+class SeedEditionParameters(object):
+
+    def __init__(self):
+        #
+        #
+        # gaussian standard deviation: smoothing input image for seed extraction
+        # h-value for regional minima extraction
+        # threshold for regional minima labeling (has to be in [1, h] range
+        # gaussian standard deviation: smoothing input image for watershed
+        #
+        #
+        self.seed_edition_dir = None
+        self.seed_edition_file = None
+
+    def n_seed_editions(self):
+        #
+        # number of elements
+        #
+        if self.seed_edition_file is None:
+            return 0
+        if type(self.seed_edition_file) is str:
+            return 1
+        if type(self.seed_edition_file) is list:
+            if len(self.seed_edition_file) == 2 and type(self.seed_edition_file[0]) is str \
+                and type(self.seed_edition_file[1]) is str:
+                return 1
+            for e in self.seed_edition_file:
+                if type(e) is not list or len(e) != 2 or type(e[0]) is not str or type(e[1]) is not str:
+                    return 0
+            return len(self.seed_edition_file)
+        return 0
+
+    def seed_edition(self, i=0):
+        if i >= self.n_seed_editions():
+            return None, None
+        if type(self.seed_edition_file) is str:
+            if self.seed_edition_dir is None:
+                return self.seed_edition_file, None
+            else:
+                return os.path.join(self.seed_edition_dir,self.seed_edition_file), None
+        if type(self.seed_edition_file) is list:
+            if len(self.seed_edition_file) == 2 and type(self.seed_edition_file[0]) is str \
+                and type(self.seed_edition_file[1]) is str:
+                if self.seed_edition_dir is None:
+                    return self.seed_edition_file[0], self.seed_edition_file[1]
+                else:
+                    return os.path.join(self.seed_edition_dir, self.seed_edition_file[0]), \
+                           os.path.join(self.seed_edition_dir, self.seed_edition_file[1])
+            if self.seed_edition_dir is None:
+                return self.seed_edition_file[i][0], self.seed_edition_file[i][1]
+            else:
+                return os.path.join(self.seed_edition_dir, self.seed_edition_file[i][0]), \
+                       os.path.join(self.seed_edition_dir, self.seed_edition_file[i][1])
+
+    def write_parameters(self, log_file_name):
+        with open(log_file_name, 'a') as logfile:
+            logfile.write("\n")
+            logfile.write('SeedEditionParameters\n')
+
+            logfile.write('- seed_edition_dir = ' + str(self.seed_edition_dir) + '\n')
+            logfile.write('- seed_edition_file = ' + str(self.seed_edition_file) + '\n')
+
+            logfile.write("\n")
+        return
+
+    def print_parameters(self):
+        print("")
+        print('SeedEditionParameters')
+
+        print('- seed_edition_dir = ' + str(self.seed_edition_dir))
+        print('- seed_edition_file = ' + str(self.seed_edition_file))
+
+        print("")
+
+    def update_from_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+
+        #
+        # seed edition parameters
+        #
+        if hasattr(parameters, 'seed_edition_dir'):
+            if parameters.seed_edition_dir is not None:
+                self.seed_edition_dir = parameters.seed_edition_dir
+
+        if hasattr(parameters, 'seed_edition_file'):
+            if parameters.seed_edition_file is not None:
+                self.seed_edition_file = parameters.seed_edition_file
+        if hasattr(parameters, 'seed_edition_files'):
+            if parameters.seed_edition_files is not None:
+                self.seed_edition_file = parameters.seed_edition_files
+
+
+#
+#
+#
+#
+#
+
+class MarsParameters(WatershedParameters, SeedEditionParameters):
+
+    def __init__(self):
+
+        WatershedParameters.__init__(self)
+        SeedEditionParameters.__init__(self)
         #
         #
         #
@@ -153,13 +352,6 @@ class MarsParameters(object):
         self.keep_reconstruction = True
 
         #
-        # watershed parameters
-        #
-        self.watershed_seed_sigma = 0.6
-        self.watershed_membrane_sigma = 0.15
-        self.watershed_seed_hmin = 4
-
-        #
         # images suffixes/formats
         #
         self.result_image_suffix = 'inr'
@@ -176,18 +368,17 @@ class MarsParameters(object):
             logfile.write('- intensity_transformation = ' + str(self.intensity_transformation) + '\n')
             logfile.write('- intensity_enhancement = ' + str(self.intensity_enhancement) + '\n')
 
-            self.ace.write_parameters(log_file_name)
-
             logfile.write('- keep_reconstruction = ' + str(self.keep_reconstruction) + '\n')
-
-            logfile.write('- watershed_seed_sigma = ' + str(self.watershed_seed_sigma) + '\n')
-            logfile.write('- watershed_membrane_sigma = ' + str(self.watershed_membrane_sigma) + '\n')
-            logfile.write('- watershed_seed_hmin = ' + str(self.watershed_seed_hmin) + '\n')
 
             logfile.write('- result_image_suffix = ' + str(self.result_image_suffix) + '\n')
             logfile.write('- default_image_suffix = ' + str(self.default_image_suffix) + '\n')
 
             logfile.write("\n")
+
+        self.ace.write_parameters(log_file_name)
+        WatershedParameters.write_parameters(self, log_file_name)
+        SeedEditionParameters.write_parameters(self, log_file_name)
+
         return
 
     def print_parameters(self):
@@ -204,14 +395,15 @@ class MarsParameters(object):
 
         print('- keep_reconstruction = ' + str(self.keep_reconstruction))
 
-        print('- watershed_seed_sigma = ' + str(self.watershed_seed_sigma))
-        print('- watershed_membrane_sigma = ' + str(self.watershed_membrane_sigma))
-        print('- watershed_seed_hmin = ' + str(self.watershed_seed_hmin))
-
         print('- result_image_suffix = ' + str(self.result_image_suffix))
         print('- default_image_suffix = ' + str(self.default_image_suffix))
 
         print("")
+
+        WatershedParameters.print_parameters(self)
+        SeedEditionParameters.print_parameters(self)
+
+        return
 
     def update_from_file(self, parameter_file):
         if parameter_file is None:
@@ -270,35 +462,12 @@ class MarsParameters(object):
         #
         # watershed parameters
         #
-        if hasattr(parameters, 'mars_sigma1'):
-            if parameters.mars_sigma1 is not None:
-                self.watershed_seed_sigma = parameters.mars_sigma1
-        if hasattr(parameters, 'mars_watershed_seed_sigma'):
-            if parameters.mars_watershed_seed_sigma is not None:
-                self.watershed_seed_sigma = parameters.mars_watershed_seed_sigma
-        if hasattr(parameters, 'watershed_seed_sigma'):
-            if parameters.watershed_seed_sigma is not None:
-                self.watershed_seed_sigma = parameters.watershed_seed_sigma
+        WatershedParameters.update_from_file(self, parameter_file)
 
-        if hasattr(parameters, 'mars_sigma2'):
-            if parameters.mars_sigma2 is not None:
-                self.watershed_membrane_sigma = parameters.mars_sigma2
-        if hasattr(parameters, 'mars_watershed_membrane_sigma'):
-            if parameters.mars_watershed_membrane_sigma is not None:
-                self.watershed_membrane_sigma = parameters.mars_watershed_membrane_sigma
-        if hasattr(parameters, 'watershed_membrane_sigma'):
-            if parameters.watershed_membrane_sigma is not None:
-                self.watershed_membrane_sigma = parameters.watershed_membrane_sigma
-
-        if hasattr(parameters, 'mars_h_min'):
-            if parameters.mars_h_min is not None:
-                self.watershed_seed_hmin = parameters.mars_h_min
-        if hasattr(parameters, 'mars_watershed_seed_hmin'):
-            if parameters.mars_watershed_seed_hmin is not None:
-                self.watershed_seed_hmin = parameters.mars_watershed_seed_hmin
-        if hasattr(parameters, 'watershed_seed_hmin'):
-            if parameters.watershed_seed_hmin is not None:
-                self.watershed_seed_hmin = parameters.watershed_seed_hmin
+        #
+        # seed edition parameters
+        #
+        SeedEditionParameters.update_from_file(self, parameter_file)
 
         #
         # images suffixes/formats
@@ -317,6 +486,8 @@ class MarsParameters(object):
                         and not hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
                     self.result_image_suffix = parameters.default_image_suffix
 
+        return
+
 
 ########################################################################################
 #
@@ -324,43 +495,55 @@ class MarsParameters(object):
 #
 ########################################################################################
 
-def _build_seeds(input_image, output_difference_image, output_seed_image, sigma, h, environment, parameters,
+def build_seeds(input_image, output_difference_image, output_seed_image, environment, parameters,
                 operation_type='min'):
     """
 
     :param input_image:
     :param output_difference_image:
     :param output_seed_image:
-    :param sigma:
-    :param h:
+    :param sigma: gaussian standard deviation for image smoothing before h-extrema computation.
+        If sigma is 0.0, no smoothing is done.
+    :param hmin: h-value for the extrema extraction.
     :param environment:
     :param parameters:
-    :param operation_type:
+    :param operation_type: 'min' for regional h-minima, 'max' for regional h-maxima
     :return:
     """
 
     proc = "build_seeds"
+
+    if isinstance(parameters, WatershedParameters) is False:
+        monitoring.to_log_and_console(proc + ": bad type for 'parameters' parameter", 1)
+        sys.exit(1)
+
     #
     # output_difference_image is the ouput of 'regional_minima'. It is the difference between
     # the reconstructed image after addition of height h and the original image. This way, valley are transformed
     # into hills. Note that the resulting image has its values in [0, h].
     # Such an image can be used as an input for further regional minima computation with *smaller* h
     #
+    # Used by both mars and astec
+    #
 
     if os.path.isfile(output_seed_image) and monitoring.forceResultsToBeBuilt is False:
         return
 
     monitoring.to_log_and_console("    .. seed extraction '" + str(input_image).split(os.path.sep)[-1]
-                                  + "' with h = " + str(h), 2)
+                                  + "' with h = " + str(parameters.watershed_seed_hmin), 2)
 
-    if sigma > 0.0:
+    #
+    # linear smoothing before regional extrema computation
+    #
+
+    if parameters.watershed_seed_sigma > 0.0:
         monitoring.to_log_and_console("       smoothing '" + str(input_image).split(os.path.sep)[-1]
-                                      + "' with sigma = " + str(sigma), 2)
+                                      + "' with sigma = " + str(parameters.watershed_seed_sigma), 2)
         seed_preimage = commonTools.add_suffix(input_image, "_smoothing_for_seeds",
                                                new_dirname=environment.temporary_path,
                                                new_extension=parameters.default_image_suffix)
         if not os.path.isfile(seed_preimage) or monitoring.forceResultsToBeBuilt is True:
-            cpp_wrapping.linear_smoothing(input_image, seed_preimage, sigma,
+            cpp_wrapping.linear_smoothing(input_image, seed_preimage, parameters.watershed_seed_sigma,
                                           real_scale=True, other_options="-o 2", monitoring=monitoring)
     else:
         seed_preimage = input_image
@@ -371,12 +554,16 @@ def _build_seeds(input_image, output_difference_image, output_seed_image, sigma,
         sys.exit(1)
 
     #
-    # le resultat de regional minima est la difference entre l'image originale et
-    # l'image reconstruite apres soustraction d'une hauteur h
+    # regional extrema computation
+    #
+    # the result (of the regional minima) is a difference between the original image and the reconstruction
+    # by the same image lowered by hmin. Then the result image is in the range [0, hmin]
     #
 
+    hmin = parameters.watershed_seed_hmin
+
     if output_difference_image is None:
-        local_difference_image = commonTools.add_suffix(input_image, "_seed_diff_h" + str('{:03d}'.format(h)),
+        local_difference_image = commonTools.add_suffix(input_image, "_seed_diff_h" + str('{:03d}'.format(hmin)),
                                                         new_dirname=environment.temporary_path,
                                                         new_extension=parameters.default_image_suffix)
     else:
@@ -384,17 +571,17 @@ def _build_seeds(input_image, output_difference_image, output_seed_image, sigma,
 
     if operation_type.lower() == 'min':
         monitoring.to_log_and_console("       extract regional minima '"
-                                      + str(seed_preimage).split(os.path.sep)[-1] + "' with h = " + str(h), 2)
+                                      + str(seed_preimage).split(os.path.sep)[-1] + "' with h = " + str(hmin), 2)
 
         if not os.path.isfile(local_difference_image) or monitoring.forceResultsToBeBuilt is True:
-            cpp_wrapping.regional_minima(seed_preimage, local_difference_image, h=h,
+            cpp_wrapping.regional_minima(seed_preimage, local_difference_image, h=hmin,
                                          monitoring=monitoring)
     elif operation_type.lower() == 'max':
         monitoring.to_log_and_console("       extract regional maxima '"
-                                      + str(seed_preimage).split(os.path.sep)[-1] + "' with h = " + str(h), 2)
+                                      + str(seed_preimage).split(os.path.sep)[-1] + "' with h = " + str(hmin), 2)
 
         if not os.path.isfile(local_difference_image) or monitoring.forceResultsToBeBuilt is True:
-            cpp_wrapping.regional_maxima(seed_preimage, local_difference_image, h=h,
+            cpp_wrapping.regional_maxima(seed_preimage, local_difference_image, h=hmin,
                                          monitoring=monitoring)
     else:
         monitoring.to_log_and_console("       " + proc + ": unknown operation type '" + str(operation_type) + "'", 2)
@@ -408,17 +595,21 @@ def _build_seeds(input_image, output_difference_image, output_seed_image, sigma,
         sys.exit(1)
 
     #
-    # seuillage par hysteresis avec un seuil haut a h
+    # hysteresis thresholding
+    # to extract only the extrema that have a height of hmin, the high threshold should be hmin
+    # to get more extrema, one can use a smaller hight threshold
     #
-    if operation_type.lower() == 'min':
-        monitoring.to_log_and_console("       label regional minima '"
-                                      + str(local_difference_image).split(os.path.sep)[-1] + "'", 2)
-    elif operation_type.lower() == 'max':
-        monitoring.to_log_and_console("       label regional maxima '"
-                                      + str(local_difference_image).split(os.path.sep)[-1] + "'", 2)
+
+    high_threshold = parameters.watershed_seed_hmin
+    if parameters.watershed_seed_high_threshold is not None and parameters.watershed_seed_high_threshold > 0 \
+        and parameters.watershed_seed_high_threshold < parameters.watershed_seed_hmin:
+        high_threshold = parameters.watershed_seed_high_threshold
+    monitoring.to_log_and_console("       label regional extrema '"
+                                  + str(local_difference_image).split(os.path.sep)[-1] + "' with threshold = "
+                                  + str(high_threshold), 2)
 
     if not os.path.isfile(output_seed_image) or monitoring.forceResultsToBeBuilt is True:
-        cpp_wrapping.connected_components(local_difference_image, output_seed_image, high_threshold=h,
+        cpp_wrapping.connected_components(local_difference_image, output_seed_image, high_threshold=high_threshold,
                                           monitoring=monitoring)
 
     if output_difference_image is None:
@@ -427,7 +618,7 @@ def _build_seeds(input_image, output_difference_image, output_seed_image, sigma,
     return
 
 
-def watershed(seed_image, membrane_image, result_image, environment, parameters, sigma=0.0):
+def watershed(seed_image, membrane_image, result_image, environment, parameters):
     """
 
     :param seed_image:
@@ -435,11 +626,10 @@ def watershed(seed_image, membrane_image, result_image, environment, parameters,
     :param result_image:
     :param environment:
     :param parameters:
-    :param sigma:
     :return:
     """
 
-    if sigma > 0.0:
+    if parameters.watershed_membrane_sigma > 0.0:
         monitoring.to_log_and_console("    .. smoothing '" + str(membrane_image).split(os.path.sep)[-1] + "'", 2)
         height_image = commonTools.add_suffix(membrane_image, "_smoothing_for_watershed",
                                               new_dirname=environment.temporary_path,
@@ -450,9 +640,10 @@ def watershed(seed_image, membrane_image, result_image, environment, parameters,
     else:
         height_image = membrane_image
 
-        #
-        # watershed
-        #
+    #
+    # watershed
+    #
+
     if not os.path.isfile(seed_image):
         monitoring.to_log_and_console("       '" + str(seed_image).split(os.path.sep)[-1] + "' does not exist", 2)
         monitoring.to_log_and_console("\t Exiting.")
@@ -464,10 +655,41 @@ def watershed(seed_image, membrane_image, result_image, environment, parameters,
 
     monitoring.to_log_and_console("    .. watershed '" + str(height_image).split(os.path.sep)[-1] + "'", 2)
 
-    if not os.path.isfile(result_image) or monitoring.forceResultsToBeBuilt is True:
+    if not os.path.isfile(result_image) or monitoring.forceResultsToBeBuilt is True or parameters.n_seed_editions() > 0:
         cpp_wrapping.watershed(seed_image, height_image, result_image, monitoring=monitoring)
 
     return
+
+
+def _seed_correction(seed_image, corrected_seed_image, parameters):
+    """
+
+    :param seed_image:
+    :param corrected_seed_image:
+    :param environment:
+    :param parameters:
+    :return:
+    """
+
+    proc = "_seed_correction"
+
+    if isinstance(parameters, SeedEditionParameters) is False:
+        monitoring.to_log_and_console(proc + ": bad type for 'parameters' parameter", 1)
+        sys.exit(1)
+
+    if parameters.n_seed_editions() == 0:
+        return seed_image
+
+    ifile = seed_image
+    ofile = corrected_seed_image
+    for i in range(parameters.n_seed_editions()):
+        fusion, seeds = parameters.seed_edition(i)
+        monitoring.to_log_and_console("       correction ['" + str(fusion).split(os.path.sep)[-1] + "', '"
+                                      + str(seeds).split(os.path.sep)[-1] + "']", 2)
+        cpp_wrapping.mc_seedEdit(ifile, ofile, fusion, seeds)
+        ifile = ofile
+
+    return corrected_seed_image
 
 
 def _mars_watershed(template_image, membrane_image, mars_image, environment, parameters):
@@ -491,14 +713,24 @@ def _mars_watershed(template_image, membrane_image, mars_image, environment, par
                                         + str('{:03d}'.format(parameters.watershed_seed_hmin)),
                                         new_dirname=environment.temporary_path,
                                         new_extension=parameters.default_image_suffix)
+
     if not os.path.isfile(seed_image) or monitoring.forceResultsToBeBuilt is True:
-        _build_seeds(membrane_image, None, seed_image, parameters.watershed_seed_sigma, parameters.watershed_seed_hmin,
-                    environment, parameters)
+        build_seeds(membrane_image, None, seed_image, environment, parameters)
+
+    #
+    # seed correction (if any)
+    #
+
+    corrected_seed_image = commonTools.add_suffix(template_image, "_seed_h"
+                                                  + str('{:03d}'.format(parameters.watershed_seed_hmin)) + "_corrected",
+                                                  new_dirname=environment.temporary_path,
+                                                  new_extension=parameters.default_image_suffix)
+    result_seed_image = _seed_correction(seed_image, corrected_seed_image, parameters)
 
     #
     #
     #
-    watershed(seed_image, membrane_image, mars_image, environment, parameters, parameters.watershed_membrane_sigma)
+    watershed(result_seed_image, membrane_image, mars_image, environment, parameters)
 
     return
 
@@ -556,14 +788,28 @@ def _volume_diagnosis(mars_image, ncells=10):
 
 def mars_process(current_time, environment, parameters):
     """
-
-    :param current_time:
-    :param environment:
-    :param parameters:
+    MARS segmentation of one timepoint image.
+    :param current_time: time to be processed
+    :param environment: class describing the mars environment
+    :param parameters: class describing the mars parameters
     :return:
     """
 
     proc = "mars_process"
+
+    #
+    # parameter type checking
+    #
+
+    if not isinstance(environment, MarsEnvironment):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'environment' variable: "
+                                      + str(type(environment)))
+        sys.exit(1)
+
+    if not isinstance(parameters, MarsParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
+        sys.exit(1)
 
     #
     # nothing to do if the segmentation image exists
@@ -574,7 +820,7 @@ def mars_process(current_time, environment, parameters):
                                        verbose=False)
 
     if mars_image is not None:
-        if monitoring.forceResultsToBeBuilt is False:
+        if monitoring.forceResultsToBeBuilt is False and parameters.n_seed_editions() == 0:
             monitoring.to_log_and_console('    mars image already existing', 2)
             #
             # compute diagnosis anyway
@@ -603,7 +849,10 @@ def mars_process(current_time, environment, parameters):
     input_image = os.path.join(environment.path_fuse_exp, input_image)
 
     #
-    # build the membrane image to be segmented
+    # build the 'membrane' image to be segmented
+    # this 'membrane' image is computed from the input image:
+    # - it may be done by intensity normalisation and/or
+    # - membrane extraction
     #
 
     reconstruction.monitoring.copy(monitoring)
@@ -639,12 +888,36 @@ def mars_process(current_time, environment, parameters):
 def mars_control(experiment, environment, parameters):
     """
 
-    :param experiment:
-    :param environment:
-    :param parameters:
+    :param experiment: class describing the experiment
+    :param environment: class describing the mars environment
+    :param parameters: class describing the mars parameters
     :return:
     """
 
+    proc = "mars_control"
+
+    #
+    # parameter type checking
+    #
+
+    if not isinstance(experiment, commonTools.Experiment):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'experiment' variable: "
+                                      + str(type(experiment)))
+        sys.exit(1)
+
+    if not isinstance(environment, MarsEnvironment):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'environment' variable: "
+                                      + str(type(environment)))
+        sys.exit(1)
+
+    if not isinstance(parameters, MarsParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
+        sys.exit(1)
+
+    #
+    # width for time index
+    #
     default_width = 3
 
     #

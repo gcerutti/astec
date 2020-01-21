@@ -56,6 +56,7 @@ default value is '\texttt{RELEASE}').
 
 
 \subsubsection{Input image for watershed computation}
+\label{sec:cli:mars:input:watershed}
 
 Before the watershed segmentation, the input image may be pre-processed. This pre-processing is controlled by the two variables.
 \begin{itemize}
@@ -82,16 +83,31 @@ Each of these variables, if not \texttt{None}, induce a transformation of the in
 
 If the input image is transformed before segmented, the transformed image is named \texttt{<EN>\_fuse\_t<begin>\_membrane.inr} and stored in the directory \texttt{SEG/SEG\_<EXP\_SEG>/RECONSTRUCTION/} if the value of the variable \texttt{mars\_keep\_reconstruction} is set to \texttt{True}.
 
-\subsubsection{Seeded watershed}
+\subsubsection{Seed extraction}
+\label{sec:cli:mars:seed:extraction}
 
 The seed extraction is made of the following steps:
 \begin{enumerate}
 \itemsep -1ex
 \item Gaussian smoothing of the input image, the gaussian standard deviation being given by the variable \texttt{watershed\_seed\_sigma}.
 \item Extraction of the $h$-minima of the previous image, $h$  being given by the variable \texttt{watershed\_seed\_hmin}.
-\item Hysteresis thresholding (and labeling)  of the $h$-minima image, with a high threshold equal to $h$ and and a low threshold equal to $1$. It then only selects the $h$-minima that have an actual depth of $h$.
+\item Hysteresis thresholding (and labeling)  of the $h$-minima image, with a high threshold equal to \texttt{watershed\_seed\_high\_threshold} (default is $h$)  and and a low threshold equal to $1$. It then only selects the $h$-minima that have an actual depth of $h$.
 \end{enumerate}
 Given the seeds, the watershed is performed on the smoothed input image (gaussian standard deviation being given by the variable \texttt{watershed\_membrane\_sigma}).
+
+
+\subsubsection{Seed correction}
+\label{sec:cli:mars:seed:correction}
+
+Several rounds of correction of the computed seeds can be done. At each round, different seeds can be assigned the same label (and this will fuse the further reconstructed cells) or new seeds (each new seed is a single voxel) can be added. See the \option{seed\_edition\_files} variable for details.
+
+When correcting seeds, it is advised to launch \texttt{2-mars.py}  with the \option{-k} option. Indeed, temporary files, as the seed image, are kept in a temporary directory located in the \texttt{SEG/SEG\_'EXP\_SEG'/} directory and then re-used, and not recomputed at each \texttt{2-mars.py} use.
+
+
+
+\subsubsection{Seeded watershed}
+
+The watershed is performed with the previously computed seeds on a smooth input image.
 
 
 \subsection{Parameter list}
@@ -121,7 +137,22 @@ Please also refer to the file
 \item \texttt{mars\_sigma\_TV}
 \item \texttt{mars\_sigma\_membrane}
 \item \texttt{result\_image\_suffix}
-\item \texttt{watershed\_membrane\_sigma}
-\item \texttt{watershed\_seed\_hmin}
-\item \texttt{watershed\_seed\_sigma}
+\item \texttt{seed\_edition\_dir}:
+\item \texttt{seed\_edition\_files}: it is a \texttt{list} of \texttt{list}s of 2 elements, each element being a file name. E.g.
+\begin{verbatim}
+seed_edition_files = [['seeds_to_be_fused_001.txt', 'seeds_to_be_created_001.txt'], \
+                      ['seeds_to_be_fused_002.txt', 'seeds_to_be_created_002.txt'], \
+                      ...
+                      ['seeds_to_be_fused_00X.txt', 'seeds_to_be_created_00X.txt']]
+\end{verbatim}
+These files are assumed to be located in the \texttt{seed\_edition\_dir} directory.
+
+Each line of a \texttt{seeds\_to\_be\_fused\_00x.txt} file contains the labels to be fused, e.g. \texttt{"10 4 2 24"}. A same label can be found in several lines, meaning that all the labels of these lines will be fused.
+
+Each line of a \texttt{seeds\_to\_be\_created\_00x.txt} contains the coordinates of a seed to be added
+
+\item \texttt{watershed\_membrane\_sigma}: gaussian standard deviation $\sigma$ (in real unit) to smooth the input image (i.e. the reconstructed image, see section \ref{sec:cli:mars:input:watershed}) before the watershed segmentation. 
+\item \texttt{watershed\_seed\_high\_threshold}: threshold value to segment the $h$-minima. has to be choose in $[1,h]$. 
+\item \texttt{watershed\_seed\_hmin}: $h$-value for the regional minima extraction.
+\item \texttt{watershed\_seed\_sigma}: gaussian standard deviation (in real unit) to smooth the input image (i.e. the reconstructed image, see section \ref{sec:cli:mars:seed:extraction}) before the seed extraction.
 \end{itemize}

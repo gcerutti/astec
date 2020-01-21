@@ -5,56 +5,6 @@ import subprocess
 
 from ImageHandling import imread, imsave, SpatialImage
 
-#
-# path_to_bins = '/user/gmicheli/home/DIG-EM/Codes/Packages/ASTEC-170210/ASTEC/CommunFunctions/cpp/build/bin/'
-#
-#
-path_to_bins = os.path.join(os.path.dirname(__file__), 'cpp')+os.path.sep
-#
-# path_filters = path_to_bins + 'recfilters'
-# path_linearfilters = path_to_bins + 'linearFilter'
-# path_reech3d = path_to_bins + 'reech3d'
-# path_apply_trsf = path_to_bins + "applyTrsf"
-# path_block = path_to_bins + 'blockmatching'
-# path_morpho = path_to_bins + "morpho"
-# path_regional_max = path_to_bins + 'regionalmax'
-# path_regional_ext = path_to_bins + 'regionalext'
-# path_connexe = path_to_bins + 'connexe'
-# path_watershed = path_to_bins + 'watershed'
-# path_gradient_norm = path_to_bins + 'norme_gradient'
-#
-#
-# path_membrane = path_to_bins + 'membrane'
-# path_anisotropicHist = path_to_bins + 'anisotropicHist'
-# path_TVmembrane = path_to_bins + 'TVmembrane'
-# path_seuillage = path_to_bins + 'seuillage'
-# path_Arit = path_to_bins + 'Arit'
-# path_Logic = path_to_bins + 'Logic'
-# path_create_image = path_to_bins + 'createImage'
-# path_linearFilter = path_to_bins + 'linearFilter'
-# path_copy = path_to_bins + 'copy'
-# path_symmetryPlane = path_to_bins + 'symmetryPlane'
-# path_dice = path_to_bins + 'dice'
-# path_diceMaximisation = path_to_bins + 'diceMaximisation'
-# path_directionHistogram = path_to_bins + 'directionHistogram'
-# path_directionHistogramMaxima = path_to_bins + 'directionHistogramMaxima'
-# path_planeRegistration = path_to_bins + 'planeRegistration'
-# path_pointCloudRegistration = path_to_bins + 'pointCloudRegistration'
-# path_setvoxelsize = path_to_bins + 'setVoxelSize'
-# path_compose_trsf = path_to_bins + 'composeTrsf'
-# path_multiple_trsfs = path_to_bins + 'multipleTrsfs'
-# path_change_multiple_trsfs = path_to_bins + 'changeMultipleTrsfs'
-# path_non_zeros_image = path_to_bins + 'nonZerosImage'
-# path_setvoxelvalue = path_to_bins + 'setVoxelValue'
-# path_fuselabels = path_to_bins + "fuseLabels"
-# path_labelborders = path_to_bins + "labelBorders"
-# path_associateLabels = path_to_bins + "associateLabels"
-#
-# path_boundingboxes = path_to_bins + 'boundingboxes'
-# path_cropImage = path_to_bins + 'cropImage'
-# path_patchLogic = path_to_bins + 'patchLogic'
-# path_mc_adhocfuse = path_to_bins + 'mc-adhocFuse'
-#
 
 ############################################################
 #
@@ -313,6 +263,14 @@ def blockmatching(path_ref, path_flo, path_output, path_output_trsf, path_init_t
 
 def composeTrsf(the_trsfs, res_trsf, other_options=None,
                   monitoring=None):
+    """
+
+    :param the_trsfs:
+    :param res_trsf:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
     path_to_exec = _find_exec('composeTrsf')
 
     command_line = path_to_exec + " -res " + res_trsf
@@ -327,6 +285,34 @@ def composeTrsf(the_trsfs, res_trsf, other_options=None,
 
     return
 
+
+def mc_seedEdit(the_seeds, res_seeds, fusion_file=None, seeds_file=None, other_options=None,
+                  monitoring=None):
+    """
+
+    :param the_seeds:
+    :param res_seeds:
+    :param fusion_file:
+    :param seeds_file:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+    path_to_exec = _find_exec('mc-seedEdit')
+
+    command_line = path_to_exec + " " + the_seeds
+    command_line += " " + res_seeds
+    if fusion_file is not None:
+        command_line += " -fusion " + fusion_file
+    if seeds_file is not None:
+        command_line += " -seeds " + seeds_file
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
 
 
 ############################################################
