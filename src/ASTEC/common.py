@@ -863,6 +863,8 @@ class Experiment(object):
         return
 
     def copy_stamped_file(self, timestamp=None, thefile=None, directory=None):
+        if thefile is None:
+            return
         if directory is not None:
             local_directory = directory
         else:

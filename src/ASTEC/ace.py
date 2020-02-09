@@ -373,7 +373,7 @@ def global_membrane_enhancement(path_input, path_output, experiment, binary_inpu
     for suffix in ['.imvp1', '.imvp2', '.imvp3', '.tv', '.lf']:
         tmp_image = common.find_file(temporary_path, bin_name + suffix, callfrom=proc, local_monitoring=None,
                                      verbose=False)
-        if tmp_image is not Non
+        if tmp_image is not None:
             os.remove(os.path.join(temporary_path, tmp_image))
 
     return

@@ -729,21 +729,21 @@ def mars_process(current_time, experiment, parameters):
     #
     mars_dir = experiment.mars_dir.get_directory(0)
     mars_name = experiment.mars_dir.get_image_name(current_time)
-
     mars_image = common.find_file(mars_dir, mars_name, callfrom=proc, local_monitoring=None, verbose=False)
 
     if mars_image is not None:
+        mars_image = os.path.join(mars_dir, mars_image)
         if monitoring.forceResultsToBeBuilt is False and parameters.n_seed_editions() == 0:
             monitoring.to_log_and_console('    mars image already existing', 2)
             #
             # compute diagnosis anyway
             #
-            _volume_diagnosis(os.path.join(mars_dir, mars_image))
+            _volume_diagnosis(mars_image)
             return
         else:
             monitoring.to_log_and_console('    mars image already existing, but forced', 2)
-
-    mars_image = os.path.join(mars_dir, mars_name + '.' + experiment.result_image_suffix)
+    else:
+        mars_image = os.path.join(mars_dir, mars_name + '.' + experiment.result_image_suffix)
 
     #
     #

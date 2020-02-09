@@ -6,8 +6,7 @@ import time
 import numpy as np
 from scipy import ndimage as nd
 
-import commonTools
-import nomenclature
+import common
 
 from CommunFunctions.ImageHandling import SpatialImage, imread, imsave
 
@@ -18,94 +17,15 @@ from CommunFunctions.ImageHandling import SpatialImage, imread, imsave
 #
 #
 
-monitoring = commonTools.Monitoring()
+monitoring = common.Monitoring()
 
 
 ########################################################################################
 #
 # classes
-# - computation environment
 # - computation parameters
 #
 ########################################################################################
-
-
-class ManualCorrectionEnvironment(object):
-
-    def __init__(self):
-
-        #
-        # mars data paths
-        #
-        self.path_mars_exp_files = None
-
-        #
-        # segmentation data paths
-        #
-        self.path_seg_exp = None
-        self.path_seg_exp_files = None
-
-        #
-        #
-        #
-        self.path_logdir = None
-        self.path_history_file = None
-        self.path_log_file = None
-
-    def update_from_file(self, parameter_file, start_time):
-        if parameter_file is None:
-            return
-        if not os.path.isfile(parameter_file):
-            print ("Error: '" + parameter_file + "' is not a valid file. Exiting.")
-            sys.exit(1)
-
-        parameters = imp.load_source('*', parameter_file)
-
-        self.path_mars_exp_files = nomenclature.replaceFlags(nomenclature.path_mars_exp_files, parameters)
-
-        self.path_seg_exp = nomenclature.replaceFlags(nomenclature.path_seg_exp, parameters)
-        self.path_seg_exp_files = nomenclature.replaceFlags(nomenclature.path_seg_exp_files, parameters)
-
-        self.path_logdir = nomenclature.replaceFlags(nomenclature.path_seg_logdir, parameters)
-        self.path_history_file = nomenclature.replaceFlags(nomenclature.path_seg_historyfile, parameters)
-        self.path_log_file = nomenclature.replaceFlags(nomenclature.path_seg_logfile, parameters, start_time)
-
-    def write_parameters(self, log_file_name):
-        with open(log_file_name, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('ManualCorrectionEnvironment\n')
-
-            logfile.write('- path_mars_exp_files = ' + str(self.path_mars_exp_files) + '\n')
-
-            logfile.write('- path_seg_exp = ' + str(self.path_seg_exp) + '\n')
-            logfile.write('- path_seg_exp_files = ' + str(self.path_seg_exp_files) + '\n')
-
-            logfile.write('- path_logdir = ' + str(self.path_logdir) + '\n')
-            logfile.write('- path_history_file = ' + str(self.path_history_file)+'\n')
-            logfile.write('- path_log_file = ' + str(self.path_log_file)+'\n')
-            logfile.write("\n")
-        return
-
-    def print_parameters(self):
-        print("")
-        print('ManualCorrectionEnvironment')
-
-        print('- path_mars_exp_files = ' + str(self.path_mars_exp_files))
-
-        print('- path_seg_exp = ' + str(self.path_seg_exp))
-        print('- path_seg_exp_files = ' + str(self.path_seg_exp_files))
-
-        print('- path_logdir = ' + str(self.path_logdir))
-        print('- path_history_file = ' + str(self.path_history_file))
-        print('- path_log_file = ' + str(self.path_log_file))
-        print("")
-
-
-#
-#
-#
-#
-#
 
 
 class ManualCorrectionParameters(object):
@@ -296,7 +216,7 @@ def correction_process(input_image, output_image, parameters):
         #
         # corrections to be done
         #
-        corrected_mapping = commonTools.read_lut(parameters.mapping_file)
+        corrected_mapping = common.read_lut(parameters.mapping_file)
 
         if len(corrected_mapping) > 0:
             for k, v in corrected_mapping.iteritems():
@@ -355,15 +275,35 @@ def correction_process(input_image, output_image, parameters):
 #
 
 
-def correction_control(experiment, environment, parameters):
+def correction_control(experiment, parameters):
     """
 
     :param experiment:
-    :param environment:
     :param parameters:
     :return:
     """
 
+    proc = "correction_control"
+
+    #
+    # parameter type checking
+    #
+
+    if not isinstance(experiment, common.Experiment):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'experiment' variable: "
+                                      + str(type(experiment)))
+        sys.exit(1)
+
+    if not isinstance(parameters, ManualCorrectionParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
+        sys.exit(1)
+
+    #
+    # make sure that the result directory exists
+    #
+
+    experiment.seg_dir.make_directory()
     monitoring.to_log_and_console('', 1)
 
     #
@@ -387,21 +327,34 @@ def correction_control(experiment, environment, parameters):
                 sys.exit(1)
             input_image = parameters.input_image
         else:
-            input_name = nomenclature.replaceTIME(environment.path_mars_exp_files,
-                                                  experiment.first_time_point + experiment.delay_time_point)
-            input_name = commonTools.find_file(environment.path_mars_exp, input_name, local_monitoring=monitoring)
-            input_image = os.path.join(environment.path_mars_exp, input_name)
+            mars_dir = experiment.mars_dir.get_directory(0)
+            mars_name = experiment.mars_dir.get_image_name(experiment.first_time_point + experiment.delay_time_point)
+            mars_image = common.find_file(mars_dir, mars_name, callfrom=proc, local_monitoring=None, verbose=False)
+            if mars_image is None:
+                monitoring.to_log_and_console("       '" + str(mars_name) + "' does not exist", 2)
+                monitoring.to_log_and_console("\t Exiting.")
+                sys.exit(1)
+            input_image = os.path.join(mars_dir, mars_image)
 
         #
         # output image
         #
         if parameters.output_image is not None and len(str(parameters.output_image)) > 0:
             output_image = parameters.output_image
+            if monitoring.forceResultsToBeBuilt is False:
+                monitoring.to_log_and_console("    manual corrected image '" + str(output_image) + "' exists", 2)
+                return
         else:
-            output_name = nomenclature.replaceTIME(environment.path_seg_exp_files,
-                                                   experiment.first_time_point + experiment.delay_time_point) \
-                          + '.' + parameters.result_image_suffix
-            output_image = os.path.join(environment.path_seg_exp, output_name)
+            seg_dir = experiment.seg_dir.get_directory(0)
+            seg_name = experiment.seg_dir.get_image_name(experiment.first_time_point + experiment.delay_time_point)
+            seg_image = common.find_file(seg_dir, seg_name, callfrom=proc, local_monitoring=None, verbose=False)
+            if seg_image is not None:
+                if monitoring.forceResultsToBeBuilt is False:
+                    monitoring.to_log_and_console("    manual corrected image '" + str(seg_image) + "' exists", 2)
+                    return
+                output_image = os.path.join(seg_dir, seg_image)
+            else:
+                output_image = os.path.join(seg_dir, seg_name + '.' + experiment.result_image_suffix)
 
         #
         # start processing
@@ -433,29 +386,42 @@ def correction_control(experiment, environment, parameters):
         for time_value in range(parameters.first_time_point + experiment.delay_time_point,
                                 parameters.last_time_point + experiment.delay_time_point + 1, experiment.delta_time_point):
 
-            input_mars_name = nomenclature.replaceTIME(environment.path_mars_exp_files, time_value)
-            input_name = commonTools.find_file(environment.path_seg_exp, input_mars_name, local_monitoring=monitoring)
-            if input_name is None:
-                monitoring.to_log_and_console("    mars image '" + str(input_mars_name) + "' not found: skip time "
+            mars_dir = experiment.mars_dir.get_directory(0)
+            mars_name = experiment.mars_dir.get_image_name(time_value)
+            mars_image = common.find_file(mars_dir, mars_name, callfrom=proc, local_monitoring=None, verbose=False)
+
+            if mars_image is None:
+                monitoring.to_log_and_console("    mars image '" + str(mars_image) + "' not found: skip time "
                                               + str(time_value), 1)
                 continue
 
-            input_image = os.path.join(environment.path_seg_exp, input_name)
-            output_name = nomenclature.replaceTIME(environment.path_seg_exp_files, time_value) \
-                          + '.' + parameters.result_image_suffix
-            output_image = os.path.join(environment.path_seg_exp, output_name)
+            input_image = os.path.join(mars_dir, mars_image)
 
-            #
-            # start processing
-            #
-            monitoring.to_log_and_console("... correction of '" + str(input_image).split(os.path.sep)[-1] + "'", 1)
-            start_time = time.time()
+            seg_dir = experiment.seg_dir.get_directory(0)
+            seg_name = experiment.seg_dir.get_image_name(experiment.first_time_point + experiment.delay_time_point)
+            seg_image = common.find_file(seg_dir, seg_name, callfrom=proc, local_monitoring=None, verbose=False)
 
-            correction_process(input_image, output_image, parameters)
+            if seg_image is None or monitoring.forceResultsToBeBuilt is True:
+                if seg_image is None:
+                    output_image = os.path.join(seg_dir, seg_name + '.' + experiment.result_image_suffix)
+                else:
+                    output_image = os.path.join(seg_dir, seg_image)
 
-            #
-            # end processing for a time point
-            #
-            end_time = time.time()
-            monitoring.to_log_and_console('    computation time = ' + str(end_time - start_time) + ' s', 1)
-            monitoring.to_log_and_console('', 1)
+                #
+                # start processing
+                #
+                monitoring.to_log_and_console("... correction of '" + str(input_image).split(os.path.sep)[-1] + "'",
+                                                  1)
+                start_time = time.time()
+
+                correction_process(input_image, output_image, parameters)
+
+                #
+                # end processing for a time point
+                #
+                end_time = time.time()
+                monitoring.to_log_and_console('    computation time = ' + str(end_time - start_time) + ' s', 1)
+                monitoring.to_log_and_console('', 1)
+
+            else:
+                monitoring.to_log_and_console("    manual corrected image '" + str(seg_image) + "' exists", 2)

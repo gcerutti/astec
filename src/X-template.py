@@ -99,7 +99,7 @@ def main():
     # reading command line arguments
     # and update from command line arguments
     #
-    parser = ArgumentParser(description='Mars')
+    parser = ArgumentParser(description='Template')
     _set_options(parser)
     args = parser.parse_args()
 
