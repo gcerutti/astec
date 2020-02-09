@@ -10,8 +10,8 @@ from argparse import ArgumentParser
 
 
 import ASTEC.common as common
-import ASTEC.mars as mars
-import ASTEC.ace as ace
+# import ASTEC.MARS as MARS
+# import ASTEC.nomenclature as nomenclature
 from ASTEC.CommunFunctions.cpp_wrapping import path_to_vt
 
 
@@ -152,8 +152,6 @@ def main():
     # copy monitoring information into other "files"
     # so the log filename is known
     #
-    mars.monitoring.copy(monitoring)
-    ace.monitoring.copy(monitoring)
 
     #
     # manage parameters
@@ -162,18 +160,9 @@ def main():
     # 3. write parameters into the logfile
     #
 
-    parameters = mars.MarsParameters()
-
-    parameters.first_time_point = experiment.first_time_point
-    parameters.last_time_point = experiment.first_time_point
-    parameters.update_from_file(parameter_file)
-
-    parameters.write_parameters(monitoring.log_filename)
-
     #
     # processing
     #
-    mars.mars_control(experiment, parameters)
 
     #
     # end of execution

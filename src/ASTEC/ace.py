@@ -5,8 +5,9 @@ import imp
 import operator
 import multiprocessing
 
-import commonTools
-from CommunFunctions.ImageHandling import SpatialImage, imread, imsave
+import common
+
+from CommunFunctions.ImageHandling import imread
 import CommunFunctions.cpp_wrapping as cpp_wrapping
 
 
@@ -17,7 +18,7 @@ import CommunFunctions.cpp_wrapping as cpp_wrapping
 #
 
 
-monitoring = commonTools.Monitoring()
+monitoring = common.Monitoring()
 
 
 ########################################################################################
@@ -201,12 +202,13 @@ class AceParameters(object):
 #
 
 
-def global_membrane_enhancement(path_input, path_output, binary_input=False,
+def global_membrane_enhancement(path_input, path_output, experiment, binary_input=False,
                                 temporary_path=None, parameters=None):
     """
     GACE for Global Automated Cell Extractor
     :param path_input:
     :param path_output:
+    :param experiment:
     :param binary_input:
     :param temporary_path: 
     :param parameters: 
@@ -216,8 +218,14 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
     proc = 'global_membrane_enhancement'
 
     #
-    # test for input image
+    # parameter checking
     #
+
+    if not isinstance(experiment, common.Experiment):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'experiment' variable: "
+                                      + str(type(experiment)))
+        sys.exit(1)
+
     if not os.path.isfile(path_input):
         monitoring.to_log_and_console(proc + ": input image does not exist", 0)
         monitoring.to_log_and_console("\t input image was '" + str(path_input) + "'", 0)
@@ -226,13 +234,15 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
 
     #
     # set names
-    #
+    # path_input is the full input image name
+    # - e is the extension, including the '.' (e.g. '.inr')
+    # - prefix_name is the basename without extension
 
-    e = commonTools.get_extension(path_input)
+    e = common.get_extension(path_input)
     b = os.path.basename(path_input)
     prefix_name = b[0:len(b) - len(e)]
 
-    tmp_prefix_name = temporary_path + os.path.sep + prefix_name
+    # tmp_prefix_name = temporary_path + os.path.sep + prefix_name
 
     #
     # if the output is already binary, there is no membrane extraction
@@ -253,16 +263,23 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
         #    - 'tmp_prefix_name'.phi
         #      the two angle images that give the direction of the vector orthogonal to the membrane
         #
-        if (not os.path.isfile(tmp_prefix_name + ".ext.inr") or not os.path.exists(tmp_prefix_name + ".theta.inr")
-                or not os.path.exists(tmp_prefix_name + ".phi.inr")) or monitoring.forceResultsToBeBuilt is True:
+        ext_image = common.find_file(temporary_path, prefix_name + ".ext", callfrom=proc, local_monitoring=None,
+                                     verbose=False)
+        phi_image = common.find_file(temporary_path, prefix_name + ".phi", callfrom=proc, local_monitoring=None,
+                                     verbose=False)
+        theta_image = common.find_file(temporary_path, prefix_name + ".theta", callfrom=proc, local_monitoring=None,
+                                       verbose=False)
+        if ext_image is None or phi_image is None or theta_image is None or monitoring.forceResultsToBeBuilt is True:
             monitoring.to_log_and_console("       membrane extraction of '"
                                           + str(path_input).split(os.path.sep)[-1] + "'", 2)
             #
             # Local enhancement of membranes from 'path_input' image and extraction of the directional maxima
             # (generates the tmp_prefix_name+'.[ext|theta|phi].inr') images
             #
-            cpp_wrapping.membrane_extraction(path_input, tmp_prefix_name,
-                                             scale=parameters.sigma_membrane, monitoring=monitoring)
+            tmp_prefix_name = os.path.join(temporary_path, prefix_name)
+            cpp_wrapping.membrane_extraction(path_input, tmp_prefix_name, scale=parameters.sigma_membrane,
+                                             other_options = "-extension " + str(experiment.default_image_suffix),
+                                             monitoring=monitoring)
 
         #
         # Membranes binarization
@@ -274,35 +291,46 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
         #    - 'tmp_prefix_name'.hist.txt
         #      a text file describing the image histogram
         #
-        if not os.path.isfile(tmp_prefix_name + ".ext.inr"):
-            monitoring.to_log_and_console("       '" + str(tmp_prefix_name + ".ext.inr").split(os.path.sep)[-1]
-                                          + "' does not exist", 2)
+        ext_image = common.find_file(temporary_path, prefix_name + ".ext", callfrom=proc, local_monitoring=monitoring)
+        if ext_image is None:
+            monitoring.to_log_and_console("       image '" + str(prefix_name + ".ext") + "' not found in '"
+                                          + str(temporary_path) + "'", 2)
             monitoring.to_log_and_console("\t Exiting.")
             sys.exit(1)
+        ext_image = os.path.join(temporary_path, ext_image)
+        hist_file = os.path.join(temporary_path, prefix_name + ".histogram.txt")
 
-        if not os.path.isfile(tmp_prefix_name + ".bin.inr") or monitoring.forceResultsToBeBuilt is True:
+        bin_image = common.find_file(temporary_path, prefix_name + ".bin", callfrom=proc, local_monitoring=None,
+                                     verbose=False)
+        if bin_image is None or monitoring.forceResultsToBeBuilt is True:
+            if bin_image is None:
+                bin_image = os.path.join(temporary_path, prefix_name + ".bin." + experiment.default_image_suffix)
             if parameters.hard_thresholding is True:
                 #
                 # hard threshold
                 #
-                monitoring.to_log_and_console("       membrane hard thresholding of '"
-                                              + str(tmp_prefix_name + ".ext.inr").split(os.path.sep)[-1] + "'", 2)
-                cpp_wrapping.seuillage(path_input=tmp_prefix_name + ".ext.inr",
-                                       path_output=tmp_prefix_name + ".bin.inr",
+                monitoring.to_log_and_console("       membrane hard thresholding of '" +
+                                              str(ext_image).split(os.path.sep)[-1] + "'", 2)
+                cpp_wrapping.seuillage(path_input=ext_image, path_output=bin_image,
                                        low_threshold=parameters.hard_threshold, monitoring=monitoring)
             else:
                 #
                 # Anisotropic threshold of membranes (the choice of the sensitivity parameter may be critical)
+                # Pay attention, the input name is the prefix name (without '.ext.inr')
                 #
-                monitoring.to_log_and_console("       membrane anisotropic thresholding of '"
-                                              + str(tmp_prefix_name + ".ext.inr").split(os.path.sep)[-1] + "'", 2)
-                cpp_wrapping.anisotropic_histogram(path_input_prefix=tmp_prefix_name,
-                                                   path_output=tmp_prefix_name + ".bin.inr",
-                                                   manual=parameters.manual, manual_sigma=parameters.manual_sigma,
+                monitoring.to_log_and_console("       membrane anisotropic thresholding of '" +
+                                              str(ext_image).split(os.path.sep)[-1] + "'", 2)
+                cpp_wrapping.anisotropic_histogram(path_input_extrema=ext_image, path_output_histogram=hist_file,
+                                                   path_output=bin_image, manual=parameters.manual,
+                                                   manual_sigma=parameters.manual_sigma,
                                                    sensitivity=parameters.sensitivity, monitoring=monitoring)
-                os.remove(tmp_prefix_name + '.hist.txt')
-
-        path_tv_input = tmp_prefix_name + ".bin.inr"
+                os.remove(hist_file)
+        else:
+            bin_image = os.path.join(temporary_path, bin_image)
+        #
+        #
+        #
+        path_tv_input = bin_image
 
     #
     # Tensor voting on the image of binarized membranes
@@ -320,11 +348,11 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
     monitoring.to_log_and_console("       tensor voting from '"
                                   + str(path_tv_input).split(os.path.sep)[-1] + "'", 2)
 
-    e = commonTools.get_extension(path_tv_input)
+    e = common.get_extension(path_tv_input)
     b = os.path.basename(path_tv_input)
-    prefix_name = b[0:len(b) - len(e)]
+    bin_name = b[0:len(b) - len(e)]
 
-    bin_prefix_name = temporary_path + os.path.sep + prefix_name
+    bin_prefix_name = os.path.join(temporary_path, bin_name)
 
     if not os.path.isfile(path_output) or monitoring.forceResultsToBeBuilt is True:
         cpp_wrapping.tensor_voting_membrane(path_tv_input, bin_prefix_name, path_output,
@@ -332,17 +360,21 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
                                             sample=parameters.sample, sigma_smoothing=parameters.sigma_LF,
                                             monitoring=monitoring)
 
+    #
+    # remove images
+    #
     if binary_input is False:
-        os.remove(tmp_prefix_name + '.ext.inr')
-        os.remove(tmp_prefix_name + '.phi.inr')
-        os.remove(tmp_prefix_name + '.theta.inr')
-        os.remove(tmp_prefix_name + '.bin.inr')
+        for suffix in ['.ext', '.phi', '.theta', '.bin']:
+            tmp_image = common.find_file(temporary_path, prefix_name + suffix, callfrom=proc, local_monitoring=None,
+                                         verbose=False)
+            if tmp_image is not None:
+                os.remove(os.path.join(temporary_path, tmp_image))
 
-    os.remove(bin_prefix_name + '.imvp1.inr')
-    os.remove(bin_prefix_name + '.imvp2.inr')
-    os.remove(bin_prefix_name + '.imvp3.inr')
-    os.remove(bin_prefix_name + '.tv.inr')
-    os.remove(bin_prefix_name + '.lf.inr')
+    for suffix in ['.imvp1', '.imvp2', '.imvp3', '.tv', '.lf']:
+        tmp_image = common.find_file(temporary_path, bin_name + suffix, callfrom=proc, local_monitoring=None,
+                                     verbose=False)
+        if tmp_image is not Non
+            os.remove(os.path.join(temporary_path, tmp_image))
 
     return
 
@@ -405,6 +437,7 @@ def cell_binarization(parameters_for_parallelism):
 
     full_ext = tmp_prefix_name + ".ext.inr"
     cell_ext = cell_prefix_name + ".ext" + ".inr"
+    cell_hist = cell_prefix_name + ".hist" + ".txt"
     cell_bin = cell_prefix_name + ".bin" + "." + parameters.default_image_suffix
 
     cpp_wrapping.crop_image(full_ext, cell_ext, bbox, monitoring=monitoring)
@@ -424,13 +457,14 @@ def cell_binarization(parameters_for_parallelism):
         cpp_wrapping.crop_image(full_theta, cell_theta, bbox, monitoring=monitoring)
         cpp_wrapping.crop_image(full_phi, cell_phi, bbox, monitoring=monitoring)
 
-        cpp_wrapping.anisotropic_histogram(path_input_prefix=cell_prefix_name, path_output=cell_bin,
-                                           manual=parameters.manual, manual_sigma=parameters.manual_sigma,
+        cpp_wrapping.anisotropic_histogram(path_input_extrema=cell_ext, path_output_histogram=cell_hist,
+                                           path_output=cell_bin, manual=parameters.manual,
+                                           manual_sigma=parameters.manual_sigma,
                                            sensitivity=parameters.sensitivity, monitoring=monitoring)
 
         os.remove(cell_theta)
         os.remove(cell_phi)
-        os.remove(cell_prefix_name + ".hist.txt")
+        os.remove(cell_hist)
 
     os.remove(cell_ext)
 
@@ -463,7 +497,7 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
     # set names
     #
 
-    e = commonTools.get_extension(path_input)
+    e = common.get_extension(path_input)
     b = os.path.basename(path_input)
     prefix_name = b[0:len(b) - len(e)]
 
@@ -500,7 +534,7 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
     # bounding boxes of all labels
     # bboxes is a list of tuples [volume, xmin, ymin, zmin, xmax, ymax, zmax]
     #
-    path_bboxes = commonTools.add_suffix(previous_deformed_segmentation, '_bounding_boxes',
+    path_bboxes = common.add_suffix(previous_deformed_segmentation, '_bounding_boxes',
                                          new_dirname=temporary_path, new_extension='txt')
     bboxes = cpp_wrapping.bounding_boxes(previous_deformed_segmentation, path_bboxes=path_bboxes)
 

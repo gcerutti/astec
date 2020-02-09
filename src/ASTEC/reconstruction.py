@@ -1,12 +1,12 @@
 
 import os
+import sys
 
-import ACE
-import commonTools
-import nomenclature
+import ace
+import common
 import CommunFunctions.cpp_wrapping as cpp_wrapping
 
-monitoring = commonTools.Monitoring()
+monitoring = common.Monitoring()
 
 
 ########################################################################################
@@ -40,7 +40,7 @@ def get_deformation_from_current_to_previous(current_time, environment, paramete
     #
 
     current_name = nomenclature.replaceTIME(environment.path_fuse_exp_files, current_time)
-    current_image = commonTools.find_file(environment.path_fuse_exp, current_name, callfrom=proc, local_monitoring=None,
+    current_image = common.find_file(environment.path_fuse_exp, current_name, callfrom=proc, local_monitoring=None,
                                           verbose=False)
 
     if current_image is None:
@@ -51,7 +51,7 @@ def get_deformation_from_current_to_previous(current_time, environment, paramete
     current_image = os.path.join(environment.path_fuse_exp, current_image)
 
     previous_name = nomenclature.replaceTIME(environment.path_fuse_exp_files, previous_time)
-    previous_image = commonTools.find_file(environment.path_fuse_exp, previous_name, callfrom=proc,
+    previous_image = common.find_file(environment.path_fuse_exp, previous_name, callfrom=proc,
                                            local_monitoring=None, verbose=False)
 
     if previous_image is None:
@@ -65,19 +65,19 @@ def get_deformation_from_current_to_previous(current_time, environment, paramete
     # temporary files for registration
     #
 
-    affine_image = commonTools.add_suffix(previous_image, "_affine",
-                                          new_dirname=environment.temporary_path,
-                                          new_extension=parameters.default_image_suffix)
+    affine_image = common.add_suffix(previous_image, "_affine",
+                                          new_dirname=experiment.working_dir.get_tmp_directory(0),
+                                          new_extension=experiment.default_image_suffix)
 
-    vector_image = commonTools.add_suffix(previous_image, "_vector", new_dirname=environment.temporary_path,
-                                          new_extension=parameters.default_image_suffix)
+    vector_image = common.add_suffix(previous_image, "_vector", new_dirname=experiment.working_dir.get_tmp_directory(0),
+                                          new_extension=experiment.default_image_suffix)
 
-    affine_trsf = commonTools.add_suffix(previous_image, "_affine",
-                                         new_dirname=environment.temporary_path,
+    affine_trsf = common.add_suffix(previous_image, "_affine",
+                                         new_dirname=experiment.working_dir.get_tmp_directory(0),
                                          new_extension="trsf")
 
-    vector_trsf = commonTools.add_suffix(previous_image, "_vector",
-                                         new_dirname=environment.temporary_path,
+    vector_trsf = common.add_suffix(previous_image, "_vector",
+                                         new_dirname=experiment.working_dir.get_tmp_directory(0),
                                          new_extension="trsf")
 
     #
@@ -124,12 +124,12 @@ def get_segmentation_image(current_time, environment):
         return None
 
     seg_name = nomenclature.replaceTIME(environment.path_seg_exp_files, current_time)
-    seg_image = commonTools.find_file(environment.path_seg_exp, seg_name, callfrom=proc, local_monitoring=None,
+    seg_image = common.find_file(environment.path_seg_exp, seg_name, callfrom=proc, local_monitoring=None,
                                       verbose=False)
 
     if seg_image is None:
         seg_name = nomenclature.replaceTIME(environment.path_mars_exp_files, current_time)
-        seg_image = commonTools.find_file(environment.path_seg_exp, seg_name, callfrom=proc, local_monitoring=None,
+        seg_image = common.find_file(environment.path_seg_exp, seg_name, callfrom=proc, local_monitoring=None,
                                           verbose=False)
 
     if seg_image is None:
@@ -184,8 +184,8 @@ def get_previous_deformed_segmentation(current_time, environment, parameters, pr
                                       + str(previous_time), 2)
         return None
 
-    prev_def_segimage = commonTools.add_suffix(prev_segimage, "_deformed", new_dirname=environment.temporary_path,
-                                               new_extension=parameters.default_image_suffix)
+    prev_def_segimage = common.add_suffix(prev_segimage, "_deformed", new_dirname=experiment.working_dir.get_tmp_directory(0),
+                                               new_extension=experiment.default_image_suffix)
 
     if os.path.isfile(prev_def_segimage):
         return prev_def_segimage
@@ -212,11 +212,11 @@ def get_previous_deformed_segmentation(current_time, environment, parameters, pr
 ########################################################################################
 
 
-def build_membrane_image(current_time, environment, parameters, previous_time=None):
+def build_membrane_image(current_time, experiment, parameters, previous_time=None):
     """
 
     :param current_time:
-    :param environment:
+    :param experiment:
     :param parameters:
     :param previous_time:
     :return:
@@ -240,16 +240,37 @@ def build_membrane_image(current_time, environment, parameters, previous_time=No
 
     proc = "build_membrane_image"
 
-    input_name = nomenclature.replaceTIME(environment.path_fuse_exp_files, current_time)
-    input_image = commonTools.find_file(environment.path_fuse_exp, input_name, callfrom=proc,
-                                        local_monitoring=monitoring)
+    #
+    # parameter type checking
+    #
+
+    if not isinstance(experiment, common.Experiment):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'experiment' variable: "
+                                      + str(type(experiment)))
+        sys.exit(1)
+        
+    #
+    # get fused image
+    #
+    input_dir = experiment.fusion_dir.get_directory(0)
+    input_name = experiment.fusion_dir.get_image_name(current_time)
+
+    input_image = common.find_file(input_dir, input_name, callfrom=proc, local_monitoring=monitoring)
 
     if input_image is None:
-        monitoring.to_log_and_console("    .. image '" + input_name + "' not found in '"
-                                      + str(environment.path_fuse_exp) + "'", 2)
+        monitoring.to_log_and_console("    .. image '" + input_name + "' not found in '" + str(input_dir) + "'", 2)
         return None
-    input_image = os.path.join(environment.path_fuse_exp, input_image)
+    input_image = os.path.join(input_dir, input_image)
 
+    #
+    # set image names
+    #
+    # there can be intensity enhancement (ie filtering based membrane enhancement)
+    #
+    # if no intensity (i.e. membrane) enhancement
+    #    if no intensity
+    #
+    #
     enhanced_image = None
     intensity_image = None
     membrane_image = None
@@ -269,9 +290,13 @@ def build_membrane_image(current_time, environment, parameters, previous_time=No
         elif parameters.intensity_transformation.lower() == 'normalization_to_u8' \
                 or parameters.intensity_transformation.lower() == 'global_normalization_to_u8' \
                 or parameters.intensity_transformation.lower() == 'cell_normalization_to_u8':
-            intensity_image = commonTools.add_suffix(input_image, "_membrane",
-                                                     new_dirname=environment.path_reconstruction,
-                                                     new_extension=parameters.default_image_suffix)
+            intensity_image = common.add_suffix(input_image, "_membrane",
+                                                new_dirname=experiment.working_dir.get_rec_directory(0),
+                                                new_extension=experiment.default_image_suffix)
+            #
+            # 'reconstruction' directory has to be made
+            #
+            experiment.working_dir.make_rec_directory()
         else:
             monitoring.to_log_and_console("    unknown intensity transformation method: '"
                                           + str(parameters.intensity_transformation) + "'", 2)
@@ -282,30 +307,37 @@ def build_membrane_image(current_time, environment, parameters, previous_time=No
         # or set the 3 names: intensity_image, enhanced_image, and membrane_image
         #
         if parameters.intensity_transformation is None or parameters.intensity_transformation.lower() == 'none':
-            enhanced_image = commonTools.add_suffix(input_image, "_membrane",
-                                                    new_dirname=environment.path_reconstruction,
-                                                    new_extension=parameters.default_image_suffix)
+            enhanced_image = common.add_suffix(input_image, "_membrane",
+                                               new_dirname=experiment.working_dir.get_rec_directory(0),
+                                               new_extension=experiment.default_image_suffix)
         elif parameters.intensity_transformation.lower() == 'identity':
             intensity_image = input_image
-            enhanced_image = commonTools.add_suffix(input_image, "_enhanced", new_dirname=environment.temporary_path,
-                                                    new_extension=parameters.default_image_suffix)
-            membrane_image = commonTools.add_suffix(input_image, "_membrane",
-                                                    new_dirname=environment.path_reconstruction,
-                                                    new_extension=parameters.default_image_suffix)
+            enhanced_image = common.add_suffix(input_image, "_enhanced",
+                                               new_dirname=experiment.working_dir.get_tmp_directory(0),
+                                               new_extension=experiment.default_image_suffix)
+            membrane_image = common.add_suffix(input_image, "_membrane",
+                                               new_dirname=experiment.working_dir.get_rec_directory(0),
+                                               new_extension=experiment.default_image_suffix)
         elif parameters.intensity_transformation.lower() == 'normalization_to_u8' \
                 or parameters.intensity_transformation.lower() == 'global_normalization_to_u8' \
                 or parameters.intensity_transformation.lower() == 'cell_normalization_to_u8':
-            intensity_image = commonTools.add_suffix(input_image, "_intensity", new_dirname=environment.temporary_path,
-                                                     new_extension=parameters.default_image_suffix)
-            enhanced_image = commonTools.add_suffix(input_image, "_enhanced", new_dirname=environment.temporary_path,
-                                                    new_extension=parameters.default_image_suffix)
-            membrane_image = commonTools.add_suffix(input_image, "_membrane",
-                                                    new_dirname=environment.path_reconstruction,
-                                                    new_extension=parameters.default_image_suffix)
+            intensity_image = common.add_suffix(input_image, "_intensity",
+                                                new_dirname=experiment.working_dir.get_tmp_directory(0),
+                                                new_extension=experiment.default_image_suffix)
+            enhanced_image = common.add_suffix(input_image, "_enhanced",
+                                               new_dirname=experiment.working_dir.get_tmp_directory(0),
+                                               new_extension=experiment.default_image_suffix)
+            membrane_image = common.add_suffix(input_image, "_membrane",
+                                               new_dirname=experiment.working_dir.get_rec_directory(0),
+                                               new_extension=experiment.default_image_suffix)
         else:
             monitoring.to_log_and_console("    unknown intensity transformation method: '"
                                           + str(parameters.intensity_transformation) + "'", 2)
             return None
+        #
+        # 'reconstruction' directory has to be made
+        #
+        experiment.working_dir.make_rec_directory()
     else:
         monitoring.to_log_and_console("    unknown membrane enhancement method: '"
                                       + str(parameters.intensity_enhancement) + "'", 2)
@@ -322,19 +354,20 @@ def build_membrane_image(current_time, environment, parameters, previous_time=No
                 or monitoring.forceResultsToBeBuilt is True:
             monitoring.to_log_and_console("    .. membrane global enhancement of '"
                                           + str(input_image).split(os.path.sep)[-1] + "'", 2)
-            ACE.monitoring.copy(monitoring)
-            ACE.global_membrane_enhancement(input_image, enhanced_image, temporary_path=environment.temporary_path,
+            ace.monitoring.copy(monitoring)
+            ace.global_membrane_enhancement(input_image, enhanced_image, experiment,
+                                            temporary_path=experiment.working_dir.get_tmp_directory(0),
                                             parameters=parameters.ace)
     elif parameters.intensity_enhancement.lower() == 'glace':
         if (not os.path.isfile(enhanced_image) and (membrane_image is None or not os.path.isfile(membrane_image))) \
                 or monitoring.forceResultsToBeBuilt is True:
             monitoring.to_log_and_console("    .. membrane cell enhancement of '"
                                           + str(input_image).split(os.path.sep)[-1] + "'", 2)
-            ACE.monitoring.copy(monitoring)
+            ace.monitoring.copy(monitoring)
             previous_deformed_segmentation = get_previous_deformed_segmentation(current_time, environment, parameters,
                                                                                 previous_time)
-            ACE.cell_membrane_enhancement(input_image, previous_deformed_segmentation, enhanced_image,
-                                          temporary_path=environment.temporary_path,
+            ace.cell_membrane_enhancement(input_image, previous_deformed_segmentation, enhanced_image,
+                                          temporary_path=experiment.working_dir.get_tmp_directory(0),
                                           parameters=parameters.ace)
     else:
         monitoring.to_log_and_console("    unknown membrane enhancement method: '"

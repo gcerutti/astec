@@ -93,7 +93,7 @@ def _launch_inline_cmd(command_line, monitoring=None):
 
     if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
         monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
+        with open(monitoring.log_filename, 'a') as logfile:
             subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
     else:
         subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -1013,11 +1013,12 @@ def seuillage(path_input, path_output, low_threshold=1, high_threshold=None, oth
     return
 
 
-def anisotropic_histogram(path_input_prefix, path_output, path_mask=None,
+def anisotropic_histogram(path_input_extrema, path_output_histogram, path_output, path_mask=None,
                           manual=False, manual_sigma=7, sensitivity=0.98, other_options=None, monitoring=None):
     """
     Centerplanes image binarisation using an adaptative anisotropic threshold method detailed in [Michelin 2016]
-    :param path_input_prefix: generic prefix to input data
+    :param path_input_extrema: input extrema image
+    :param path_output_histogram: output histogram text file
     :param path_output: output binary image
     :param path_mask: binary image (u8 or u16) such that the thresholding is only computed for non-null voxels
            from this mask (8 bits image of same size as input image).
@@ -1035,7 +1036,7 @@ def anisotropic_histogram(path_input_prefix, path_output, path_mask=None,
     #
     #
     #
-    command_line = path_to_exec + " " + path_input_prefix + ".ext.inr " + path_input_prefix + ".hist.txt"
+    command_line = path_to_exec + " " + path_input_extrema + " " + path_output_histogram
     command_line += " -bin-out " + path_output
     if path_mask is not None and os.path.isfile(path_mask):
         command_line += " -mask " + path_mask
