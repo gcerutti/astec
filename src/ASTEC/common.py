@@ -35,12 +35,34 @@ def _timestamp_to_str(timestamp=None):
 
 class Monitoring(object):
 
+    ############################################################
+    #
+    # initialisation
+    #
+    ############################################################
+
     def __init__(self):
         self.verbose = 1
         self.debug = 0
         self.log_filename = None
         self.keepTemporaryFiles = False
         self.forceResultsToBeBuilt = False
+
+    ############################################################
+    #
+    # print / write
+    #
+    ############################################################
+
+    def print_parameters(self):
+        print("")
+        print('Monitoring parameters')
+        print('- verbose is ' + str(self.verbose))
+        print('- debug is ' + str(self.debug))
+        print('- log_filename is ' + str(self.log_filename))
+        print('- keepTemporaryFiles is ' + str(self.keepTemporaryFiles))
+        print('- forceResultsToBeBuilt is ' + str(self.forceResultsToBeBuilt))
+        print("")
 
     def write_parameters(self):
         if self.log_filename is not None:
@@ -55,16 +77,6 @@ class Monitoring(object):
                 logfile.write("\n")
         return
 
-    def print_parameters(self):
-        print("")
-        print('Monitoring parameters')
-        print('- verbose is ' + str(self.verbose))
-        print('- debug is ' + str(self.debug))
-        print('- log_filename is ' + str(self.log_filename))
-        print('- keepTemporaryFiles is ' + str(self.keepTemporaryFiles))
-        print('- forceResultsToBeBuilt is ' + str(self.forceResultsToBeBuilt))
-        print("")
-
     def update_execution_time(self, start_time=None, end_time=None):
         if self.log_filename is not None:
             with open(self.log_filename, 'a') as logfile:
@@ -73,11 +85,23 @@ class Monitoring(object):
                 logfile.write("\n\n")
         return
 
+    ############################################################
+    #
+    # update
+    #
+    ############################################################
+
     def update_from_args(self, args):
         self.verbose = args.verbose
         self.debug = args.debug
         self.keepTemporaryFiles = args.keepTemporaryFiles
         self.forceResultsToBeBuilt = args.forceResultsToBeBuilt
+
+    ############################################################
+    #
+    # setters
+    #
+    ############################################################
 
     def set_log_filename(self, experiment, cli_name=None, timestamp=None):
         """
@@ -105,6 +129,12 @@ class Monitoring(object):
             os.makedirs(log_dirname)
         self.log_filename = os.path.join(log_dirname, log_filename)
         return
+
+    ############################################################
+    #
+    # misc
+    #
+    ############################################################
 
     def copy(self, m):
         """
@@ -140,9 +170,10 @@ monitoring = Monitoring()
 
 ##################################################
 #
-# sub-directories management
+# sub-directories management utilities
 #
 ##################################################
+
 
 #
 # utilities
@@ -257,16 +288,352 @@ def _rmtree_directory_list(directories, min_index=-1):
 #
 
 
+##################################################
+#
+# rawdata directory management
+#
+##################################################
+
+class RawdataChannel(object):
+
+    ############################################################
+    #
+    # initialisation
+    #
+    ############################################################
+
+    def __init__(self, c=None):
+
+        self._parent_directory = None
+        self._main_directory = 'RAWDATA'
+
+        #
+        # raw data directories
+        #
+        if c == 0:
+            self.angle0_sub_directory = os.path.join('LC', 'Stack0000')
+            self.angle1_sub_directory = os.path.join('RC', 'Stack0000')
+            self.angle2_sub_directory = os.path.join('LC', 'Stack0001')
+            self.angle3_sub_directory = os.path.join('RC', 'Stack0001')
+        else:
+            self.angle0_sub_directory = None
+            self.angle1_sub_directory = None
+            self.angle2_sub_directory = None
+            self.angle3_sub_directory = None
+
+        #
+        # raw data file names
+        # assumed to be the same for all channels
+        #
+        self._angle0_file_prefix = "Cam_Left_00"
+        self._angle1_file_prefix = "Cam_Right_00"
+        self._angle2_file_prefix = "Cam_Left_00"
+        self._angle3_file_prefix = "Cam_Right_00"
+
+        #
+        # temporary_paths
+        #
+        self.tmp_directory = list()
+
+        #
+        #
+        #
+        self.fusion_weighting = 'guignard-weighting'
+
+        #
+        #
+        #
+        self._time_digits = 3
+
+    ############################################################
+    #
+    # print / write
+    #
+    ############################################################
+
+    def print_parameters(self, desc=None):
+        if desc is not None:
+            print("  - " + str(desc) + " =")
+        if self.is_empty():
+            print('    RawdataChannel empty')
+            return
+        else:
+            print('    RawdataChannel')
+        print("    - _parent_directory = " + str(self._parent_directory))
+        print("    - _main_directory = " + str(self._main_directory))
+
+        print('    - angle0_sub_directory = ' + str(self.angle0_sub_directory))
+        print('    - angle1_sub_directory = ' + str(self.angle1_sub_directory))
+        print('    - angle2_sub_directory = ' + str(self.angle2_sub_directory))
+        print('    - angle3_sub_directory = ' + str(self.angle3_sub_directory))
+
+        print('    - _angle0_file_prefix = ' + str(self._angle0_file_prefix))
+        print('    - _angle1_file_prefix = ' + str(self._angle1_file_prefix))
+        print('    - _angle2_file_prefix = ' + str(self._angle2_file_prefix))
+        print('    - _angle3_file_prefix = ' + str(self._angle3_file_prefix))
+
+        for j in range(0, len(self.tmp_directory)):
+            print('    - tmp_directory #' + str(j) + ' = ' + str(self.tmp_directory[j]))
+
+        print('    - fusion_weighting = ' + str(self.fusion_weighting))
+        return
+
+    def write_parameters_in_file(self, logfile, desc=None):
+        if desc is not None:
+            logfile.write("  - " + str(desc) + " =\n")
+        logfile.write('    RawdataChannel')
+        if self.is_empty():
+            logfile.write(' empty\n')
+            return
+        else:
+            logfile.write('\n')
+        logfile.write("    - _parent_directory = " + str(self._parent_directory) + "\n")
+        logfile.write("    - _main_directory = " + str(self._main_directory) + "\n")
+
+        logfile.write('    - angle0_sub_directory = ' + str(self.angle0_sub_directory)+'\n')
+        logfile.write('    - angle1_sub_directory = ' + str(self.angle1_sub_directory)+'\n')
+        logfile.write('    - angle2_sub_directory = ' + str(self.angle2_sub_directory)+'\n')
+        logfile.write('    - angle3_sub_directory = ' + str(self.angle3_sub_directory)+'\n')
+
+        logfile.write('    - _angle0_file_prefix = ' + str(self._angle0_file_prefix) + '\n')
+        logfile.write('    - _angle1_file_prefix = ' + str(self._angle1_file_prefix) + '\n')
+        logfile.write('    - _angle2_file_prefix = ' + str(self._angle2_file_prefix) + '\n')
+        logfile.write('    - _angle3_file_prefix = ' + str(self._angle3_file_prefix) + '\n')
+
+        for j in range(0, len(self.tmp_directory)):
+            logfile.write('    - tmp_directory #' + str(j) + ' = ' + str(self.tmp_directory[j]) + '\n')
+
+        logfile.write('    - fusion_weighting = ' + str(self.fusion_weighting) + '\n')
+        return
+
+    ############################################################
+    #
+    # update
+    #
+    ############################################################
+
+    def update_from_parameters(self, channel_id, parameters):
+
+        if hasattr(parameters, 'DIR_RAWDATA'):
+            self._main_directory = getattr(parameters, 'DIR_RAWDATA')
+        elif hasattr(parameters, 'DIR_RAWDATA_CHANNEL_' + str(channel_id)):
+            self._main_directory = getattr(parameters, 'DIR_RAWDATA_CHANNEL_' + str(channel_id))
+
+        if hasattr(parameters, 'DIR_LEFTCAM_STACKZERO_CHANNEL_' + str(channel_id)):
+            self.angle0_sub_directory = getattr(parameters, 'DIR_LEFTCAM_STACKZERO_CHANNEL_' + str(channel_id))
+        elif hasattr(parameters, 'DIR_LEFTCAM_STACKZERO_CHANNEL' + str(channel_id)):
+            self.angle0_sub_directory = getattr(parameters, 'DIR_LEFTCAM_STACKZERO_CHANNEL' + str(channel_id))
+        elif channel_id == 1 and hasattr(parameters, 'DIR_LEFTCAM_STACKZERO'):
+            self.angle0_sub_directory = getattr(parameters, 'DIR_LEFTCAM_STACKZERO')
+
+        if hasattr(parameters, 'DIR_RIGHTCAM_STACKZERO_CHANNEL_' + str(channel_id)):
+            self.angle1_sub_directory = getattr(parameters, 'DIR_RIGHTCAM_STACKZERO_CHANNEL_' + str(channel_id))
+        elif hasattr(parameters, 'DIR_RIGHTCAM_STACKZERO_CHANNEL' + str(channel_id)):
+            self.angle1_sub_directory = getattr(parameters, 'DIR_RIGHTCAM_STACKZERO_CHANNEL' + str(channel_id))
+        elif channel_id == 1 and hasattr(parameters, 'DIR_RIGHTCAM_STACKZERO'):
+            self.angle1_sub_directory = getattr(parameters, 'DIR_RIGHTCAM_STACKZERO')
+
+        if hasattr(parameters, 'DIR_LEFTCAM_STACKONE_CHANNEL_' + str(channel_id)):
+            self.angle2_sub_directory = getattr(parameters, 'DIR_LEFTCAM_STACKONE_CHANNEL_' + str(channel_id))
+        elif hasattr(parameters, 'DIR_LEFTCAM_STACKONE_CHANNEL' + str(channel_id)):
+            self.angle2_sub_directory = getattr(parameters, 'DIR_LEFTCAM_STACKONE_CHANNEL' + str(channel_id))
+        elif channel_id == 1 and hasattr(parameters, 'DIR_LEFTCAM_STACKONE'):
+            self.angle2_sub_directory = getattr(parameters, 'DIR_LEFTCAM_STACKONE')
+
+        if hasattr(parameters, 'DIR_RIGHTCAM_STACKONE_CHANNEL_' + str(channel_id)):
+            self.angle3_sub_directory = getattr(parameters, 'DIR_RIGHTCAM_STACKONE_CHANNEL_' + str(channel_id))
+        elif hasattr(parameters, 'DIR_RIGHTCAM_STACKONE_CHANNEL' + str(channel_id)):
+            self.angle3_sub_directory = getattr(parameters, 'DIR_RIGHTCAM_STACKONE_CHANNEL' + str(channel_id))
+        elif channel_id == 1 and hasattr(parameters, 'DIR_RIGHTCAM_STACKONE'):
+            self.angle3_sub_directory = getattr(parameters, 'DIR_RIGHTCAM_STACKONE')
+
+        if hasattr(parameters, 'fusion_weighting'):
+            self.fusion_weighting = getattr(parameters, 'fusion_weighting')
+        elif hasattr(parameters, 'fusion_weighting_channel_' + str(channel_id)):
+            self.fusion_weighting = getattr(parameters, 'fusion_weighting_channel_' + str(channel_id))
+
+        return
+
+    ############################################################
+    #
+    # getters
+    #
+    ############################################################
+
+    def get_angle_path(self, angle_id):
+        if angle_id is 0:
+            return os.path.join(self._parent_directory, self._main_directory, self.angle0_sub_directory)
+        elif angle_id is 1:
+            return os.path.join(self._parent_directory, self._main_directory, self.angle1_sub_directory)
+        elif angle_id is 2:
+            return os.path.join(self._parent_directory, self._main_directory, self.angle2_sub_directory)
+        elif angle_id is 3:
+            return os.path.join(self._parent_directory, self._main_directory, self.angle3_sub_directory)
+        return None
+
+    def get_image_name(self, angle_id, time_value):
+        if angle_id is 0:
+            return self._angle0_file_prefix + self.timepoint_to_str(time_value)
+        elif angle_id is 1:
+            return self._angle1_file_prefix + self.timepoint_to_str(time_value)
+        elif angle_id is 2:
+            return self._angle2_file_prefix + self.timepoint_to_str(time_value)
+        elif angle_id is 3:
+            return self._angle3_file_prefix + self.timepoint_to_str(time_value)
+        return None
+
+    ############################################################
+    #
+    # setters
+    #
+    ############################################################
+
+    def set_parent_directory(self, parentdir):
+        if not os.path.isdir(parentdir):
+            print("RawdataChannel.set_parent_directory: '" + str(parentdir) + "' is not a valid directory.")
+            print("\t Exiting.")
+            sys.exit(1)
+        self._parent_directory = parentdir
+        return
+
+    ############################################################
+    #
+    # misc
+    #
+    ############################################################
+
+    def identical_sub_directories(self, c):
+        if self.angle0_sub_directory != c.angle0_sub_directory \
+                and self.angle1_sub_directory != c.angle1_sub_directory \
+                and self.angle2_sub_directory != c.angle2_sub_directory \
+                and self.angle3_sub_directory != c.angle3_sub_directory:
+            return False
+        return True
+
+    def is_empty(self):
+        if self.angle0_sub_directory is None or self.angle1_sub_directory is None or self.angle2_sub_directory is None \
+                or self.angle3_sub_directory is None:
+            return True
+        return False
+
+    def sub_directories_are_different(self):
+        if self.angle0_sub_directory != self.angle1_sub_directory \
+                and self.angle0_sub_directory != self.angle2_sub_directory \
+                and self.angle0_sub_directory != self.angle3_sub_directory \
+                and self.angle1_sub_directory != self.angle2_sub_directory \
+                and self.angle1_sub_directory != self.angle3_sub_directory \
+                and self.angle2_sub_directory != self.angle3_sub_directory:
+            return True
+        return False
+
+    def timepoint_to_str(self, i):
+        return '{:0{width}d}'.format(i, width=self._time_digits)
+
+#
+#
+#
+
+
+class RawdataSubdirectory(object):
+
+    ############################################################
+    #
+    # initialisation
+    #
+    ############################################################
+
+    def __init__(self):
+        #
+        # Channels
+        #
+        self._n_max_channels = 3
+        self.channel = list()
+        for i in range(self._n_max_channels):
+            c = RawdataChannel(i)
+            self.channel.append(c)
+
+    ############################################################
+    #
+    # print / write
+    #
+    ############################################################
+
+    def print_parameters(self):
+        for i in range(self._n_max_channels):
+            self.channel[i].print_parameters('channel #' + str(i))
+        return
+
+    def write_parameters_in_file(self, logfile):
+        for i in range(self._n_max_channels):
+            self.channel[i].write_parameters_in_file(logfile, 'channel #' + str(i))
+        return
+
+    ############################################################
+    #
+    # update
+    #
+    ############################################################
+
+    def update_from_parameters(self, parameters):
+        for i in range(self._n_max_channels):
+            self.channel[i].update_from_parameters(i+1, parameters)
+        return
+
+    ############################################################
+    #
+    # setters
+    #
+    ############################################################
+
+    def get_number_channels(self):
+        for i in range(self._n_max_channels):
+            if self.channel[i].is_empty():
+                return i
+        return None
+
+    def get_tmp_directory(self, i, channel_id=0):
+        """
+        :return:
+        """
+        if self.channel[channel_id].tmp_directory is None:
+            return None
+        return _get_directory(self.channel[channel_id].tmp_directory, i)
+
+    ############################################################
+    #
+    # setters
+    #
+    ############################################################
+
+    def set_parent_directory(self, parentdir):
+        if not os.path.isdir(parentdir):
+            print("RawdataSubdirectory.set_parent_directory: '" + str(parentdir) + "' is not a valid directory.")
+            print("\t Exiting.")
+            sys.exit(1)
+        for i in range(self._n_max_channels):
+            self.channel[i].set_parent_directory(parentdir)
+        return
+
+
+##################################################
+#
+# sub-directories management
+#
+##################################################
+
 class GenericSubdirectory(object):
     """
-    Class for defining sub-directory
+    Class for defining sub-directories of the form
+    <main_directory>/<sub_directory_prefix><sub_directory_suffix>
+    e.g. <FUSE>/<FUSE_><RELEASE>
     """
 
+    ############################################################
     #
-    # how to build sub-directories of /path/to/experiment
-    # <main_directory>/<sub_directory_prefix><sub_directory_suffix>
+    # initialisation
     #
-    #
+    ############################################################
+
     def __init__(self):
 
         #
@@ -300,48 +667,17 @@ class GenericSubdirectory(object):
         self._file_suffix = None
         self._time_digits = 3
 
+    ############################################################
     #
-    # I/O
+    # print / write
     #
-
-    def _write_directory_list_in_file(self, logfile):
-        self._set_directory()
-        if self._directory is None:
-            logfile.write("    None\n")
-        else:
-            if len(self._directory) <= 0:
-                logfile.write("    Empty list\n")
-            else:
-                for i in range(len(self._directory)):
-                    logfile.write("      #" + str(i) + ": '" + str(self.get_directory(i)) + "'\n")
-
-    def write_parameters_in_file(self, logfile):
-        self._set_directory()
-        self._set_log_directory()
-        self._set_rec_directory()
-        #
-        logfile.write("    - _main_directory = " + str(self._main_directory) + "\n")
-        logfile.write("    - _sub_directory_prefix = " + str(self._sub_directory_prefix) + "\n")
-        logfile.write("    - _sub_directory_suffix = " + str(self._sub_directory_suffix) + "\n")
-        #
-        logfile.write("    - _directory = " + "\n")
-        _write_directory_list_in_file(self._directory, logfile)
-        logfile.write("    - _log_directory = " + "\n")
-        _write_directory_list_in_file(self._log_directory, logfile)
-        logfile.write("    - _tmp_directory = " + "\n")
-        _write_directory_list_in_file(self._tmp_directory, logfile)
-        logfile.write("    - _rec_directory = " + "\n")
-        _write_directory_list_in_file(self._rec_directory, logfile)
-        #
-        logfile.write("    - _file_prefix = " + str(self._file_prefix) + "\n")
-        logfile.write("    - _file_suffix = " + str(self._file_suffix) + "\n")
-        logfile.write("    - _time_digits = " + str(self._time_digits) + "\n")
-        return
+    ############################################################
 
     def print_parameters(self):
         self._set_directory()
         self._set_log_directory()
         self._set_rec_directory()
+        print("    - _parent_directory = " + str(self._parent_directory))
         print("    - _main_directory = " + str(self._main_directory))
         print("    - _sub_directory_prefix = " + str(self._sub_directory_prefix))
         print("    - _sub_directory_suffix = " + str(self._sub_directory_suffix))
@@ -360,89 +696,76 @@ class GenericSubdirectory(object):
         print("    - _time_digits = " + str(self._time_digits))
         return
 
-    #
-    # directories setter
-    #
-
-    def set_parent_directory(self, parentdir):
-        if not os.path.isdir(parentdir):
-            print("GenericSubdirectory.set_parent_directory: '" + str(parentdir) + "' is not a valid directory.")
-            print("\t Exiting.")
-            sys.exit(1)
-        self._parent_directory = parentdir
-        return
-
-    def _set_directory(self):
-        """
-        build the list of directories from the directory suffixes
-        :return:
-        """
-        proc = "GenericSubdirectory._set_directory"
-        if self._directory is not None:
-            return
-        #
-        # empty list
-        #
-        self._directory = []
-        if self._sub_directory_suffix is None:
-            monitoring.to_log_and_console("Warning: " + proc + ", _sub_directory_suffix is None")
-        elif type(self._sub_directory_suffix) == str:
-            subdir = str(self._sub_directory_prefix) + str(self._sub_directory_suffix)
-            self._directory.append(os.path.join(str(self._parent_directory), str(self._main_directory), subdir))
-        elif type(self._sub_directory_suffix) == list or type(self._sub_directory_suffix) == tuple:
-            for s in self._sub_directory_suffix:
-                subdir = str(self._sub_directory_prefix) + str(s)
-                self._directory.append(os.path.join(str(self._parent_directory), str(self._main_directory), subdir))
+    def _write_directory_list_in_file(self, logfile):
+        self._set_directory()
+        if self._directory is None:
+            logfile.write("    None\n")
         else:
-            monitoring.to_log_and_console("Warning: " + proc + ", unhandled _sub_directory_suffix type")
-        return
+            if len(self._directory) <= 0:
+                logfile.write("    Empty list\n")
+            else:
+                for i in range(len(self._directory)):
+                    logfile.write("      #" + str(i) + ": '" + str(self.get_directory(i)) + "'\n")
 
-    def _set_log_directory(self):
-        """
-        :return:
-        """
-        if self._log_directory is not None:
-            return
+    def write_parameters_in_file(self, logfile):
+        self._set_directory()
+        self._set_log_directory()
+        self._set_rec_directory()
         #
-        # empty list
+        logfile.write("    - _parent_directory = " + str(self._parent_directory) + "\n")
+        logfile.write("    - _main_directory = " + str(self._main_directory) + "\n")
+        logfile.write("    - _sub_directory_prefix = " + str(self._sub_directory_prefix) + "\n")
+        logfile.write("    - _sub_directory_suffix = " + str(self._sub_directory_suffix) + "\n")
         #
-        self._set_directory()
-        self._log_directory = []
-        for i in range(len(self._directory)):
-            self._log_directory.append(os.path.join(self.get_directory(i), "LOGS"))
+        logfile.write("    - _directory = " + "\n")
+        _write_directory_list_in_file(self._directory, logfile)
+        logfile.write("    - _log_directory = " + "\n")
+        _write_directory_list_in_file(self._log_directory, logfile)
+        logfile.write("    - _tmp_directory = " + "\n")
+        _write_directory_list_in_file(self._tmp_directory, logfile)
+        logfile.write("    - _rec_directory = " + "\n")
+        _write_directory_list_in_file(self._rec_directory, logfile)
+        #
+        logfile.write("    - _file_prefix = " + str(self._file_prefix) + "\n")
+        logfile.write("    - _file_suffix = " + str(self._file_suffix) + "\n")
+        logfile.write("    - _time_digits = " + str(self._time_digits) + "\n")
         return
 
-    def set_tmp_directory(self, timepoint):
-        """
-        :return:
-        """
-        self._set_directory()
-        self._tmp_directory = []
-        for i in range(len(self._directory)):
-            self._tmp_directory.append(os.path.join(self.get_directory(i), "TEMP_" + self.timepoint_to_str(timepoint)))
-        return
-
-    def _set_rec_directory(self):
-        """
-        :return:
-        """
-        self._set_directory()
-        self._rec_directory = []
-        for i in range(len(self._directory)):
-            self._rec_directory.append(os.path.join(self.get_directory(i), "RECONSTRUCTION"))
-        return
-
-    def set_rec_directory_to_tmp(self):
-        """
-        :return:
-        """
-        self._set_directory()
-        self._rec_directory = self._tmp_directory
-        return
-
+    ############################################################
     #
-    # directories getter
+    # update
     #
+    ############################################################
+
+    ############################################################
+    #
+    # getters
+    #
+    ############################################################
+
+    def get_directory(self, i=0):
+        """
+        return the ith directory
+        :param i:
+        :return:
+        """
+        if self._directory is None:
+            self._set_directory()
+        return _get_directory(self._directory, i)
+
+    def get_directory_suffix(self):
+        return self._sub_directory_suffix
+
+    def get_image_name(self, time_value):
+        return self._file_prefix + self._file_suffix + "_t" + self.timepoint_to_str(time_value)
+
+    def get_log_directory(self, i=0):
+        """
+        :return:
+        """
+        if self._log_directory is None:
+            self._set_log_directory()
+        return _get_directory(self._log_directory, i)
 
     def get_number_directories(self):
         #
@@ -463,24 +786,6 @@ class GenericSubdirectory(object):
 
         return 0
 
-    def get_directory(self, i=0):
-        """
-        return the ith directory
-        :param i:
-        :return:
-        """
-        if self._directory is None:
-            self._set_directory()
-        return _get_directory(self._directory, i)
-
-    def get_log_directory(self, i=0):
-        """
-        :return:
-        """
-        if self._log_directory is None:
-            self._set_log_directory()
-        return _get_directory(self._log_directory, i)
-
     def get_tmp_directory(self, i=0):
         """
         :return:
@@ -494,30 +799,123 @@ class GenericSubdirectory(object):
 
     def get_rec_directory(self, i=0):
         """
+        return the 'reconstruction' sub-directory.
+        When segmenting an image, a reconstructed image can be used as support for segmentation.
         :return:
         """
         if self._rec_directory is None:
             self._set_rec_directory()
         return _get_directory(self._rec_directory, i)
 
+    ############################################################
     #
-    # file setter
+    # setters
     #
+    ############################################################
+
+    def _set_directory(self, force=False):
+        """
+        build the list of directories from the directory suffixes
+        :return:
+        """
+        proc = "GenericSubdirectory._set_directory"
+        if self._directory is not None and force is False:
+            return
+        #
+        # empty list
+        #
+        self._directory = []
+        if self._sub_directory_suffix is None:
+            monitoring.to_log_and_console("Warning: " + proc + ", _sub_directory_suffix is None")
+        elif type(self._sub_directory_suffix) == str:
+            subdir = str(self._sub_directory_prefix) + str(self._sub_directory_suffix)
+            self._directory.append(os.path.join(str(self._parent_directory), str(self._main_directory), subdir))
+        elif type(self._sub_directory_suffix) == list or type(self._sub_directory_suffix) == tuple:
+            for s in self._sub_directory_suffix:
+                subdir = str(self._sub_directory_prefix) + str(s)
+                self._directory.append(os.path.join(str(self._parent_directory), str(self._main_directory), subdir))
+        else:
+            monitoring.to_log_and_console("Warning: " + proc + ", unhandled _sub_directory_suffix type")
+        return
+
+    def set_directory_suffix(self, directory_suffix):
+        self._sub_directory_suffix = directory_suffix
+        self._set_directory(force=True)
 
     def set_file_prefix(self, file_prefix):
         self._file_prefix = file_prefix
         return
 
-    #
-    # file getter
-    #
+    def _set_log_directory(self):
+        """
+        :return:
+        """
+        if self._log_directory is not None:
+            return
+        #
+        # empty list
+        #
+        self._set_directory()
+        self._log_directory = []
+        for i in range(len(self._directory)):
+            self._log_directory.append(os.path.join(self.get_directory(i), "LOGS"))
+        return
 
-    def get_image_name(self, time_value):
-        return self._file_prefix + self._file_suffix + "_t" + self.timepoint_to_str(time_value)
+    def set_parent_directory(self, parentdir):
+        if not os.path.isdir(parentdir):
+            print("GenericSubdirectory.set_parent_directory: '" + str(parentdir) + "' is not a valid directory.")
+            print("\t Exiting.")
+            sys.exit(1)
+        self._parent_directory = parentdir
+        return
+
+    def _set_rec_directory(self):
+        """
+        :return:
+        """
+        self._set_directory()
+        self._rec_directory = []
+        for i in range(len(self._directory)):
+            self._rec_directory.append(os.path.join(self.get_directory(i), "RECONSTRUCTION"))
+        return
+
+    def set_rec_directory_to_tmp(self):
+        """
+        :return:
+        """
+        self._set_directory()
+        self._rec_directory = self._tmp_directory
+        return
+
+    def set_tmp_directory(self, timepoint):
+        """
+        :return:
+        """
+        self._set_directory()
+        self._tmp_directory = []
+        for i in range(len(self._directory)):
+            self._tmp_directory.append(os.path.join(self.get_directory(i), "TEMP_" + self.timepoint_to_str(timepoint)))
+        return
+
+    ############################################################
+    #
+    # misc
+    #
+    ############################################################
+
+    def get_history_filename(self, cli_name):
+        if cli_name is None:
+            local_cli_name = 'unknown'
+        else:
+            local_cli_name = os.path.basename(cli_name)
+            if local_cli_name[-3:] == '.py':
+                local_cli_name = local_cli_name[:-3]
+        return os.path.join(self.get_log_directory(), local_cli_name + '-history.log')
 
     #
     # manage directories
     #
+
     def make_directory(self):
         self._set_directory()
         _make_directory_list(self._directory)
@@ -537,16 +935,13 @@ class GenericSubdirectory(object):
     #
 
     def timepoint_to_str(self, i):
-        return '{:0{width}d}'.format(i, width=self._time_digits)
-
-    def get_history_filename(self, cli_name):
-        if cli_name is None:
-            local_cli_name = 'unknown'
+        if type(i) is int:
+            return '{:0{width}d}'.format(i, width=self._time_digits)
+        elif type(i) is str:
+            return '{:0{width}d}'.format(int(i), width=self._time_digits)
         else:
-            local_cli_name = os.path.basename(cli_name)
-            if local_cli_name[-3:] == '.py':
-                local_cli_name = local_cli_name[:-3]
-        return os.path.join(self.get_log_directory(), local_cli_name + '-history.log')
+            print("GenericSubdirectory.timepoint_to_str: type '" + str(type(i)) + "' not handled yet.")
+            return None
 
 #
 #
@@ -564,22 +959,23 @@ class FuseSubdirectory(GenericSubdirectory):
         self._sub_directory_suffix = 'RELEASE'
         self._file_suffix = "_fuse"
 
-    def write_parameters_in_file(self, logfile):
-        self._set_directory()
-        logfile.write("  - subpath/to/fusion is \n")
-        GenericSubdirectory.write_parameters_in_file(self, logfile)
-
     def print_parameters(self):
         self._set_directory()
         print("  - subpath/to/fusion is")
         GenericSubdirectory.print_parameters(self)
         return
 
+    def write_parameters_in_file(self, logfile):
+        self._set_directory()
+        logfile.write("  - subpath/to/fusion is \n")
+        GenericSubdirectory.write_parameters_in_file(self, logfile)
+
     def update_from_parameters(self, parameters):
         if hasattr(parameters, 'EXP_FUSE'):
             if parameters.EXP_FUSE is not None:
                 self._sub_directory_suffix = parameters.EXP_FUSE
         return
+
 
 #
 #
@@ -597,16 +993,16 @@ class IntraregSubdirectory(GenericSubdirectory):
         self._sub_directory_suffix = 'RELEASE'
         self._file_suffix = "_intrareg"
 
-    def write_parameters_in_file(self, logfile):
-        self._set_directory()
-        logfile.write("  - subpath/to/intraregistration is \n")
-        GenericSubdirectory.write_parameters_in_file(self, logfile)
-
     def print_parameters(self):
         self._set_directory()
         print("  - subpath/to/intraregistration is")
         GenericSubdirectory.print_parameters(self)
         return
+
+    def write_parameters_in_file(self, logfile):
+        self._set_directory()
+        logfile.write("  - subpath/to/intraregistration is \n")
+        GenericSubdirectory.write_parameters_in_file(self, logfile)
 
     def update_from_parameters(self, parameters):
         if hasattr(parameters, 'EXP_INTRAREG'):
@@ -630,16 +1026,16 @@ class MarsSubdirectory(GenericSubdirectory):
         self._sub_directory_suffix = 'RELEASE'
         self._file_suffix = "_mars"
 
-    def write_parameters_in_file(self, logfile):
-        self._set_directory()
-        logfile.write("  - subpath/to/mars is \n")
-        GenericSubdirectory.write_parameters_in_file(self, logfile)
-
     def print_parameters(self):
         self._set_directory()
         print("  - subpath/to/mars is")
         GenericSubdirectory.print_parameters(self)
         return
+
+    def write_parameters_in_file(self, logfile):
+        self._set_directory()
+        logfile.write("  - subpath/to/mars is \n")
+        GenericSubdirectory.write_parameters_in_file(self, logfile)
 
     def update_from_parameters(self, parameters):
         if hasattr(parameters, 'EXP_SEG'):
@@ -666,16 +1062,16 @@ class SegSubdirectory(GenericSubdirectory):
         self._sub_directory_suffix = 'RELEASE'
         self._file_suffix = "_seg"
 
-    def write_parameters_in_file(self, logfile):
-        self._set_directory()
-        logfile.write("  - subpath/to/seg is \n")
-        GenericSubdirectory.write_parameters_in_file(self, logfile)
-
     def print_parameters(self):
         self._set_directory()
         print("  - subpath/to/seg is")
         GenericSubdirectory.print_parameters(self)
         return
+
+    def write_parameters_in_file(self, logfile):
+        self._set_directory()
+        logfile.write("  - subpath/to/seg is \n")
+        GenericSubdirectory.write_parameters_in_file(self, logfile)
 
     def update_from_parameters(self, parameters):
         if hasattr(parameters, 'EXP_SEG'):
@@ -699,16 +1095,16 @@ class PostSubdirectory(GenericSubdirectory):
         self._sub_directory_suffix = 'RELEASE'
         self._file_suffix = "_post"
 
-    def write_parameters_in_file(self, logfile):
-        self._set_directory()
-        logfile.write("  - subpath/to/postcorrection is \n")
-        GenericSubdirectory.write_parameters_in_file(self, logfile)
-
     def print_parameters(self):
         self._set_directory()
         print("  - subpath/to/postcorrection is")
         GenericSubdirectory.print_parameters(self)
         return
+
+    def write_parameters_in_file(self, logfile):
+        self._set_directory()
+        logfile.write("  - subpath/to/postcorrection is \n")
+        GenericSubdirectory.write_parameters_in_file(self, logfile)
 
     def update_from_parameters(self, parameters):
         if hasattr(parameters, 'EXP_POST'):
@@ -726,6 +1122,12 @@ class PostSubdirectory(GenericSubdirectory):
 
 class Experiment(object):
 
+    ############################################################
+    #
+    # initialisation
+    #
+    ############################################################
+
     def __init__(self):
 
         self._embryo_path = None
@@ -735,6 +1137,8 @@ class Experiment(object):
         self.last_time_point = -1
         self.delta_time_point = 1
         self.delay_time_point = 0
+
+        self._time_digits = 3
 
         #
         # stage
@@ -749,6 +1153,7 @@ class Experiment(object):
         # 2. generic one
         #    copy from the targeted specialized one
         #
+        self.rawdata_dir = RawdataSubdirectory()
         self.fusion_dir = FuseSubdirectory()
         self.mars_dir = MarsSubdirectory()
         self.seg_dir = SegSubdirectory()
@@ -763,9 +1168,43 @@ class Experiment(object):
         self.result_image_suffix = 'inr'
         self.default_image_suffix = 'inr'
 
+    ############################################################
     #
-    # I/O
+    # print / write
     #
+    ############################################################
+
+    def print_parameters(self):
+        print("")
+        print('Experiment parameters')
+
+        print('- embryo_path is ' + str(self.embryo_path))
+        print('- embryo_name is ' + str(self.embryo_name))
+
+        print('- first_time_point is ' + str(self.first_time_point))
+        print('- last_time_point is ' + str(self.last_time_point))
+        print('- delta_time_point is ' + str(self.delta_time_point))
+        print('- delay_time_point is ' + str(self.delay_time_point))
+
+        print('- raw data directory is')
+        self.rawdata_dir.print_parameters()
+        print('- fusion directory is')
+        self.fusion_dir.print_parameters()
+        print('- mars directory is')
+        self.mars_dir.print_parameters()
+        print('- segmentation directory is')
+        self.seg_dir.print_parameters()
+        print('- post-correction directory is')
+        self.post_dir.print_parameters()
+        print('- intra-registration directory is')
+        self.intrareg_dir.print_parameters()
+        print('- working directory is')
+        self.working_dir.print_parameters()
+
+        print('- result_image_suffix = ' + str(self.result_image_suffix))
+        print('- default_image_suffix = ' + str(self.default_image_suffix))
+        print("")
+        return
 
     def write_parameters(self, log_filename=None):
         if log_filename is not None:
@@ -785,6 +1224,8 @@ class Experiment(object):
                 logfile.write('- delta_time_point is ' + str(self.delta_time_point)+'\n')
                 logfile.write('- delay_time_point is ' + str(self.delay_time_point)+'\n')
 
+                logfile.write('- raw data directory is \n')
+                self.rawdata_dir.write_parameters_in_file(logfile)
                 logfile.write('- fusion directory is \n')
                 self.fusion_dir.write_parameters_in_file(logfile)
                 logfile.write('- mars directory is \n')
@@ -802,36 +1243,6 @@ class Experiment(object):
                 logfile.write('- default_image_suffix = ' + str(self.default_image_suffix) + '\n')
 
                 logfile.write("\n")
-        return
-
-    def print_parameters(self):
-        print("")
-        print('Experiment parameters')
-
-        print('- embryo_path is ' + str(self.embryo_path))
-        print('- embryo_name is ' + str(self.embryo_name))
-
-        print('- first_time_point is ' + str(self.first_time_point))
-        print('- last_time_point is ' + str(self.last_time_point))
-        print('- delta_time_point is ' + str(self.delta_time_point))
-        print('- delay_time_point is ' + str(self.delay_time_point))
-
-        print('- fusion directory is')
-        self.fusion_dir.print_parameters()
-        print('- mars directory is')
-        self.mars_dir.print_parameters()
-        print('- segmentation directory is')
-        self.seg_dir.print_parameters()
-        print('- post-correction directory is')
-        self.post_dir.print_parameters()
-        print('- intra-registration directory is')
-        self.intrareg_dir.print_parameters()
-        print('- working directory is')
-        self.working_dir.print_parameters()
-
-        print('- result_image_suffix = ' + str(self.result_image_suffix))
-        print('- default_image_suffix = ' + str(self.default_image_suffix))
-        print("")
         return
 
     def update_history_at_start(self, cli_name=None, start_time=None, parameter_file=None, path_to_vt=None):
@@ -881,144 +1292,12 @@ class Experiment(object):
         shutil.copy2(thefile, resfile)
         return
 
+    ############################################################
     #
-    # setter / getter
+    # update
     #
-    def _set_embryo_path(self, embryo_path):
-        if not os.path.isdir(embryo_path):
-            print("Experiment._set_embryo_path: '" + str(embryo_path) + "' is not a valid directory.")
-            print("\t Exiting.")
-            sys.exit(1)
-        self.embryo_path = embryo_path
-        #
-        # set parent directories
-        #
-        self.fusion_dir.set_parent_directory(embryo_path)
-        self.mars_dir.set_parent_directory(embryo_path)
-        self.seg_dir.set_parent_directory(embryo_path)
-        self.post_dir.set_parent_directory(embryo_path)
-        self.intrareg_dir.set_parent_directory(embryo_path)
-        return
+    ############################################################
 
-    def _set_embryo_name(self, embryo_name):
-        self.embryo_name = embryo_name
-        #
-        # set file prefix
-        #
-        self.fusion_dir.set_file_prefix(embryo_name)
-        self.mars_dir.set_file_prefix(embryo_name)
-        self.seg_dir.set_file_prefix(embryo_name)
-        self.post_dir.set_file_prefix(embryo_name)
-        self.intrareg_dir.set_file_prefix(embryo_name)
-        return
-
-    #
-    # getter
-    #
-
-    def _get_embryo_path(self):
-        return self.embryo_path
-
-    def _get_embryo_name(self):
-        return self.embryo_name
-
-    def get_log_dirname(self):
-        return os.path.join(self.working_dir.get_log_directory())
-
-    #
-    #
-    #
-    def _get_time_format(self, time_digits=3):
-        """
-
-        :param time_digits:
-        :return:
-        """
-        form = "%0" + str(time_digits) + "d"
-        return form
-
-    def _get_time_index(self, index, time_digits=3):
-        """
-
-        :param index:
-        :param time_digits:
-        :return:
-        """
-        ind = '{:0{width}d}'.format(index, width=time_digits)
-        return ind
-
-    def _get_image_suffix(self, directory_type, subdirectory_type='fuse'):
-        """
-
-        :param directory_type:
-        :param subdirectory_type:
-        :return:
-        """
-        if directory_type.lower() == 'fuse':
-            return self.embryo_name + '_fuse'
-        elif directory_type.lower() == 'intrareg':
-            if subdirectory_type.lower() == 'fuse':
-                return self.embryo_name + '_intrareg_fuse'
-            elif subdirectory_type.lower() == 'post':
-                return self.embryo_name + '_intrareg_post'
-            elif subdirectory_type.lower() == 'seg':
-                return self.embryo_name + '_intrareg_seg'
-            else:
-                print("Experiment.get_image_name: unknown arg #2.")
-                return None
-        elif directory_type.lower() == 'post':
-            return self.embryo_name + '_post'
-        elif directory_type.lower() == 'seg':
-            return self.embryo_name + '_seg'
-        else:
-            print("Experiment.get_image_name: unknown arg.")
-            return None
-
-    def _get_image_name(self, index, directory_type, subdirectory_type='fuse'):
-        """
-
-        :param index:
-        :param directory_type:
-        :param subdirectory_type:
-        :return:
-        """
-        ind = self.get_time_index(index)
-        suffix = self.get_image_suffix(directory_type, subdirectory_type)
-        if suffix is None:
-            return None
-        return suffix + '_t' + str(ind)
-
-    def _get_image_format(self, directory_type, subdirectory_type='fuse'):
-        """
-
-        :param directory_type:
-        :param subdirectory_type:
-        :return:
-        """
-        suffix = self.get_image_suffix(directory_type, subdirectory_type)
-        if suffix is None:
-            return None
-        return suffix + '_t' + self.get_time_format()
-
-    def _get_movie_name(self, first, last, directory_type, subdirectory_type='fuse'):
-        """
-
-        :param first:
-        :param last:
-        :param directory_type:
-        :param subdirectory_type:
-        :return:
-        """
-        f = self.get_time_index(first)
-        l = self.get_time_index(last)
-        suffix = self.get_image_suffix(directory_type, subdirectory_type)
-        if suffix is None:
-            return None
-        return suffix + '_t' + str(f) + '-' + str(l)
-
-    #
-    #
-    #
     def update_from_args(self, args):
         """
 
@@ -1033,13 +1312,13 @@ class Experiment(object):
     #
     #
     #
-    def update_from_file(self, parameter_file):
+    def update_from_parameters(self, parameter_file):
         """
 
         :param parameter_file:
         :return:
         """
-        proc = "Experiment.updateFromFile"
+        proc = "Experiment.update_from_parameters"
 
         if parameter_file is None:
             return
@@ -1095,11 +1374,14 @@ class Experiment(object):
             if parameters.raw_delay is not None:
                 self.delay_time_point = parameters.raw_delay
 
+        self.rawdata_dir.update_from_parameters(parameters)
         self.fusion_dir.update_from_parameters(parameters)
         self.mars_dir.update_from_parameters(parameters)
         self.seg_dir.update_from_parameters(parameters)
         self.post_dir.update_from_parameters(parameters)
         self.intrareg_dir.update_from_parameters(parameters)
+
+        self._fix_fusion_directories()
 
         #
         # set result_image_suffix
@@ -1123,49 +1405,197 @@ class Experiment(object):
                     self.result_image_suffix = parameters.default_image_suffix
         return
 
+    ############################################################
     #
+    # getters
     #
-    #
-    def update_from_stage(self, stage, executable, timestamp):
+    ############################################################
+
+    def _get_embryo_name(self):
+        return self.embryo_name
+
+    def _get_embryo_path(self):
+        return self.embryo_path
+
+    def _get_image_format(self, directory_type, subdirectory_type='fuse'):
         """
 
-        :param stage:
-        :param executable:
-        :param timestamp:
+        :param directory_type:
+        :param subdirectory_type:
         :return:
         """
-        if stage.lower() == 'fuse':
-            self.path_logdir = os.path.join(self.embryo_path, self.fusion_dir.get_directory(), "LOGS")
-        elif stage.lower() == 'mars':
-            self.path_logdir = os.path.join(self.embryo_path, self.mars_dir.get_directory(), "LOGS")
-        elif stage.lower() == 'man-correction' or stage.lower() == 'manual-correction':
-            self.path_logdir = os.path.join(self.embryo_path, self.seg_dir.get_directory(), "LOGS")
-        elif stage.lower() == 'seg':
-            self.path_logdir = os.path.join(self.embryo_path, self.seg_dir.get_directory(), "LOGS")
-        elif stage.lower() == 'post' or stage.lower() == 'post-correction':
-            self.path_logdir = os.path.join(self.embryo_path, self.post_dir.get_directory(), "LOGS")
-        elif stage.lower() == 'intrareg' or stage.lower() == 'intraregistration':
-            self.path_logdir = os.path.join(self.embryo_path, self.intrareg_dir.get_directory(), "LOGS")
-        elif stage.lower() == 'properties':
-            self.path_logdir = os.path.join(self.embryo_path, self.intrareg_dir.get_directory(), "LOGS")
-        else:
-            print("Experiment.update_from_stage: unknown stage.")
+        suffix = self._get_image_suffix(directory_type, subdirectory_type)
+        if suffix is None:
+            return None
+        return suffix + '_t' + self._get_time_format()
 
-        if executable is None:
-            local_executable = 'unknown'
-        else:
-            local_executable = os.path.basename(executable)
-            if local_executable[-3:] == '.py':
-                local_executable = local_executable[:-3]
+    def _get_image_name(self, index, directory_type, subdirectory_type='fuse'):
+        """
 
-        self.path_history_file = os.path.join(self.path_logdir, str(local_executable)+'-history.log')
-        if timestamp is None:
-            d = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
-        else:
-            d = time.strftime("%Y-%m-%d-%H:%M:%S", timestamp)
-        self.path_log_file = os.path.join(self.path_logdir, str(local_executable) + '-' + str(d) + '.log')
+        :param index:
+        :param directory_type:
+        :param subdirectory_type:
+        :return:
+        """
+        ind = self.get_time_index(index)
+        suffix = self._get_image_suffix(directory_type, subdirectory_type)
+        if suffix is None:
+            return None
+        return suffix + '_t' + str(ind)
 
+    def _get_image_suffix(self, directory_type, subdirectory_type='fuse'):
+        """
+
+        :param directory_type:
+        :param subdirectory_type:
+        :return:
+        """
+        if directory_type.lower() == 'fuse':
+            return self.embryo_name + '_fuse'
+        elif directory_type.lower() == 'intrareg':
+            if subdirectory_type.lower() == 'fuse':
+                return self.embryo_name + '_intrareg_fuse'
+            elif subdirectory_type.lower() == 'post':
+                return self.embryo_name + '_intrareg_post'
+            elif subdirectory_type.lower() == 'seg':
+                return self.embryo_name + '_intrareg_seg'
+            else:
+                print("Experiment.get_image_name: unknown arg #2.")
+                return None
+        elif directory_type.lower() == 'post':
+            return self.embryo_name + '_post'
+        elif directory_type.lower() == 'seg':
+            return self.embryo_name + '_seg'
+        else:
+            print("Experiment.get_image_name: unknown arg.")
+            return None
+
+    def get_log_dirname(self):
+        return os.path.join(self.working_dir.get_log_directory())
+
+    def _get_movie_name(self, first, last, directory_type, subdirectory_type='fuse'):
+        """
+
+        :param first:
+        :param last:
+        :param directory_type:
+        :param subdirectory_type:
+        :return:
+        """
+        fi = self.get_time_index(first)
+        la = self.get_time_index(last)
+        suffix = self._get_image_suffix(directory_type,
+                                        subdirectory_type)
+        if suffix is None:
+            return None
+        return suffix + '_t' + str(fi) + '-' + str(la)
+
+    def get_time_digits(self):
+        return self._time_digits
+
+    def _get_time_format(self):
+        form = "%0" + str(self._time_digits) + "d"
+        return form
+
+    def get_time_index(self, index):
+        ind = '{:0{width}d}'.format(index, width=self._time_digits)
+        return ind
+
+    ############################################################
+    #
+    # setters
+    #
+    ############################################################
+
+    def _set_embryo_name(self, embryo_name):
+        self.embryo_name = embryo_name
+        #
+        # set file prefix
+        #
+        self.fusion_dir.set_file_prefix(embryo_name)
+        self.mars_dir.set_file_prefix(embryo_name)
+        self.seg_dir.set_file_prefix(embryo_name)
+        self.post_dir.set_file_prefix(embryo_name)
+        self.intrareg_dir.set_file_prefix(embryo_name)
         return
+
+    def _set_embryo_path(self, embryo_path):
+        if not os.path.isdir(embryo_path):
+            print("Experiment._set_embryo_path: '" + str(embryo_path) + "' is not a valid directory.")
+            print("\t Exiting.")
+            sys.exit(1)
+        self.embryo_path = embryo_path
+        #
+        # set parent directories
+        #
+        self.rawdata_dir.set_parent_directory(embryo_path)
+        self.fusion_dir.set_parent_directory(embryo_path)
+        self.mars_dir.set_parent_directory(embryo_path)
+        self.seg_dir.set_parent_directory(embryo_path)
+        self.post_dir.set_parent_directory(embryo_path)
+        self.intrareg_dir.set_parent_directory(embryo_path)
+        return
+
+    def set_fusion_tmp_directory(self, time_value):
+        if self.rawdata_dir.get_number_channels() is not self.fusion_dir.get_number_directories():
+            print("Experiment.set_fusion_tmp_directory: number of channels is different from fusion directories.")
+            print("\t Exiting.")
+            sys.exit(1)
+        self.rawdata_dir.tmp_directory = []
+        t = "TEMP_" + self.fusion_dir.timepoint_to_str(time_value)
+        for c in range(self.fusion_dir.get_number_directories()):
+            d = os.path.join(self.fusion_dir.get_directory(c), t, "ANGLE_0")
+            self.rawdata_dir.channel[c].tmp_directory.append(d)
+            d = os.path.join(self.fusion_dir.get_directory(c), t, "ANGLE_1")
+            self.rawdata_dir.channel[c].tmp_directory.append(d)
+            d = os.path.join(self.fusion_dir.get_directory(c), t, "ANGLE_2")
+            self.rawdata_dir.channel[c].tmp_directory.append(d)
+            d = os.path.join(self.fusion_dir.get_directory(c), t, "ANGLE_3")
+            self.rawdata_dir.channel[c].tmp_directory.append(d)
+            d = os.path.join(self.fusion_dir.get_directory(c), t)
+            self.rawdata_dir.channel[c].tmp_directory.append(d)
+            for d in self.rawdata_dir.channel[c].tmp_directory:
+                if not os.path.isdir(d):
+                    os.makedirs(d)
+
+    ############################################################
+    #
+    # misc
+    #
+    ############################################################
+
+    def _fix_fusion_directories(self):
+        n_channels = self.rawdata_dir.get_number_channels()
+        if n_channels is 1:
+            return
+        n_dirs = self.fusion_dir.get_number_directories()
+        if n_dirs >= n_channels:
+            return
+
+        dir_suffix = self.fusion_dir.get_directory_suffix()
+        new_dir_suffix = []
+        if type(dir_suffix) is str:
+            for c in range(n_channels):
+                if c is 0:
+                    new_dir_suffix.append(dir_suffix)
+                else:
+                    new_dir_suffix.append(dir_suffix + "_CHANNEL_" + str(c+1))
+        elif type(dir_suffix) is list:
+            for c in range(n_channels):
+                if c < n_dirs:
+                    new_dir_suffix.append(dir_suffix[c])
+                else:
+                    new_dir_suffix.append(dir_suffix[0] + "_CHANNEL_" + str(c+1))
+        else:
+            print("Experiment._fix_fusion_directories: type '" + str(type(dir_suffix)) + "' not handled yet.")
+            print("\t Exiting.")
+            sys.exit(1)
+        self.fusion_dir.set_directory_suffix(new_dir_suffix)
+
+    def remove_fusion_tmp_directory(self):
+        self.rawdata_dir.tmp_directory = []
+        for c in range(self.fusion_dir.get_number_directories()):
+            shutil.rmtree(self.rawdata_dir.channel[c].tmp_directory[4])
 
 
 ########################################################################################
@@ -1187,6 +1617,12 @@ def _fulldesc(prefix, desc):
 
 
 class RegistrationParameters(object):
+
+    ############################################################
+    #
+    # initialisation
+    #
+    ############################################################
 
     def __init__(self):
         #
@@ -1210,6 +1646,34 @@ class RegistrationParameters(object):
         self.fluid_sigma = 4.0
 
         self.normalization = True
+
+    ############################################################
+    #
+    # print / write
+    #
+    ############################################################
+
+    def print_parameters(self):
+        print("")
+        print('RegistrationParameters')
+
+        print(_fulldesc(None, 'prefix') + str(self.prefix))
+        print(_fulldesc(self.prefix, 'compute_registration') + str(self.compute_registration))
+
+        print(_fulldesc(self.prefix, 'pyramid_highest_level') + str(self.pyramid_highest_level))
+        print(_fulldesc(self.prefix, 'pyramid_lowest_level') + str(self.pyramid_lowest_level))
+
+        print(_fulldesc(self.prefix, 'transformation_type') + str(self.transformation_type))
+
+        print(_fulldesc(self.prefix, 'elastic_sigma') + str(self.elastic_sigma))
+
+        print(_fulldesc(self.prefix, 'transformation_estimation_type') + str(self.transformation_estimation_type))
+        print(_fulldesc(self.prefix, 'lts_fraction') + str(self.lts_fraction))
+        print(_fulldesc(self.prefix, 'fluid_sigma') + str(self.fluid_sigma))
+
+        print(_fulldesc(self.prefix, 'normalization') + str(self.normalization))
+
+        print("")
 
     def write_parameters(self, log_filename=None):
         if log_filename is not None:
@@ -1240,27 +1704,11 @@ class RegistrationParameters(object):
                 logfile.write("\n")
         return
 
-    def print_parameters(self):
-        print("")
-        print('RegistrationParameters')
-
-        print(_fulldesc(None, 'prefix') + str(self.prefix))
-        print(_fulldesc(self.prefix, 'compute_registration') + str(self.compute_registration))
-
-        print(_fulldesc(self.prefix, 'pyramid_highest_level') + str(self.pyramid_highest_level))
-        print(_fulldesc(self.prefix, 'pyramid_lowest_level') + str(self.pyramid_lowest_level))
-
-        print(_fulldesc(self.prefix, 'transformation_type') + str(self.transformation_type))
-
-        print(_fulldesc(self.prefix, 'elastic_sigma') + str(self.elastic_sigma))
-
-        print(_fulldesc(self.prefix, 'transformation_estimation_type') + str(self.transformation_estimation_type))
-        print(_fulldesc(self.prefix, 'lts_fraction') + str(self.lts_fraction))
-        print(_fulldesc(self.prefix, 'fluid_sigma') + str(self.fluid_sigma))
-
-        print(_fulldesc(self.prefix, 'normalization') + str(self.normalization))
-
-        print("")
+    ############################################################
+    #
+    # update
+    #
+    ############################################################
 
     def update_from_file(self, parameter_file):
         if parameter_file is None:

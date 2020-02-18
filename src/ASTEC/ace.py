@@ -59,6 +59,12 @@ monitoring = common.Monitoring()
 
 class AceParameters(object):
 
+    ############################################################
+    #
+    # initialisation
+    #
+    ############################################################
+
     def __init__(self):
 
         #
@@ -94,6 +100,35 @@ class AceParameters(object):
         #
         self.default_image_suffix = 'inr'
 
+    ############################################################
+    #
+    # print / write
+    #
+    ############################################################
+
+    def print_parameters(self):
+        print("")
+        print('AceParameters')
+
+        print('- sigma_membrane = ' + str(self.sigma_membrane))
+
+        print('- hard_thresholding = ' + str(self.hard_thresholding))
+        print('- hard_threshold = ' + str(self.hard_threshold))
+
+        print('- manual = ' + str(self.manual))
+        print('- manual_sigma = ' + str(self.manual_sigma))
+        print('- sensitivity = ' + str(self.sensitivity))
+
+        print('- sigma_TV = ' + str(self.sigma_TV))
+        print('- sigma_LF = ' + str(self.sigma_LF))
+        print('- sample = ' + str(self.sample))
+
+        print('- bounding_box_dilation = ' + str(self.bounding_box_dilation))
+
+        print('- default_image_suffix = ' + str(self.default_image_suffix))
+
+        print("")
+
     def write_parameters(self, log_file_name):
         with open(log_file_name, 'a') as logfile:
             logfile.write("\n")
@@ -119,30 +154,13 @@ class AceParameters(object):
             logfile.write("\n")
         return
 
-    def print_parameters(self):
-        print("")
-        print('AceParameters')
+    ############################################################
+    #
+    # update
+    #
+    ############################################################
 
-        print('- sigma_membrane = ' + str(self.sigma_membrane))
-
-        print('- hard_thresholding = ' + str(self.hard_thresholding))
-        print('- hard_threshold = ' + str(self.hard_threshold))
-
-        print('- manual = ' + str(self.manual))
-        print('- manual_sigma = ' + str(self.manual_sigma))
-        print('- sensitivity = ' + str(self.sensitivity))
-
-        print('- sigma_TV = ' + str(self.sigma_TV))
-        print('- sigma_LF = ' + str(self.sigma_LF))
-        print('- sample = ' + str(self.sample))
-
-        print('- bounding_box_dilation = ' + str(self.bounding_box_dilation))
-
-        print('- default_image_suffix = ' + str(self.default_image_suffix))
-
-        print("")
-
-    def update_from_file(self, parameter_file):
+    def update_from_parameters(self, parameter_file):
         if parameter_file is None:
             return
         if not os.path.isfile(parameter_file):

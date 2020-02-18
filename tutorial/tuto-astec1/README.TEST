@@ -1,0 +1,13 @@
+rm -rf FUSE/FUSE_TEST??
+../../src/1-fuse.py -p parameters-test/1-fuse-test-parameters-1.py -v -v
+../../src/1-fuse.py -p parameters-test/1-fuse-test-parameters-2.py -v -v
+../../src/1-fuse.py -p parameters-test/1-fuse-test-parameters-3.py -v -v
+../../src/1-fuse.py -p parameters-test/1-fuse-test-parameters-4.py -v -v
+../../src/1-fuse.py -p parameters-test/1-fuse-test-parameters-5.py -v -v
+../../src/1-fuse.py -p parameters-test/1-fuse-test-parameters-6.py -v -v
+
+rm -rf SEG/SEG_TEST??
+../../src/2-mars.py -pparameters-test/2-mars-test-parameters-1.py -v -v
+../../src/2-mars.py -pparameters-test/2-mars-test-parameters-2.py -v -v
+../../src/2-mars.py -pparameters-test/2-mars-test-parameters-3.py -v -v
+../../src/2-mars.py -pparameters-test/2-mars-test-parameters-4.py -v -v

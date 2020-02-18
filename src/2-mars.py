@@ -111,7 +111,7 @@ def main():
     # and updating parameters
     #
     parameter_file = common.get_parameter_file(args.parameterFile)
-    experiment.update_from_file(parameter_file)
+    experiment.update_from_parameters(parameter_file)
 
     #
     # set
@@ -137,7 +137,7 @@ def main():
     common.monitoring.copy(monitoring)
 
     #
-    # write generic informatio into the log file
+    # write generic information into the log file
     #
     monitoring.write_parameters()
     experiment.write_parameters()
@@ -166,7 +166,7 @@ def main():
 
     parameters.first_time_point = experiment.first_time_point
     parameters.last_time_point = experiment.first_time_point
-    parameters.update_from_file(parameter_file)
+    parameters.update_from_parameters(parameter_file)
 
     parameters.write_parameters(monitoring.log_filename)
 

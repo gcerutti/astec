@@ -39,6 +39,12 @@ monitoring = common.Monitoring()
 
 class WatershedParameters(object):
 
+    ############################################################
+    #
+    # initialisation
+    #
+    ############################################################
+
     def __init__(self):
         #
         #
@@ -53,6 +59,23 @@ class WatershedParameters(object):
         self.watershed_seed_high_threshold = None
         self.watershed_membrane_sigma = 0.15
 
+    ############################################################
+    #
+    # print / write
+    #
+    ############################################################
+
+    def print_parameters(self):
+        print("")
+        print('WatershedParameters')
+
+        print('- watershed_seed_sigma = ' + str(self.watershed_seed_sigma))
+        print('- watershed_seed_hmin = ' + str(self.watershed_seed_hmin))
+        print('- watershed_seed_high_threshold = ' + str(self.watershed_seed_high_threshold))
+        print('- watershed_membrane_sigma = ' + str(self.watershed_membrane_sigma))
+
+        print("")
+
     def write_parameters(self, log_file_name):
         with open(log_file_name, 'a') as logfile:
             logfile.write("\n")
@@ -66,18 +89,13 @@ class WatershedParameters(object):
             logfile.write("\n")
         return
 
-    def print_parameters(self):
-        print("")
-        print('WatershedParameters')
+    ############################################################
+    #
+    # update
+    #
+    ############################################################
 
-        print('- watershed_seed_sigma = ' + str(self.watershed_seed_sigma))
-        print('- watershed_seed_hmin = ' + str(self.watershed_seed_hmin))
-        print('- watershed_seed_high_threshold = ' + str(self.watershed_seed_high_threshold))
-        print('- watershed_membrane_sigma = ' + str(self.watershed_membrane_sigma))
-
-        print("")
-
-    def update_from_file(self, parameter_file):
+    def update_from_parameters(self, parameter_file):
         if parameter_file is None:
             return
         if not os.path.isfile(parameter_file):
@@ -132,6 +150,12 @@ class WatershedParameters(object):
 
 class SeedEditionParameters(object):
 
+    ############################################################
+    #
+    # initialisation
+    #
+    ############################################################
+
     def __init__(self):
         #
         #
@@ -143,6 +167,67 @@ class SeedEditionParameters(object):
         #
         self.seed_edition_dir = None
         self.seed_edition_file = None
+
+    ############################################################
+    #
+    # print / write
+    #
+    ############################################################
+
+    def print_parameters(self):
+        print("")
+        print('SeedEditionParameters')
+
+        print('- seed_edition_dir = ' + str(self.seed_edition_dir))
+        print('- seed_edition_file = ' + str(self.seed_edition_file))
+
+        print("")
+
+    def write_parameters(self, log_file_name):
+        with open(log_file_name, 'a') as logfile:
+            logfile.write("\n")
+            logfile.write('SeedEditionParameters\n')
+
+            logfile.write('- seed_edition_dir = ' + str(self.seed_edition_dir) + '\n')
+            logfile.write('- seed_edition_file = ' + str(self.seed_edition_file) + '\n')
+
+            logfile.write("\n")
+        return
+
+    ############################################################
+    #
+    # update
+    #
+    ############################################################
+
+    def update_from_parameters(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+
+        #
+        # seed edition parameters
+        #
+        if hasattr(parameters, 'seed_edition_dir'):
+            if parameters.seed_edition_dir is not None:
+                self.seed_edition_dir = parameters.seed_edition_dir
+
+        if hasattr(parameters, 'seed_edition_file'):
+            if parameters.seed_edition_file is not None:
+                self.seed_edition_file = parameters.seed_edition_file
+        if hasattr(parameters, 'seed_edition_files'):
+            if parameters.seed_edition_files is not None:
+                self.seed_edition_file = parameters.seed_edition_files
+
+    ############################################################
+    #
+    # misc
+    #
+    ############################################################
 
     def n_seed_editions(self):
         #
@@ -184,49 +269,6 @@ class SeedEditionParameters(object):
                 return os.path.join(self.seed_edition_dir, self.seed_edition_file[i][0]), \
                        os.path.join(self.seed_edition_dir, self.seed_edition_file[i][1])
 
-    def write_parameters(self, log_file_name):
-        with open(log_file_name, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('SeedEditionParameters\n')
-
-            logfile.write('- seed_edition_dir = ' + str(self.seed_edition_dir) + '\n')
-            logfile.write('- seed_edition_file = ' + str(self.seed_edition_file) + '\n')
-
-            logfile.write("\n")
-        return
-
-    def print_parameters(self):
-        print("")
-        print('SeedEditionParameters')
-
-        print('- seed_edition_dir = ' + str(self.seed_edition_dir))
-        print('- seed_edition_file = ' + str(self.seed_edition_file))
-
-        print("")
-
-    def update_from_file(self, parameter_file):
-        if parameter_file is None:
-            return
-        if not os.path.isfile(parameter_file):
-            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
-            sys.exit(1)
-
-        parameters = imp.load_source('*', parameter_file)
-
-        #
-        # seed edition parameters
-        #
-        if hasattr(parameters, 'seed_edition_dir'):
-            if parameters.seed_edition_dir is not None:
-                self.seed_edition_dir = parameters.seed_edition_dir
-
-        if hasattr(parameters, 'seed_edition_file'):
-            if parameters.seed_edition_file is not None:
-                self.seed_edition_file = parameters.seed_edition_file
-        if hasattr(parameters, 'seed_edition_files'):
-            if parameters.seed_edition_files is not None:
-                self.seed_edition_file = parameters.seed_edition_files
-
 
 #
 #
@@ -237,6 +279,12 @@ class SeedEditionParameters(object):
 class MarsParameters(WatershedParameters, SeedEditionParameters):
 
     def __init__(self):
+
+        ############################################################
+        #
+        # initialisation
+        #
+        ############################################################
 
         WatershedParameters.__init__(self)
         SeedEditionParameters.__init__(self)
@@ -263,6 +311,32 @@ class MarsParameters(WatershedParameters, SeedEditionParameters):
         self.keep_reconstruction = True
         return
 
+    ############################################################
+    #
+    # print / write
+    #
+    ############################################################
+
+    def print_parameters(self):
+        print("")
+        print('MarsParameters')
+
+        print('- first_time_point = ' + str(self.first_time_point))
+        print('- last_time_point = ' + str(self.last_time_point))
+
+        print('- intensity_transformation = ' + str(self.intensity_transformation))
+        print('- intensity_enhancement = ' + str(self.intensity_enhancement))
+
+        self.ace.print_parameters()
+
+        print('- keep_reconstruction = ' + str(self.keep_reconstruction))
+
+        print("")
+
+        WatershedParameters.print_parameters(self)
+        SeedEditionParameters.print_parameters(self)
+        return
+
     def write_parameters(self, log_file_name):
         with open(log_file_name, 'a') as logfile:
             logfile.write("\n")
@@ -284,28 +358,13 @@ class MarsParameters(WatershedParameters, SeedEditionParameters):
 
         return
 
-    def print_parameters(self):
-        print("")
-        print('MarsParameters')
+    ############################################################
+    #
+    # update
+    #
+    ############################################################
 
-        print('- first_time_point = ' + str(self.first_time_point))
-        print('- last_time_point = ' + str(self.last_time_point))
-
-        print('- intensity_transformation = ' + str(self.intensity_transformation))
-        print('- intensity_enhancement = ' + str(self.intensity_enhancement))
-
-        self.ace.print_parameters()
-
-        print('- keep_reconstruction = ' + str(self.keep_reconstruction))
-
-        print("")
-
-        WatershedParameters.print_parameters(self)
-        SeedEditionParameters.print_parameters(self)
-
-        return
-
-    def update_from_file(self, parameter_file):
+    def update_from_parameters(self, parameter_file):
         if parameter_file is None:
             return
         if not os.path.isfile(parameter_file):
@@ -347,7 +406,7 @@ class MarsParameters(WatershedParameters, SeedEditionParameters):
         #
         #
         #
-        self.ace.update_from_file(parameter_file)
+        self.ace.update_from_parameters(parameter_file)
 
         #
         #
@@ -362,12 +421,12 @@ class MarsParameters(WatershedParameters, SeedEditionParameters):
         #
         # watershed parameters
         #
-        WatershedParameters.update_from_file(self, parameter_file)
+        WatershedParameters.update_from_parameters(self, parameter_file)
 
         #
         # seed edition parameters
         #
-        SeedEditionParameters.update_from_file(self, parameter_file)
+        SeedEditionParameters.update_from_parameters(self, parameter_file)
 
         return
 

@@ -30,6 +30,12 @@ monitoring = common.Monitoring()
 
 class ManualCorrectionParameters(object):
 
+    ############################################################
+    #
+    # initialisation
+    #
+    ############################################################
+
     def __init__(self):
 
         #
@@ -57,6 +63,28 @@ class ManualCorrectionParameters(object):
         self.result_image_suffix = 'inr'
         self.default_image_suffix = 'inr'
 
+    ############################################################
+    #
+    # print / write
+    #
+    ############################################################
+
+    def print_parameters(self):
+        print("")
+        print('ManualCorrectionParameters')
+
+        print('- first_time_point = ' + str(self.first_time_point))
+        print('- last_time_point = ' + str(self.last_time_point))
+
+        print('- input_image = ' + str(self.input_image))
+        print('- output_image = ' + str(self.output_image))
+        print('- mapping_file = ' + str(self.mapping_file))
+
+        print('- result_image_suffix = ' + str(self.result_image_suffix))
+        print('- default_image_suffix = ' + str(self.default_image_suffix))
+
+        print("")
+
     def write_parameters(self, log_file_name):
         with open(log_file_name, 'a') as logfile:
             logfile.write("\n")
@@ -75,21 +103,11 @@ class ManualCorrectionParameters(object):
             logfile.write("\n")
         return
 
-    def print_parameters(self):
-        print("")
-        print('ManualCorrectionParameters')
-
-        print('- first_time_point = ' + str(self.first_time_point))
-        print('- last_time_point = ' + str(self.last_time_point))
-
-        print('- input_image = ' + str(self.input_image))
-        print('- output_image = ' + str(self.output_image))
-        print('- mapping_file = ' + str(self.mapping_file))
-
-        print('- result_image_suffix = ' + str(self.result_image_suffix))
-        print('- default_image_suffix = ' + str(self.default_image_suffix))
-
-        print("")
+    ############################################################
+    #
+    # update
+    #
+    ############################################################
 
     def update_from_args(self, args):
         self.input_image = args.input_image
@@ -100,7 +118,7 @@ class ManualCorrectionParameters(object):
         if int(args.largest_cells) >= 0:
             self.largest_cells = args.largest_cells
 
-    def update_from_file(self, parameter_file):
+    def update_from_parameters(self, parameter_file):
         if parameter_file is None:
             return
         if not os.path.isfile(parameter_file):
