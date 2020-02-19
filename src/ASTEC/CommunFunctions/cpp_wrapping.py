@@ -33,7 +33,6 @@ def __find_exec(executable_file):
     :return:
     """
     cmd = 'which' + ' ' + str(executable_file)
-    path_to_exec = ""
     try:
         which_exec = subprocess.check_output(cmd, shell=True)
         path_to_exec = which_exec.split('\n')[0]
@@ -108,8 +107,8 @@ def _launch_inline_cmd(command_line, monitoring=None):
 ############################################################
 
 def applyTrsf(the_image, res_image, the_transformation=None, template_image=None, res_transformation=None,
-              voxel_size=None, dimensions=None, interpolation_mode='linear', cell_based_sigma=0.0,
-              monitoring=None):
+               voxel_size=None, dimensions=None, interpolation_mode='linear', cell_based_sigma=0.0,
+               monitoring=None):
     """
 
     :param the_image: path to the image to be resampled
@@ -261,8 +260,7 @@ def blockmatching(path_ref, path_flo, path_output, path_output_trsf, path_init_t
     return
 
 
-def composeTrsf(the_trsfs, res_trsf, other_options=None,
-                  monitoring=None):
+def compose_trsf(the_trsfs, res_trsf, other_options=None, monitoring=None):
     """
 
     :param the_trsfs:
@@ -286,8 +284,7 @@ def composeTrsf(the_trsfs, res_trsf, other_options=None,
     return
 
 
-def mc_seedEdit(the_seeds, res_seeds, fusion_file=None, seeds_file=None, other_options=None,
-                  monitoring=None):
+def mc_seed_edit(the_seeds, res_seeds, fusion_file=None, seeds_file=None, other_options=None, monitoring=None):
     """
 
     :param the_seeds:
@@ -314,6 +311,35 @@ def mc_seedEdit(the_seeds, res_seeds, fusion_file=None, seeds_file=None, other_o
 
     return
 
+
+def mean_images(format_input, image_output, first, last, operation="maximum", other_options=None, monitoring=None):
+    """
+
+    :param format_input:
+    :param image_output:
+    :param first:
+    :param last:
+    :param operation:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('meanImages')
+
+    command_line = path_to_exec + " -format " + format_input + " -res " + image_output
+    command_line += " -operation " + operation
+    command_line += " -first " + str(first) + " -last " + str(last)
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
 
 ############################################################
 #

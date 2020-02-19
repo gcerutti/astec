@@ -5,7 +5,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),"CommunFunctions"))
 from ImageHandling import imread, imsave, SpatialImage
 from scipy import ndimage as nd
 
-from ACE import GLACE_from_resampled_segmentation, GACE
+from ace import GLACE_from_resampled_segmentation, GACE
 from cpp_wrapping import (obsolete_non_linear_registration, apply_trsf, obsolete_watershed,
                           obsolete_find_local_minima, outer_detection,
                           obsolete_gradient_norm, obsolete_morpho, obsolete_copy, obsolete_mc_adhocFuse, obsolete_Arit)

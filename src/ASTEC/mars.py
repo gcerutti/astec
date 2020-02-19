@@ -576,6 +576,9 @@ def watershed(seed_image, membrane_image, result_image, experiment, parameters):
     :param parameters:
     :return:
     """
+
+    proc = "watershed"
+
     #
     # variable checking
     #
@@ -640,7 +643,7 @@ def _seed_correction(seed_image, corrected_seed_image, parameters):
         fusion, seeds = parameters.seed_edition(i)
         monitoring.to_log_and_console("       correction ['" + str(fusion).split(os.path.sep)[-1] + "', '"
                                       + str(seeds).split(os.path.sep)[-1] + "']", 2)
-        cpp_wrapping.mc_seedEdit(ifile, ofile, fusion, seeds)
+        cpp_wrapping.mc_seed_edit(ifile, ofile, fusion, seeds)
         ifile = ofile
 
     return corrected_seed_image

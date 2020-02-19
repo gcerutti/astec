@@ -553,7 +553,7 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
     # bboxes is a list of tuples [volume, xmin, ymin, zmin, xmax, ymax, zmax]
     #
     path_bboxes = common.add_suffix(previous_deformed_segmentation, '_bounding_boxes',
-                                         new_dirname=temporary_path, new_extension='txt')
+                                    new_dirname=temporary_path, new_extension='txt')
     bboxes = cpp_wrapping.bounding_boxes(previous_deformed_segmentation, path_bboxes=path_bboxes)
 
     #
@@ -777,7 +777,6 @@ def light_LACE(parameters):
 
     # Mask application on the binary image
     cpp_wrapping.obsolete_Logic(path_mask_dil, path_bin, path_bin, Mode='mask', verbose=verbose)
-
 
     if os.path.exists(path_mask_dil):
         cmd='rm ' + str(path_mask_dil)

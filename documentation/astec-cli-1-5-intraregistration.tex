@@ -50,6 +50,14 @@ The intra-registration procedure is made of the following steps:
   require to re-compute the first steps, with an eventual exception
   for the resampling step. 
 
+\item \label{it:intrareg:co:maximum}
+  Computation of a maximum image from the resampled images (section
+  \ref{sec:cli:intraregistration:maximum}). Computing the maximum over  
+  the resampled fusion images may be useful to define a common cropping
+  area for the sequence.
+  Note that changing the parameters for this step will not require 
+  to re-compute the first steps. 
+
 \end{enumerate}
 
 
@@ -94,6 +102,7 @@ default value is '\texttt{RELEASE}').
 .4 CO-TRSFS/.
 .4 [FUSE/].
 .4 LOGS/.
+.4 [MAXIMUM/].
 .4 [MOVIES/].
 .4 [POST/].
 .4 [SEG/].
@@ -363,6 +372,55 @@ in the parameter file results in
 
 The same behavior stands for \texttt{EXP\_SEG} and  \texttt{EXP\_POST}.
 
+\subsubsection{Step \ref{it:intrareg:co:maximum}: 3D maximum over the 3D+t sequence}
+\label{sec:cli:intraregistration:maximum}
+
+To set a cropping area valid for the whole resampled sequence, a maximum image can be built from the resampled temporal series. This is controlled by the following parameters:
+\begin{verbatim}
+# intra_registration_maximum_fusion_images = False
+# intra_registration_maximum_segmentation_images = False
+# intra_registration_maximum_post_segmentation_images = False
+\end{verbatim}
+
+If \verb|intra_registration_maximum_fusion_images| is set to \verb|True|, a maximum image is computed over the sequence of resampled fusion images (recall that, after resampling, all images have the same geometry). The value of a voxel in this maximum image is the maximum value (over time) of this voxel in the sequence.
+
+
+The maximum image will be stored in the
+\texttt{INTRAREG/INTRAREG\_<EXP\_INTRAREG>/MAXIMUM/} directory, with the same
+hierarchy than under \texttt{/path/to/experiment}. E.g., 
+\begin{verbatim}
+EXP_FUSE = ['1', '2']
+\end{verbatim}
+in the parameter file results in
+
+\mbox{}
+\dirtree{%
+.1 /path/to/experiment/.
+.2 \ldots.
+.2 FUSE/.
+.3 FUSE\_1/.
+.3 FUSE\_2/.
+.2 INTRAREG/.
+.3 INTRAREG\_<EXP\_INTRAREG>/.
+.4 FUSE/.
+.5 FUSE\_1/.
+.5 FUSE\_2/.
+.4 MAXIMUM/.
+.5 FUSE/.
+.6 FUSE\_1/.
+.6 FUSE\_2/.
+.4 MOVIES/.
+.5 FUSE/.
+.6 FUSE\_1/.
+.6 FUSE\_2/.
+.4 \ldots.
+.2 \ldots.
+}
+\mbox{}
+
+The same behavior stands for \texttt{EXP\_SEG} and  \texttt{EXP\_POST}.
+
+
 \subsection{Parameter list}
 
 Please also refer to the file
@@ -392,6 +450,9 @@ EXP_FUSE = ['exp1', 'exp2']
 \item \texttt{intra\_registration\_compute\_registration}
 \item \texttt{intra\_registration\_lts\_fraction}
 \item \texttt{intra\_registration\_margin}
+\item \texttt{intra\_registration\_maximum\_fusion\_images}
+\item \texttt{intra\_registration\_maximum\_post\_segmentation\_images}
+\item \texttt{intra\_registration\_maximum\_segmentation\_images}
 \item \texttt{intra\_registration\_movie\_fusion\_images}
 \item \texttt{intra\_registration\_movie\_post\_segmentation\_images}
 \item \texttt{intra\_registration\_movie\_segmentation\_images}
