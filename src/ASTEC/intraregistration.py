@@ -1249,8 +1249,9 @@ def intraregistration_control(experiment, parameters):
                      parameters.xz_movie_post_segmentation_images, parameters.yz_movie_post_segmentation_images)
 
     #
+    # make maximum images
     #
-    #
+
     if parameters.maximum_fusion_images is True:
         monitoring.to_log_and_console("    .. maximum from fusion images", 2)
         monitoring.to_log_and_console("       warning: this stage may be long", 2)
