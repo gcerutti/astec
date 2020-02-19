@@ -10,8 +10,8 @@ from argparse import ArgumentParser
 #
 
 
-import ASTEC.commonTools as commonTools
-import ASTEC.INTRAREGISTRATION as INTRAREG
+import ASTEC.common as common
+import ASTEC.intraregistration as intraregistration
 from ASTEC.CommunFunctions.cpp_wrapping import path_to_vt
 
 
@@ -25,26 +25,6 @@ from ASTEC.CommunFunctions.cpp_wrapping import path_to_vt
 def _set_options(my_parser):
     """
 
-
-#
-#
-# main call
-#
-#
-
-
-if __name__ == '__main__':
-    main()
-
-#
-#
-# main call
-#
-#
-
-
-if __name__ == '__main__':
-    main()
     :param my_parser:
     :return:
     """
@@ -112,16 +92,22 @@ if __name__ == '__main__':
 
 def main():
 
+    ############################################################
+    #
+    # generic part
+    #
+    ############################################################
+
     #
     # initialization
     #
     start_time = time.localtime()
-    monitoring = commonTools.Monitoring()
-    experiment = commonTools.Experiment()
-    parameters = INTRAREG.IntraRegParameters()
+    monitoring = common.Monitoring()
+    experiment = common.Experiment()
 
     #
     # reading command line arguments
+    # and update from command line arguments
     #
     parser = ArgumentParser(description='Fused sequence intra-registration')
     _set_options(parser)
@@ -129,66 +115,81 @@ def main():
 
     monitoring.update_from_args(args)
     experiment.update_from_args(args)
-    parameters.update_from_args(args)
 
     #
     # reading parameter files
     # and updating parameters
     #
-    parameterFile = commonTools.get_parameter_file(args.parameterFile)
-    experiment.update_from_file(parameterFile)
-    experiment.update_from_stage("intrareg", __file__, start_time)
-
-    if not os.path.isdir(experiment.path_logdir):
-        os.makedirs(experiment.path_logdir)
-
-    parameters.update_from_file(parameterFile)
+    parameter_file = common.get_parameter_file(args.parameterFile)
+    experiment.update_from_parameters(parameter_file)
 
     #
-    # write history information in history file
+    # set
+    # 1. the working directory
+    #    that's where the logfile will be written
+    # 2. the log file name
+    #    it creates the logfile dir, if necessary
     #
-    commonTools.write_history_information(experiment.path_history_file,
-                                          experiment,
-                                          parameterFile,
-                                          start_time,
-                                          os.path.dirname(__file__),
-                                          path_to_vt())
+    experiment.working_dir = experiment.intrareg_dir
+    monitoring.set_log_filename(experiment, __file__, start_time)
 
     #
-    # define log file
-    # and write some information
+    # keep history of command line executions
+    # and copy parameter file
     #
-    monitoring.logfile = experiment.path_log_file
-    INTRAREG.monitoring.copy(monitoring)
-
-    monitoring.write_parameters(monitoring.logfile)
-    experiment.write_parameters(monitoring.logfile)
-    parameters.write_parameters(monitoring.logfile)
+    experiment.update_history_at_start(__file__, start_time, parameter_file, path_to_vt())
+    experiment.copy_stamped_file(start_time, parameter_file)
 
     #
-    # copy parameter file
+    # copy monitoring information into other "files"
+    # so the log filename is known
     #
-    commonTools.copy_date_stamped_file(parameterFile, experiment.path_logdir, start_time)
+    common.monitoring.copy(monitoring)
+
+    #
+    # write generic information into the log file
+    #
+    monitoring.write_parameters()
+    experiment.write_parameters()
+
+    ############################################################
+    #
+    # specific part
+    #
+    ############################################################
+
+    #
+    # copy monitoring information into other "files"
+    # so the log filename is known
+    #
+    intraregistration.monitoring.copy(monitoring)
+
+    #
+    # manage parameters
+    # 1. initialize
+    # 2. update parameters
+    # 3. write parameters into the logfile
+    #
+
+    parameters = intraregistration.IntraRegParameters()
+
+    parameters.update_from_args(args)
+    parameters.update_from_parameters(parameter_file)
+    monitoring.print_parameters()
+    parameters.write_parameters(monitoring.log_filename)
 
     #
     # processing
     #
-    INTRAREG.intraregistration_control(experiment, parameters)
+    intraregistration.intraregistration_control(experiment, parameters)
 
     #
     # end of execution
     # write execution time in both log and history file
     #
-    endtime = time.localtime()
-    with open(experiment.path_log_file, 'a') as logfile:
-        logfile.write("\n")
-        logfile.write('Total execution time = '+str(time.mktime(endtime)-time.mktime(start_time))+' sec\n')
-        logfile.write("\n")
-
-    with open(experiment.path_history_file, 'a') as logfile:
-        logfile.write('# Total execution time = '+str(time.mktime(endtime)-time.mktime(start_time))+' sec\n')
-        logfile.write("\n\n")
-
+    end_time = time.localtime()
+    monitoring.update_execution_time(start_time, end_time)
+    experiment.update_history_execution_time(__file__, start_time, end_time)
 
 #
 #

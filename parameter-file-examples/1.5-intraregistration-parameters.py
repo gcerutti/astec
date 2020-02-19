@@ -217,6 +217,10 @@ end = 0
 # intra_registration_xz_movie_post_segmentation_images = [];
 # intra_registration_yz_movie_post_segmentation_images = [];
 
+# intra_registration_maximum_fusion_images = False
+# intra_registration_maximum_segmentation_images = False
+# intra_registration_maximum_post_segmentation_images = False
+
 ## ##### explanation #####
 ##
 ## outputs
@@ -237,5 +241,10 @@ end = 0
 ## intra_registration_[xy,xz,yz]_movie_post_segmentation_images:
 ##   indicates the index(es) of the [xy,xz,yz] sections to build
 ##   [xy,xz,yz]+t movies
+## intra_registration_maximum_fusion_images:
+## intra_registration_maximum_segmentation_images:
+## intra_registration_maximum_post_segmentation_images:
+##   indicates whether a maximum image has to be computed from the
+##   [fusion,segmentation,post-segmentation] resampled images
 ##
 

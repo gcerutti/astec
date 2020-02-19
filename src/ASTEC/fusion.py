@@ -1833,7 +1833,7 @@ def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, 
     monitoring.to_log_and_console("       transform angle 2 data", 2)
 
     i = 2
-    cpp_wrapping.composeTrsf([stack_resample_trsfs[i], reg_stack_trsf], res_trsfs[i], monitoring=monitoring)
+    cpp_wrapping.compose_trsf([stack_resample_trsfs[i], reg_stack_trsf], res_trsfs[i], monitoring=monitoring)
     cpp_wrapping.applyTrsf(the_images[i], res_images[i], the_transformation=res_trsfs[i],
                            template_image=res_images[0], monitoring=monitoring)
     cpp_wrapping.applyTrsf(unreg_weight_images[i], weight_images[i], the_transformation=res_trsfs[i],
@@ -1842,7 +1842,7 @@ def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, 
     monitoring.to_log_and_console("       transform angle 3 data", 2)
 
     i = 3
-    cpp_wrapping.composeTrsf([stack_res_trsfs[i], reg_stack_trsf], res_trsfs[i], monitoring=monitoring)
+    cpp_wrapping.compose_trsf([stack_res_trsfs[i], reg_stack_trsf], res_trsfs[i], monitoring=monitoring)
     cpp_wrapping.applyTrsf(the_images[i], res_images[i], the_transformation=res_trsfs[i],
                            template_image=res_images[0], monitoring=monitoring)
     cpp_wrapping.applyTrsf(unreg_weight_images[i], weight_images[i], the_transformation=res_trsfs[i],

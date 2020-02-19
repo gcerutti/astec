@@ -655,6 +655,7 @@ class GenericSubdirectory(object):
         #    used for segmentation, when image have been pre-processed before segmentation
         #
         self._directory = None
+        self._sub_directory = None
         self._log_directory = None
         self._tmp_directory = None
         self._rec_directory = None
@@ -665,6 +666,7 @@ class GenericSubdirectory(object):
         #
         self._file_prefix = None
         self._file_suffix = None
+        self._time_prefix = '_t'
         self._time_digits = 3
 
     ############################################################
@@ -756,8 +758,17 @@ class GenericSubdirectory(object):
     def get_directory_suffix(self):
         return self._sub_directory_suffix
 
+    def get_file_prefix(self):
+        return self._file_prefix
+
+    def get_file_suffix(self):
+        return self._file_suffix
+
+    def get_image_format(self):
+        return self._file_prefix + self._file_suffix + self._time_prefix + self._get_time_format()
+
     def get_image_name(self, time_value):
-        return self._file_prefix + self._file_suffix + "_t" + self.timepoint_to_str(time_value)
+        return self._file_prefix + self._file_suffix + self._time_prefix + self.timepoint_to_str(time_value)
 
     def get_log_directory(self, i=0):
         """
@@ -785,6 +796,42 @@ class GenericSubdirectory(object):
             return len(self._directory)
 
         return 0
+
+    def get_number_sub_directories(self):
+        #
+        # self._directory is None
+        # build directory list
+        #
+        if self._sub_directory is None:
+            self._set_sub_directory()
+
+        if len(self._sub_directory) <= 0:
+            return 0
+
+        if type(self._sub_directory) == str:
+            return 1
+
+        if type(self._sub_directory) == list or type(self._sub_directory) == tuple:
+            return len(self._sub_directory)
+
+        return 0
+
+    def get_sub_directory(self, i=0):
+        """
+        return the ith directory
+        :param i:
+        :return:
+        """
+        if self._sub_directory is None:
+            self._set_directory()
+        return _get_directory(self._sub_directory, i)
+
+    def _get_time_format(self):
+        form = "%0" + str(self._time_digits) + "d"
+        return form
+
+    def get_time_prefix(self):
+        return self._time_prefix
 
     def get_tmp_directory(self, i=0):
         """
@@ -821,21 +868,14 @@ class GenericSubdirectory(object):
         proc = "GenericSubdirectory._set_directory"
         if self._directory is not None and force is False:
             return
+
+        self._set_sub_directory(force)
         #
         # empty list
         #
         self._directory = []
-        if self._sub_directory_suffix is None:
-            monitoring.to_log_and_console("Warning: " + proc + ", _sub_directory_suffix is None")
-        elif type(self._sub_directory_suffix) == str:
-            subdir = str(self._sub_directory_prefix) + str(self._sub_directory_suffix)
-            self._directory.append(os.path.join(str(self._parent_directory), str(self._main_directory), subdir))
-        elif type(self._sub_directory_suffix) == list or type(self._sub_directory_suffix) == tuple:
-            for s in self._sub_directory_suffix:
-                subdir = str(self._sub_directory_prefix) + str(s)
-                self._directory.append(os.path.join(str(self._parent_directory), str(self._main_directory), subdir))
-        else:
-            monitoring.to_log_and_console("Warning: " + proc + ", unhandled _sub_directory_suffix type")
+        for i in range(self.get_number_sub_directories()):
+            self._directory.append(os.path.join(str(self._parent_directory), self.get_sub_directory(i)))
         return
 
     def set_directory_suffix(self, directory_suffix):
@@ -885,6 +925,31 @@ class GenericSubdirectory(object):
         """
         self._set_directory()
         self._rec_directory = self._tmp_directory
+        return
+
+    def _set_sub_directory(self, force=False):
+        """
+        build the list of directories from the directory suffixes
+        :return:
+        """
+        proc = "GenericSubdirectory._set_sub_directory"
+        if self._sub_directory is not None and force is False:
+            return
+        #
+        # empty list
+        #
+        self._sub_directory = []
+        if self._sub_directory_suffix is None:
+            monitoring.to_log_and_console("Warning: " + proc + ", _sub_directory_suffix is None")
+        elif type(self._sub_directory_suffix) == str:
+            subdir = str(self._sub_directory_prefix) + str(self._sub_directory_suffix)
+            self._sub_directory.append(os.path.join(str(self._main_directory), subdir))
+        elif type(self._sub_directory_suffix) == list or type(self._sub_directory_suffix) == tuple:
+            for s in self._sub_directory_suffix:
+                subdir = str(self._sub_directory_prefix) + str(s)
+                self._sub_directory.append(os.path.join(str(self._main_directory), subdir))
+        else:
+            monitoring.to_log_and_console("Warning: " + proc + ", unhandled _sub_directory_suffix type")
         return
 
     def set_tmp_directory(self, timepoint):
@@ -1252,7 +1317,7 @@ class Experiment(object):
             if start_time is not None:
                 logfile.write("# " + time.strftime("%a, %d %b %Y %H:%M:%S", start_time) + "\n")
             logfile.write("# Embryo path: '" + str(self._get_embryo_path()) + "'\n")
-            logfile.write("# Embryo name: '" + str(self._get_embryo_name()) + "'\n")
+            logfile.write("# Embryo name: '" + str(self.get_embryo_name()) + "'\n")
             if parameter_file is not None:
                 logfile.write("# Parameter file: '" + str(parameter_file) + "'\n")
             logfile.write("# Command line: '" + " ".join(sys.argv) + "'\n")
@@ -1411,7 +1476,7 @@ class Experiment(object):
     #
     ############################################################
 
-    def _get_embryo_name(self):
+    def get_embryo_name(self):
         return self.embryo_name
 
     def _get_embryo_path(self):
@@ -1427,7 +1492,7 @@ class Experiment(object):
         suffix = self._get_image_suffix(directory_type, subdirectory_type)
         if suffix is None:
             return None
-        return suffix + '_t' + self._get_time_format()
+        return suffix + '_t' + self.get_time_format()
 
     def _get_image_name(self, index, directory_type, subdirectory_type='fuse'):
         """
@@ -1493,7 +1558,7 @@ class Experiment(object):
     def get_time_digits(self):
         return self._time_digits
 
-    def _get_time_format(self):
+    def get_time_format(self):
         form = "%0" + str(self._time_digits) + "d"
         return form
 
@@ -2066,7 +2131,7 @@ def get_file_suffix(experiment, data_path, file_format, flag_time=None):
     for current_time in range(first_time_point + experiment.delay_time_point + experiment.delta_time_point,
                               last_time_point + experiment.delay_time_point + 1, experiment.delta_time_point):
 
-        time_point = '{:0{width}d}'.format(current_time, width=experiment.time_digits)
+        time_point = experiment.get_time_index(current_time)
         file_prefix = file_format.replace(flag, time_point)
 
         for f in os.listdir(data_path):
