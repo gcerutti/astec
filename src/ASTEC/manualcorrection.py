@@ -321,7 +321,7 @@ def correction_control(experiment, parameters):
     # make sure that the result directory exists
     #
 
-    experiment.seg_dir.make_directory()
+    experiment.astec_dir.make_directory()
     monitoring.to_log_and_console('', 1)
 
     #
@@ -363,16 +363,16 @@ def correction_control(experiment, parameters):
                 monitoring.to_log_and_console("    manual corrected image '" + str(output_image) + "' exists", 2)
                 return
         else:
-            seg_dir = experiment.seg_dir.get_directory(0)
-            seg_name = experiment.seg_dir.get_image_name(experiment.first_time_point + experiment.delay_time_point)
-            seg_image = common.find_file(seg_dir, seg_name, callfrom=proc, local_monitoring=None, verbose=False)
+            astec_dir = experiment.astec_dir.get_directory(0)
+            seg_name = experiment.astec_dir.get_image_name(experiment.first_time_point + experiment.delay_time_point)
+            seg_image = common.find_file(astec_dir, seg_name, callfrom=proc, local_monitoring=None, verbose=False)
             if seg_image is not None:
                 if monitoring.forceResultsToBeBuilt is False:
                     monitoring.to_log_and_console("    manual corrected image '" + str(seg_image) + "' exists", 2)
                     return
-                output_image = os.path.join(seg_dir, seg_image)
+                output_image = os.path.join(astec_dir, seg_image)
             else:
-                output_image = os.path.join(seg_dir, seg_name + '.' + experiment.result_image_suffix)
+                output_image = os.path.join(astec_dir, seg_name + '.' + experiment.result_image_suffix)
 
         #
         # start processing
@@ -415,15 +415,15 @@ def correction_control(experiment, parameters):
 
             input_image = os.path.join(mars_dir, mars_image)
 
-            seg_dir = experiment.seg_dir.get_directory(0)
-            seg_name = experiment.seg_dir.get_image_name(experiment.first_time_point + experiment.delay_time_point)
-            seg_image = common.find_file(seg_dir, seg_name, callfrom=proc, local_monitoring=None, verbose=False)
+            astec_dir = experiment.astec_dir.get_directory(0)
+            seg_name = experiment.astec_dir.get_image_name(experiment.first_time_point + experiment.delay_time_point)
+            seg_image = common.find_file(astec_dir, seg_name, callfrom=proc, local_monitoring=None, verbose=False)
 
             if seg_image is None or monitoring.forceResultsToBeBuilt is True:
                 if seg_image is None:
-                    output_image = os.path.join(seg_dir, seg_name + '.' + experiment.result_image_suffix)
+                    output_image = os.path.join(astec_dir, seg_name + '.' + experiment.result_image_suffix)
                 else:
-                    output_image = os.path.join(seg_dir, seg_image)
+                    output_image = os.path.join(astec_dir, seg_image)
 
                 #
                 # start processing

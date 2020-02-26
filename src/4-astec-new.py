@@ -1,6 +1,5 @@
 #!/usr/bin/python2.7
 
-import os
 import time
 from argparse import ArgumentParser
 
@@ -10,9 +9,8 @@ from argparse import ArgumentParser
 #
 
 
-import ASTEC.commonTools as commonTools
-import ASTEC.ASTECNEW as ASTEC
-import ASTEC.nomenclature as nomenclature
+import ASTEC.common as common
+import ASTEC.astecnew as astec
 from ASTEC.CommunFunctions.cpp_wrapping import path_to_vt
 
 
@@ -82,19 +80,25 @@ def _set_options(my_parser):
 
 
 def main():
+
+    ############################################################
+    #
+    # generic part
+    #
+    ############################################################
+
     #
     # initialization
     #
     start_time = time.localtime()
-    monitoring = commonTools.Monitoring()
-    experiment = commonTools.Experiment()
-    parameters = ASTEC.AstecParameters()
-    environment = ASTEC.AstecEnvironment()
+    monitoring = common.Monitoring()
+    experiment = common.Experiment()
 
     #
     # reading command line arguments
+    # and update from command line arguments
     #
-    parser = ArgumentParser(description='Astec')
+    parser = ArgumentParser(description='Mars')
     _set_options(parser)
     args = parser.parse_args()
 
@@ -105,71 +109,77 @@ def main():
     # reading parameter files
     # and updating parameters
     #
-    parameterFile = commonTools.get_parameter_file(args.parameterFile)
-    environment.update_from_file(parameterFile, start_time)
-    environment.path_history_file = nomenclature.replaceEXECUTABLE(environment.path_history_file, __file__)
-    environment.path_log_file = nomenclature.replaceEXECUTABLE(environment.path_log_file, __file__)
-
-    if not os.path.isdir(environment.path_logdir):
-        os.makedirs(environment.path_logdir)
-
-    experiment.update_from_file(parameterFile)
-    parameters.update_from_file(parameterFile)
+    parameter_file = common.get_parameter_file(args.parameterFile)
+    experiment.update_from_parameters(parameter_file)
 
     #
-    # make fusion directory and subdirectory if required
-    # => allows to write log and history files
-    #    and to copy parameter file
+    # set
+    # 1. the working directory
+    #    that's where the logfile will be written
+    # 2. the log file name
+    #    it creates the logfile dir, if necessary
     #
-    # for i in range(0, len(environment.channel)):
-    #    if not os.path.isdir(environment.channel[i].path_fuse_exp):
-    #        os.makedirs(environment.channel[i].path_fuse_exp)
+    experiment.working_dir = experiment.astec_dir
+    monitoring.set_log_filename(experiment, __file__, start_time)
 
     #
-    # write history information in history file
+    # keep history of command line executions
+    # and copy parameter file
     #
-    commonTools.write_history_information(environment.path_history_file,
-                                          experiment,
-                                          parameterFile,
-                                          start_time,
-                                          os.path.dirname(__file__),
-                                          path_to_vt())
+    experiment.update_history_at_start(__file__, start_time, parameter_file, path_to_vt())
+    experiment.copy_stamped_file(start_time, parameter_file)
 
     #
-    # define log file
-    # and write some information
+    # copy monitoring information into other "files"
+    # so the log filename is known
     #
-    monitoring.logfile = environment.path_log_file
-    ASTEC.monitoring.copy(monitoring)
-
-    monitoring.write_parameters(monitoring.logfile)
-    experiment.write_parameters(monitoring.logfile)
-    environment.write_parameters(monitoring.logfile)
-    parameters.write_parameters(monitoring.logfile)
+    common.monitoring.copy(monitoring)
 
     #
-    # copy parameter file
+    # write generic information into the log file
     #
-    commonTools.copy_date_stamped_file(parameterFile, environment.path_logdir, start_time)
+    monitoring.write_parameters()
+    experiment.write_parameters()
+
+    ############################################################
+    #
+    # specific part
+    #
+    ############################################################
+
+    #
+    # copy monitoring information into other "files"
+    # so the log filename is known
+    #
+    astec.monitoring.copy(monitoring)
+
+    #
+    # manage parameters
+    # 1. initialize
+    # 2. update parameters
+    # 3. write parameters into the logfile
+    #
+
+    parameters = astec.AstecParameters()
+
+    parameters.first_time_point = experiment.first_time_point
+    parameters.last_time_point = experiment.first_time_point
+    parameters.update_from_parameters(parameter_file)
+
+    parameters.write_parameters(monitoring.log_filename)
 
     #
     # processing
     #
-    ASTEC.astec_control(experiment, environment, parameters)
+    astec.astec_control(experiment, parameters)
 
     #
     # end of execution
     # write execution time in both log and history file
     #
-    endtime = time.localtime()
-    with open(environment.path_log_file, 'a') as logfile:
-        logfile.write("\n")
-        logfile.write('Total execution time = '+str(time.mktime(endtime)-time.mktime(start_time))+' sec\n')
-        logfile.write("\n")
-
-    with open(environment.path_history_file, 'a') as logfile:
-        logfile.write('# Total execution time = '+str(time.mktime(endtime)-time.mktime(start_time))+' sec\n')
-        logfile.write("\n\n")
+    end_time = time.localtime()
+    monitoring.update_execution_time(start_time, end_time)
+    experiment.update_history_execution_time(__file__, start_time, end_time)
 
 
 #

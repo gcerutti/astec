@@ -1464,7 +1464,7 @@ Par ailleurs, on a forc\'ement plus de 3 graines : les graines \`a l'int\'erieur
    534	            elif nb_final==1:
 \end{verbatim} 
 \color{\mycolor}
-On est donc dans le cas o\`u \verb|(np.array(s)>2).any()| est faux, donc il n'y a que une ou deux graines. S'il y a deux graines, cela a d\'ej\`a \'et\'e trait\'e dans le premier test (ligne 489). On efface alors la graine de \verb|seeds_from_opt_h| et on la remplace par la graine projet\'ee de \verb|seeds| ($S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$)
+On est donc dans le cas o\`u \verb|(np.array(s)>2).any()| est faux, donc il n'y a que une ou deux graines. S'il y a deux graines, cela a d\'ej\`a \'et\'e trait\'e dans le premier test (ligne 489). On efface alors la graine de \verb|seeds_from_opt_h| et on la remplace par la graine projet\'ee de \verb|seeds| ($S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$). Comme on ne change pas le nombre de labels, pourquoi incr\'ementer \verb|label_max| de 1 ?
 \color{black}
 \begin{verbatim} 
    535	                change_happen=True
@@ -1474,7 +1474,7 @@ On est donc dans le cas o\`u \verb|(np.array(s)>2).any()| est faux, donc il n'y 
    539	        elif s.count(3)!=0:
 \end{verbatim} 
 \color{\mycolor}
-cas o\`u il y a 0 ou trois graines (ou plus) dans tous les $h$-minima (s'il y a 0 ou 4 graines ou plus, cela échappe au test).
+cas o\`u il y a 0 ou trois graines (ou plus) dans tous les $h$-minima (s'il y a 0 ou 4 graines ou plus, cela \'echappe au test).
 \color{black}
 \begin{verbatim} 
    540	            h, sigma=parameters[c][s.index(3)]
@@ -1487,8 +1487,6 @@ Premier cas : on r\'ecup\`ere le premier $3$ qui donne 2 graines, donc le plus g
    542	            bb=slices_dilation(bounding_boxes[c], maximum=seg.shape, iterations=2)
    543	            seg_c=np.ones_like(seg[bb])
    544	            seg_c[seg[bb]==c]=c
-\begin{verbatim} 
-   540	            h, sigma=parameters[c][s.index(3)]
 \end{verbatim} 
 \color{\mycolor}
 Appel \`a \texttt{extract\_seeds()} (section \ref{sec:extract:seeds}, page \pageref{sec:extract:seeds}), avec \verb| accept_3_seeds=True|. On va donc num\'eroter les 3 graines.
@@ -1524,7 +1522,7 @@ Appel \`a \texttt{extract\_seeds()} (section \ref{sec:extract:seeds}, page \page
    567	
 \end{verbatim} 
 \color{\mycolor}
-On traite les cas o\`u une fille a un trop petit volume. On enl\`eve cette fille des graines de \verb|seeds_from_opt_h|. Si c'\'etait la seule fille, on enl\`eve le m\`ere de la table des correspondances.
+On traite les cas o\`u une fille a un trop petit volume. On enl\`eve cette fille des graines de \verb|seeds_from_opt_h|. Si c'\'etait la seule fille, on enl\`eve la m\`ere de la table des correspondances.
 \color{black}
 \begin{verbatim}
    568	    if too_little!=[]:

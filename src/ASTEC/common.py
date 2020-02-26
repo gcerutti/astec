@@ -8,6 +8,8 @@ import subprocess
 import getpass
 import shutil
 
+import CommunFunctions.cpp_wrapping as cpp_wrapping
+
 #
 #
 #
@@ -1113,12 +1115,12 @@ class MarsSubdirectory(GenericSubdirectory):
 
 #
 #
-# SEG sub-directory
+# Astec sub-directory
 #
 #
 
 
-class SegSubdirectory(GenericSubdirectory):
+class AstecSubdirectory(GenericSubdirectory):
 
     def __init__(self):
         GenericSubdirectory.__init__(self)
@@ -1221,7 +1223,7 @@ class Experiment(object):
         self.rawdata_dir = RawdataSubdirectory()
         self.fusion_dir = FuseSubdirectory()
         self.mars_dir = MarsSubdirectory()
-        self.seg_dir = SegSubdirectory()
+        self.astec_dir = AstecSubdirectory()
         self.post_dir = PostSubdirectory()
         self.intrareg_dir = IntraregSubdirectory()
 
@@ -1258,7 +1260,7 @@ class Experiment(object):
         print('- mars directory is')
         self.mars_dir.print_parameters()
         print('- segmentation directory is')
-        self.seg_dir.print_parameters()
+        self.astec_dir.print_parameters()
         print('- post-correction directory is')
         self.post_dir.print_parameters()
         print('- intra-registration directory is')
@@ -1296,7 +1298,7 @@ class Experiment(object):
                 logfile.write('- mars directory is \n')
                 self.mars_dir.write_parameters_in_file(logfile)
                 logfile.write('- segmentation directory is \n')
-                self.seg_dir.write_parameters_in_file(logfile)
+                self.astec_dir.write_parameters_in_file(logfile)
                 logfile.write('- post-correction directory is \n')
                 self.post_dir.write_parameters_in_file(logfile)
                 logfile.write('- intra-registration directory is \n')
@@ -1442,7 +1444,7 @@ class Experiment(object):
         self.rawdata_dir.update_from_parameters(parameters)
         self.fusion_dir.update_from_parameters(parameters)
         self.mars_dir.update_from_parameters(parameters)
-        self.seg_dir.update_from_parameters(parameters)
+        self.astec_dir.update_from_parameters(parameters)
         self.post_dir.update_from_parameters(parameters)
         self.intrareg_dir.update_from_parameters(parameters)
 
@@ -1555,6 +1557,42 @@ class Experiment(object):
             return None
         return suffix + '_t' + str(fi) + '-' + str(la)
 
+    def get_segmentation_image(self, time_value):
+        proc = 'Experiment.get_segmentation_image'
+        #
+        # try to find segmentation image
+        #
+        seg_name = self.astec_dir.get_image_name(time_value)
+        seg_image = find_file(self.astec_dir.get_directory(), seg_name, callfrom=proc, local_monitoring=None,
+                              verbose=False)
+        if seg_image is not None:
+            return os.path.join(self.astec_dir.get_directory(), seg_image)
+        #
+        # try to find mars image
+        #
+        mars_name = self.mars_dir.get_image_name(time_value)
+        mars_image = find_file(self.mars_dir.get_directory(), mars_name, callfrom=proc, local_monitoring=None,
+                              verbose=False)
+        if mars_image is not None:
+            seg_name += "." + self.result_image_suffix
+            monitoring.to_log_and_console("    .. " + proc + ": copy '" + str(mars_image) + "' into '"
+                                          + str(seg_name) + "'", 2)
+            mars_image = os.path.join(self.mars_dir.get_directory(), mars_image)
+            seg_image = os.path.join(self.astec_dir.get_directory(), seg_name)
+            shutil.copy2(mars_image, seg_image)
+            return seg_image
+        #
+        #
+        #
+        monitoring.to_log_and_console("    .. " + proc + ": no segmentation image was found for time "
+                                      + str(time_value), 2)
+        monitoring.to_log_and_console("       \t" + "1. was looking for file '" + str(seg_name) + "'", 2)
+        monitoring.to_log_and_console("       \t" + "   in directory '" + str(self.astec_dir.get_directory()) + "'", 2)
+        monitoring.to_log_and_console("       \t" + "2. was looking for file '" + str(mars_name) + "'", 2)
+        monitoring.to_log_and_console("       \t" + "   in directory '" + str(self.mars_dir.get_directory()) + "'", 2)
+
+        return None
+
     def get_time_digits(self):
         return self._time_digits
 
@@ -1579,7 +1617,7 @@ class Experiment(object):
         #
         self.fusion_dir.set_file_prefix(embryo_name)
         self.mars_dir.set_file_prefix(embryo_name)
-        self.seg_dir.set_file_prefix(embryo_name)
+        self.astec_dir.set_file_prefix(embryo_name)
         self.post_dir.set_file_prefix(embryo_name)
         self.intrareg_dir.set_file_prefix(embryo_name)
         return
@@ -1596,7 +1634,7 @@ class Experiment(object):
         self.rawdata_dir.set_parent_directory(embryo_path)
         self.fusion_dir.set_parent_directory(embryo_path)
         self.mars_dir.set_parent_directory(embryo_path)
-        self.seg_dir.set_parent_directory(embryo_path)
+        self.astec_dir.set_parent_directory(embryo_path)
         self.post_dir.set_parent_directory(embryo_path)
         self.intrareg_dir.set_parent_directory(embryo_path)
         return
@@ -1665,7 +1703,7 @@ class Experiment(object):
 
 ########################################################################################
 #
-#
+# Registration
 #
 ########################################################################################
 
@@ -1704,6 +1742,7 @@ class RegistrationParameters(object):
         #
         self.pyramid_highest_level = 6
         self.pyramid_lowest_level = 3
+        self.gaussian_pyramid = False
         self.transformation_type = 'affine'
         self.elastic_sigma = 4.0
         self.transformation_estimation_type = 'wlts'
@@ -1727,6 +1766,7 @@ class RegistrationParameters(object):
 
         print(_fulldesc(self.prefix, 'pyramid_highest_level') + str(self.pyramid_highest_level))
         print(_fulldesc(self.prefix, 'pyramid_lowest_level') + str(self.pyramid_lowest_level))
+        print(_fulldesc(self.prefix, 'gaussian_pyramid') + str(self.gaussian_pyramid))
 
         print(_fulldesc(self.prefix, 'transformation_type') + str(self.transformation_type))
 
@@ -1754,6 +1794,7 @@ class RegistrationParameters(object):
 
                 logfile.write(_fulldesc(self.prefix, 'pyramid_highest_level') + str(self.pyramid_highest_level) + '\n')
                 logfile.write(_fulldesc(self.prefix, 'pyramid_lowest_level') + str(self.pyramid_lowest_level) + '\n')
+                logfile.write(_fulldesc(self.prefix, 'gaussian_pyramid') + str(self.gaussian_pyramid) + '\n')
 
                 logfile.write(_fulldesc(self.prefix, 'transformation_type') + str(self.transformation_type) + '\n')
 
@@ -1813,7 +1854,43 @@ class RegistrationParameters(object):
                 self.normalization = getattr(parameters, _fullname(self.prefix, 'normalization'))
 
 
-########################################################################################################################
+def blockmatching(image_ref, image_flo, image_output, trsf_output, trsf_init, parameters, other_options=None):
+    """
+
+    :param image_ref:
+    :param image_flo:
+    :param image_output:
+    :param trsf_output:
+    :param trsf_init:
+    :param parameters:
+    :param other_options:
+    :return:
+    """
+
+    proc = "common.blockmatching"
+
+    #
+    # parameter type checking
+    #
+
+    if not isinstance(parameters, RegistrationParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
+        sys.exit(1)
+
+    cpp_wrapping.blockmatching(image_ref, image_flo, image_output, trsf_output, trsf_init,
+                               py_hl=parameters.pyramid_highest_level, py_ll=parameters.pyramid_lowest_level,
+                               gaussian_pyramid=parameters.gaussian_pyramid,
+                               transformation_type=parameters.transformation_type,
+                               elastic_sigma=parameters.elastic_sigma,
+                               transformation_estimator=parameters.transformation_estimation_type,
+                               lts_fraction=parameters.lts_fraction, fluid_sigma=parameters.fluid_sigma,
+                               normalization=parameters.normalization, other_options=other_options,
+                               monitoring=monitoring)
+    return
+
+
+########################################################################################
 #
 #
 #

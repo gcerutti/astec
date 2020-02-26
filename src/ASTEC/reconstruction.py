@@ -1,5 +1,6 @@
 
 import os
+import imp
 import sys
 
 import ace
@@ -15,17 +16,173 @@ monitoring = common.Monitoring()
 #
 ########################################################################################
 
+class ReconstructionParameters(object):
+
+    ############################################################
+    #
+    # initialisation
+    #
+    ############################################################
+
+    def __init__(self):
+        #
+        #
+        #
+        self.intensity_transformation = 'Identity'
+        self.intensity_enhancement = None
+        self.cell_normalization_min_method = 'cellinterior'
+        self.cell_normalization_max_method = 'cellborder'
+
+        #
+        # membrane enhancement parameters
+        #
+        self.ace = ace.AceParameters()
+
+        #
+        # registration parameters
+        #
+        self.registration = []
+
+        self.registration.append(common.RegistrationParameters())
+        self.registration[0].prefix = 'linear_registration'
+        self.registration[0].pyramid_highest_level = 5
+        self.registration[0].pyramid_lowest_level = 3
+        self.registration[0].gaussian_pyramid = True
+        self.registration[0].transformation_type = 'affine'
+        self.registration[0].transformation_estimation_type = 'wlts'
+        self.registration[0].lts_fraction = 1.0
+
+        self.registration.append(common.RegistrationParameters())
+        self.registration[1].prefix = 'nonlinear_registration_'
+        self.registration[1].pyramid_highest_level = 5
+        self.registration[1].pyramid_lowest_level = 3
+        self.registration[1].gaussian_pyramid = True
+        self.registration[1].transformation_type = 'vectorfield'
+        self.registration[1].elastic_sigma = 2.0
+        self.registration[1].transformation_estimation_type = 'wlts'
+        self.registration[1].lts_fraction = 1.0
+        self.registration[1].fluid_sigma = 2.0
+        #
+        #
+        #
+        self.keep_reconstruction = True
+
+    ############################################################
+    #
+    # print / write
+    #
+    ############################################################
+
+    def print_parameters(self):
+        print("")
+        print('ReconstructionParameters')
+
+        print('- intensity_transformation = ' + str(self.intensity_transformation))
+        print('- intensity_enhancement = ' + str(self.intensity_enhancement))
+        print('- cell_normalization_min_method = ' + str(self.cell_normalization_min_method))
+        print('- cell_normalization_max_method = ' + str(self.cell_normalization_max_method))
+
+        self.ace.print_parameters()
+
+        for p in self.registration:
+            p.print_parameters()
+
+        print('- keep_reconstruction = ' + str(self.keep_reconstruction))
+        print("")
+
+    def write_parameters(self, log_file_name):
+        with open(log_file_name, 'a') as logfile:
+            logfile.write("\n")
+            logfile.write('ReconstructionParameters\n')
+
+            logfile.write('- intensity_transformation = ' + str(self.intensity_transformation) + '\n')
+            logfile.write('- intensity_enhancement = ' + str(self.intensity_enhancement) + '\n')
+            logfile.write('- cell_normalization_min_method = ' + str(self.cell_normalization_min_method) + '\n')
+            logfile.write('- cell_normalization_max_method = ' + str(self.cell_normalization_max_method) + '\n')
+
+            self.ace.write_parameters(log_file_name)
+
+            for p in self.registration:
+                p.write_parameters(log_file_name)
+
+            logfile.write('- keep_reconstruction = ' + str(self.keep_reconstruction) + '\n')
+
+            logfile.write("\n")
+        return
+
+    ############################################################
+    #
+    # update
+    #
+    ############################################################
+
+    def update_from_parameters(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+
+        #
+        # reconstruction method
+        #
+
+        if hasattr(parameters, 'intensity_transformation'):
+            self.intensity_transformation = parameters.intensity_transformation
+        if hasattr(parameters, 'mars_intensity_transformation'):
+            self.intensity_transformation = parameters.mars_intensity_transformation
+        if hasattr(parameters, 'astec_intensity_transformation'):
+            self.intensity_transformation = parameters.astec_intensity_transformation
+
+        if hasattr(parameters, 'intensity_enhancement'):
+            self.intensity_enhancement = parameters.intensity_enhancement
+        if hasattr(parameters, 'mars_intensity_enhancement'):
+            self.intensity_enhancement = parameters.mars_intensity_enhancement
+        if hasattr(parameters, 'astec_intensity_enhancement'):
+            self.intensity_enhancement = parameters.astec_intensity_enhancement
+
+        if hasattr(parameters, 'cell_normalization_min_method'):
+            self.cell_normalization_min_method = parameters.cell_normalization_min_method
+        if hasattr(parameters, 'astec_cell_normalization_min_method'):
+            self.cell_normalization_min_method = parameters.astec_cell_normalization_min_method
+
+        if hasattr(parameters, 'cell_normalization_max_method'):
+            self.cell_normalization_max_method = parameters.cell_normalization_max_method
+        if hasattr(parameters, 'astec_cell_normalization_max_method'):
+            self.cell_normalization_max_method = parameters.astec_cell_normalization_max_method
+
+        #
+        #
+        #
+        self.ace.update_from_parameters(parameter_file)
+
+        #
+        #
+        #
+        if hasattr(parameters, 'keep_reconstruction'):
+            if parameters.keep_reconstruction is not None:
+                self.keep_reconstruction = parameters.keep_reconstruction
+        if hasattr(parameters, 'mars_keep_reconstruction'):
+            if parameters.mars_keep_reconstruction is not None:
+                self.keep_reconstruction = parameters.mars_keep_reconstruction
+        if hasattr(parameters, 'astec_keep_reconstruction'):
+            if parameters.astec_keep_reconstruction is not None:
+                self.keep_reconstruction = parameters.astec_keep_reconstruction
+
+
 #
 #
 #
 #
 #
 
-def get_deformation_from_current_to_previous(current_time, environment, parameters, previous_time):
+def get_deformation_from_current_to_previous(current_time, experiment, parameters, previous_time):
     """
 
     :param current_time:
-    :param environment:
+    :param experiment:
     :param parameters:
     :param previous_time:
     :return:
@@ -34,113 +191,76 @@ def get_deformation_from_current_to_previous(current_time, environment, paramete
     proc = 'get_deformation_from_current_to_previous'
 
     #
+    # parameter type checking
+    #
+
+    if not isinstance(experiment, common.Experiment):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'experiment' variable: "
+                                      + str(type(experiment)))
+        sys.exit(1)
+
+    if not isinstance(parameters, ReconstructionParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
+        sys.exit(1)
+
+    #
     # image to be registered
     # floating image = image at previous time
     # reference image = image at current time
     #
 
-    current_name = nomenclature.replaceTIME(environment.path_fuse_exp_files, current_time)
-    current_image = common.find_file(environment.path_fuse_exp, current_name, callfrom=proc, local_monitoring=None,
-                                          verbose=False)
-
+    current_name = experiment.fusion_dir.get_image_name(current_time)
+    current_image = common.find_file(experiment.fusion_dir.get_directory(), current_name, callfrom=proc,
+                                     local_monitoring=None, verbose=False)
     if current_image is None:
-        monitoring.to_log_and_console("    .. " + proc + " no fused image was found for time "
-                                      + str(current_time), 2)
+        monitoring.to_log_and_console("    .. " + proc + " no fused image was found for time " + str(current_time), 2)
         return None
+    current_image = os.path.join(experiment.fusion_dir.get_directory(), current_image)
 
-    current_image = os.path.join(environment.path_fuse_exp, current_image)
-
-    previous_name = nomenclature.replaceTIME(environment.path_fuse_exp_files, previous_time)
-    previous_image = common.find_file(environment.path_fuse_exp, previous_name, callfrom=proc,
-                                           local_monitoring=None, verbose=False)
-
+    previous_name = experiment.fusion_dir.get_image_name(previous_time)
+    previous_image = common.find_file(experiment.fusion_dir.get_directory(), previous_name, callfrom=proc,
+                                      local_monitoring=None, verbose=False)
     if previous_image is None:
-        monitoring.to_log_and_console("    .. " + proc + " no fused image was found for time "
-                                      + str(previous_time), 2)
+        monitoring.to_log_and_console("    .. " + proc + " no fused image was found for time " + str(previous_time), 2)
         return None
-
-    previous_image = os.path.join(environment.path_fuse_exp, previous_image)
+    previous_image = os.path.join(experiment.fusion_dir.get_directory(), previous_image)
 
     #
-    # temporary files for registration
+    # auxiliary file names
     #
-
-    affine_image = common.add_suffix(previous_image, "_affine",
-                                          new_dirname=experiment.working_dir.get_tmp_directory(0),
-                                          new_extension=experiment.default_image_suffix)
-
+    affine_image = common.add_suffix(previous_image, "_affine", new_dirname=experiment.working_dir.get_tmp_directory(0),
+                                     new_extension=experiment.default_image_suffix)
+    affine_trsf = common.add_suffix(previous_image, "_affine", new_dirname=experiment.working_dir.get_tmp_directory(0),
+                                    new_extension="trsf")
     vector_image = common.add_suffix(previous_image, "_vector", new_dirname=experiment.working_dir.get_tmp_directory(0),
-                                          new_extension=experiment.default_image_suffix)
+                                     new_extension=experiment.default_image_suffix)
+    vector_trsf = common.add_suffix(previous_image, "_vector", new_dirname=experiment.working_dir.get_tmp_directory(0),
+                                    new_extension="trsf")
 
-    affine_trsf = common.add_suffix(previous_image, "_affine",
-                                         new_dirname=experiment.working_dir.get_tmp_directory(0),
-                                         new_extension="trsf")
-
-    vector_trsf = common.add_suffix(previous_image, "_vector",
-                                         new_dirname=experiment.working_dir.get_tmp_directory(0),
-                                         new_extension="trsf")
-
-    #
-    #
-    #
-
-    if os.path.isfile(vector_trsf):
+    if os.path.isfile(vector_trsf) and not monitoring.forceResultsToBeBuilt:
         return vector_trsf
 
     #
-    # compute non-linear transformation
+    # linear registration
     #
-    monitoring.to_log_and_console("    .. non-linear registration of time point " + str(previous_time) + " on "
-                                  + str(current_time), 2)
-    cpp_wrapping.non_linear_registration(current_image, previous_image, affine_image, vector_image,
-                                         affine_trsf, vector_trsf, monitoring=monitoring)
+    common.blockmatching(current_image, previous_image, affine_image, affine_trsf, None, parameters.registration[0])
 
-    if os.path.isfile(vector_trsf):
-        return vector_trsf
-
-    return None
-
-
-#
-#
-#
-#
-#
-
-
-def get_segmentation_image(current_time, environment):
-    """
-
-    :param current_time:
-    :param environment:
-    :return:
-    """
-
-    proc = 'get_segmentation_image'
-
-    if current_time is None:
-        monitoring.to_log_and_console("    .. " + proc + ": no valid time: "
-                                      + str(current_time), 2)
+    if not os.path.isfile(affine_image) or not os.path.isfile(affine_trsf):
+        monitoring.to_log_and_console("    .. " + proc + " linear registration failed for time " + str(current_time), 2)
         return None
 
-    seg_name = nomenclature.replaceTIME(environment.path_seg_exp_files, current_time)
-    seg_image = common.find_file(environment.path_seg_exp, seg_name, callfrom=proc, local_monitoring=None,
-                                      verbose=False)
-
-    if seg_image is None:
-        seg_name = nomenclature.replaceTIME(environment.path_mars_exp_files, current_time)
-        seg_image = common.find_file(environment.path_seg_exp, seg_name, callfrom=proc, local_monitoring=None,
-                                          verbose=False)
-
-    if seg_image is None:
-        monitoring.to_log_and_console("    .. " + proc + ": no segmentation image was found for time "
-                                      + str(current_time), 2)
-        monitoring.to_log_and_console("       \t  " + "was looking for file '" + str(seg_name) + "'", 2)
-        monitoring.to_log_and_console("       \t  " + "in directory '" + str(environment.path_seg_exp) + "'", 2)
+    #
+    # non-linear registration
+    #
+    common.blockmatching(current_image, previous_image, vector_image, vector_trsf, affine_trsf,
+                         parameters.registration[1])
+    if not os.path.isfile(vector_image) or not os.path.isfile(vector_trsf):
+        monitoring.to_log_and_console("    .. " + proc + " non-linear registration failed for time " +
+                                      str(current_time), 2)
         return None
 
-    return os.path.join(environment.path_seg_exp, seg_image)
-
+    return vector_trsf
 
 #
 #
@@ -247,6 +367,11 @@ def build_membrane_image(current_time, experiment, parameters, previous_time=Non
     if not isinstance(experiment, common.Experiment):
         monitoring.to_log_and_console(str(proc) + ": unexpected type for 'experiment' variable: "
                                       + str(type(experiment)))
+        sys.exit(1)
+
+    if not isinstance(parameters, ReconstructionParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
         sys.exit(1)
         
     #

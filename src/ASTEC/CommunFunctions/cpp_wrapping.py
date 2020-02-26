@@ -224,12 +224,11 @@ def blockmatching(path_ref, path_flo, path_output, path_output_trsf, path_init_t
 
     path_to_exec = _find_exec('blockmatching')
 
-    #
-    # affine registration
-    #
-
-    command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo + " -res " + path_output
-    command_line += " -res-trsf " + path_output_trsf
+    command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo
+    if path_output is not None:
+        command_line += " -res " + path_output
+    if path_output_trsf is not None:
+        command_line += " -res-trsf " + path_output_trsf
     if path_init_trsf is not None:
         command_line += " -left-trsf " + path_init_trsf + " -composition-with-initial"
 
@@ -275,6 +274,37 @@ def compose_trsf(the_trsfs, res_trsf, other_options=None, monitoring=None):
     command_line += " -trsfs"
     for i in range(len(the_trsfs)):
         command_line += " " + the_trsfs[i]
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def mc_mask_seeds(seed_image, cell_image, seed_result, other_options=None, monitoring=None):
+    # type: (object, object, object, object, object) -> object
+    """
+
+    :param seed_image:
+    :param cell_image:
+    :param seed_result:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('mc-maskSeeds')
+
+    #
+    #
+    #
+    command_line = path_to_exec
+
+    command_line += " -seed-image " + seed_image
+    command_line += " -cell-image " + cell_image
+    command_line += " -output-image " + seed_result
 
     if other_options is not None:
         command_line += " " + other_options
@@ -330,6 +360,7 @@ def mean_images(format_input, image_output, first, last, operation="maximum", ot
     command_line = path_to_exec + " -format " + format_input + " -res " + image_output
     command_line += " -operation " + operation
     command_line += " -first " + str(first) + " -last " + str(last)
+    command_line += " -streaming "
 
     #
     #
@@ -1380,8 +1411,7 @@ def create_image(image_out, image_template, other_options=None, monitoring=None)
 #
 #
 #
-############################################################
-
+###########################################################
 
 def non_linear_registration(path_ref, path_flo, path_affine, path_vector, affine_trsf, vector_trsf,
                             py_hl=5, py_ll=3, gaussian_pyramid=True,
@@ -1438,7 +1468,7 @@ def non_linear_registration(path_ref, path_flo, path_affine, path_vector, affine
     #
 
     command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo + " -res " + path_vector
-    command_line += " -init-trsf " + affine_trsf
+    command_line += " -left-trsf " + affine_trsf
     command_line += " -res-trsf " + vector_trsf
     command_line += " -composition-with-initial"
 
@@ -1461,35 +1491,7 @@ def non_linear_registration(path_ref, path_flo, path_affine, path_vector, affine
     return
 
 
-def only_keep_seeds_in_cell(seed_image, cell_image, seed_result,
-                            other_options=None, monitoring=None):
-    """
 
-    :param seed_image:
-    :param cell_image:
-    :param seed_result:
-    :param other_options:
-    :param monitoring:
-    :return:
-    """
-
-    path_to_exec = _find_exec('mc-maskSeeds')
-
-    #
-    #
-    #
-    command_line = path_to_exec
-
-    command_line += " -seed-image " + seed_image
-    command_line += " -cell-image " + cell_image
-    command_line += " -output-image " + seed_result
-
-    if other_options is not None:
-        command_line += " " + other_options
-
-    _launch_inline_cmd(command_line, monitoring=monitoring)
-
-    return
 
 
 ############################################################
@@ -1799,7 +1801,7 @@ def obsolete_non_linear_registration(image_file_flo,image_file_ref, affine_image
               " -flo " + image_file_flo+\
               " -res " + vectorfield_image+\
               " -res-trsf " + vectorfield_trsf+\
-              " -init-trsf " +affine_trsf+\
+              " -left-trsf " +affine_trsf+\
               " -trsf-type vectorfield" +\
               " -estimator wlts" +\
               " -py-gf" +\
@@ -1859,7 +1861,7 @@ def rigid_registration(path_ref, path_flo, path_trsf, path_output, path_output_t
               " -pyramid-lowest-level " + str(py_ll) + \
               " -lts-fraction " + str(lts_fraction)
     if path_trsf :
-      cmd = cmd + " -init-trsf " + path_trsf
+      cmd = cmd + " -left-trsf " + path_trsf
     if verbose:
       print cmd
     os.system(cmd)

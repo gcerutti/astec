@@ -3,16 +3,14 @@ import os
 import imp
 import sys
 import time
-import shutil
 import multiprocessing
 import numpy as np
 from scipy import ndimage as nd
 import copy
 
-import ACE
-import MARS
-import commonTools
-import nomenclature
+import ace
+import mars
+import common
 import lineage
 import reconstruction
 import CommunFunctions.cpp_wrapping as cpp_wrapping
@@ -25,145 +23,44 @@ from CommunFunctions.ImageHandling import imread, imsave, SpatialImage
 #
 #
 
-monitoring = commonTools.Monitoring()
+monitoring = common.Monitoring()
 
 
 ########################################################################################
 #
 # classes
-# - computation environment
 # - computation parameters
 #
 ########################################################################################
 
 
-class AstecEnvironment(object):
+#
+#
+#
+#
+#
+
+class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionParameters):
+
+    ############################################################
+    #
+    # initialisation
+    #
+    ############################################################
 
     def __init__(self):
 
+        ############################################################
         #
-        # fusion data paths
+        # initialisation
         #
-        self.path_fuse_exp = None
-        self.path_fuse_exp_files = None
-
-        # segmentation data paths
-        #
-        self.path_seg_exp = None
-        self.path_mars_exp_files = None
-        self.path_seg_exp_files = None
-        self.path_seg_exp_lineage = None
+        ############################################################
+        mars.WatershedParameters.__init__(self)
+        reconstruction.ReconstructionParameters.__init__(self)
 
         #
+        # astec-dedicated watershed parameters
         #
-        #
-        self.path_reconstruction = None
-        self.temporary_path = None
-
-        #
-        #
-        #
-        self.path_logdir = None
-        self.path_history_file = None
-        self.path_log_file = None
-
-    def update_from_file(self, parameter_file, start_time):
-        if parameter_file is None:
-            return
-        if not os.path.isfile(parameter_file):
-            print ("Error: '" + parameter_file + "' is not a valid file. Exiting.")
-            sys.exit(1)
-
-        parameters = imp.load_source('*', parameter_file)
-
-        self.path_fuse_exp = nomenclature.replaceFlags(nomenclature.path_fuse_exp, parameters)
-        self.path_fuse_exp_files = nomenclature.replaceFlags(nomenclature.path_fuse_exp_files, parameters)
-
-        self.path_seg_exp = nomenclature.replaceFlags(nomenclature.path_seg_exp, parameters)
-        self.path_mars_exp_files = nomenclature.replaceFlags(nomenclature.path_mars_exp_files, parameters)
-        self.path_seg_exp_files = nomenclature.replaceFlags(nomenclature.path_seg_exp_files, parameters)
-        self.path_seg_exp_lineage = nomenclature.replaceFlags(nomenclature.path_seg_exp_lineage, parameters)
-
-        self.path_logdir = nomenclature.replaceFlags(nomenclature.path_seg_logdir, parameters)
-        self.path_history_file = nomenclature.replaceFlags(nomenclature.path_seg_historyfile, parameters)
-        self.path_log_file = nomenclature.replaceFlags(nomenclature.path_seg_logfile, parameters, start_time)
-
-    def write_parameters(self, log_file_name):
-        with open(log_file_name, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('AstecEnvironment\n')
-
-            logfile.write('- path_fuse_exp = ' + str(self.path_fuse_exp) + '\n')
-            logfile.write('- path_fuse_exp_files = ' + str(self.path_fuse_exp_files) + '\n')
-
-            logfile.write('- path_seg_exp = ' + str(self.path_seg_exp) + '\n')
-            logfile.write('- path_mars_exp_files = ' + str(self.path_mars_exp_files) + '\n')
-            logfile.write('- path_seg_exp_files = ' + str(self.path_seg_exp_files) + '\n')
-            logfile.write('- path_seg_exp_lineage = ' + str(self.path_seg_exp_lineage) + '\n')
-
-            logfile.write('- path_reconstruction = ' + str(self.path_reconstruction) + '\n')
-            logfile.write('- temporary_path = ' + str(self.temporary_path) + '\n')
-
-            logfile.write('- path_logdir = ' + str(self.path_logdir) + '\n')
-            logfile.write('- path_history_file = ' + str(self.path_history_file)+'\n')
-            logfile.write('- path_log_file = ' + str(self.path_log_file)+'\n')
-            logfile.write("\n")
-        return
-
-    def print_parameters(self):
-        print("")
-        print('AstecEnvironment')
-
-        print('- path_fuse_exp = ' + str(self.path_fuse_exp))
-        print('- path_fuse_exp_files = ' + str(self.path_fuse_exp_files))
-
-        print('- path_seg_exp = ' + str(self.path_seg_exp))
-        print('- path_mars_exp_files = ' + str(self.path_mars_exp_files))
-        print('- path_seg_exp_files = ' + str(self.path_seg_exp_files))
-        print('- path_seg_exp_lineage = ' + str(self.path_seg_exp_lineage))
-
-        print('- path_reconstruction = ' + str(self.path_reconstruction))
-        print('- temporary_path = ' + str(self.temporary_path))
-
-        print('- path_logdir = ' + str(self.path_logdir))
-        print('- path_history_file = ' + str(self.path_history_file))
-        print('- path_log_file = ' + str(self.path_log_file))
-        print("")
-
-
-#
-#
-#
-#
-#
-
-
-class AstecParameters(object):
-
-    def __init__(self):
-        #
-        #
-        #
-        self.intensity_transformation = 'Identity'
-        self.intensity_enhancement = None
-        self.cell_normalization_min_method = 'cellinterior'
-        self.cell_normalization_max_method = 'cellborder'
-
-        #
-        # membrane enhancement parameters
-        #
-        self.ace = ACE.AceParameters()
-
-        #
-        #
-        #
-        self.keep_reconstruction = True
-
-        #
-        # watershed
-        #
-        self.watershed_seed_sigma = 0.6
-        self.watershed_membrane_sigma = 0.0
         self.watershed_seed_hmin_min_value = 4
         self.watershed_seed_hmin_max_value = 18
         self.watershed_seed_hmin_delta_value = 2
@@ -189,61 +86,16 @@ class AstecParameters(object):
         self.volume_ratio_threshold = 0.5
         self.volume_minimal_value = 1000
 
-        #
-        # images suffixes/formats
-        #
-        self.result_image_suffix = 'inr'
-        self.default_image_suffix = 'inr'
-
-    def write_parameters(self, log_file_name):
-        with open(log_file_name, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('AstecParameters\n')
-
-            logfile.write('- intensity_transformation = ' + str(self.intensity_transformation) + '\n')
-            logfile.write('- intensity_enhancement = ' + str(self.intensity_enhancement) + '\n')
-            logfile.write('- cell_normalization_min_method = ' + str(self.cell_normalization_min_method) + '\n')
-            logfile.write('- cell_normalization_max_method = ' + str(self.cell_normalization_max_method) + '\n')
-
-            self.ace.write_parameters(log_file_name)
-
-            logfile.write('- keep_reconstruction = ' + str(self.keep_reconstruction) + '\n')
-
-            logfile.write('- watershed_seed_sigma = ' + str(self.watershed_seed_sigma) + '\n')
-            logfile.write('- watershed_membrane_sigma = ' + str(self.watershed_membrane_sigma) + '\n')
-            logfile.write('- watershed_seed_hmin_min_value = ' + str(self.watershed_seed_hmin_min_value) + '\n')
-            logfile.write('- watershed_seed_hmin_max_value = ' + str(self.watershed_seed_hmin_max_value) + '\n')
-            logfile.write('- watershed_seed_hmin_delta_value = ' + str(self.watershed_seed_hmin_delta_value) + '\n')
-
-            logfile.write('- seed_selection_tau = ' + str(self.seed_selection_tau) + '\n')
-
-            logfile.write('- minimum_volume_unseeded_cell = ' + str(self.minimum_volume_unseeded_cell) + '\n')
-
-            logfile.write('- volume_ratio_tolerance = ' + str(self.volume_ratio_tolerance) + '\n')
-            logfile.write('- volume_ratio_threshold = ' + str(self.volume_ratio_threshold) + '\n')
-            logfile.write('- volume_minimal_value = ' + str(self.volume_minimal_value) + '\n')
-
-            logfile.write('- result_image_suffix = ' + str(self.result_image_suffix) + '\n')
-            logfile.write('- default_image_suffix = '+str(self.default_image_suffix) + '\n')
-
-            logfile.write("\n")
-        return
+    ############################################################
+    #
+    # print / write
+    #
+    ############################################################
 
     def print_parameters(self):
         print("")
         print('AstecParameters')
 
-        print('- intensity_transformation = ' + str(self.intensity_transformation))
-        print('- intensity_enhancement = ' + str(self.intensity_enhancement))
-        print('- cell_normalization_min_method = ' + str(self.cell_normalization_min_method))
-        print('- cell_normalization_max_method = ' + str(self.cell_normalization_max_method))
-
-        self.ace.print_parameters()
-
-        print('- keep_reconstruction = ' + str(self.keep_reconstruction))
-
-        print('- watershed_seed_sigma = ' + str(self.watershed_seed_sigma))
-        print('- watershed_membrane_sigma = ' + str(self.watershed_membrane_sigma))
         print('- watershed_seed_hmin_min_value = ' + str(self.watershed_seed_hmin_min_value))
         print('- watershed_seed_hmin_max_value = ' + str(self.watershed_seed_hmin_max_value))
         print('- watershed_seed_hmin_delta_value = ' + str(self.watershed_seed_hmin_delta_value))
@@ -256,12 +108,39 @@ class AstecParameters(object):
         print('- volume_ratio_threshold = ' + str(self.volume_ratio_threshold))
         print('- volume_minimal_value = ' + str(self.volume_minimal_value))
 
-        print('- result_image_suffix = ' + str(self.result_image_suffix))
-        print('- default_image_suffix = ' + str(self.default_image_suffix))
-
+        mars.WatershedParameters.print_parameters(self)
+        reconstruction.ReconstructionParameters.print_parameters(self)
         print("")
 
-    def update_from_file(self, parameter_file):
+    def write_parameters(self, log_file_name):
+        with open(log_file_name, 'a') as logfile:
+            logfile.write("\n")
+            logfile.write('AstecParameters\n')
+
+            logfile.write('- watershed_seed_hmin_min_value = ' + str(self.watershed_seed_hmin_min_value) + '\n')
+            logfile.write('- watershed_seed_hmin_max_value = ' + str(self.watershed_seed_hmin_max_value) + '\n')
+            logfile.write('- watershed_seed_hmin_delta_value = ' + str(self.watershed_seed_hmin_delta_value) + '\n')
+
+            logfile.write('- seed_selection_tau = ' + str(self.seed_selection_tau) + '\n')
+
+            logfile.write('- minimum_volume_unseeded_cell = ' + str(self.minimum_volume_unseeded_cell) + '\n')
+
+            logfile.write('- volume_ratio_tolerance = ' + str(self.volume_ratio_tolerance) + '\n')
+            logfile.write('- volume_ratio_threshold = ' + str(self.volume_ratio_threshold) + '\n')
+            logfile.write('- volume_minimal_value = ' + str(self.volume_minimal_value) + '\n')
+
+            mars.WatershedParameters.write_parameters(self, log_file_name)
+            reconstruction.ReconstructionParameters.write_parameters(self, log_file_name)
+            print("")
+        return
+
+    ############################################################
+    #
+    # update
+    #
+    ############################################################
+
+    def update_from_parameters(self, parameter_file):
         if parameter_file is None:
             return
         if not os.path.isfile(parameter_file):
@@ -271,66 +150,8 @@ class AstecParameters(object):
         parameters = imp.load_source('*', parameter_file)
 
         #
-        # reconstruction method
-        #
-
-        if hasattr(parameters, 'intensity_transformation'):
-            self.intensity_transformation = parameters.intensity_transformation
-        if hasattr(parameters, 'astec_intensity_transformation'):
-            self.intensity_transformation = parameters.astec_intensity_transformation
-
-        if hasattr(parameters, 'intensity_enhancement'):
-            self.intensity_enhancement = parameters.intensity_enhancement
-        if hasattr(parameters, 'astec_intensity_enhancement'):
-            self.intensity_enhancement = parameters.astec_intensity_enhancement
-
-        if hasattr(parameters, 'cell_normalization_min_method'):
-            self.cell_normalization_min_method = parameters.cell_normalization_min_method
-        if hasattr(parameters, 'astec_cell_normalization_min_method'):
-            self.cell_normalization_min_method = parameters.astec_cell_normalization_min_method
-
-        if hasattr(parameters, 'cell_normalization_max_method'):
-            self.cell_normalization_max_method = parameters.cell_normalization_max_method
-        if hasattr(parameters, 'astec_cell_normalization_max_method'):
-            self.cell_normalization_max_method = parameters.astec_cell_normalization_max_method
-
-        #
-        #
-        #
-        self.ace.update_from_file(parameter_file)
-
-        #
-        #
-        #
-        if hasattr(parameters, 'keep_reconstruction'):
-            if parameters.keep_reconstruction is not None:
-                self.keep_reconstruction = parameters.keep_reconstruction
-        if hasattr(parameters, 'astec_keep_reconstruction'):
-            if parameters.astec_keep_reconstruction is not None:
-                self.keep_reconstruction = parameters.astec_keep_reconstruction
-
-        #
         # watershed
         #
-        if hasattr(parameters, 'astec_watershed_seed_sigma'):
-            if parameters.astec_watershed_seed_sigma is not None:
-                self.watershed_seed_sigma = parameters.astec_watershed_seed_sigma
-        if hasattr(parameters, 'watershed_seed_sigma'):
-            if parameters.watershed_seed_sigma is not None:
-                self.watershed_seed_sigma = parameters.watershed_seed_sigma
-        if hasattr(parameters, 'astec_sigma1'):
-            if parameters.astec_sigma1 is not None:
-                self.watershed_seed_sigma = parameters.astec_sigma1
-
-        if hasattr(parameters, 'astec_watershed_membrane_sigma'):
-            if parameters.astec_watershed_membrane_sigma is not None:
-                self.watershed_membrane_sigma = parameters.astec_watershed_membrane_sigma
-        if hasattr(parameters, 'watershed_membrane_sigma'):
-            if parameters.watershed_membrane_sigma is not None:
-                self.watershed_membrane_sigma = parameters.watershed_membrane_sigma
-        if hasattr(parameters, 'astec_sigma2'):
-            if parameters.astec_sigma2 is not None:
-                self.watershed_seed_sigma = parameters.astec_sigma2
 
         if hasattr(parameters, 'watershed_seed_hmin_min_value'):
             if parameters.watershed_seed_hmin_min_value is not None:
@@ -350,22 +171,8 @@ class AstecParameters(object):
             if parameters.watershed_seed_hmin_delta_value is not None:
                 self.watershed_seed_hmin_delta_value = parameters.watershed_seed_hmin_delta_value
 
-        #
-        # images suffixes/formats
-        #
-        if hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
-            if parameters.result_image_suffix is not None:
-                self.result_image_suffix = parameters.RESULT_IMAGE_SUFFIX_FUSE
-        if hasattr(parameters, 'result_image_suffix'):
-            if parameters.result_image_suffix is not None:
-                self.result_image_suffix = parameters.result_image_suffix
-
-        if hasattr(parameters, 'default_image_suffix'):
-            if parameters.default_image_suffix is not None:
-                self.default_image_suffix = parameters.default_image_suffix
-                if not hasattr(parameters, 'result_image_suffix') \
-                        and not hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
-                    self.result_image_suffix = parameters.default_image_suffix
+        mars.WatershedParameters.update_from_parameters(self, parameter_file)
+        reconstruction.ReconstructionParameters.update_from_parameters(self, parameter_file)
 
 
 ########################################################################################
@@ -527,15 +334,15 @@ def _extract_seeds_in_cell(parameters):
     return nb, labels, c
 
 
-def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, membrane_image, environment, parameters,
+def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, membrane_image, experiment, parameters,
                          nprocessors=26):
     """
-
+    Computes the seeds (h-minima) for a range of h values
     :param first_segmentation:
     :param cells:
     :param bounding_boxes:
     :param membrane_image:
-    :param environment:
+    :param experiment:
     :param parameters:
     :param nprocessors:
     :return:
@@ -543,34 +350,48 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, membrane_ima
 
     proc = '_cell_based_h_minima'
 
-    MARS.monitoring.copy(monitoring)
+    #
+    # parameter type checking
+    #
+
+    if not isinstance(experiment, common.Experiment):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'experiment' variable: "
+                                      + str(type(experiment)))
+        sys.exit(1)
+
+    if not isinstance(parameters, AstecParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
+        sys.exit(1)
+
     #
     # h-minima extraction with h = max value
     # the difference image is kept for further computation
     #
     h_min = parameters.watershed_seed_hmin_max_value
+    wparam = mars.WatershedParameters(parameters)
+    wparam.watershed_seed_hmin = h_min
 
     input_image = membrane_image
-    seed_image = commonTools.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
-                                        new_dirname=environment.temporary_path,
-                                        new_extension=parameters.default_image_suffix)
-    difference_image = commonTools.add_suffix(membrane_image, "_seed_diff_h" + str('{:03d}'.format(h_min)),
-                                              new_dirname=environment.temporary_path,
-                                              new_extension=parameters.default_image_suffix)
-    sigma = parameters.watershed_seed_sigma
+    seed_image = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
+                                   new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                   new_extension=experiment.default_image_suffix)
+    difference_image = common.add_suffix(membrane_image, "_seed_diff_h" + str('{:03d}'.format(h_min)),
+                                         new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                         new_extension=experiment.default_image_suffix)
 
     if not os.path.isfile(seed_image) or not os.path.isfile(difference_image) \
             or monitoring.forceResultsToBeBuilt is True:
         #
         # computation of regional minima
-        # -> keeping the 'difference' image allows to speep up the further computation
+        # -> keeping the 'difference' image allows to speed up the further computation
         #    for smaller values of h
         #
-        MARS.build_seeds(input_image, difference_image, seed_image, sigma, h_min, environment, parameters)
+        mars.build_seeds(input_image, difference_image, seed_image, experiment, wparam)
         #
         # select only the 'seeds' that are totally included in cells
         #
-        cpp_wrapping.only_keep_seeds_in_cell(seed_image, first_segmentation, seed_image)
+        cpp_wrapping.mc_mask_seeds(seed_image, first_segmentation, seed_image)
 
     #
     # collect the number of seeds found for each cell
@@ -623,8 +444,12 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, membrane_ima
 
         #
         # next h value
+        # since we compute the maxima from the previous difference image
+        # there is no need for smoothing
         #
         h_min -= parameters.watershed_seed_hmin_delta_value
+        wparam.watershed_seed_hmin = h_min
+        wparam.watershed_seed_sigma = 0.0
 
         #
         # still compute while
@@ -635,9 +460,9 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, membrane_ima
         #
         # Note: I did not catch the utility of 'or returned_n_seeds == []'
         #
-        checking = h_min >= parameters.watershed_seed_hmin_min_value \
-                   and (((np.array(returned_n_seeds) <= 2) & (np.array(returned_n_seeds) != 0)).any()
-                        or returned_n_seeds == [])
+        checking = (h_min >= parameters.watershed_seed_hmin_min_value) and \
+                   (((np.array(returned_n_seeds) <= 2) & (np.array(returned_n_seeds) != 0)).any()
+                    or returned_n_seeds == [])
 
         if checking:
 
@@ -648,19 +473,17 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, membrane_ima
             # and is no more required -> sigma = 0.0
             #
             input_image = difference_image
-            seed_image = commonTools.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
-                                                new_dirname=environment.temporary_path,
-                                                new_extension=parameters.default_image_suffix)
-            difference_image = commonTools.add_suffix(membrane_image, "_seed_diff_h" + str('{:03d}'.format(h_min)),
-                                                      new_dirname=environment.temporary_path,
-                                                      new_extension=parameters.default_image_suffix)
-            sigma = 0.0
+            seed_image = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
+                                           new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                           new_extension=experiment.default_image_suffix)
+            difference_image = common.add_suffix(membrane_image, "_seed_diff_h" + str('{:03d}'.format(h_min)),
+                                                 new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                                 new_extension=experiment.default_image_suffix)
 
             if not os.path.isfile(seed_image) or not os.path.isfile(difference_image) \
                     or monitoring.forceResultsToBeBuilt is True:
-                MARS.build_seeds(input_image, difference_image, seed_image, sigma, h_min, environment, parameters,
-                                 operation_type='max')
-                cpp_wrapping.only_keep_seeds_in_cell(seed_image, first_segmentation, seed_image)
+                mars.build_seeds(input_image, difference_image, seed_image, experiment, wparam, operation_type='max')
+                cpp_wrapping.mc_mask_seeds(seed_image, first_segmentation, seed_image)
 
             if not os.path.isfile(seed_image) or not os.path.isfile(difference_image):
                 monitoring.to_log_and_console("       " + proc + ": computation failed at h = " + str(h_min), 2)
@@ -696,9 +519,12 @@ def _select_seed_parameters(n_seeds, parameter_seeds, tau=25):
     # the selection whether a cell should divide or not is based on the length
     # of the plateau of h values that yield a division (see section 2.3.3.5, pages 70-72
     # of L. Guignard PhD thesis)
+    # nb_2 is $N_2(c)$, nb_3 is $N_{2^{+}}(c)$
     #
     # it can also divided into 2 if there is no h value that gives one seed
     #
+    # np.sum(np.array(s) == 2) is equal to s.count(2)
+    # 
 
     for c, s in n_seeds.iteritems():
         nb_2 = np.sum(np.array(s) == 2)
@@ -706,15 +532,30 @@ def _select_seed_parameters(n_seeds, parameter_seeds, tau=25):
         score = nb_2*nb_3
         if (s.count(1) or s.count(2)) != 0:
             if score >= tau:
+                #
+                # obviously s.count(2) != 0
+                # the largest h that gives 2 seeds is kept
+                #
                 h, sigma = parameter_seeds[c][np.where(np.array(s) == 2)[0][0]]
                 nb_final = 2
             elif s.count(1) != 0:
+                #
+                # score < tau and s.count(1) != 0
+                # the largest h that gives 1 seeds is kept
+                #
                 h, sigma = parameter_seeds[c][np.where(np.array(s) == 1)[0][0]]
                 nb_final = 1
             else:
+                #
+                # score < tau and s.count(1) == 0 then obviously s.count(2)) != 0
+                # the largest h that gives 1 seeds is kept
+                #
                 h, sigma = parameter_seeds[c][np.where(np.array(s) == 2)[0][0]]
                 nb_final = 2
             selected_parameter_seeds[c] = [h, sigma, nb_final]
+        #
+        # s.count(1) == 0 and  s.count(2) == 0
+        #
         elif s.count(3) != 0:
             h, sigma = parameter_seeds[c][s.index(3)]
             selected_parameter_seeds[c] = [h, sigma, 3]
@@ -797,7 +638,7 @@ def _extract_seeds(c, cell_segmentation, cell_seeds=None, bb=None, accept_3_seed
 def _build_seeds_from_selected_parameters(selected_parameter_seeds,
                                           segmentation_from_previous, seeds_from_previous, selected_seeds,
                                           cells, unseeded_cells, bounding_boxes, membrane_image,
-                                          environment, parameters):
+                                          experiment, parameters):
     """
 
     :param selected_parameter_seeds:
@@ -808,12 +649,30 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
     :param unseeded_cells:
     :param bounding_boxes:
     :param membrane_image:
-    :param environment:
+    :param experiment:
     :param parameters:
     :return:
     """
 
     proc = '_build_seeds_from_selected_parameters'
+
+    #
+    # parameter type checking
+    #
+
+    if not isinstance(experiment, common.Experiment):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'experiment' variable: "
+                                      + str(type(experiment)))
+        sys.exit(1)
+
+    if not isinstance(parameters, AstecParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
+        sys.exit(1)
+
+    #
+    #
+    #
 
     first_segmentation = imread(segmentation_from_previous)
 
@@ -829,11 +688,11 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
     new_seed_image = np.zeros_like(first_segmentation, dtype=np.uint16)
 
     #
-    # correspondances: correspondances between cells of previous segmentations and new seed labels
+    # correspondences: correspondences between cells of previous segmentations and new seed labels
     # divided_cells: siblings
     #
     label_max = 2
-    correspondances = {}
+    correspondences = {}
     divided_cells = []
 
     #
@@ -862,9 +721,9 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
         #
 
         if h_min not in seed_image_list:
-            seed_image = commonTools.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
-                                                new_dirname=environment.temporary_path,
-                                                new_extension=parameters.default_image_suffix)
+            seed_image = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
+                                           new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                           new_extension=experiment.default_image_suffix)
             if not os.path.isfile(seed_image):
                 monitoring.to_log_and_console("       " + proc + ": '" + str(seed_image).split(os.path.sep)[-1]
                                               + "' was not found", 2)
@@ -895,7 +754,7 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
         #
         if n_seeds == 1:
             monitoring.to_log_and_console('      .. process cell ' + str(c) + ' -> ' + str(label_max), 3)
-            correspondances[c] = [label_max]
+            correspondences[c] = [label_max]
             #
             # if one want to keep h_min and sigma information
             # t designs the previous time, thus t+delta_t is the current time of the image to be segmented
@@ -914,7 +773,7 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
             # since _extract_seeds() has been called with 'accept_3_seeds=False'
             # => there are only the two first labeled seeds in 'labeled_seeds'
             #
-            correspondances[c] = [label_max, label_max+1]
+            correspondences[c] = [label_max, label_max+1]
             divided_cells.append((label_max, label_max+1))
             new_seed_image[bounding_boxes[c]][labeled_seeds == 1] = label_max
             # h_min_information[(t + delta_t) * 10 ** 4 + label_max] = right_parameters[c][0]
@@ -941,7 +800,7 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
     h_min = min(seed_image_list.keys())
     n_seeds, labeled_seeds = _extract_seeds(1, background_cell, seed_image_list[h_min])
     new_seed_image[labeled_seeds > 0] = 1
-    correspondances[1] = [1]
+    correspondences[1] = [1]
 
     #
     # create seeds for cell for no seed found
@@ -956,7 +815,7 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
                 monitoring.to_log_and_console("       .. volume = " + str(vol), 2)
             else:
                 monitoring.to_log_and_console('      .. process cell ' + str(c) + ' -> ' + str(label_max), 3)
-                correspondances[c] = [label_max]
+                correspondences[c] = [label_max]
                 new_seed_image[first_seeds == c] = label_max
                 label_max += 1
         del first_seeds
@@ -979,7 +838,7 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
     #
     #
     #
-    return label_max, correspondances, divided_cells
+    return label_max, correspondences, divided_cells
 
 
 ########################################################################################
@@ -1000,16 +859,25 @@ def _compute_volumes(im):
     return dict(zip(labels, volume))
 
 
-def _volume_checking(previous_segmentation, segmentation_from_selection,
-                     correspondances, n_seeds, parameter_seeds, environment, parameters):
+def _volume_checking(previous_segmentation, segmentation_from_selection, deformed_seeds, selected_seeds, membrane_image,
+                     correspondences, selected_parameter_seeds, n_seeds, parameter_seeds, bounding_boxes, experiment,
+                     parameters):
     """
 
-    :param previous_segmentation:
+
+    :param previous_segmentation: watershed segmentation obtained with the deformed_seeds
     :param segmentation_from_selection:
-    :param correspondances: for each parent cell, give the list of children cells
-    :param n_seeds: for each parent cell, give the number of seeds for each couple of parameters [h-min, sigma]
-    :param parameter_seeds: for each parent cell, give the list of used parameters [h-min, sigma]
-    :param environment:
+    :param deformed_seeds: seeds obtained from the segmentation at a previous time and deformed into the current time
+    :param selected_seeds:
+    :param membrane_image:
+    :param correspondences: is a dictionary that gives, for each 'parent' cell (in the segmentation built from previous
+    time segmentation) (ie the key), the list of 'children' cells (in the segmentation built from selected seeds)
+    :param selected_parameter_seeds:
+    :param n_seeds: dictionary, gives, for each parent cell, give the number of seeds for each couple of
+    parameters [h-min, sigma]
+    :param parameter_seeds: dictionary, for each parent cell, give the list of used parameters [h-min, sigma]
+    :param bounding_boxes:
+    :param experiment:
     :param parameters:
     :return:
     """
@@ -1017,18 +885,27 @@ def _volume_checking(previous_segmentation, segmentation_from_selection,
     proc = "_volume_checking"
 
     #
-    # compute volumes
+    # parameter type checking
     #
 
+    if not isinstance(experiment, common.Experiment):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'experiment' variable: "
+                                      + str(type(experiment)))
+        sys.exit(1)
+
+    if not isinstance(parameters, AstecParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
+        sys.exit(1)
+
+    #
+    # compute volumes
+    #
     prev_seg = imread(previous_segmentation)
     curr_seg = imread(segmentation_from_selection)
 
     prev_volumes = _compute_volumes(prev_seg)
     curr_volumes = _compute_volumes(curr_seg)
-
-    #
-    # process whole embryo
-    #
 
     prev_embryo_volume = prev_seg.size - prev_volumes[1]
     curr_embryo_volume = curr_seg.size - curr_volumes[1]
@@ -1037,6 +914,7 @@ def _volume_checking(previous_segmentation, segmentation_from_selection,
     # kept from Leo, very weird formula
     # volume_ratio is the opposite of the fraction of volume lose for the
     # volume from previous time compared to current time
+    # volume_ratio = 1.0 - vol(mother) / SUM volume(childrens)
     #
     # volume_ratio < 0 => previous volume > current volume
     # volume_ratio > 0 => previous volume < current volume
@@ -1071,53 +949,59 @@ def _volume_checking(previous_segmentation, segmentation_from_selection,
     abnormal_small_volume_ratio = []
     small_volume_daughter = []
 
-    for mother_c, sisters_c in correspondances.iteritems():
+    seed_label_all = []
+    for mother_c, sisters_c in correspondences.iteritems():
         #
         # skip background
         #
         if mother_c == 1:
             continue
 
+        seed_label_all.extend(sisters_c)
+
         #
         # check whether the volumes exist
         #
-        if prev_volumes.has_key(mother_c) is False:
+        if mother_c in prev_volumes is False:
             monitoring.to_log_and_console('    ' + proc + ': no volume for cell ' + str(mother_c)
                                           + ' in previous segmentation', 2)
         for s in sisters_c:
-            if curr_volumes.has_key(s) is False:
+            if s in curr_volumes is False:
                 monitoring.to_log_and_console('    ' + proc + ': no volume for cell ' + str(s)
                                               + ' in current segmentation', 2)
-
-        print str(mother_c) + " " + str(sisters_c) + " " + str(len(sisters_c))
 
         #
         # compute ratios
         #
+        # volume_ratio > 0  <=> volume(mother) < SUM volume(childrens)
         # volume_ratio = 0  <=> volume(mother) = SUM volume(childrens)
         # volume_ratio < 0  <=> volume(mother) > SUM volume(childrens)
-        # volume_ratio > 0  <=> volume(mother) < SUM volume(childrens)
         #
         volume_ratio = 1.0 - prev_volumes[mother_c] / np.sum([curr_volumes.get(s, 1) for s in sisters_c])
 
         #
         # admissible ratio, check whether the daughter cell(s) are large enough
         # default value of parameters.volume_ratio_tolerance is 0.1
+        # 1+ratio >= volume(mother) / SUM volume(childrens) >= 1 -ratio
+        #
+        # check whether a daughter cell if too small
         #
         if -parameters.volume_ratio_tolerance <= volume_ratio <= parameters.volume_ratio_tolerance:
             for s in sisters_c:
                 if curr_volumes[s] < parameters.volume_minimal_value:
                     small_volume_daughter.append((mother_c, s))
         else:
-        #
-        # non-admissible ratios
-        # default value of parameters.volume_ratio_threshold is 0.5
-        #
+            #
+            # non-admissible ratios
+            # default value of parameters.volume_ratio_threshold is 0.5
+            #
             if volume_ratio > 0:
+                # volume_ratio > 0  <=> volume(mother) < SUM volume(childrens)
                 large_volume_ratio.append((mother_c, sisters_c))
                 if volume_ratio > parameters.volume_ratio_threshold:
                     abnormal_large_volume_ratio.append(mother_c)
             elif volume_ratio < 0:
+                # volume_ratio < 0  <=> volume(mother) > SUM volume(childrens)
                 small_volume_ratio.append((mother_c, sisters_c))
                 if volume_ratio < -parameters.volume_ratio_threshold:
                     abnormal_small_volume_ratio.append(mother_c)
@@ -1125,6 +1009,17 @@ def _volume_checking(previous_segmentation, segmentation_from_selection,
                 monitoring.to_log_and_console('    ' + proc + ': should not reach this point', 2)
                 monitoring.to_log_and_console('    mother cell was ' + str(mother_c), 2)
                 monitoring.to_log_and_console('    daughter cell(s) was(ere) ' + str(sisters_c), 2)
+    #
+    # get the largest used label
+    #
+    seed_label_max = max(seed_label_all)
+
+    if len(abnormal_large_volume_ratio) > 0:
+        monitoring.to_log_and_console('    .. cell with large decrease of volume: ' + str(abnormal_small_volume_ratio),
+                                      2)
+    if len(abnormal_large_volume_ratio) > 0:
+        monitoring.to_log_and_console('    .. cell with large increase of volume: ' + str(abnormal_large_volume_ratio),
+                                      2)
 
     #
     # here we look at cells that experiment a large decrease of volume
@@ -1132,61 +1027,202 @@ def _volume_checking(previous_segmentation, segmentation_from_selection,
     # this is the step (1) of section 2.3.3.6 of L. Guignard thesis
     # [corresponds to the list to_look_at in historical astec code]
     #
-    for cell in abnormal_small_volume_ratio:
+
+    selected_seeds_image = imread(selected_seeds)
+    deformed_seeds_image = imread(deformed_seeds)
+    has_change_happened = False
+
+    ############################################################
+    #
+    # BEGIN: cell with large decrease of volume
+    # volume_ratio < 0  <=> volume(mother) > SUM volume(childrens)
+    #
+    ############################################################
+    for mother_c in abnormal_small_volume_ratio:
+
         monitoring.to_log_and_console('      process cell with large decrease of volume', 2)
         #
         # this is similar to _select_seed_parameters()
-        # it has already been done ?!
+        # however, the smallest h is retained and not the largest one
+        # thus seeds should be larger
+        # n_seeds[mother_c] gives the number of seeds for each couple of parameters [h-min, sigma]
         #
-        s = n_seeds[cell]
+        s = n_seeds[mother_c]
 
         #
         # np.sum(np.array(s) == 2) is equivalent to s.count(2)
-        #
+        # we redo the h selection o
         nb_2 = np.sum(np.array(s) == 2)
         nb_3 = np.sum(np.array(s) >= 2)
         score = nb_2 * nb_3
 
         if s.count(1) > 0 or s.count(2) > 0:
-
+            #
+            # parameter_seeds: dictionary, for each parent cell, give the list of used parameters [h-min, sigma]
+            # np.where(np.array(s)==2) yields the indices where n_seeds[mother_c] == 2
+            # In fact, it gives something like (array([1, 2, 3, 4]),), so
+            # np.where(np.array(s)==2)[0] allows to get only the indexes
+            # np.where(np.array(s)==2)[0][-1] is then the last index where we have n_seeds[mother_c] == 2
+            #
             if score >= parameters.seed_selection_tau:
+                #
+                # the retained h value is the smallest h value that yields 2 seeds
+                #
+                h, sigma = parameter_seeds[mother_c][np.where(np.array(s)==2)[0][-1]]
                 nb_final = 2
             elif s.count(1) != 0:
+                #
+                # score < tau and s.count(1) != 0
+                # the retained h value is the smallest h value that yields 1 seeds
+                #
+                h, sigma = parameter_seeds[mother_c][np.where(np.array(s) == 1)[0][-1]]
                 nb_final = 1
             else:
+                #
+                # the retained h value is the smallest h value that yields 2 seeds
+                #
+                h, sigma = parameter_seeds[mother_c][np.where(np.array(s) == 2)[0][-1]]
                 nb_final = 2
 
             #
-            # w
+            # from Leo PhD thesis (section 2.3.3.6, page 73)
+            # The correction then consists in increasing the number of seeds in order to cover
+            # more space and avoid matter loss. If the cell was considered not divided by the
+            # previous steps, then it is divided into two cells by the correction procedure if
+            # possible. If not the cell snapshot is voluntarily over-segmented to maximize the
+            # covered surface by the seeds and minimize the possibility of volume loss. The
+            # over-segmented cells are then fused.
             #
+
             if nb_final == 1 and s.count(2) != 0:
                 #
-                # get the h-min image corresponding to the first case (seeds == 2)
+                # if no division was chosen, try to increase the number of seeds
+                # in order to try to increase the size of the reconstructed cells
                 #
-                h_min = parameter_seeds[c][s.index(2)]
-                seed_image_name = commonTools.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
-                                                         new_dirname=environment.temporary_path,
-                                                         new_extension=parameters.default_image_suffix)
-                if not os.path.isfile(seed_image_name):
-                    monitoring.to_log_and_console("       " + proc + ": '" + str(seed_image_name).split(os.path.sep)[-1]
-                                                  + "' was not found", 2)
-                    monitoring.to_log_and_console("\t Exiting.")
-                    sys.exit(1)
-                seed_image = imread(seed_image_name)
+                # get the h-min image corresponding to the first case (seeds == 2)
+                # recall that seeds have already being masked by the 'previous' segmentation image
+                #
+                h_min, sigma = parameter_seeds[mother_c][s.index(2)]
+                seed_image_name = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
+                                               new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                               new_extension=experiment.default_image_suffix)
+                #
+                # create a sub-image where the cell 'mother_c' has the 'mother_c' value
+                # and a background at '1'
+                # extract the corresponding seeds from 'seed_image_name'
+                #
+                bb = bounding_boxes[mother_c]
+                submask_mother_c = np.ones_like(prev_seg[bb])
+                submask_mother_c[prev_seg[bb] == mother_c] = mother_c
+                n_found_seeds, labeled_found_seeds = _extract_seeds(mother_c, submask_mother_c, seed_image_name, bb)
+                if n_found_seeds == 2:
+                    new_correspondences = [seed_label_max+1, seed_label_max+2]
+                    monitoring.to_log_and_console('        .. cell ' + str(mother_c) + ': '
+                                                  + str(correspondences[mother_c] + ' -> ' + str(new_correspondences)),
+                                                  3)
+                    #
+                    # remove previous seed
+                    # add new seeds
+                    #
+                    selected_seeds_image[selected_seeds_image == correspondences[mother_c][0]] = 0
+                    selected_seeds_image[bb][labeled_found_seeds == 1] = seed_label_max + 1
+                    selected_seeds_image[bb][labeled_found_seeds == 2] = seed_label_max + 2
+                    correspondences[mother_c] = new_correspondences
+                    selected_parameter_seeds[mother_c] = [h_min, sigma, n_found_seeds]
+                    seed_label_max += 2
+                    has_change_happened = True
+                else:
+                    monitoring.to_log_and_console('        .. (1) cell ' + str(mother_c) + ': weird, has found '
+                                                  + str(n_found_seeds) + " instead of 2", 2)
+            elif (nb_final == 1 or nb_final == 2) and (np.array(s) > 2).any():
+                #
+                # there is a h that gives more than 2 seeds
+                # get the smallest h
+                #
+                h_min, sigma = parameter_seeds[mother_c][-1]
+                seed_image_name = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
+                                                    new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                                    new_extension=experiment.default_image_suffix)
+                #
+                # create a sub-image where cells 'daughter_c' has the 'mother_c' value
+                # and a background at '1'
+                # create a sub-image where the cell 'mother_c' has the 'mother_c' value
+                # and a background at '1'
+                #
+                # built a sub-image where seeds 'below' daughters have a '1' value
+                # and seeds 'below' the projection segmentation have a '2' value
+                #
+                # do something if there are seeds 'below' the projection segmentation has a '2' value
+                # - seeds 'below' daughters (that have a '1' value) will be fused into a 'seed_label_max + 1' cell
+                # - seeds 'below' the projection segmentation (that have a '2' value) will be fused into a
+                #   'seed_label_max + 2' cell
+                #
+                bb = bounding_boxes[mother_c]
+                submask_daughter_c = np.ones_like(curr_seg[bb])
+                for daughter_c in correspondences[mother_c]:
+                    submask_daughter_c[curr_seg[bb] == daughter_c] = mother_c
+                submask_mother_c = np.ones_like(prev_seg[bb])
+                submask_mother_c[prev_seg[bb] == mother_c] = mother_c
+                aux_seed_image = imread(seed_image_name)
+                seeds_c = np.zeros_like(curr_seg[bb])
+                seeds_c[(aux_seed_image[bb] != 0) & (submask_daughter_c == mother_c)] = 1
+                seeds_c[(aux_seed_image[bb] != 0) & (submask_daughter_c == 1) & (submask_mother_c == mother_c)] = 2
+                del aux_seed_image
+                if 2 in seeds_c:
+                    new_correspondences = [seed_label_max + 1, seed_label_max + 2]
+                    monitoring.to_log_and_console('        .. (2) cell ' + str(mother_c) + ': '
+                                          + str(correspondences[mother_c] + ' -> ' + str(new_correspondences)),
+                                          3)
+                    #
+                    # remove previous seed
+                    # add new seeds, note that they might be several seeds per label '1' or '2'
+                    #
+                    for daughter_c in correspondences[mother_c]:
+                        selected_seeds_image[selected_seeds_image == daughter_c] = 0
+                    selected_seeds_image[bb][seeds_c == 1] = seed_label_max + 1
+                    selected_seeds_image[bb][seeds_c == 2] = seed_label_max + 2
+                    correspondences[mother_c] = new_correspondences
+                    selected_parameter_seeds[mother_c] = [h_min, sigma, 2]
+                    seed_label_max += 2
+                    has_change_happened = True
+                else:
+                    monitoring.to_log_and_console('        .. (3) cell ' + str(mother_c) +
+                                                  ': does not know what to do', 3)
 
-                pass
-                # ... #
-            #
-            #
-            #
+            elif nb_final == 1:
+                #
+                # here s.count(2) == 0 and np.array(s) > 2).any() is False
+                # replace the computed seed with the seed from the previous segmentation
+                #
+                monitoring.to_log_and_console('        .. (4) cell ' + str(mother_c) + ': '
+                                              + str(correspondences[mother_c]) + ' -> '
+                                              + str(correspondences[mother_c]),  3)
+                selected_seeds_image[selected_seeds_image == correspondences[mother_c][0]] = 0
+                selected_seeds_image[deformed_seeds_image == mother_c] = correspondences[mother_c]
+                selected_parameter_seeds[mother_c] = [-1, -1, 1]
+                has_change_happened = True
+            else:
+                monitoring.to_log_and_console('        .. (5) cell ' + str(mother_c) + ': does not know what to do', 3)
+
         elif s.count(3) != 0:
+            #
+            # here we have s.count(1) == and  s.count(2) == 0:
+            # get the three seeds, and keep them for further fusion
+            #
             pass
-            #
-            #
-            #
         else:
             monitoring.to_log_and_console('    ' + proc + ': should not reach this point', 2)
-            monitoring.to_log_and_console('    mother cell was ' + str(c), 2)
+            monitoring.to_log_and_console('    mother cell was ' + str(mother_c), 2)
+
+    ############################################################
+    #
+    # END: cell with large decrease of volume
+    #
+    ############################################################
+    del prev_seg
+    del curr_seg
+    del selected_seeds_image
+    del deformed_seeds_image
 
     return
 
@@ -1205,30 +1241,39 @@ def _volume_checking(previous_segmentation, segmentation_from_selection,
 #
 
 
-def astec_process(previous_time, current_time, lineage_tree_information, experiment, environment, parameters):
+def astec_process(previous_time, current_time, lineage_tree_information, experiment, parameters):
     """
 
     :param previous_time:
     :param current_time:
     :param lineage_tree_information:
     :param experiment:
-    :param environment:
     :param parameters:
     :return:
     """
 
     proc = "astec_process"
-    default_width = 3
 
-    acquisition_time = str('{:0{width}d}'.format(current_time, width=default_width))
+    #
+    # parameter type checking
+    #
+
+    if not isinstance(experiment, common.Experiment):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'experiment' variable: "
+                                      + str(type(experiment)))
+        sys.exit(1)
+
+    if not isinstance(parameters, AstecParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
+        sys.exit(1)
 
     #
     # nothing to do if the segmentation image exists
     #
-
-    astec_name = nomenclature.replaceTIME(environment.path_seg_exp_files, current_time)
-    astec_image = commonTools.find_file(environment.path_seg_exp, astec_name, callfrom=proc, local_monitoring=None,
-                                        verbose=False)
+    astec_dir = experiment.astec_dir.get_directory()
+    astec_name = experiment.astec_dir.get_image_name(current_time)
+    astec_image = common.find_file(astec_dir, astec_name, callfrom=proc, local_monitoring=None, verbose=False)
 
     if astec_image is not None:
         if monitoring.forceResultsToBeBuilt is False:
@@ -1237,7 +1282,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
         else:
             monitoring.to_log_and_console('    astec image already existing, but forced', 2)
 
-    astec_image = os.path.join(environment.path_seg_exp, astec_name + '.' + parameters.result_image_suffix)
+    astec_image = os.path.join(astec_dir, astec_name + "." + experiment.result_image_suffix)
 
     #
     # build or read the membrane image to be segmented
@@ -1245,7 +1290,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
 
     reconstruction.monitoring.copy(monitoring)
 
-    membrane_image = reconstruction.build_membrane_image(current_time, environment, parameters,
+    membrane_image = reconstruction.build_membrane_image(current_time, experiment, parameters,
                                                          previous_time=previous_time)
     if membrane_image is None:
         monitoring.to_log_and_console("    .. " + proc + ": no membrane image was found/built for time "
@@ -1263,24 +1308,24 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     #
     monitoring.to_log_and_console('    build seeds from previous segmentation', 2)
 
-    previous_segmentation = reconstruction.get_segmentation_image(previous_time, environment)
+    previous_segmentation = experiment.get_segmentation_image(previous_time)
     if previous_segmentation is None:
         monitoring.to_log_and_console("    .. " + proc + ": no segmentation image was found for time "
                                       + str(previous_time), 2)
         return False
 
-    undeformed_seeds = commonTools.add_suffix(previous_segmentation, '_undeformed_seeds_from_previous',
-                                              new_dirname=environment.temporary_path,
-                                              new_extension=parameters.default_image_suffix)
+    undeformed_seeds = common.add_suffix(previous_segmentation, '_undeformed_seeds_from_previous',
+                                         new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                         new_extension=experiment.default_image_suffix)
     if not os.path.isfile(undeformed_seeds):
         _build_seeds_from_previous_segmentation(previous_segmentation, undeformed_seeds)
 
-    deformed_seeds = commonTools.add_suffix(previous_segmentation, '_deformed_seeds_from_previous',
-                                            new_dirname=environment.temporary_path,
-                                            new_extension=parameters.default_image_suffix)
+    deformed_seeds = common.add_suffix(previous_segmentation, '_deformed_seeds_from_previous',
+                                       new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                       new_extension=experiment.default_image_suffix)
 
     if not os.path.isfile(deformed_seeds):
-        deformation = reconstruction.get_deformation_from_current_to_previous(current_time, environment,
+        deformation = reconstruction.get_deformation_from_current_to_previous(current_time, experiment,
                                                                               parameters, previous_time)
         cpp_wrapping.apply_transformation(undeformed_seeds, deformed_seeds, deformation,
                                           interpolation_mode='nearest', monitoring=monitoring)
@@ -1290,11 +1335,11 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     #
     #
     monitoring.to_log_and_console('    watershed from previous segmentation', 2)
-    segmentation_from_previous = commonTools.add_suffix(membrane_image, '_watershed_from_previous',
-                                                        new_dirname=environment.temporary_path,
-                                                        new_extension=parameters.default_image_suffix)
+    segmentation_from_previous = common.add_suffix(membrane_image, '_watershed_from_previous',
+                                                   new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                                   new_extension=experiment.default_image_suffix)
     if not os.path.isfile(segmentation_from_previous):
-        MARS.watershed(deformed_seeds, membrane_image, segmentation_from_previous, environment, parameters, sigma=0.0)
+        mars.watershed(deformed_seeds, membrane_image, segmentation_from_previous, experiment, parameters)
 
     #
     # bounding_boxes: bounding boxes for each cell from the watershed segmentation
@@ -1308,19 +1353,33 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
 
     #
     # for each cell and a collection of h values,
-    # get the number of seeds
+    # - compute a seed image for each value of h
+    #   seeds are masked by the cells of the 'previous' segmentation
+    # - get a number of seeds per cell of the previous segmentation
+    #   and the parameters [h, sigma] that gives the corresponding seed image
+    #
+    # n_seeds, parameter_seeds are dictionaries indexed by mother cell index
+    # n_seeds[mother_c] is an array of the number of seeds
+    # parameter_seeds[mother_c] is an array (of same length) that gives the parameters ([h, sigma]) used for the
+    #   computation, h being decreasing
     #
     monitoring.to_log_and_console('    estimation of h-minima for h in ['
                                   + str(parameters.watershed_seed_hmin_min_value) + ','
                                   + str(parameters.watershed_seed_hmin_max_value) + ']', 2)
     n_seeds, parameter_seeds = _cell_based_h_minima(segmentation_from_previous, cells, bounding_boxes, membrane_image,
-                                                    environment, parameters)
+                                                    experiment, parameters)
 
+    #
+    # First selection of seeds
     #
     # from above results (ie, the number of seeds for every value of h),
     # select the parameter (ie h value)
     # Note: sigma (smoothing parameter to extract seeds) is also kept here, meaning that
     #       it also could be used for selection
+    #
+    # selected_parameter_seeds is a dictionary indexed by mother cell index
+    # selected_parameter_seeds[mother_c] is an array [selected h, sigma, n_seeds]
+    # unseeded_cells is an list
     #
     monitoring.to_log_and_console('    parameter selection', 2)
     selected_parameter_seeds, unseeded_cells = _select_seed_parameters(n_seeds, parameter_seeds,
@@ -1350,38 +1409,46 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
 
 
     #
-    # build an image of seeds with selected parameters
+    # build an image of seeds with selected parameters h
     #
     monitoring.to_log_and_console('    build seed image from all h-minima images', 2)
 
-    selected_seeds = commonTools.add_suffix(membrane_image, '_seeds_from_selection',
-                                                        new_dirname=environment.temporary_path,
-                                                        new_extension=parameters.default_image_suffix)
+    selected_seeds = common.add_suffix(membrane_image, '_seeds_from_selection',
+                                       new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                       new_extension=experiment.default_image_suffix)
 
-    output = _build_seeds_from_selected_parameters(selected_parameter_seeds,
-                                                    segmentation_from_previous, deformed_seeds,
-                                                    selected_seeds,
-                                                    cells, unseeded_cells, bounding_boxes, membrane_image,
-                                                    environment, parameters)
+    output = _build_seeds_from_selected_parameters(selected_parameter_seeds, segmentation_from_previous, deformed_seeds,
+                                                   selected_seeds, cells, unseeded_cells, bounding_boxes,
+                                                   membrane_image, experiment, parameters)
 
-    label_max, correspondances, divided_cells = output
+    label_max, correspondences, divided_cells = output
+    # print("divided_cells: " +str(divided_cells))
 
     #
     # watershed segmentation with the selected seeds
     #
 
     monitoring.to_log_and_console('    watershed from selection of seeds', 2)
-    segmentation_from_selection = commonTools.add_suffix(membrane_image, '_watershed_from_selection',
-                                                        new_dirname=environment.temporary_path,
-                                                        new_extension=parameters.default_image_suffix)
+    segmentation_from_selection = common.add_suffix(membrane_image, '_watershed_from_selection',
+                                                    new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                                    new_extension=experiment.default_image_suffix)
     if not os.path.isfile(segmentation_from_selection):
-        MARS.watershed(selected_seeds, membrane_image, segmentation_from_selection, environment, parameters, sigma=0.0)
+        mars.watershed(selected_seeds, membrane_image, segmentation_from_selection, experiment, parameters)
 
     #
-    # volume checking
+    # Here, we have a first segmentation
+    # let correct it if required
     #
+
+    print("correspondences: " + str(correspondences))
+    print("selected_parameter_seeds: " + str(selected_parameter_seeds))
+    # print("n_seeds: " + str(n_seeds))
+    # print("parameter_seeds: " + str(parameter_seeds))
+
     monitoring.to_log_and_console('    volume checking', 2)
-    _volume_checking(previous_segmentation, segmentation_from_selection, correspondances, n_seeds, parameter_seeds, environment, parameters)
+    _volume_checking(previous_segmentation, segmentation_from_selection, deformed_seeds, selected_seeds, membrane_image,
+                     correspondences, selected_parameter_seeds, n_seeds, parameter_seeds,
+                     bounding_boxes, experiment, parameters)
 
     sys.exit(1)
 
@@ -1405,29 +1472,44 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
 #
 
 
-def astec_control(experiment, environment, parameters):
+def astec_control(experiment, parameters):
     """
 
     :param experiment:
-    :param environment:
     :param parameters:
     :return:
     """
 
     proc = "astec_control"
-    default_width = 3
+
+    #
+    # parameter type checking
+    #
+
+    if not isinstance(experiment, common.Experiment):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'experiment' variable: "
+                                      + str(type(experiment)))
+        sys.exit(1)
+
+    if not isinstance(parameters, AstecParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
+        sys.exit(1)
+
+    #
+    # copy monitoring information
+    #
+    ace.monitoring.copy(monitoring)
+    common.monitoring.copy(monitoring)
+    mars.monitoring.copy(monitoring)
+    reconstruction.monitoring.copy(monitoring)
+    ace.monitoring.copy(monitoring)
 
     #
     # make sure that the result directory exists
     #
 
-    if not os.path.isdir(environment.path_seg_exp):
-        monitoring.to_log_and_console(proc + ": weird, '" + str(environment.path_seg_exp) + "' does not exists", 1)
-        monitoring.to_log_and_console("\t Exiting")
-        sys.exit(1)
-
-    if not os.path.isdir(environment.path_logdir):
-        os.makedirs(environment.path_logdir)
+    experiment.astec_dir.make_directory()
 
     monitoring.to_log_and_console('', 1)
 
@@ -1439,12 +1521,18 @@ def astec_control(experiment, environment, parameters):
     first_time_point = experiment.first_time_point + experiment.delay_time_point
     last_time_point = experiment.last_time_point + experiment.delay_time_point
 
-    lineage_tree_information = lineage.read_lineage_tree(environment.path_seg_exp_lineage)
+    lineage_tree_name = experiment.get_embryo_name() + "_seg_lineage.pkl"
+    lineage_tree_path = os.path.join(experiment.astec_dir.get_directory(), lineage_tree_name)
+
+    lineage_tree_information = lineage.read_lineage_tree(lineage_tree_path)
     # print environment.path_seg_exp_lineage
     # print lineage_tree_information
 
+    #
+    # test a mettre dans une fonction
+    #
     if len(lineage_tree_information) > 0 and 'lin_tree' in lineage_tree_information:
-        monitoring.to_log_and_console("    .. test '" + str(environment.path_seg_exp_lineage) + "'", 1)
+        monitoring.to_log_and_console("    .. test '" + str(lineage_tree_path) + "'", 1)
         cellat = {}
         for y in lineage_tree_information['lin_tree']:
             t = y/10**4
@@ -1453,6 +1541,8 @@ def astec_control(experiment, environment, parameters):
             else:
                 cellat[t] += 1
 
+        segmentation_dir = experiment.astec_dir.get_directory()
+
         restart = -1
         t = first_time_point
         while restart == -1 and t <= last_time_point:
@@ -1460,9 +1550,9 @@ def astec_control(experiment, environment, parameters):
             # possible time point of segmentation, test if ok
             #
             time_value = t + experiment.delta_time_point
-            acquisition_time = str('{:0{width}d}'.format(time_value, width=default_width))
-            segmentation_file = environment.path_seg_exp_files.replace(nomenclature.FLAG_TIME, acquisition_time)
-            if not os.path.isfile(os.path.join(environment.path_seg_exp, segmentation_file)):
+            segmentation_name = experiment.astec_dir.get_image_name(time_value)
+            segmentation_file = common.find_file(segmentation_dir, segmentation_name)
+            if segmentation_file is None or not os.path.isfile(os.path.join(segmentation_dir, segmentation_file)):
                 monitoring.to_log_and_console("       image '" + segmentation_file + "' not found", 1)
                 restart = t
             else:
@@ -1471,6 +1561,9 @@ def astec_control(experiment, environment, parameters):
                     restart = t
                 else:
                     try:
+                        #
+                        # pourquoi on lit l'image ?
+                        #
                         segmentation_image = imread(segmentation_file)
                     except IOError:
                         monitoring.to_log_and_console("       error in image '" + segmentation_file + "'", 1)
@@ -1496,7 +1589,7 @@ def astec_control(experiment, environment, parameters):
     for current_time in range(first_time_point + experiment.delay_time_point + experiment.delta_time_point,
                               last_time_point + experiment.delay_time_point + 1, experiment.delta_time_point):
 
-        acquisition_time = str('{:0{width}d}'.format(current_time, width=default_width))
+        acquisition_time = experiment.get_time_index(current_time)
         previous_time = current_time - experiment.delta_time_point
 
         #
@@ -1509,25 +1602,17 @@ def astec_control(experiment, environment, parameters):
         #
         # set and make temporary directory
         #
+        experiment.astec_dir.set_tmp_directory(current_time)
+        experiment.astec_dir.make_tmp_directory()
 
-        environment.temporary_path = os.path.join(environment.path_seg_exp, "TEMP_$TIME")
-        environment.temporary_path = environment.temporary_path.replace(nomenclature.FLAG_TIME, acquisition_time)
-
-        if not os.path.isdir(environment.temporary_path):
-            os.makedirs(environment.temporary_path)
-
-        if parameters.keep_reconstruction is True:
-            environment.path_reconstruction = os.path.join(environment.path_seg_exp, "RECONSTRUCTION")
-            if not os.path.isdir(environment.path_reconstruction):
-                os.makedirs(environment.path_reconstruction)
-        else:
-            environment.path_reconstruction = environment.temporary_path
+        if parameters.keep_reconstruction is False:
+            experiment.astec_dir.set_rec_directory_to_tmp()
 
         #
         # process
         #
 
-        ret = astec_process(previous_time, current_time, lineage_tree_information, experiment, environment, parameters)
+        ret = astec_process(previous_time, current_time, lineage_tree_information, experiment, parameters)
         if ret is False:
             monitoring.to_log_and_console('    an error occurs when processing time ' + acquisition_time, 1)
             return
@@ -1537,7 +1622,7 @@ def astec_control(experiment, environment, parameters):
         #
 
         if monitoring.keepTemporaryFiles is False:
-            shutil.rmtree(environment.temporary_path)
+            experiment.astec_dir.rmtree_tmp_directory()
 
         #
         # end processing for a time point

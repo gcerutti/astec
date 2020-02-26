@@ -732,19 +732,19 @@ def _transformations_and_template(experiment, parameters, temporary_dir):
         #
         # check whether segmentation image share a common suffix
         #
-        path_template_format = os.path.join(experiment.embryo_path, experiment.seg_dir.get_directory())
-        suffix = common.get_file_suffix(experiment, path_template_format, experiment.seg_dir.get_image_format(),
+        path_template_format = os.path.join(experiment.embryo_path, experiment.astec_dir.get_directory())
+        suffix = common.get_file_suffix(experiment, path_template_format, experiment.astec_dir.get_image_format(),
                                         flag_time=experiment.get_time_format())
 
         if suffix is None:
             monitoring.to_log_and_console(proc + ": no consistent naming was found in '"
-                                          + experiment.seg_dir.get_directory() + "'", 1)
+                                          + experiment.astec_dir.get_directory() + "'", 1)
             monitoring.to_log_and_console("\t switch to fused images as templates", 1)
 
         else:
             monitoring.to_log_and_console("       ... build template from segmentation images of '"
-                                          + experiment.seg_dir.get_directory() + "'", 2)
-            template_name = experiment.seg_dir.get_image_format() + '.' + suffix
+                                          + experiment.astec_dir.get_directory() + "'", 2)
+            template_name = experiment.astec_dir.get_image_format() + '.' + suffix
             template_format = os.path.join(path_template_format, template_name)
 
     elif parameters.template_type.lower() == 'post-segmentation' \
@@ -860,7 +860,7 @@ def _resample_images(experiment, parameters, template_image, directory_type, int
     elif directory_type.lower() == 'post':
         working_dir = experiment.post_dir
     elif directory_type.lower() == 'seg':
-        working_dir = experiment.seg_dir
+        working_dir = experiment.astec_dir
     else:
         monitoring.to_log_and_console(proc + ": unknown directory type '" + str(directory_type) + "'", 1)
         monitoring.to_log_and_console("\t resampling will not be done")
@@ -950,7 +950,7 @@ def _make_movies(experiment, parameters, directory_type, xylist, xzlist, yzlist)
     elif directory_type.lower() == 'post':
         working_dir = experiment.post_dir
     elif directory_type.lower() == 'seg':
-        working_dir = experiment.seg_dir
+        working_dir = experiment.astec_dir
     else:
         monitoring.to_log_and_console(proc + ": unknown directory type '" + str(directory_type) + "'", 1)
         monitoring.to_log_and_console("\t movies will not be done")
@@ -975,12 +975,11 @@ def _make_movies(experiment, parameters, directory_type, xylist, xzlist, yzlist)
 
     for idir in range(working_dir.get_number_directories()):
 
-        dir_input = os.path.join(experiment.intrareg_dir.get_directory(), working_dir.get_directory(idir))
+        dir_input = os.path.join(experiment.intrareg_dir.get_directory(), working_dir.get_sub_directory(idir))
         monitoring.to_log_and_console("     . movies from '" + str(dir_input) + "'", 2)
-        dir_input = os.path.join(experiment.embryo_path, experiment.intrareg_dir.get_directory(),
-                                 working_dir.get_directory(idir))
         dir_output = os.path.join(experiment.intrareg_dir.get_directory(), 'MOVIES',
                                   working_dir.get_sub_directory(idir))
+        
         if not os.path.isdir(dir_output):
             os.makedirs(dir_output)
 
@@ -1076,7 +1075,7 @@ def _make_maximum(experiment, directory_type):
     elif directory_type.lower() == 'post':
         working_dir = experiment.post_dir
     elif directory_type.lower() == 'seg':
-        working_dir = experiment.seg_dir
+        working_dir = experiment.astec_dir
     else:
         monitoring.to_log_and_console(proc + ": unknown directory type '" + str(directory_type) + "'", 1)
         monitoring.to_log_and_console("\t maximum will not be done")
@@ -1088,10 +1087,8 @@ def _make_maximum(experiment, directory_type):
 
     for idir in range(working_dir.get_number_directories()):
 
-        dir_input = os.path.join(experiment.intrareg_dir.get_directory(), working_dir.get_directory(idir))
-        monitoring.to_log_and_console("     . maximmum from '" + str(dir_input) + "'", 2)
-        dir_input = os.path.join(experiment.embryo_path, experiment.intrareg_dir.get_directory(),
-                                 working_dir.get_directory(idir))
+        dir_input = os.path.join(experiment.intrareg_dir.get_directory(), working_dir.get_sub_directory(idir))
+        monitoring.to_log_and_console("     . maximum from '" + str(dir_input) + "'", 2)
         dir_output = os.path.join(experiment.intrareg_dir.get_directory(), 'MAXIMUM',
                                   working_dir.get_sub_directory(idir))
         if not os.path.isdir(dir_output):
