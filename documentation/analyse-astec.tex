@@ -1522,7 +1522,9 @@ Appel \`a \texttt{extract\_seeds()} (section \ref{sec:extract:seeds}, page \page
    567	
 \end{verbatim} 
 \color{\mycolor}
-On traite les cas o\`u une fille a un trop petit volume. On enl\`eve cette fille des graines de \verb|seeds_from_opt_h|. Si c'\'etait la seule fille, on enl\`eve la m\`ere de la table des correspondances.
+On traite les cas o\`u une fille a un trop petit volume. 
+\verb|too_little| contient le couple \verb|c=[mother_c, daughter_c]|.
+On enl\`eve cette fille des graines de \verb|seeds_from_opt_h|. Si c'\'etait la seule fille, on enl\`eve la m\`ere de la table des correspondances.
 \color{black}
 \begin{verbatim}
    568	    if too_little!=[]:
@@ -1642,7 +1644,7 @@ Appel \`a \texttt{perform\_ac()}, cf section \ref{sec:perform:ac}, page \pageref
 \item \verb|NIterations| : \verb|NIterations=200|
 \item \verb|DeltaVoxels| : \verb|DeltaVoxels=10**3|
 \end{itemize}
-On r\'ecup\`ere ensuite le r\'esultat du morphosnake. S'il y a plusieurs cellules filles, on n'en garde qu'une (la division n'est plus consid\'er\'ee). Note : si le morphosnake est appliqu\'e à deux cellules adjacentes, les parties communes dans le fond atteintes par les 2 morphosnakes seront attribu\'ees \`a la premi\`ere qui sera trait\'ee.
+On r\'ecup\`ere ensuite le r\'esultat du morphosnake. S'il y a plusieurs cellules filles, on n'en garde qu'une (la division n'est plus consid\'er\'ee). Note : si le morphosnake est appliqu\'e \`a deux cellules adjacentes, les parties communes dans le fond atteintes par les 2 morphosnakes seront attribu\'ees \`a la premi\`ere qui sera trait\'ee.
 
 Le cas de 3 cellules filles n'est pas consid\'er\'e. 
 \color{black}

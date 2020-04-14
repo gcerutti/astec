@@ -1,13 +1,23 @@
+
 rm -rf FUSE/FUSE_TEST??
-../../src/1-fuse.py -p parameters-test/1-fuse-test-parameters-1.py -v -v
-../../src/1-fuse.py -p parameters-test/1-fuse-test-parameters-2.py -v -v
-../../src/1-fuse.py -p parameters-test/1-fuse-test-parameters-3.py -v -v
-../../src/1-fuse.py -p parameters-test/1-fuse-test-parameters-4.py -v -v
-../../src/1-fuse.py -p parameters-test/1-fuse-test-parameters-5.py -v -v
-../../src/1-fuse.py -p parameters-test/1-fuse-test-parameters-6.py -v -v
+
+for t in parameters-test/1-fuse-test-parameters-*.py
+do
+  echo -n ""
+  echo "... test '" $t "'"
+  echo -n ""
+  
+  ../../src/1-fuse.py -p $t -v -v
+done
+
 
 rm -rf SEG/SEG_TEST??
-../../src/2-mars.py -p parameters-test/2-mars-test-parameters-1.py -v -v
-../../src/2-mars.py -p parameters-test/2-mars-test-parameters-2.py -v -v
-../../src/2-mars.py -p parameters-test/2-mars-test-parameters-3.py -v -v
-../../src/2-mars.py -p parameters-test/2-mars-test-parameters-4.py -v -v
+
+for t in parameters-test/2-mars-test-parameters-*.py
+do
+  echo -n ""
+  echo "... test '" $t "'"
+  echo -n ""
+  
+  ../../src/2-mars.py -p $t -v -v
+done

@@ -7,12 +7,13 @@ import multiprocessing
 import numpy as np
 from scipy import ndimage as nd
 import copy
+import cPickle as pkl
 
 import ace
 import mars
 import common
-import lineage
 import reconstruction
+import EMBRYOPROPERTIES as properties
 import CommunFunctions.cpp_wrapping as cpp_wrapping
 
 from CommunFunctions.ImageHandling import imread, imsave, SpatialImage
@@ -57,6 +58,24 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
         ############################################################
         mars.WatershedParameters.__init__(self)
         reconstruction.ReconstructionParameters.__init__(self)
+        self.intensity_transformation = 'Normalization_to_u8'
+
+        #
+        #
+        #
+        self.propagation_strategy = None
+
+        #
+        # erosion of cell from previous segmentation
+        #
+        # previous_seg_erosion_cell_iterations: maximum number of erosion iteration for cells
+        #   if the cell disappears, less iterations are done
+        # previous_seg_erosion_cell_min_size: minimal size of a cell to perform erosion
+        #
+
+        self.previous_seg_erosion_cell_iterations = 10
+        self.previous_seg_erosion_background_iterations = 25
+        self.previous_seg_erosion_cell_min_size = 1000
 
         #
         # astec-dedicated watershed parameters
@@ -80,7 +99,7 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
 
         #
         # magic values for the volume checking
-        # - volume_minimal_value is in volxel units
+        # - volume_minimal_value is in voxel units
         #
         self.volume_ratio_tolerance = 0.1
         self.volume_ratio_threshold = 0.5
@@ -95,6 +114,12 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
     def print_parameters(self):
         print("")
         print('AstecParameters')
+
+        print('- propagation_strategy = ' + str(self.propagation_strategy))
+
+        print('- previous_seg_erosion_cell_iterations = ' + str(self.previous_seg_erosion_cell_iterations))
+        print('- previous_seg_erosion_background_iterations = ' + str(self.previous_seg_erosion_background_iterations))
+        print('- previous_seg_erosion_cell_min_size = ' + str(self.previous_seg_erosion_cell_min_size))
 
         print('- watershed_seed_hmin_min_value = ' + str(self.watershed_seed_hmin_min_value))
         print('- watershed_seed_hmin_max_value = ' + str(self.watershed_seed_hmin_max_value))
@@ -116,6 +141,15 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
         with open(log_file_name, 'a') as logfile:
             logfile.write("\n")
             logfile.write('AstecParameters\n')
+
+            logfile.write('- propagation_strategy = ' + str(self.propagation_strategy) + '\n')
+
+            logfile.write('- previous_seg_erosion_cell_iterations = ' + str(self.previous_seg_erosion_cell_iterations)
+                          + '\n')
+            logfile.write('- previous_seg_erosion_background_iterations = '
+                          + str(self.previous_seg_erosion_background_iterations) + '\n')
+            logfile.write('- previous_seg_erosion_cell_min_size = ' + str(self.previous_seg_erosion_cell_min_size)
+                          + '\n')
 
             logfile.write('- watershed_seed_hmin_min_value = ' + str(self.watershed_seed_hmin_min_value) + '\n')
             logfile.write('- watershed_seed_hmin_max_value = ' + str(self.watershed_seed_hmin_max_value) + '\n')
@@ -148,6 +182,27 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
             sys.exit(1)
 
         parameters = imp.load_source('*', parameter_file)
+
+        if hasattr(parameters, 'propagation_strategy'):
+            if parameters.propagation_strategy is not None:
+                self.propagation_strategy = parameters.propagation_strategy
+        if hasattr(parameters, 'astec_propagation_strategy'):
+            if parameters.astec_propagation_strategy is not None:
+                self.propagation_strategy = parameters.astec_propagation_strategy
+
+        #
+        #
+        #
+
+        if hasattr(parameters, 'previous_seg_erosion_cell_iterations'):
+            if parameters.previous_seg_erosion_cell_iterations is not None:
+                self.previous_seg_erosion_cell_iterations = parameters.previous_seg_erosion_cell_iterations
+        if hasattr(parameters, 'previous_seg_erosion_background_iterations'):
+            if parameters.previous_seg_erosion_background_iterations is not None:
+                self.previous_seg_erosion_background_iterations = parameters.previous_seg_erosion_background_iterations
+        if hasattr(parameters, 'previous_seg_erosion_cell_min_size'):
+            if parameters.previous_seg_erosion_cell_min_size is not None:
+                self.previous_seg_erosion_cell_min_size = parameters.previous_seg_erosion_cell_min_size
 
         #
         # watershed
@@ -209,78 +264,70 @@ def _erode_cell(parameters):
 
     proc = '_erode_cell'
 
-    tmp, max_size_cell, size_cell, iterations, out_iterations, bb, i = parameters
+    tmp, iterations, bb, i = parameters
 
-    #
-    # background
-    #
-    if i == 1:
-        nb_iter = out_iterations
-    #
-    # regular cell
-    #
-    else:
-        nb_iter = iterations
+    nb_iter = iterations
 
-    opened = nd.binary_erosion(tmp, iterations=nb_iter)
-    while len(nd.find_objects(opened)) != 1 and nb_iter >= 0:
+    eroded = nd.binary_erosion(tmp, iterations=nb_iter)
+    while len(nd.find_objects(eroded)) != 1 and nb_iter >= 0:
         nb_iter -= 1
-        opened = nd.binary_erosion(tmp, iterations=nb_iter)
+        eroded = nd.binary_erosion(tmp, iterations=nb_iter)
 
-    if max_size_cell < size_cell:
-        monitoring.to_log_and_console('    ' + proc + ': should not reach this, quite weird', 2)
-        num = 1
-    else:
-        num = i
-    return opened, num, i, bb
+    return eroded, i, bb
 
 
-def _build_seeds_from_previous_segmentation(label_image, output_image, max_size_cell=np.inf, min_size_cell=1000,
-                                            cell_iterations=10, background_iterations=25, nprocessors=26):
+def _build_seeds_from_previous_segmentation(label_image, output_image, parameters, nprocessors=26):
     """
     Erodes all the labels in the segmented image seg
     :param label_image: image whose cells are to be eroded
     :param output_image:
-    :param max_size_cell: size maximum of a cell in number of voxels (infinity ?)
-    :param min_size_cell: size minimum of a cell in number of voxels
-           cells below this size are not eroded
-    :param cell_iterations: maximum number of erosion iteration for cells
-    :param background_iterations: maximum number of erosion iteration for background
+    :param parameters:
     :param nprocessors: number maximum of processors allowed to be used
     :return:
     """
 
     proc = '_build_seeds_from_previous_segmentation'
+
+    #
+    # parameter type checking
+    #
+
+    if not isinstance(parameters, AstecParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
+        sys.exit(1)
+
+    #
+    #
+    #
+
     seg = imread(label_image)
 
     bboxes = nd.find_objects(seg)
     a = np.unique(seg)
 
-    # print str(a)
-    # print str(bboxes)
-
     pool = multiprocessing.Pool(processes=nprocessors)
     mapping = []
-
-    seeds = np.zeros_like(seg)
 
     for i in a:
         tmp = seg[bboxes[i - 1]] == i
         size_cell = np.sum(tmp)
-        if size_cell > min_size_cell:
-            mapping.append((tmp, max_size_cell, size_cell, cell_iterations, background_iterations, bboxes[i - 1], i))
+        if size_cell > parameters.previous_seg_erosion_cell_min_size:
+            if i is 1:
+                mapping.append((tmp, parameters.previous_seg_erosion_background_iterations, bboxes[i - 1], i))
+            else:
+                mapping.append((tmp, parameters.previous_seg_erosion_cell_iterations, bboxes[i - 1], i))
         else:
             monitoring.to_log_and_console('     .. skip cell ' + str(i) + ', size (' + str(size_cell) + ') <= '
-                                          + str(min_size_cell), 2)
+                                          + str(parameters.previous_seg_erosion_cell_min_size), 2)
 
     outputs = pool.map(_erode_cell, mapping)
     pool.close()
     pool.terminate()
 
-    for seed, num, i, bb in outputs:
-        if num != i:
-            monitoring.to_log_and_console('    ' + proc + ': should not reach this, quite weird', 2)
-        seeds[bb][seed] = num
+    seeds = np.zeros_like(seg)
+    for eroded, i, bb in outputs:
+        seeds[bb][eroded] = i
 
     seeds._set_resolution(seg._get_resolution())
     imsave(output_image, seeds)
@@ -288,8 +335,18 @@ def _build_seeds_from_previous_segmentation(label_image, output_image, max_size_
     return
 
 
+def _build_lineage_for_seeds_from_previous_segmentation(volumes, previous_time, current_time, time_digits=4):
+    proc = "_build_lineage_for_seeds_from_previous_segmentation"
+    tmp = {}
+    # if the volume exists, it means that this cell has a mother cell
+    for key, value in volumes.iteritems():
+        newkey = previous_time * 10**time_digits + int(key)
+        tmp[newkey] = current_time * 10**time_digits + int(key)
+    return tmp
+
+
 ########################################################################################
-#
+#  newvalue = [current_time * 10**time_digits + i for i in value]
 #
 #
 ########################################################################################
@@ -338,7 +395,11 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, membrane_ima
                          nprocessors=26):
     """
     Computes the seeds (h-minima) for a range of h values
-    :param first_segmentation:
+    Seeds are labeled, and only seeds entirely contained in one single cell are kept
+    (seeds that superimposed two cells, or more, are rejected).
+
+    :param first_segmentation: watershed based segmentation where the seeds are the cells from the previous,
+        eroded and then deformed
     :param cells:
     :param bounding_boxes:
     :param membrane_image:
@@ -368,9 +429,10 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, membrane_ima
     # h-minima extraction with h = max value
     # the difference image is kept for further computation
     #
-    h_min = parameters.watershed_seed_hmin_max_value
+    h_max = parameters.watershed_seed_hmin_max_value
     wparam = mars.WatershedParameters(parameters)
-    wparam.watershed_seed_hmin = h_min
+    wparam.watershed_seed_hmin = h_max
+    h_min = h_max
 
     input_image = membrane_image
     seed_image = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
@@ -383,7 +445,7 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, membrane_ima
     if not os.path.isfile(seed_image) or not os.path.isfile(difference_image) \
             or monitoring.forceResultsToBeBuilt is True:
         #
-        # computation of regional minima
+        # computation of labeled regional minima
         # -> keeping the 'difference' image allows to speed up the further computation
         #    for smaller values of h
         #
@@ -445,17 +507,15 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, membrane_ima
         #
         # next h value
         # since we compute the maxima from the previous difference image
-        # there is no need for smoothing
+        # there is no need for smoothing -> sigma = 0.0
         #
         h_min -= parameters.watershed_seed_hmin_delta_value
-        wparam.watershed_seed_hmin = h_min
-        wparam.watershed_seed_sigma = 0.0
 
         #
         # still compute while
-        # h has not reach the minimum value
-        #  and
-        # there is at least one cell with a number of seeds in [1, 2]
+        # - h has not reach the minimum value
+        # and
+        # - there is at least one cell with a number of seeds in [1, 2]
         # it stops then if all cells have more than 2 seeds
         #
         # Note: I did not catch the utility of 'or returned_n_seeds == []'
@@ -469,9 +529,13 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, membrane_ima
             #
             # compute seeds fot this new value of h
             # seeds are computed on the previous 'difference' image
-            # therefore smoothing has already be done (to get the first difference image)
-            # and is no more required -> sigma = 0.0
+            # - they are now local maxima
+            # - smoothing has already been done (to get the first difference image)
+            #   and is no more required -> sigma = 0.0
             #
+            wparam.watershed_seed_hmin = h_min
+            wparam.watershed_seed_sigma = 0.0
+
             input_image = difference_image
             seed_image = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
                                            new_dirname=experiment.astec_dir.get_tmp_directory(),
@@ -575,7 +639,7 @@ def _select_seed_parameters(n_seeds, parameter_seeds, tau=25):
 # this one is similar to _extract_seeds_in_cell()
 #
 
-def _extract_seeds(c, cell_segmentation, cell_seeds=None, bb=None, accept_3_seeds=False):
+def _extract_seeds(c, cell_segmentation, cell_seeds=None, bb=None, individual_seeds=True, accept_3_seeds=False):
     """
     Return the seeds from cell_seeds stricly included in cell c from cell_segmentation
     (the labels of the seeds go from 1 to 3)
@@ -583,7 +647,8 @@ def _extract_seeds(c, cell_segmentation, cell_seeds=None, bb=None, accept_3_seed
     :param cell_segmentation: sub-image with 'c' for the cell and '1' for the background
     :param cell_seeds: (sub-)image of labeled h-minima
     :param bb: dilated bounding box of the cell
-    :param accept_3_seeds: True if 3 seeds can be accepted as a possible choice
+    :param individual_seeds: if False, all seeds are given the same label (1)
+    :param accept_3_seeds: if True, 3 seeds can be accepted as a possible choice
     :return:
     """
 
@@ -607,9 +672,19 @@ def _extract_seeds(c, cell_segmentation, cell_seeds=None, bb=None, accept_3_seed
 
     #
     # seeds that intersects the cell
+    # regional minima/maxima have already been selected so that they are entirely included in cells
+    # of
     #
     labels = list(np.unique(seeds[cell_segmentation == c]))
     labels.remove(0)
+
+    #
+    # many seeds, but all with the same label
+    # useful for background seeds
+    #
+    if not individual_seeds:
+        seeds[seeds>0] = c
+        return 1, seeds.astype(np.uint8)
 
     #
     # returns
@@ -677,7 +752,7 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
     first_segmentation = imread(segmentation_from_previous)
 
     #
-    # temporary array of spatial images
+    # temporary dictionary of spatial images
     # (to avoid multiple readings of the same image)
     #
     seed_image_list = {}
@@ -688,8 +763,9 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
     new_seed_image = np.zeros_like(first_segmentation, dtype=np.uint16)
 
     #
-    # correspondences: correspondences between cells of previous segmentations and new seed labels
-    # divided_cells: siblings
+    # correspondences: dictionary containing the correspondences between cells of previous segmentations
+    #                  and new seed labels
+    # divided_cells: list of siblings
     #
     label_max = 2
     correspondences = {}
@@ -700,6 +776,8 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
     #
     # h_min_information = {}
     # sigma_information = {}
+
+    monitoring.to_log_and_console('      process cell with childrens', 3)
 
     for c in cells:
 
@@ -712,7 +790,7 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
         #
         # selected_parameter_seeds[c][0] : h_min
         # selected_parameter_seeds[c][1] : sigma
-        # # selected_parameter_seeds[c][2] : number of cells (2 or 3 means division)
+        # selected_parameter_seeds[c][2] : number of cells (2 or 3 means division)
         #
         h_min = selected_parameter_seeds[c][0]
 
@@ -747,7 +825,7 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
         # n_seeds: number of seeds totally included in the cell
         # labeled_seeds: sub-image with seeds numbered from 1
         #
-        n_seeds, labeled_seeds = _extract_seeds(c, cell_segmentation, cell_seeds)
+        n_seeds, labeled_seeds = _extract_seeds(c, cell_segmentation, cell_seeds, accept_3_seeds=False)
 
         #
         # 1 seed
@@ -791,20 +869,28 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
     # create background seed
     # 1. create a background cell
     # 2. get the seeds from the read h-minima image with the smallest h
-    # 3. add all the seeds
+    # 3. add all the seeds (individual_seeds=False)
     #
+
+    monitoring.to_log_and_console('      process background', 3)
 
     background_cell = np.ones_like(first_segmentation)
     background_cell[first_segmentation != 1] = 0
 
     h_min = min(seed_image_list.keys())
-    n_seeds, labeled_seeds = _extract_seeds(1, background_cell, seed_image_list[h_min])
-    new_seed_image[labeled_seeds > 0] = 1
-    correspondences[1] = [1]
+    n_seeds, labeled_seeds = _extract_seeds(1, background_cell, seed_image_list[h_min], individual_seeds=False)
+    if n_seeds == 0:
+        monitoring.to_log_and_console("       " + proc + ": unable to get background seed", 2)
+    else:
+        new_seed_image[labeled_seeds > 0] = 1
+        correspondences[1] = [1]
 
     #
     # create seeds for cell for no seed found
     #
+
+    monitoring.to_log_and_console('      process cell without childrens', 3)
+
     if len(unseeded_cells) > 0:
         first_seeds = imread(seeds_from_previous)
         for c in unseeded_cells:
@@ -854,9 +940,39 @@ def _compute_volumes(im):
     :param im:
     :return:
     """
-    labels = np.unique(im)
-    volume = nd.sum(np.ones_like(im), im, index=np.int16(labels))
+    proc = "_compute_volumes"
+    if type(im) is str:
+        readim = imread(im)
+    elif type(im) is SpatialImage:
+        readim = im
+    else:
+        monitoring.to_log_and_console(str(proc) + ": unhandled type for 'im': " + str(type(im)) + "'")
+        return
+
+    labels = np.unique(readim)
+    volume = nd.sum(np.ones_like(readim), readim, index=np.int16(labels))
+    if type(im) is str:
+        del readim
     return dict(zip(labels, volume))
+
+
+def _update_volume_properties(current_dict, volumes_to_be_added, current_time, time_digits=4):
+    proc = "_update_volume_properties"
+    tmp = {}
+    for key, value in volumes_to_be_added.iteritems():
+        newkey = current_time * 10**time_digits + int(key)
+        tmp[newkey] = value
+    current_dict.update(tmp)
+    return current_dict
+
+
+def _update_lineage_properties(current_dict, lineage_to_be_added, current_time, time_digits=4):
+    tmp = {}
+    for key, value in lineage_to_be_added.iteritems():
+        newkey = current_time * 10**time_digits + int(key)
+        tmp[str(newkey)] = value
+    current_dict.update(tmp)
+    return current_dict
 
 
 def _volume_checking(previous_segmentation, segmentation_from_selection, deformed_seeds, selected_seeds, membrane_image,
@@ -950,14 +1066,14 @@ def _volume_checking(previous_segmentation, segmentation_from_selection, deforme
     small_volume_daughter = []
 
     seed_label_all = []
-    for mother_c, sisters_c in correspondences.iteritems():
+    for mother_c, daughters_c in correspondences.iteritems():
         #
         # skip background
         #
         if mother_c == 1:
             continue
 
-        seed_label_all.extend(sisters_c)
+        seed_label_all.extend(daughters_c)
 
         #
         # check whether the volumes exist
@@ -965,7 +1081,7 @@ def _volume_checking(previous_segmentation, segmentation_from_selection, deforme
         if mother_c in prev_volumes is False:
             monitoring.to_log_and_console('    ' + proc + ': no volume for cell ' + str(mother_c)
                                           + ' in previous segmentation', 2)
-        for s in sisters_c:
+        for s in daughters_c:
             if s in curr_volumes is False:
                 monitoring.to_log_and_console('    ' + proc + ': no volume for cell ' + str(s)
                                               + ' in current segmentation', 2)
@@ -977,7 +1093,7 @@ def _volume_checking(previous_segmentation, segmentation_from_selection, deforme
         # volume_ratio = 0  <=> volume(mother) = SUM volume(childrens)
         # volume_ratio < 0  <=> volume(mother) > SUM volume(childrens)
         #
-        volume_ratio = 1.0 - prev_volumes[mother_c] / np.sum([curr_volumes.get(s, 1) for s in sisters_c])
+        volume_ratio = 1.0 - prev_volumes[mother_c] / np.sum([curr_volumes.get(s, 1) for s in daughters_c])
 
         #
         # admissible ratio, check whether the daughter cell(s) are large enough
@@ -987,9 +1103,9 @@ def _volume_checking(previous_segmentation, segmentation_from_selection, deforme
         # check whether a daughter cell if too small
         #
         if -parameters.volume_ratio_tolerance <= volume_ratio <= parameters.volume_ratio_tolerance:
-            for s in sisters_c:
-                if curr_volumes[s] < parameters.volume_minimal_value:
-                    small_volume_daughter.append((mother_c, s))
+            for daughter_c in daughters_c:
+                if curr_volumes[daughter_c] < parameters.volume_minimal_value:
+                    small_volume_daughter.append([mother_c, daughter_c])
         else:
             #
             # non-admissible ratios
@@ -997,24 +1113,25 @@ def _volume_checking(previous_segmentation, segmentation_from_selection, deforme
             #
             if volume_ratio > 0:
                 # volume_ratio > 0  <=> volume(mother) < SUM volume(childrens)
-                large_volume_ratio.append((mother_c, sisters_c))
+                large_volume_ratio.append((mother_c, daughters_c))
                 if volume_ratio > parameters.volume_ratio_threshold:
                     abnormal_large_volume_ratio.append(mother_c)
             elif volume_ratio < 0:
                 # volume_ratio < 0  <=> volume(mother) > SUM volume(childrens)
-                small_volume_ratio.append((mother_c, sisters_c))
+                small_volume_ratio.append((mother_c, daughters_c))
                 if volume_ratio < -parameters.volume_ratio_threshold:
                     abnormal_small_volume_ratio.append(mother_c)
             else:
                 monitoring.to_log_and_console('    ' + proc + ': should not reach this point', 2)
                 monitoring.to_log_and_console('    mother cell was ' + str(mother_c), 2)
-                monitoring.to_log_and_console('    daughter cell(s) was(ere) ' + str(sisters_c), 2)
+                monitoring.to_log_and_console('    daughter cell(s) was(ere) ' + str(daughters_c), 2)
     #
     # get the largest used label
+    # -> required to attribute new labels
     #
     seed_label_max = max(seed_label_all)
 
-    if len(abnormal_large_volume_ratio) > 0:
+    if len(abnormal_small_volume_ratio) > 0:
         monitoring.to_log_and_console('    .. cell with large decrease of volume: ' + str(abnormal_small_volume_ratio),
                                       2)
     if len(abnormal_large_volume_ratio) > 0:
@@ -1031,16 +1148,20 @@ def _volume_checking(previous_segmentation, segmentation_from_selection, deforme
     selected_seeds_image = imread(selected_seeds)
     deformed_seeds_image = imread(deformed_seeds)
     has_change_happened = False
+    labels_to_be_fused = []
 
     ############################################################
     #
     # BEGIN: cell with large decrease of volume
     # volume_ratio < 0  <=> volume(mother) > SUM volume(childrens)
+    # try to add seeds
     #
     ############################################################
+    if len(abnormal_small_volume_ratio) > 0:
+        monitoring.to_log_and_console('      process cell with large decrease of volume', 2)
+
     for mother_c in abnormal_small_volume_ratio:
 
-        monitoring.to_log_and_console('      process cell with large decrease of volume', 2)
         #
         # this is similar to _select_seed_parameters()
         # however, the smallest h is retained and not the largest one
@@ -1051,7 +1172,8 @@ def _volume_checking(previous_segmentation, segmentation_from_selection, deforme
 
         #
         # np.sum(np.array(s) == 2) is equivalent to s.count(2)
-        # we redo the h selection o
+        # we redo the h selection
+        #
         nb_2 = np.sum(np.array(s) == 2)
         nb_3 = np.sum(np.array(s) >= 2)
         score = nb_2 * nb_3
@@ -1068,20 +1190,22 @@ def _volume_checking(previous_segmentation, segmentation_from_selection, deforme
                 #
                 # the retained h value is the smallest h value that yields 2 seeds
                 #
-                h, sigma = parameter_seeds[mother_c][np.where(np.array(s)==2)[0][-1]]
+                # h, sigma = parameter_seeds[mother_c][np.where(np.array(s)==2)[0][-1]]
+                # the final h value will be determined afterwards
+                #
                 nb_final = 2
             elif s.count(1) != 0:
                 #
                 # score < tau and s.count(1) != 0
                 # the retained h value is the smallest h value that yields 1 seeds
                 #
-                h, sigma = parameter_seeds[mother_c][np.where(np.array(s) == 1)[0][-1]]
+                # h, sigma = parameter_seeds[mother_c][np.where(np.array(s) == 1)[0][-1]]
                 nb_final = 1
             else:
                 #
                 # the retained h value is the smallest h value that yields 2 seeds
                 #
-                h, sigma = parameter_seeds[mother_c][np.where(np.array(s) == 2)[0][-1]]
+                # h, sigma = parameter_seeds[mother_c][np.where(np.array(s) == 2)[0][-1]]
                 nb_final = 2
 
             #
@@ -1101,6 +1225,9 @@ def _volume_checking(previous_segmentation, segmentation_from_selection, deforme
                 #
                 # get the h-min image corresponding to the first case (seeds == 2)
                 # recall that seeds have already being masked by the 'previous' segmentation image
+                #
+                # shouldn't we check whether the other seed is "under" the daughters and labeled
+                # the seeds as in the following case (nb_final == 1 or nb_final == 2) and (np.array(s) > 2).any())?
                 #
                 h_min, sigma = parameter_seeds[mother_c][s.index(2)]
                 seed_image_name = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
@@ -1171,8 +1298,7 @@ def _volume_checking(previous_segmentation, segmentation_from_selection, deforme
                 if 2 in seeds_c:
                     new_correspondences = [seed_label_max + 1, seed_label_max + 2]
                     monitoring.to_log_and_console('        .. (2) cell ' + str(mother_c) + ': '
-                                          + str(correspondences[mother_c] + ' -> ' + str(new_correspondences)),
-                                          3)
+                                          + str(correspondences[mother_c] + ' -> ' + str(new_correspondences)), 3)
                     #
                     # remove previous seed
                     # add new seeds, note that they might be several seeds per label '1' or '2'
@@ -1209,25 +1335,124 @@ def _volume_checking(previous_segmentation, segmentation_from_selection, deforme
             # here we have s.count(1) == and  s.count(2) == 0:
             # get the three seeds, and keep them for further fusion
             #
-            pass
+            h_min, sigma = parameter_seeds[mother_c][s.index(3)]
+            seed_image_name = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
+                                                new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                                new_extension=experiment.default_image_suffix)
+            #
+            # create a sub-image where the cell 'mother_c' has the 'mother_c' value
+            # and a background at '1'
+            # extract the corresponding seeds from 'seed_image_name'
+            #
+            bb = bounding_boxes[mother_c]
+            submask_mother_c = np.ones_like(prev_seg[bb])
+            submask_mother_c[prev_seg[bb] == mother_c] = mother_c
+            n_found_seeds, labeled_found_seeds = _extract_seeds(mother_c, submask_mother_c, seed_image_name, bb,
+                                                                accept_3_seeds=True)
+            if n_found_seeds == 3:
+                new_correspondences = [seed_label_max + 1, seed_label_max + 2, seed_label_max + 3]
+                monitoring.to_log_and_console('        .. (6) cell ' + str(mother_c) + ': '
+                                              + str(correspondences[mother_c] + ' -> ' + str(new_correspondences)),
+                                              3)
+                #
+                # remove previous seed
+                # add new seeds
+                #
+                for daughter_c in correspondences[mother_c]:
+                    selected_seeds_image[selected_seeds_image == daughter_c] = 0
+                selected_seeds_image[bb][labeled_found_seeds == 1] = seed_label_max + 1
+                selected_seeds_image[bb][labeled_found_seeds == 2] = seed_label_max + 2
+                selected_seeds_image[bb][labeled_found_seeds == 3] = seed_label_max + 3
+                correspondences[mother_c] = new_correspondences
+                selected_parameter_seeds[mother_c] = [h_min, sigma, n_found_seeds]
+                seed_label_max += 3
+                has_change_happened = True
+                labels_to_be_fused.append(new_correspondences)
+            else:
+                monitoring.to_log_and_console('        .. (7) cell ' + str(mother_c) + ': weird, has found '
+                                              + str(n_found_seeds) + " instead of 3", 2)
         else:
-            monitoring.to_log_and_console('    ' + proc + ': should not reach this point', 2)
-            monitoring.to_log_and_console('    mother cell was ' + str(mother_c), 2)
+            monitoring.to_log_and_console('        .. (8) cell ' + str(mother_c) + ': detected seed numbers wrt h was '
+                                          + str(s), 2)
 
     ############################################################
     #
     # END: cell with large decrease of volume
     #
     ############################################################
+
+    ############################################################
+    #
+    # BEGIN: too small 'daughter' cells
+    # recall: the volume ratio between 'mother' and 'daughters' is ok
+    # but some 'daughter' cells are too small
+    # - remove the too small daughter cell from the seed image
+    # - remove it from the correspondence array
+    # - remove the mother cell is it has no more daughter
+    ############################################################
+    if small_volume_daughter:
+        for mother_c, daughter_c in small_volume_daughter:
+            selected_seeds_image[selected_seeds_image == daughter_c] = 0
+            daughters_c = correspondences[mother_c]
+            daughters_c.remove(daughter_c)
+            if daughters_c:
+                correspondences[mother_c] = daughters_c
+            else:
+                correspondences.pop(mother_c)
+        has_change_happened = True
+    ############################################################
+    #
+    # END: too small 'daughter' cells
+    #
+    ############################################################
+
     del prev_seg
     del curr_seg
-    del selected_seeds_image
     del deformed_seeds_image
+
+    #
+    # nothing to do
+    #
+
+    if not has_change_happened:
+        del selected_seeds_image
+        return segmentation_from_selection, selected_seeds, correspondences
+
+    #
+    # some corrections are to be done
+    # 1. save the image of corrected seeds
+    # 2. redo a watershed
+    #
+
+    corr_selected_seeds = common.add_suffix(membrane_image, '_seeds_from_corrected_selection',
+                                            new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                            new_extension=experiment.default_image_suffix)
+    voxelsize = selected_seeds_image._get_resolution()
+    imsave(corr_selected_seeds, SpatialImage(selected_seeds_image, voxelsize=voxelsize).astype(np.uint16))
+    del selected_seeds_image
+
+    segmentation_from_corr_selection = common.add_suffix(membrane_image, '_watershed_from_corrected_selection',
+                                                         new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                                         new_extension=experiment.default_image_suffix)
+    mars.watershed(corr_selected_seeds, membrane_image, segmentation_from_corr_selection, experiment, parameters)
+
+    #
+    # ... on en est a la lign
+    # no labels to be fused
+    #
+
+    if not labels_to_be_fused:
+        return segmentation_from_corr_selection, corr_selected_seeds, correspondences
+
+    #
+    # fused labels (lines 635 - 660)
+    #
+    # reste a faire aussi lines 587 634 dans une autre fonction
+    #
 
     return
 
 
-
 ########################################################################################
 #
 #
@@ -1239,7 +1464,6 @@ def _volume_checking(previous_segmentation, segmentation_from_selection, deforme
 #
 #
 #
-
 
 def astec_process(previous_time, current_time, lineage_tree_information, experiment, parameters):
     """
@@ -1253,6 +1477,20 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     """
 
     proc = "astec_process"
+
+    #
+    # 1. retrieve the membrane image
+    #    it can be the fused image or a calculated image
+    # 2. compute the "deformed" segmentation from previous time
+    #    a. erode the segmentation from previous time to get seeds
+    #    b. deform the seeds
+    #    c. segmentation (watershed-based) from the deformed seeds
+    # 3. For each cell, compute the number of h-minima for a collection of h
+    # 4. For each cell, select a number of h-minima
+    #    typically, 1 if no division, or 2 if division
+    # 5. Build a seed image from the selected (cell-based) h-minima
+    # 6. segmentation (watershed-based) from the built seeds
+    #
 
     #
     # parameter type checking
@@ -1303,7 +1541,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     # erosion iterations are set by default in voxel units
     # there is also a volume defined in voxel units
     #
-    # it may be worth trying to deform first the previous segmentation and then
+    # Note: it may be worth trying to deform first the previous segmentation and then
     # extract the seeds
     #
     monitoring.to_log_and_console('    build seeds from previous segmentation', 2)
@@ -1318,7 +1556,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
                                          new_dirname=experiment.astec_dir.get_tmp_directory(),
                                          new_extension=experiment.default_image_suffix)
     if not os.path.isfile(undeformed_seeds):
-        _build_seeds_from_previous_segmentation(previous_segmentation, undeformed_seeds)
+        _build_seeds_from_previous_segmentation(previous_segmentation, undeformed_seeds, parameters)
 
     deformed_seeds = common.add_suffix(previous_segmentation, '_deformed_seeds_from_previous',
                                        new_dirname=experiment.astec_dir.get_tmp_directory(),
@@ -1332,14 +1570,51 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
 
     #
     # watershed segmentation with seeds extracted from previous segmentation
-    #
+    # $\tilde{S}_{t+1}$ in Leo's PhD
     #
     monitoring.to_log_and_console('    watershed from previous segmentation', 2)
     segmentation_from_previous = common.add_suffix(membrane_image, '_watershed_from_previous',
                                                    new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                    new_extension=experiment.default_image_suffix)
+
+    if parameters.propagation_strategy is 'seeds_from_previous_segmentation':
+        segmentation_from_previous = astec_image
+
     if not os.path.isfile(segmentation_from_previous):
         mars.watershed(deformed_seeds, membrane_image, segmentation_from_previous, experiment, parameters)
+
+    #
+    # if the propagation strategy is only to get seeds from the erosion of the previous cells
+    # we're done. Update the properties
+    #
+
+    if parameters.propagation_strategy is 'seeds_from_previous_segmentation':
+        #
+        # update volumes and lineage (cells may disappear if the erosion is too strong)
+        #
+        time_digits = experiment.get_unique_id_time_digits()
+
+        current_volumes = _compute_volumes(astec_image)
+        volume_key = properties.keydictionary['volume']['output_key']
+        volume_key = 'volumes_information'
+        if not volume_key in lineage_tree_information.keys():
+            lineage_tree_information[volume_key] = {}
+        _update_volume_properties(lineage_tree_information[volume_key], current_volumes, current_time,
+                                  time_digits=time_digits)
+        #
+        # update lineage. It is somehow just to check since cells are not supposed to disappeared
+        # _erode_cell() performs erosions until the maximal number of iterations is reached
+        # or juste before the cell disappears
+        #
+        lineage_key = properties.keydictionary['volume']['output_key']
+        lineage_key = 'lin_tree'
+        if not lineage_key in lineage_tree_information.keys():
+            lineage_tree_information[lineage_key] = {}
+        current_lineage = _build_lineage_for_seeds_from_previous_segmentation(current_volumes, previous_time,
+                                                                              current_time, time_digits=time_digits)
+        lineage_tree_information[lineage_key].update(current_lineage)
+        return lineage_tree_information
+
 
     #
     # bounding_boxes: bounding boxes for each cell from the watershed segmentation
@@ -1378,8 +1653,9 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     #       it also could be used for selection
     #
     # selected_parameter_seeds is a dictionary indexed by mother cell index
-    # selected_parameter_seeds[mother_c] is an array [selected h, sigma, n_seeds]
-    # unseeded_cells is an list
+    # selected_parameter_seeds[mother_c] is an array [selected_h, sigma, n_seeds]
+    # unseeded_cells is a list
+    # is a list
     #
     monitoring.to_log_and_console('    parameter selection', 2)
     selected_parameter_seeds, unseeded_cells = _select_seed_parameters(n_seeds, parameter_seeds,
@@ -1391,9 +1667,10 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     if len(unseeded_cells) > 0:
         string = ""
         for i in range(len(unseeded_cells)):
-            string = str(unseeded_cells[i])
-            if i < len(unseeded_cells)-1:
-                string += ', '
+            if string == "":
+                string = str(unseeded_cells[i])
+            else:
+                string += ", " + str(unseeded_cells[i])
         monitoring.to_log_and_console('    .. cells with no seeds: ' + string, 2)
     string = ""
     for c in cells:
@@ -1406,7 +1683,6 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
                 string += ", " + str(c)
     if string != "":
         monitoring.to_log_and_console('    .. cells that will divide: ' + string, 2)
-
 
     #
     # build an image of seeds with selected parameters h
@@ -1440,8 +1716,8 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     # let correct it if required
     #
 
-    print("correspondences: " + str(correspondences))
-    print("selected_parameter_seeds: " + str(selected_parameter_seeds))
+    # print(proc + " :correspondences: " + str(correspondences))
+    # print(proc + " :selected_parameter_seeds: " + str(selected_parameter_seeds))
     # print("n_seeds: " + str(n_seeds))
     # print("parameter_seeds: " + str(parameter_seeds))
 
@@ -1511,8 +1787,6 @@ def astec_control(experiment, parameters):
 
     experiment.astec_dir.make_directory()
 
-    monitoring.to_log_and_console('', 1)
-
     #
     # re-read the lineage file, if any
     # and check whether any time point should be re-computed
@@ -1524,12 +1798,20 @@ def astec_control(experiment, parameters):
     lineage_tree_name = experiment.get_embryo_name() + "_seg_lineage.pkl"
     lineage_tree_path = os.path.join(experiment.astec_dir.get_directory(), lineage_tree_name)
 
-    lineage_tree_information = lineage.read_lineage_tree(lineage_tree_path)
+    if os.path.isfile(lineage_tree_path):
+        lineage_tree_information = properties.read_dictionary(lineage_tree_path)
+    else:
+        lineage_tree_information = {}
+
     # print environment.path_seg_exp_lineage
     # print lineage_tree_information
 
     #
     # test a mettre dans une fonction
+    # l'idee est de savoir ou repartir :
+    # 1. tester depuis la fin si l'image de segmentation existe
+    # 2. tester si le lineage existe
+    # a partir de ce temps, effacer ce qu'il y a dans l'arbre
     #
     if len(lineage_tree_information) > 0 and 'lin_tree' in lineage_tree_information:
         monitoring.to_log_and_console("    .. test '" + str(lineage_tree_path) + "'", 1)
@@ -1576,10 +1858,10 @@ def astec_control(experiment, parameters):
                 monitoring.to_log_and_console("       time '" + str(t) + "' seems ok", 1)
             t += 1
         first_time_point = restart
-        monitoring.to_log_and_console("    .. " + proc + ": restart computation at time '"
+        monitoring.to_log_and_console(".. " + proc + ": restart computation at time '"
                                       + str(first_time_point) + "'", 1)
     else:
-        monitoring.to_log_and_console("    .. " + proc + ": start computation at time '"
+        monitoring.to_log_and_console(".. " + proc + ": start computation at time '"
                                       + str(first_time_point) + "'", 1)
 
     #
@@ -1615,7 +1897,9 @@ def astec_control(experiment, parameters):
         ret = astec_process(previous_time, current_time, lineage_tree_information, experiment, parameters)
         if ret is False:
             monitoring.to_log_and_console('    an error occurs when processing time ' + acquisition_time, 1)
-            return
+            return False
+        else:
+            lineage_tree_information = ret
 
         #
         # cleaning
@@ -1631,5 +1915,10 @@ def astec_control(experiment, parameters):
 
         monitoring.to_log_and_console('    computation time = ' + str(end_time - start_time) + ' s', 1)
         monitoring.to_log_and_console('', 1)
+
+    if lineage_tree_path.endswith("pkl") is True:
+        lineagefile = open(lineage_tree_path, 'w')
+        pkl.dump(lineage_tree_information, lineagefile)
+        lineagefile.close()
 
     return

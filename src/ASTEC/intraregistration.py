@@ -979,7 +979,7 @@ def _make_movies(experiment, parameters, directory_type, xylist, xzlist, yzlist)
         monitoring.to_log_and_console("     . movies from '" + str(dir_input) + "'", 2)
         dir_output = os.path.join(experiment.intrareg_dir.get_directory(), 'MOVIES',
                                   working_dir.get_sub_directory(idir))
-        
+
         if not os.path.isdir(dir_output):
             os.makedirs(dir_output)
 

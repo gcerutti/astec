@@ -33,6 +33,10 @@ class ReconstructionParameters(object):
         self.cell_normalization_min_method = 'cellinterior'
         self.cell_normalization_max_method = 'cellborder'
 
+        self.normalization_min_percentile = 0.01
+        self.normalization_max_percentile = 0.99
+        self.cell_normalization_sigma = 5.0
+
         #
         # membrane enhancement parameters
         #
@@ -82,6 +86,10 @@ class ReconstructionParameters(object):
         print('- cell_normalization_min_method = ' + str(self.cell_normalization_min_method))
         print('- cell_normalization_max_method = ' + str(self.cell_normalization_max_method))
 
+        print('- normalization_min_percentile = ' + str(self.normalization_min_percentile))
+        print('- normalization_max_percentile = ' + str(self.normalization_max_percentile))
+        print('- cell_normalization_sigma = ' + str(self.cell_normalization_sigma))
+
         self.ace.print_parameters()
 
         for p in self.registration:
@@ -99,6 +107,10 @@ class ReconstructionParameters(object):
             logfile.write('- intensity_enhancement = ' + str(self.intensity_enhancement) + '\n')
             logfile.write('- cell_normalization_min_method = ' + str(self.cell_normalization_min_method) + '\n')
             logfile.write('- cell_normalization_max_method = ' + str(self.cell_normalization_max_method) + '\n')
+
+            logfile.write('- normalization_min_percentile = ' + str(self.normalization_min_percentile) + '\n')
+            logfile.write('- normalization_max_percentile = ' + str(self.normalization_max_percentile) + '\n')
+            logfile.write('- cell_normalization_sigma = ' + str(self.cell_normalization_sigma) + '\n')
 
             self.ace.write_parameters(log_file_name)
 
@@ -152,6 +164,21 @@ class ReconstructionParameters(object):
             self.cell_normalization_max_method = parameters.cell_normalization_max_method
         if hasattr(parameters, 'astec_cell_normalization_max_method'):
             self.cell_normalization_max_method = parameters.astec_cell_normalization_max_method
+
+        if hasattr(parameters, 'normalization_min_percentile'):
+            self.normalization_min_percentile = parameters.normalization_min_percentile
+        if hasattr(parameters, 'astec_normalization_min_percentile'):
+            self.normalization_min_percentile = parameters.astec_normalization_min_percentile
+
+        if hasattr(parameters, 'normalization_max_percentile'):
+            self.normalization_max_percentile = parameters.normalization_max_percentile
+        if hasattr(parameters, 'astec_normalization_max_percentile'):
+            self.normalization_max_percentile = parameters.astec_normalization_max_percentile
+
+        if hasattr(parameters, 'cell_normalization_sigma'):
+            self.cell_normalization_sigma = parameters.cell_normalization_sigma
+        if hasattr(parameters, 'astec_cell_normalization_sigma'):
+            self.cell_normalization_sigma = parameters.astec_cell_normalization_sigma
 
         #
         #
@@ -269,11 +296,11 @@ def get_deformation_from_current_to_previous(current_time, experiment, parameter
 #
 
 
-def get_previous_deformed_segmentation(current_time, environment, parameters, previous_time=None):
+def get_previous_deformed_segmentation(current_time, experiment, parameters, previous_time=None):
     """
 
     :param current_time:
-    :param environment:
+    :param experiment:
     :param parameters:
     :param previous_time:
     :return:
@@ -298,10 +325,13 @@ def get_previous_deformed_segmentation(current_time, environment, parameters, pr
     # - $EN_[mars,seg]_t$TIME_deformed.inr
     #
 
-    prev_segimage = get_segmentation_image(previous_time, environment)
+    prev_segimage = experiment.get_segmentation_image(previous_time)
     if prev_segimage is None:
-        monitoring.to_log_and_console("    .. " + proc + ": no segmentation image was found for time "
-                                      + str(previous_time), 2)
+        if previous_time is None:
+            monitoring.to_log_and_console("    .. " + proc + ": was called with 'previous_time = None'", 2)
+        else:
+            monitoring.to_log_and_console("    .. " + proc + ": no segmentation image was found for time "
+                                          + str(previous_time), 2)
         return None
 
     prev_def_segimage = common.add_suffix(prev_segimage, "_deformed", new_dirname=experiment.working_dir.get_tmp_directory(0),
@@ -310,7 +340,7 @@ def get_previous_deformed_segmentation(current_time, environment, parameters, pr
     if os.path.isfile(prev_def_segimage):
         return prev_def_segimage
 
-    deformation = get_deformation_from_current_to_previous(current_time, environment, parameters, previous_time)
+    deformation = get_deformation_from_current_to_previous(current_time, experiment, parameters, previous_time)
 
     if deformation is None:
         monitoring.to_log_and_console("    .. " + proc + ": no deformation was found for time "
@@ -489,11 +519,17 @@ def build_membrane_image(current_time, experiment, parameters, previous_time=Non
             monitoring.to_log_and_console("    .. membrane cell enhancement of '"
                                           + str(input_image).split(os.path.sep)[-1] + "'", 2)
             ace.monitoring.copy(monitoring)
-            previous_deformed_segmentation = get_previous_deformed_segmentation(current_time, environment, parameters,
+            previous_deformed_segmentation = get_previous_deformed_segmentation(current_time, experiment, parameters,
                                                                                 previous_time)
-            ace.cell_membrane_enhancement(input_image, previous_deformed_segmentation, enhanced_image,
-                                          temporary_path=experiment.working_dir.get_tmp_directory(0),
-                                          parameters=parameters.ace)
+            if previous_deformed_segmentation is None:
+                monitoring.to_log_and_console("    .. " + proc + ": switch to 'ace' ", 1)
+                ace.global_membrane_enhancement(input_image, enhanced_image, experiment,
+                                                temporary_path=experiment.working_dir.get_tmp_directory(0),
+                                                parameters=parameters.ace)
+            else:
+                ace.cell_membrane_enhancement(input_image, previous_deformed_segmentation, enhanced_image, experiment,
+                                              temporary_path=experiment.working_dir.get_tmp_directory(0),
+                                              parameters=parameters.ace)
     else:
         monitoring.to_log_and_console("    unknown membrane enhancement method: '"
                                       + str(parameters.intensity_enhancement) + "'", 2)
@@ -516,7 +552,8 @@ def build_membrane_image(current_time, experiment, parameters, previous_time=Non
             monitoring.to_log_and_console("    .. intensity global normalization of '"
                                           + str(input_image).split(os.path.sep)[-1] + "'", 2)
             cpp_wrapping.global_normalization_to_u8(input_image, intensity_image,
-                                                    min_percentile=0.01, max_percentile=0.99,
+                                                    min_percentile=parameters.normalization_min_percentile,
+                                                    max_percentile=parameters.normalization_max_percentile,
                                                     other_options=None, monitoring=monitoring)
         arit_options = "-o 1"
     elif parameters.intensity_transformation.lower() == 'cell_normalization_to_u8':
@@ -526,14 +563,21 @@ def build_membrane_image(current_time, experiment, parameters, previous_time=Non
                                           + str(input_image).split(os.path.sep)[-1] + "'", 2)
             if previous_time is None:
                 monitoring.to_log_and_console("       previous time point was not given", 2)
-                return None
-            previous_deformed_segmentation = get_previous_deformed_segmentation(current_time, environment, parameters,
-                                                                                previous_time)
-            cpp_wrapping.cell_normalization_to_u8(input_image, previous_deformed_segmentation, intensity_image,
-                                                  min_percentile=0.01, max_percentile=0.99,
-                                                  cell_normalization_min_method=parameters.cell_normalization_min_method,
-                                                  cell_normalization_max_method=parameters.cell_normalization_max_method,
-                                                  other_options=None, monitoring=monitoring)
+                monitoring.to_log_and_console("    .. " + proc + ": switch to 'global normalization' ", 1)
+                cpp_wrapping.global_normalization_to_u8(input_image, intensity_image,
+                                                        min_percentile=parameters.normalization_min_percentile,
+                                                        max_percentile=parameters.normalization_max_percentile,
+                                                        other_options=None, monitoring=monitoring)
+            else:
+                previous_deformed_segmentation = get_previous_deformed_segmentation(current_time, experiment, parameters,
+                                                                                    previous_time)
+                cpp_wrapping.cell_normalization_to_u8(input_image, previous_deformed_segmentation, intensity_image,
+                                                      min_percentile=parameters.normalization_min_percentile,
+                                                      max_percentile=parameters.normalization_max_percentile,
+                                                      cell_normalization_min_method=parameters.cell_normalization_min_method,
+                                                      cell_normalization_max_method=parameters.cell_normalization_max_method,
+                                                      sigma=parameters.cell_normalization_sigma,
+                                                      other_options=None, monitoring=monitoring)
         arit_options = "-o 1"
     else:
         monitoring.to_log_and_console("    unknown intensity transformation method: '"

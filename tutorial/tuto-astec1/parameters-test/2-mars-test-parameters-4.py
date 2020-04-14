@@ -13,7 +13,7 @@ EN = '2019-Tutorial100'
 
 begin = 0
 
-EXP_SEG = 'TEST04'
+EXP_SEG = 'MARS_TEST04'
 mars_intensity_transformation = 'Normalization_to_u8'
 mars_intensity_enhancement = 'GACE'
 default_image_suffix = 'mha'

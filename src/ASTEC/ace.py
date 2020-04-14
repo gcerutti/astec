@@ -79,7 +79,7 @@ class AceParameters(object):
         self.hard_threshold = 1.0
 
         self.manual = False
-        self.manual_sigma = 7
+        self.manual_sigma = 15
         self.sensitivity = 0.99
 
         #
@@ -172,33 +172,65 @@ class AceParameters(object):
         if hasattr(parameters, 'mars_sigma_membrane'):
             if parameters.mars_sigma_membrane is not None:
                 self.sigma_membrane = parameters.mars_sigma_membrane
+        if hasattr(parameters, 'astec_sigma_membrane'):
+            if parameters.astec_sigma_membrane is not None:
+                self.sigma_membrane = parameters.astec_sigma_membrane
 
         if hasattr(parameters, 'mars_hard_thresholding'):
             if parameters.mars_hard_thresholding is not None:
                 self.hard_thresholding = parameters.mars_hard_thresholding
+        if hasattr(parameters, 'astec_hard_thresholding'):
+            if parameters.astec_hard_thresholding is not None:
+                self.hard_thresholding = parameters.astec_hard_thresholding
+
         if hasattr(parameters, 'mars_hard_threshold'):
             if parameters.mars_hard_threshold is not None:
                 self.hard_threshold = parameters.mars_hard_threshold
+        if hasattr(parameters, 'astec_hard_threshold'):
+            if parameters.astec_hard_threshold is not None:
+                self.hard_threshold = parameters.astec_hard_threshold
 
         if hasattr(parameters, 'mars_manual'):
             if parameters.mars_manual is not None:
                 self.manual = parameters.mars_manual
+        if hasattr(parameters, 'astec_manual'):
+            if parameters.astec_manual is not None:
+                self.manual = parameters.astec_manual
+
         if hasattr(parameters, 'mars_manual_sigma'):
             if parameters.mars_manual_sigma is not None:
                 self.manual_sigma = parameters.mars_manual_sigma
+        if hasattr(parameters, 'astec_manual_sigma'):
+            if parameters.astec_manual_sigma is not None:
+                self.manual_sigma = parameters.astec_manual_sigma
+
         if hasattr(parameters, 'mars_sensitivity'):
             if parameters.mars_sensitivity is not None:
                 self.sensitivity = parameters.mars_sensitivity
+        if hasattr(parameters, 'astec_sensitivity'):
+            if parameters.astec_sensitivity is not None:
+                self.sensitivity = parameters.astec_sensitivity
 
         if hasattr(parameters, 'mars_sigma_TV'):
             if parameters.mars_sigma_TV is not None:
                 self.sigma_TV = parameters.mars_sigma_TV
+        if hasattr(parameters, 'astec_sigma_TV'):
+            if parameters.astec_sigma_TV is not None:
+                self.sigma_TV = parameters.astec_sigma_TV
+
         if hasattr(parameters, 'mars_sigma_LF'):
             if parameters.mars_sigma_LF is not None:
                 self.sigma_LF = parameters.mars_sigma_LF
+        if hasattr(parameters, 'astec_sigma_LF'):
+            if parameters.astec_sigma_LF is not None:
+                self.sigma_LF = parameters.astec_sigma_LF
+
         if hasattr(parameters, 'mars_sample'):
             if parameters.mars_sample is not None:
                 self.sample = parameters.mars_sample
+        if hasattr(parameters, 'astec_sample'):
+            if parameters.astec_sample is not None:
+                self.sample = parameters.astec_sample
 
         if hasattr(parameters, 'default_image_suffix'):
             if parameters.default_image_suffix is not None:
@@ -242,6 +274,11 @@ def global_membrane_enhancement(path_input, path_output, experiment, binary_inpu
     if not isinstance(experiment, common.Experiment):
         monitoring.to_log_and_console(str(proc) + ": unexpected type for 'experiment' variable: "
                                       + str(type(experiment)))
+        sys.exit(1)
+
+    if not isinstance(parameters, AceParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
         sys.exit(1)
 
     if not os.path.isfile(path_input):
@@ -342,7 +379,9 @@ def global_membrane_enhancement(path_input, path_output, experiment, binary_inpu
                                                    path_output=bin_image, manual=parameters.manual,
                                                    manual_sigma=parameters.manual_sigma,
                                                    sensitivity=parameters.sensitivity, monitoring=monitoring)
-                os.remove(hist_file)
+
+                if monitoring.keepTemporaryFiles is False:
+                    os.remove(hist_file)
         else:
             bin_image = os.path.join(temporary_path, bin_image)
         #
@@ -385,13 +424,13 @@ def global_membrane_enhancement(path_input, path_output, experiment, binary_inpu
         for suffix in ['.ext', '.phi', '.theta', '.bin']:
             tmp_image = common.find_file(temporary_path, prefix_name + suffix, callfrom=proc, local_monitoring=None,
                                          verbose=False)
-            if tmp_image is not None:
+            if tmp_image is not None and monitoring.keepTemporaryFiles is False:
                 os.remove(os.path.join(temporary_path, tmp_image))
 
     for suffix in ['.imvp1', '.imvp2', '.imvp3', '.tv', '.lf']:
         tmp_image = common.find_file(temporary_path, bin_name + suffix, callfrom=proc, local_monitoring=None,
                                      verbose=False)
-        if tmp_image is not None:
+        if tmp_image is not None and monitoring.keepTemporaryFiles is False:
             os.remove(os.path.join(temporary_path, tmp_image))
 
     return
@@ -453,8 +492,8 @@ def cell_binarization(parameters_for_parallelism):
     # threshold extrema
     #
 
-    full_ext = tmp_prefix_name + ".ext.inr"
-    cell_ext = cell_prefix_name + ".ext" + ".inr"
+    full_ext = tmp_prefix_name + ".ext" "." + parameters.default_image_suffix
+    cell_ext = cell_prefix_name + ".ext" + "." + parameters.default_image_suffix
     cell_hist = cell_prefix_name + ".hist" + ".txt"
     cell_bin = cell_prefix_name + ".bin" + "." + parameters.default_image_suffix
 
@@ -467,10 +506,10 @@ def cell_binarization(parameters_for_parallelism):
         cpp_wrapping.seuillage(path_input=cell_ext, path_output=cell_bin,
                                low_threshold=parameters.hard_threshold, monitoring=monitoring)
     else:
-        full_theta = tmp_prefix_name + ".theta.inr"
-        full_phi = tmp_prefix_name + ".phi.inr"
-        cell_theta = cell_prefix_name + ".theta" + ".inr"
-        cell_phi = cell_prefix_name + ".phi" + ".inr"
+        full_theta = tmp_prefix_name + ".theta" + "." + parameters.default_image_suffix
+        full_phi = tmp_prefix_name + ".phi" + "." + parameters.default_image_suffix
+        cell_theta = cell_prefix_name + ".theta" + "." + parameters.default_image_suffix
+        cell_phi = cell_prefix_name + ".phi" + "." + parameters.default_image_suffix
 
         cpp_wrapping.crop_image(full_theta, cell_theta, bbox, monitoring=monitoring)
         cpp_wrapping.crop_image(full_phi, cell_phi, bbox, monitoring=monitoring)
@@ -498,18 +537,35 @@ def cell_binarization(parameters_for_parallelism):
 #
 
 
-def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_output,
+def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_output, experiment,
                               temporary_path=None, parameters=None, n_processor=7):
     """
 
     :param path_input:
     :param previous_deformed_segmentation:
     :param path_output:
+    :param experiment:
     :param temporary_path:
     :param parameters:
     :param n_processor:
     :return:
     """
+
+    proc = "cell_membrane_enhancement"
+
+    #
+    # parameter type checking
+    #
+
+    if not isinstance(experiment, common.Experiment):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'experiment' variable: "
+                                      + str(type(experiment)))
+        sys.exit(1)
+
+    if not isinstance(parameters, AceParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
+        sys.exit(1)
 
     #
     # set names
@@ -648,7 +704,8 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
     #
 
     bin_image = tmp_prefix_name + ".bin." + parameters.default_image_suffix
-    cpp_wrapping.create_image(bin_image, tmp_prefix_name + ".ext.inr", "-o 1", monitoring=monitoring)
+    cpp_wrapping.create_image(bin_image, tmp_prefix_name + ".ext." + parameters.default_image_suffix, "-o 1",
+                              monitoring=monitoring)
 
     for binary_output_cell in outputs:
         cell_label = binary_output_cell[0]
@@ -661,12 +718,12 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
     # tensor voting
     #
 
-    global_membrane_enhancement(bin_image, path_output, binary_input=True,
+    global_membrane_enhancement(bin_image, path_output, experiment, binary_input=True,
                                 temporary_path=temporary_path, parameters=parameters)
 
-    os.remove(tmp_prefix_name + '.ext.inr')
-    os.remove(tmp_prefix_name + '.phi.inr')
-    os.remove(tmp_prefix_name + '.theta.inr')
+    os.remove(tmp_prefix_name + '.ext.' + parameters.default_image_suffix)
+    os.remove(tmp_prefix_name + '.phi.' + parameters.default_image_suffix)
+    os.remove(tmp_prefix_name + '.theta.' + parameters.default_image_suffix)
     os.remove(tmp_prefix_name + ".bin." + parameters.default_image_suffix)
 
     return

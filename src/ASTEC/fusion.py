@@ -2654,8 +2654,8 @@ def fusion_control(experiment, parameters):
         #
 
         extra_zeros = ''
-        if time_length0 < experiment.get_time_digits():
-            extra_zeros = (experiment.get_time_digits() - time_length0) * '0'
+        if time_length0 < experiment.get_acquisition_time_digits():
+            extra_zeros = (experiment.get_acquisition_time_digits() - time_length0) * '0'
 
         #
         # no indication about the time interval to be process

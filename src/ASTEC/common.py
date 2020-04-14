@@ -345,7 +345,7 @@ class RawdataChannel(object):
         #
         #
         #
-        self._time_digits = 3
+        self._acquisition_time_digits = 3
 
     ############################################################
     #
@@ -529,7 +529,7 @@ class RawdataChannel(object):
         return False
 
     def timepoint_to_str(self, i):
-        return '{:0{width}d}'.format(i, width=self._time_digits)
+        return '{:0{width}d}'.format(i, width=self._acquisition_time_digits)
 
 #
 #
@@ -669,7 +669,7 @@ class GenericSubdirectory(object):
         self._file_prefix = None
         self._file_suffix = None
         self._time_prefix = '_t'
-        self._time_digits = 3
+        self._acquisition_time_digits = 3
 
     ############################################################
     #
@@ -697,7 +697,7 @@ class GenericSubdirectory(object):
         #
         print("    - _file_prefix = " + str(self._file_prefix))
         print("    - _file_suffix = " + str(self._file_suffix))
-        print("    - _time_digits = " + str(self._time_digits))
+        print("    - _acquisition_time_digits = " + str(self._acquisition_time_digits))
         return
 
     def _write_directory_list_in_file(self, logfile):
@@ -732,7 +732,7 @@ class GenericSubdirectory(object):
         #
         logfile.write("    - _file_prefix = " + str(self._file_prefix) + "\n")
         logfile.write("    - _file_suffix = " + str(self._file_suffix) + "\n")
-        logfile.write("    - _time_digits = " + str(self._time_digits) + "\n")
+        logfile.write("    - _acquisition_time_digits = " + str(self._acquisition_time_digits) + "\n")
         return
 
     ############################################################
@@ -770,6 +770,8 @@ class GenericSubdirectory(object):
         return self._file_prefix + self._file_suffix + self._time_prefix + self._get_time_format()
 
     def get_image_name(self, time_value):
+        if time_value is None:
+            return None
         return self._file_prefix + self._file_suffix + self._time_prefix + self.timepoint_to_str(time_value)
 
     def get_log_directory(self, i=0):
@@ -829,7 +831,7 @@ class GenericSubdirectory(object):
         return _get_directory(self._sub_directory, i)
 
     def _get_time_format(self):
-        form = "%0" + str(self._time_digits) + "d"
+        form = "%0" + str(self._acquisition_time_digits) + "d"
         return form
 
     def get_time_prefix(self):
@@ -867,7 +869,6 @@ class GenericSubdirectory(object):
         build the list of directories from the directory suffixes
         :return:
         """
-        proc = "GenericSubdirectory._set_directory"
         if self._directory is not None and force is False:
             return
 
@@ -1003,9 +1004,9 @@ class GenericSubdirectory(object):
 
     def timepoint_to_str(self, i):
         if type(i) is int:
-            return '{:0{width}d}'.format(i, width=self._time_digits)
+            return '{:0{width}d}'.format(i, width=self._acquisition_time_digits)
         elif type(i) is str:
-            return '{:0{width}d}'.format(int(i), width=self._time_digits)
+            return '{:0{width}d}'.format(int(i), width=self._acquisition_time_digits)
         else:
             print("GenericSubdirectory.timepoint_to_str: type '" + str(type(i)) + "' not handled yet.")
             return None
@@ -1205,13 +1206,8 @@ class Experiment(object):
         self.delta_time_point = 1
         self.delay_time_point = 0
 
-        self._time_digits = 3
-
-        #
-        # stage
-        # eg FUSE, MARS, MAN-CORRECTION, SEG, POST-CORRECTION, INTRAREG, PROPERTIES
-        #
-        self.stage = None
+        self._acquisition_time_digits = 3
+        self._unique_id_time_digits = 4
 
         #
         # sub-directories
@@ -1245,13 +1241,16 @@ class Experiment(object):
         print("")
         print('Experiment parameters')
 
-        print('- embryo_path is ' + str(self.embryo_path))
-        print('- embryo_name is ' + str(self.embryo_name))
+        print('- _embryo_path is ' + str(self._embryo_path))
+        print('- _embryo_name is ' + str(self._embryo_name))
 
         print('- first_time_point is ' + str(self.first_time_point))
         print('- last_time_point is ' + str(self.last_time_point))
         print('- delta_time_point is ' + str(self.delta_time_point))
         print('- delay_time_point is ' + str(self.delay_time_point))
+
+        print('- _acquisition_time_digits is ' + str(self._acquisition_time_digits))
+        print('- _unique_id_time_digits is ' + str(self._unique_id_time_digits))
 
         print('- raw data directory is')
         self.rawdata_dir.print_parameters()
@@ -1283,13 +1282,16 @@ class Experiment(object):
                 logfile.write("\n")
                 logfile.write('Experiment parameters\n')
 
-                logfile.write('- embryo_path is ' + str(self.embryo_path)+'\n')
-                logfile.write('- embryo_name is ' + str(self.embryo_name)+'\n')
+                logfile.write('- _embryo_path is ' + str(self._get_embryo_path())+'\n')
+                logfile.write('- _embryo_name is ' + str(self.get_embryo_name())+'\n')
 
                 logfile.write('- first_time_point is ' + str(self.first_time_point)+'\n')
                 logfile.write('- last_time_point is ' + str(self.last_time_point)+'\n')
                 logfile.write('- delta_time_point is ' + str(self.delta_time_point)+'\n')
                 logfile.write('- delay_time_point is ' + str(self.delay_time_point)+'\n')
+
+                logfile.write('- _acquisition_time_digits is ' + str(self._acquisition_time_digits) + '\n')
+                logfile.write('- _unique_id_time_digits is ' + str(self._unique_id_time_digits) + '\n')
 
                 logfile.write('- raw data directory is \n')
                 self.rawdata_dir.write_parameters_in_file(logfile)
@@ -1379,6 +1381,44 @@ class Experiment(object):
     #
     #
     #
+
+    def _update_embryo_path_from_parameters(self, parameters):
+        proc = '_update_embryo_path_from_parameters'
+        if hasattr(parameters, 'PATH_EMBRYO'):
+            if parameters.PATH_EMBRYO is not None:
+                if not os.path.isdir(parameters.PATH_EMBRYO):
+                    print(proc + ": '" + parameters.PATH_EMBRYO + "' is not a valid directory. Exiting.")
+                    sys.exit(1)
+                self._set_embryo_path(parameters.PATH_EMBRYO)
+            else:
+                self._set_embryo_path(os.getcwd())
+        else:
+            self._set_embryo_path(os.getcwd())
+        return
+
+    def _embryo_name_from_embryo_path(self):
+        sp = self._embryo_path.split(os.path.sep)
+        if len(sp) is 0:
+            return
+        if sp[-1] is not '':
+            self._set_embryo_name(sp[-1])
+            return
+        if len(sp) >= 2 and sp[-2] is not '':
+            self._set_embryo_name(sp[-2])
+            return
+        return
+
+    def _update_embryo_name_from_parameters(self, parameters):
+        self._update_embryo_path_from_parameters(parameters)
+        if hasattr(parameters, 'EN'):
+            if parameters.EN is not None:
+                self._set_embryo_name(parameters.EN)
+            else:
+                self._embryo_name_from_embryo_path()
+        else:
+            self._embryo_name_from_embryo_path()
+        return
+
     def update_from_parameters(self, parameter_file):
         """
 
@@ -1396,26 +1436,8 @@ class Experiment(object):
 
         parameters = imp.load_source('*', parameter_file)
 
-        if hasattr(parameters, 'PATH_EMBRYO'):
-            if parameters.PATH_EMBRYO is not None:
-                if not os.path.isdir(parameters.PATH_EMBRYO):
-                    print(proc + ": '" + parameters.PATH_EMBRYO + "' is not a valid directory. Exiting.")
-                    sys.exit(1)
-                self._set_embryo_path(parameters.PATH_EMBRYO)
-            else:
-                self._set_embryo_path(os.getcwd())
-        else:
-            self._set_embryo_path(os.getcwd())
-
-        if hasattr(parameters, 'EN'):
-            if parameters.EN is not None:
-                self._set_embryo_name(parameters.EN)
-            else:
-                embryo_path = self.embryo_path
-                self._set_embryo_name(embryo_path.split(os.path.sep)[-1])
-        else:
-            embryo_path = self.embryo_path
-            self._set_embryo_name(embryo_path.split(os.path.sep)[-1])
+        self._update_embryo_path_from_parameters(parameters)
+        self._update_embryo_name_from_parameters(parameters)
 
         if hasattr(parameters, 'begin'):
             if parameters.begin is not None:
@@ -1479,89 +1501,23 @@ class Experiment(object):
     ############################################################
 
     def get_embryo_name(self):
-        return self.embryo_name
+        if self._embryo_name is None:
+            self._set_embryo_name(self._embryo_path.split(os.path.sep)[-1])
+        return self._embryo_name
 
     def _get_embryo_path(self):
-        return self.embryo_path
-
-    def _get_image_format(self, directory_type, subdirectory_type='fuse'):
-        """
-
-        :param directory_type:
-        :param subdirectory_type:
-        :return:
-        """
-        suffix = self._get_image_suffix(directory_type, subdirectory_type)
-        if suffix is None:
-            return None
-        return suffix + '_t' + self.get_time_format()
-
-    def _get_image_name(self, index, directory_type, subdirectory_type='fuse'):
-        """
-
-        :param index:
-        :param directory_type:
-        :param subdirectory_type:
-        :return:
-        """
-        ind = self.get_time_index(index)
-        suffix = self._get_image_suffix(directory_type, subdirectory_type)
-        if suffix is None:
-            return None
-        return suffix + '_t' + str(ind)
-
-    def _get_image_suffix(self, directory_type, subdirectory_type='fuse'):
-        """
-
-        :param directory_type:
-        :param subdirectory_type:
-        :return:
-        """
-        if directory_type.lower() == 'fuse':
-            return self.embryo_name + '_fuse'
-        elif directory_type.lower() == 'intrareg':
-            if subdirectory_type.lower() == 'fuse':
-                return self.embryo_name + '_intrareg_fuse'
-            elif subdirectory_type.lower() == 'post':
-                return self.embryo_name + '_intrareg_post'
-            elif subdirectory_type.lower() == 'seg':
-                return self.embryo_name + '_intrareg_seg'
-            else:
-                print("Experiment.get_image_name: unknown arg #2.")
-                return None
-        elif directory_type.lower() == 'post':
-            return self.embryo_name + '_post'
-        elif directory_type.lower() == 'seg':
-            return self.embryo_name + '_seg'
-        else:
-            print("Experiment.get_image_name: unknown arg.")
-            return None
+        return self._embryo_path
 
     def get_log_dirname(self):
         return os.path.join(self.working_dir.get_log_directory())
-
-    def _get_movie_name(self, first, last, directory_type, subdirectory_type='fuse'):
-        """
-
-        :param first:
-        :param last:
-        :param directory_type:
-        :param subdirectory_type:
-        :return:
-        """
-        fi = self.get_time_index(first)
-        la = self.get_time_index(last)
-        suffix = self._get_image_suffix(directory_type,
-                                        subdirectory_type)
-        if suffix is None:
-            return None
-        return suffix + '_t' + str(fi) + '-' + str(la)
 
     def get_segmentation_image(self, time_value):
         proc = 'Experiment.get_segmentation_image'
         #
         # try to find segmentation image
         #
+        if time_value is None:
+            return None
         seg_name = self.astec_dir.get_image_name(time_value)
         seg_image = find_file(self.astec_dir.get_directory(), seg_name, callfrom=proc, local_monitoring=None,
                               verbose=False)
@@ -1572,7 +1528,7 @@ class Experiment(object):
         #
         mars_name = self.mars_dir.get_image_name(time_value)
         mars_image = find_file(self.mars_dir.get_directory(), mars_name, callfrom=proc, local_monitoring=None,
-                              verbose=False)
+                               verbose=False)
         if mars_image is not None:
             seg_name += "." + self.result_image_suffix
             monitoring.to_log_and_console("    .. " + proc + ": copy '" + str(mars_image) + "' into '"
@@ -1593,15 +1549,18 @@ class Experiment(object):
 
         return None
 
-    def get_time_digits(self):
-        return self._time_digits
+    def get_acquisition_time_digits(self):
+        return self._acquisition_time_digits
+
+    def get_unique_id_time_digits(self):
+        return self._unique_id_time_digits
 
     def get_time_format(self):
-        form = "%0" + str(self._time_digits) + "d"
+        form = "%0" + str(self._acquisition_time_digits) + "d"
         return form
 
     def get_time_index(self, index):
-        ind = '{:0{width}d}'.format(index, width=self._time_digits)
+        ind = '{:0{width}d}'.format(index, width=self._acquisition_time_digits)
         return ind
 
     ############################################################
@@ -1611,7 +1570,7 @@ class Experiment(object):
     ############################################################
 
     def _set_embryo_name(self, embryo_name):
-        self.embryo_name = embryo_name
+        self._embryo_name = embryo_name
         #
         # set file prefix
         #
@@ -1627,7 +1586,7 @@ class Experiment(object):
             print("Experiment._set_embryo_path: '" + str(embryo_path) + "' is not a valid directory.")
             print("\t Exiting.")
             sys.exit(1)
-        self.embryo_path = embryo_path
+        self._embryo_path = embryo_path
         #
         # set parent directories
         #

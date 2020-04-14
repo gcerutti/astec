@@ -8,4 +8,4 @@ EN = '2019-Tutorial100'
 
 begin = 0
 
-EXP_SEG = 'TEST01'
+EXP_SEG = 'MARS_TEST01'

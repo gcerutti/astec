@@ -405,6 +405,7 @@ class MarsParameters(WatershedParameters, SeedEditionParameters, reconstruction.
 def build_seeds(input_image, difference_image, output_seed_image, experiment, parameters,
                 operation_type='min'):
     """
+    Extract regional minima or maxima from an image and label them.
 
     :param input_image:
     :param difference_image:
@@ -586,6 +587,10 @@ def watershed(seed_image, membrane_image, result_image, experiment, parameters):
         if not os.path.isfile(height_image) or monitoring.forceResultsToBeBuilt is True:
             cpp_wrapping.linear_smoothing(membrane_image, height_image, parameters.watershed_membrane_sigma,
                                           real_scale=True, other_options="-o 2", monitoring=monitoring)
+        if not os.path.isfile(height_image):
+            monitoring.to_log_and_console("       smoothing '" + str(membrane_image).split(os.path.sep)[-1] +
+                                          "' seems to have failed, use non-smoothed image", 2)
+            height_image = membrane_image
     else:
         height_image = membrane_image
 

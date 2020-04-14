@@ -1,8 +1,8 @@
 ############################################################
 ##
-## useful parameters for seeded watershed
+## useful parameters for segmentation propagation
 ##
-## to be used with 2-mars.py
+## to be used with 4-astecnew.py
 ##
 ############################################################
 
@@ -32,16 +32,25 @@
 
 
 begin = 0
-# delta = 1
+end = 0
+delta = 1
+raw_delay = 0
 
 ## ##### explanation #####
 ##
-## time point to be processed
-## to process several time points, use 'mars_begin' and 'mars_end'
+## time points to be processed
 ##
 ## begin: first time point
+## end: last time point
 ## delta: delta/time interval between two time points (if one does not want
 ##        to deal with every single time point) (default = 1)
+##
+## For the fusion step, not giving the 'begin' and 'end' values
+## causes the fusion of all found data in raw data directories
+## according these 4 directories are different
+##
+## When testing or tuning parameters, it is advised to set 'begin' and 'end'
+## at the same value 
 ##
 
 
@@ -94,12 +103,13 @@ begin = 0
 
 
 
-# mars_intensity_transformation = 'Identity'
-# mars_intensity_enhancement = None
+# astec_intensity_transformation = 'Normalization_to_u8'
+# astec_intensity_enhancement = None
+
 
 ## ##### explanation #####
 ##
-## MARS method (nothing but a seeded watershed) may be applied on
+## ASTEC method (nothing but a cell-based seeded watershed) may be applied on
 ## a transformed input image or on the original image (eg the result of
 ## the fusion step). This transformed imaged is made of a combination
 ## (by the maximum operator) of the transformed intensity image and a
@@ -108,21 +118,29 @@ begin = 0
 ## - None
 ## - Identity (the input image)
 ## - Normalization_to_u8 (a normalized version of the input image on 1 byte)
+## - Cell_Normalization_to_u8 (a cell-based normalized version of the input image on 1 byte)
 ## The membrane-enhanced image can be
 ## - None
 ## - GACE: 'Global Automated Cell Extractor'
+## - GLACE:
 ##
 ## This choice can be tuned with the two parameters
-## - mars_intensity_transformation
-## - mars_intensity_enhancement
+## - astec_intensity_transformation
+## - astec_intensity_enhancement
 ##
-## mars_intensity_transformation can be chosen in [None, 'Identity', 'Normalization_to_u8']
-## mars_intensity_enhancement can be chosen in [None, 'GACE']
+## astec_intensity_transformation can be chosen in [None, 'Identity', 'Normalization_to_u8', 'Cell_Normalization_to_u8']
+## astec_intensity_enhancement can be chosen in [None, 'GACE', 'GLACE']
+##
+## The 'Cell_Normalization_to_u8' intensity transformation method can be tuned with
+## - astec_cell_normalization_min_method
+## - astec_cell_normalization_min_method
+## both variable are to be chosen in ['global', 'cell', 'cellborder', 'cellinterior', 'voxel']
+## Choosing both of them as 'global' comes to choose 'Normalization_to_u8'
 ##
 
 
 
-# mars_keep_reconstruction = True
+# astec_keep_reconstruction = True
 
 ## ##### explanation #####
 ##
@@ -130,40 +148,32 @@ begin = 0
 ## the original image. If one does not want to keep such images, please turn the next variable to False
 
 
-
+# astec_cell_normalization_min_method = 'cellinterior'
+# astec_cell_normalization_max_method = 'cellborder'
 # normalization_min_percentile = 0.01
 # normalization_max_percentile = 0.99
+# cell_normalization_sigma = 5.0
 
 ## ##### explanation #####
 ##
-## 'Normalization_to_u8' tuning parameters
-##
-## the intensity values of the input image will be stretched in the range [0, 255]
-## to do so, the cumulative histogram of the input image is computed
-## - I_{min} is the intensity value corresponding to the 'normalization_min_percentile'
-## - I_{max} is the intensity value corresponding to the 'normalization_max_percentile'
-##
-## the mapping is then defined by
-## - values below I_{min} are set to 0
-## - values in [I_{min}, I_{max}] are linearly mapped into [0, 255]
-## - values above I_{max} are set to 255
+## to be written
 
 
 
-# mars_sigma_membrane = 0.9
-# mars_hard_thresholding = False
-# mars_hard_threshold = 1.0
-# mars_sensitivity = 0.99
-# mars_manual = False
-# mars_manual_sigma = 15
-# mars_sigma_TV = 3.6
-# mars_sigma_LF = 0.9
-# mars_sample = 0.2
+# astec_sigma_membrane = 0.9
+# astec_hard_thresholding = 1.0
+# astec_hard_threshold = 1.0
+# astec_sensitivity = 0.99
+# astec_manual = False
+# astec_manual_sigma = 15
+# astec_sigma_TV = 3.6
+# astec_sigma_LF = 0.9
+# astec_sample = 0.2
 
 ## ##### explanation #####
 ##
-## GACE tuning parameters
-## GACE method is made of three steps
+## GACE/GLACE parameters
+## GACE/GLACE methods are made of three steps. GLACE is nothing but a cell-based GACE.
 ## 1. membrane detection
 ## 2. membrane segmentation
 ## 3. tensor voting
@@ -171,40 +181,40 @@ begin = 0
 ## - membrane detection:
 ## this is the gaussian sigma that is used to compute image derivatives
 ## (in real units, a priori 0.9 um is a good choice for data like Patrick/Ralph/Aquila)
-## mars_sigma_membrane=0.9
+## astec_sigma_membrane=0.9
 ##
 ## - membrane segmentation:
 ## segmentation of the computed extrema is done by thresholding.
-## Either mars_hard_thresholding is set to True, and a global hard threshold (mars_hard_threshold)
+## Either astec_hard_thresholding is set to True, and a global hard threshold (astec_hard_threshold)
 ## is applied to the whole extrema image. This is not advised, and should be used only when the
 ## adaptative thresholding has failed.
-## Or mars_hard_thresholding is set to False, meaning that an adaptative thresholding is computed
+## Or astec_hard_thresholding is set to False, meaning that an adaptative thresholding is computed
 ## by histogram fitting. This adaptative thresholding is governed by three parameters
-## - mars_sensitivity:
+## - astec_sensitivity:
 ##   membrane binarization parameter, use larger values (smaller than or equal to 1.0) to increase the quantity
 ##   of binarized membranes to be used for tensor voting. Default value is 0.99.
 ##   # /!\ if failure, one should enter in "manual" mode of the function
 ##   anisotropicHist via activation of 'manual' option
-## - mars_manual:
+## - astec_manual:
 ##   By default, this parameter is set to False. If failure, (meaning that thresholds are very bad,
 ##   meaning that the binarized image is very bad), set this parameter to True and relaunch the
 ##   computation on the test image. If the method fails again, "play" with the value of manual_sigma...
 ##   and good luck.
-## - mars_manual_sigma:
+## - astec_manual_sigma:
 ##   Axial histograms fitting initialization parameter for the computation of membrane image binarization
 ##   axial thresholds (this parameter is used if manual = True). One may need to test different values of
 ##   manual_sigma. We suggest to test values between 5 and 25 in case of initial failure. Good luck.
 ##
 ## - tensor voting:
 ## tensor voting is governed by 3 parameters
-## - mars_sigma_TV:
+## - astec_sigma_TV:
 ##   parameter which defines the voting scale for membrane structures propagation by tensor voting method (real
 ##   coordinates). This parameter shoud be set between 3 um (little cells) and 4.5 um
 ##   (big gaps in the binarized membrane image)
-## - mars_sample:
+## - astec_sample:
 ##   Parameter for tensor voting computation speed optimisation (do not touch if not bewared)
 ##   set the fraction of binarized membrane image used for tensor voting (default is 0.2).
-## - mars_sigma_LF:
+## - astec_sigma_LF:
 ##   Additional smoothing parameter for reconstructed image (in real coordinates).
 ##   It seems that the default value = 0.9 um is ok for standard use.
 ##
@@ -213,69 +223,35 @@ begin = 0
 
 ######################################################################
 ##
-## mars parameters
+## SEGMENTATION PROPAGATION PARAMETERS
 ##
 ######################################################################
 
 
-
-# mars_begin = -1
-# mars_end = -1
+# propagation_strategy = ""
 
 ## ##### explanation #####
 ##
-## interval of time points to be segmented by MARS method
-## default is that only the time point 'begin' (see above)
-## is segmented. More time points can be segmented only
-## 'mars_begin' and 'mars_end' variables. Please note that
-## a 'delta' (see above) step will take place between two processed time points.
+## Different segmentation propagation strategies are implemented
+## - propagation_strategy = 'seeds_from_previous_segmentation'
+##   In this strategy, a seeded watershed is used to segment the image at timepoint t+1
+##   Seeds are built from the cells of the segmentation at timepoint t
+##   The segmentation at timepoint t is then deformed onto the image at timepoint t+1
+##   and cells are eroded
 
-
-
-# seed_edition_dir = None
-# seed_edition_files = None
-
-## ##### explanation #####
-##
-## if run with '-k', temporary files, including the computed seeds
-## are kept into a temporary directory, and can be corrected in several rounds
-## seed_edition_files = [['seeds_to_be_fused_001.txt', 'seeds_to_be_created_001.txt'], \
-##                       ['seeds_to_be_fused_002.txt', 'seeds_to_be_created_002.txt'],
-##                       ...
-##                       ['seeds_to_be_fused_00X.txt', 'seeds_to_be_created_00X.txt']]
-## each line of a 'seeds_to_be_fused_00x.txt' file contains the labels to be fused
-##    e.g. "10 4 2 24"
-##    a same label can be found in several lines, meaning that all the labels of these
-##    lines will be fused
-## each line of 'seeds_to_be_created_00x.txt' contains the coordinates of a seed to be added
-##
-
-
-
-# watershed_seed_sigma = 0.6
-# watershed_membrane_sigma = 0.15
-# watershed_seed_hmin = 4
-# watershed_seed_high_threshold = 4
+# previous_seg_erosion_cell_iterations = 10
+# previous_seg_erosion_background_iterations = 25
+# previous_seg_erosion_cell_min_size = 1000
 
 ## ##### explanation #####
 ##
-## watershed parameters
+## Parameters that control the seed construction from the deformed
+## segmentation at timepoint t
+## - previous_seg_erosion_cell_iterations: erosion size for the cells
+## - previous_seg_erosion_background_iterations: erosion size for the background
+## - previous_seg_erosion_cell_min_size: cells above this minimum size are discarded
+##   for seed building
 ##
-## the watershed segmentation has several steps
-## 1. smoothing of initial image for seed extraction
-##    mars_sigma1 (for back-compatibility)
-##    watershed_seed_sigma
-##    default value is 0.6 (real coordinates, ie 0.6 um)
-## 2. smoothing of reconstructed image for image regularization prior to segmentation
-##    mars_sigma2 (for back-compatibility)
-##    watershed_membrane_sigma
-##    default value is 0.15 (real coordinates, ie 0.15 um)
-## 3. regional minima extraction
-##    mars_h_min (for back-compatibility)
-##    watershed_seed_hmin
-##    default value is 4
-##    Please note that this value may depend on the transformation applied on the input image, ie
-##    h_min value should not be the same for the original image, or the image normalized into 1 byte.
-## 4. regional minima thresholding
-##    watershed_seed_high_threshold
-##
+
+
+

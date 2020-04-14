@@ -141,7 +141,7 @@ def main():
     # 2. the log file name
     #    it creates the logfile dir, if necessary
     #
-    experiment.working_dir = experiment.seg_dir
+    experiment.working_dir = experiment.astec_dir
     monitoring.set_log_filename(experiment, __file__, start_time)
 
     #

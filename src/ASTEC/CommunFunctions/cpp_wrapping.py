@@ -952,6 +952,7 @@ def global_normalization_to_u8(path_input, path_output, min_percentile=0.01, max
 def cell_normalization_to_u8(path_input, path_segmentation, path_output, min_percentile=0.01, max_percentile=0.99,
                              cell_normalization_min_method='cellinterior',
                              cell_normalization_max_method='cellborder',
+                             sigma=5.0,
                              other_options=None, monitoring=None):
     """
 
@@ -962,6 +963,7 @@ def cell_normalization_to_u8(path_input, path_segmentation, path_output, min_per
     :param max_percentile:
     :param cell_normalization_min_method:
     :param cell_normalization_max_method:
+    :param sigma:
     :param other_options:
     :param monitoring:
     :return:
@@ -977,7 +979,7 @@ def cell_normalization_to_u8(path_input, path_segmentation, path_output, min_per
     command_line += " -min-method " + cell_normalization_min_method
     command_line += " -max-method " + cell_normalization_max_method
     command_line += " -min-percentile " + str(min_percentile) + " -max-percentile " + str(max_percentile)
-    command_line += " -sigma 5.0"
+    command_line += " -sigma " + str(sigma)
 
     #
     #
@@ -3003,7 +3005,7 @@ def connexe_with_options(path_input, path_output='tmp_threshold', path_seeds=Non
         os.system('rm ' + path_output)
         return out  
 
-def compose_trsf(path_trsf_1, path_trsf_2, path_output="tmp_compose.inr", lazy=True, verbose=False):
+def obsolete_compose_trsf(path_trsf_1, path_trsf_2, path_output="tmp_compose.inr", lazy=True, verbose=False):
   '''
   Transformations composition 
   '''

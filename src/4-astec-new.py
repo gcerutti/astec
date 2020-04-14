@@ -171,7 +171,7 @@ def main():
     #
     # processing
     #
-    astec.astec_control(experiment, parameters)
+    ret = astec.astec_control(experiment, parameters)
 
     #
     # end of execution
