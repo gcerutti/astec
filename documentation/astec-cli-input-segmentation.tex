@@ -88,10 +88,14 @@ The option \option{intensity\_transformation} can be set to one out the two (seg
 \end{itemize}
 
 \texttt{GACE} and \texttt{GLACE} consist both of the following steps.
+
 \begin{enumerate}
 \itemsep -0.5ex
+
 \item Membrane dedicated response computation. The Hessian is computed by convolution with the second derivatives of a Gaussian kernel (whose standard  deviation is given by \option{mars\_sigma\_membrane}). The analysis of eigenvalues and vectors of the Hessian matrix allows to recognize the normal direction of an eventual membrane. A response is then computed based on a contour detector in the membrane normal direction.
+
 \item Directional extrema extraction. Extrema of the response in the direction of the membrane normal are extracted. It yields a valued image of membrane centerplanes.
+
 \item \label{it:gace:threshold} Direction dependent automated thresholding.
 
 It has been observed that the membrane contrast depends on the membrane orientation with respect to the microscope apparatus. Directional response histogram are built and a threshold is computed for each of them, which allows to compute a direction-dependent threshold. 
@@ -104,6 +108,22 @@ Last, the user can directly give the threshold to be applied (this is then a glo
 
 \item Sampling. Points issued from the previous binarization step will be further used for a tensor voting procedure. To decrease the computational cost, only a fraction of the binary membrane may be retained. 
 This fractions is set by the \option{mars\_sample} option.
+
+Sampling is performed through pseudo-random numbers. To reproduce a  segmentation experiment by \texttt{2-mars.py}, the random seed can be set thanks to the \option{mars\_sample\_random\_seed} option.
+
+If one want to reproduce segmentation experiments, 
+the verboseness of the experiments has to be increased by adding at least one \option{-v} in the command line of \texttt{2-mars.py}. This ensures that the necessary information will be written into the \texttt{.log} file.
+Then, to reproduce one given experiment, one has to retrieve the used random seed \texttt{'RRRRRRRRRR'} from the line 
+\begin{verbatim}
+Sampling step : random seed = RRRRRRRRRR
+\end{verbatim}
+in the log file 
+\texttt{SEG/SEG\_<EXP\_SEG>/LOGS/2-mars-XXXX-XX-XX-XX-XX-XX.log}, and then to add the line
+\begin{verbatim}
+mars_sample_random_seed = 'RRRRRRRRRR'
+\end{verbatim}
+in the parameter file to get the same sampling.
+
 
 \item \label{it:gace:tensorvoting} Tensor voting.
 Each retained point of the binary image (together with its membrane normal direction) generates a tensor voting field, whose extent is controlled by the \option{mars\_sigma\_TV} option (expressed in voxel units). These fields are added to yield a global tensor image, and a membraness value is computed at each point, resulting in a scalar image.
@@ -176,6 +196,8 @@ Parameters for the membrane dedicated enhancement;
       \texttt{mars\_manual\_sigma}
 \item \texttt{astec\_sample}: equivalent to
       \texttt{mars\_sample}
+\item \texttt{astec\_sample\_random\_seed}: equivalent to
+      \texttt{mars\_sample\_random\_seed}
 \item \texttt{astec\_sensitivity}: equivalent to
       \texttt{mars\_sensitivity}
 \item \texttt{astec\_sigma\_LF}: equivalent to
@@ -189,6 +211,7 @@ Parameters for the membrane dedicated enhancement;
 \item \texttt{mars\_manual}
 \item \texttt{mars\_manual\_sigma}
 \item \texttt{mars\_sample}: this parameter sets the fraction of the binary centerplanes that will be used for tensor voting (step \ref{it:gace:tensorvoting}). Points being randomly drawn, results are not strictly reproducible if the code is re-run with the same sets of parameters. Using a larger value (smaller than or equal to 1.0) increases the reproductibility but induces a larger computational cost.
+\item \texttt{mars\_sample\_random\_seed}: allows to set the random seed for reproductibility of the sampling step
 \item \texttt{mars\_sensitivity}: this parameter sets the sensitivity for the centerplanes thresholding of step \ref{it:gace:threshold}. It is set to 0.99 by default. Using larger value (smaller than or equal to 1.0, say 0.9999) allows to extract less-contrasted membranes (for instance cell/background membranes).
 \item \texttt{mars\_sigma\_LF}: expressed in real units
 \item \texttt{mars\_sigma\_TV}: expressed in voxel units

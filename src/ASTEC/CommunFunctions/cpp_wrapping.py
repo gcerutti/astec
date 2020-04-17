@@ -1148,8 +1148,8 @@ def arithmetic_operation(path_first_input, path_second_input, path_output, other
     return
 
 
-def tensor_voting_membrane(path_input, prefix_input, path_output, path_mask=None,
-                           scale_tensor_voting=3.6, sigma_smoothing=0.9, real_scale=True, sample=0.2, monitoring=None):
+def tensor_voting_membrane(path_input, prefix_input, path_output, path_mask=None, scale_tensor_voting=3.6,
+                           sigma_smoothing=0.9, real_scale=True, sample=0.2, random_seed=None, monitoring=None):
     """
     Grey-level image reconstruction from an image of binarised membranes associated to images of orientations.
     :param path_input: path to input image which is contains binarised planar structures,
@@ -1163,6 +1163,7 @@ def tensor_voting_membrane(path_input, prefix_input, path_output, path_mask=None
     :param real_scale: True (default) if scale in real coordinates. False if scale in voxel coordinates.
     :param sample: multiplying parameter for decrease the time-cost of the function by diminishing the
            number of voting token; 0 < sample <= 1, default = 0.2
+    :param random_seed:
     :param monitoring:
     :return:
     """
@@ -1194,6 +1195,8 @@ def tensor_voting_membrane(path_input, prefix_input, path_output, path_mask=None
         command_line += " -mask " + path_mask
     command_line += " -scale " + str(scale_tensor_voting) + " -hessian"
     command_line += " -sample " + str(sample)
+    if random_seed is not None:
+        command_line += " -random-seed " + str(random_seed)
 
     _launch_inline_cmd(command_line, monitoring=monitoring)
 

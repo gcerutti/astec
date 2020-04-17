@@ -88,6 +88,7 @@ class AceParameters(object):
         self.sigma_TV = 3.6
         self.sigma_LF = 0.9
         self.sample = 0.2
+        self.sample_random_seed = None
 
         #
         # for cell-based enhancement
@@ -122,6 +123,7 @@ class AceParameters(object):
         print('- sigma_TV = ' + str(self.sigma_TV))
         print('- sigma_LF = ' + str(self.sigma_LF))
         print('- sample = ' + str(self.sample))
+        print('- sample_random_seed = ' + str(self.sample_random_seed))
 
         print('- bounding_box_dilation = ' + str(self.bounding_box_dilation))
 
@@ -146,6 +148,7 @@ class AceParameters(object):
             logfile.write('- sigma_TV = ' + str(self.sigma_TV) + '\n')
             logfile.write('- sigma_LF = ' + str(self.sigma_LF) + '\n')
             logfile.write('- sample = ' + str(self.sample) + '\n')
+            logfile.write('- sample_random_seed = ' + str(self.sample_random_seed) + '\n')
 
             logfile.write('- bounding_box_dilation = ' + str(self.bounding_box_dilation) + '\n')
 
@@ -231,6 +234,13 @@ class AceParameters(object):
         if hasattr(parameters, 'astec_sample'):
             if parameters.astec_sample is not None:
                 self.sample = parameters.astec_sample
+
+        if hasattr(parameters, 'mars_sample_random_seed'):
+            if parameters.mars_sample_random_seed is not None:
+                self.sample_random_seed = parameters.mars_sample_random_seed
+        if hasattr(parameters, 'astec_sample_random_seed'):
+            if parameters.astec_sample_random_seed is not None:
+                self.sample_random_seed = parameters.astec_sample_random_seed
 
         if hasattr(parameters, 'default_image_suffix'):
             if parameters.default_image_suffix is not None:
@@ -414,8 +424,8 @@ def global_membrane_enhancement(path_input, path_output, experiment, binary_inpu
     if not os.path.isfile(path_output) or monitoring.forceResultsToBeBuilt is True:
         cpp_wrapping.tensor_voting_membrane(path_tv_input, bin_prefix_name, path_output,
                                             scale_tensor_voting=parameters.sigma_TV,
-                                            sample=parameters.sample, sigma_smoothing=parameters.sigma_LF,
-                                            monitoring=monitoring)
+                                            sample=parameters.sample, random_seed=parameters.sample_random_seed,
+                                            sigma_smoothing=parameters.sigma_LF, monitoring=monitoring)
 
     #
     # remove images
