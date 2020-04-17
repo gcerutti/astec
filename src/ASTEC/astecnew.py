@@ -1762,6 +1762,8 @@ def astec_control(experiment, parameters):
     # parameter type checking
     #
 
+    monitoring.to_log_and_console("", 1)
+
     if not isinstance(experiment, common.Experiment):
         monitoring.to_log_and_console(str(proc) + ": unexpected type for 'experiment' variable: "
                                       + str(type(experiment)))

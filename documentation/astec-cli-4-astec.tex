@@ -2,3 +2,66 @@
 \label{sec:cli:astec}
 
 The name \texttt{astec} comes from the Phd work of L. Guignard \cite{guignard:tel-01278725} where \texttt{ASTEC} is the acronym of \textit{adaptive segmentation and tracking of embryonic cells}.
+
+This method aims at producing a segmentation of each membrane cell image  (e.g. a fused image) temporal sequence. This is a method of segmentation by propagation: it used the segmentation of the previous timepoint (say $t$) to constraint the segmentation at the aimed timepoint (say $t+1$).
+
+
+\subsection{\texttt{4-astec.py} options}
+
+The following options are available:
+\begin{description}
+  \itemsep -0.5ex
+\item[\texttt{-h}] prints a help message
+\item[\texttt{-p \underline{file}}] set the parameter file to be parsed
+\item[\texttt{-e \underline{path}}] set the
+  \texttt{\underline{path}} to the directory where the
+  \texttt{RAWDATA/} directory is located
+\item[\texttt{-k}] allows to keep the temporary files
+\item[\texttt{-f}] forces execution, even if (temporary) result files
+  are already existing
+\item[\texttt{-v}] increases verboseness (both at console and in the
+  log file)
+\item[\texttt{-nv}] no verboseness
+\item[\texttt{-d}]  increases debug information (in the
+  log file)
+\item[\texttt{-nd}] no debug information
+\end{description}
+
+
+
+\subsection{Output data}
+
+The results are stored in sub-directories
+\texttt{SEG/SEG\_<EXP\_SEG>} under the
+\texttt{/path/to/experiment/} directory where where \texttt{<EXP\_SEG>} is the value of the variable \texttt{EXP\_SEG} (its
+default value is '\texttt{RELEASE}'). 
+
+\dirtree{%
+.1 /path/to/experiment/.
+.2 \ldots.
+.2 SEG/.
+.3 SEG\_<EXP\_SEG>/.
+.4 <EN>\_seg\_lineage.pkl.
+.4 <EN>\_seg\_t<begin>.inr.
+.4 <EN>\_seg\_t<$\ldots$>.inr.
+.4 <EN>\_seg\_t<end>.inr.
+.4 LOGS/.
+.4 RECONSTRUCTION/.
+.2 \ldots.
+}
+
+\subsection{Segmentation parameters}
+
+
+\subsubsection{Input image for watershed computation}
+\label{sec:cli:astec:input:watershed}
+
+Before the watershed segmentation, the input image may be pre-processed. Details about the pre-processing can be found in section\ref{sec:cli:input:segmentation}.
+
+Default settings are
+\begin{verbatim}
+astec_intensity_transformation = 'Normalization_to_u8'
+astec_intensity_enhancement = None
+\end{verbatim}
+
+If the input image is transformed before segmented, the transformed image is named \texttt{<EN>\_fuse\_t<begin>\_membrane.inr} and stored in the directory \texttt{SEG/SEG\_<EXP\_SEG>/RECONSTRUCTION/} if the value of the variable \texttt{astec\_keep\_reconstruction} is set to \texttt{True}.

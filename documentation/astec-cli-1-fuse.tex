@@ -1,9 +1,11 @@
 \section{\texttt{1-fuse.py}}
 \label{sec:cli:fuse}
 
+\subsection{Fusion method overview}
+
 The fusion is made of the following steps.
 \begin{enumerate}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \label{it:fusion:slit:line} Optionally, a slit line correction. Some Y lines may appear brighter in the acquisition and causes artifacts in the reconstructed (i.e. fused) image. By default, it is not done.
 
 \item A change of resolution in the X and Y directions only (Z remains unchanged). It allows to decrease the data volume (and then the computational cost) if the new pixel size (set by \verb|target_resolution|) is larger than the acquisition one.
@@ -14,7 +16,7 @@ The fusion is made of the following steps.
 
 \item \label{it:fusion:registration} Co-registration of the 3 last images onto the first one (the acquisition from the left camera for stack \#0) considered as a reference. The reference image is resampled again, to get an isotropic voxel (whose size is given by \verb|target_resolution|), i.e. the voxel size is the same along the 3 directions: X, Y, Z. There are two alternative methods.
 \begin{enumerate}
-\itemsep -1ex
+\itemsep -0.5ex
 \item The direct fusion method. Each of the  3 last images is \textit{linearly} co-registered onto the reference image.
 \item The hierarchical method. Each stack is first reconstructed (with the acquisition couple of both left and right cameras), then stack \#1 is \textit{non-linearly} co-registered onto stack \#0. From this last registration, non-linear co-registrations are deduced for the stack \#1 acquisitions, while linear co-registration is still considered for the right camera acquisition of stack \#0.
 \end{enumerate}
@@ -31,7 +33,7 @@ The fusion is made of the following steps.
 
 The following options are available:
 \begin{description}
-  \itemsep -1ex
+  \itemsep -0.5ex
 \item[\texttt{-h}] prints a help message
 \item[\texttt{-p \underline{file}}] set the parameter file to be parsed
 \item[\texttt{-e \underline{path}}] set the
@@ -59,7 +61,7 @@ example is provided in the \texttt{parameter-file-examples/} directory.
 Indicating the right values of the
 acquisition parameters is crucial; these parameters are
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \texttt{raw\_ori} is a parameter describing the acquisition
   orientation of the acquisition of the second pair of images. Its value can be either \texttt{'left'} (orientation of
   $270 \degree$) or \texttt{'right'} (orientation of
@@ -100,11 +102,19 @@ calculations.
 \subsection{Input data}
 \label{sec:cli:fuse:input:data}
 
-Input data (acquired images from the MuViSPIM microscope) are assumed
+\begin{figure}
+\begin{center}
+\includegraphics[height=50mm]{figures/acquisition-spim.png}
+\end{center}
+\caption{\label{fig:cli:fuse:spim:acquisition} Multiview lightsheet microscope acquisition: at a time point, two acquisitions (stack \#0 and stack \#1) are sequentially performed, the second one orthogonal to the first. For each acquisition, two 3D intensity image stacks are acquired, respectively by the left and the right cameras. 
+It yields four image stacks to be fused.}
+\end{figure}
+
+Input data (acquired images from the MuViSPIM microscope, see figure \ref{fig:cli:fuse:spim:acquisition}) are assumed
 to be organized in a separate \texttt{RAWDATA/} directory in the 
 \texttt{/path/to/experiment/} directory as depicted below. 
 \begin{itemize}
-  \itemsep -1ex
+  \itemsep -0.5ex
 \item \texttt{RAWDATA/LC/Stack000} contains the images acquired at the
   first angulation by the left camera.
 \item \texttt{RAWDATA/LC/Stack001} contains the images acquired at the
@@ -379,11 +389,7 @@ Variables \texttt{EXP\_FUSE\_CHANNEL\_2} and
 \texttt{EXP\_FUSE\_CHANNEL\_3} allows to set the directory names for
 the resulting fused images of the other channels.
 
-\subsection{Fusion parameters}
-
-% \subsubsection{Step \ref{it:fusion:slit:line}: slit line correction}
-
-\subsubsection{Step \ref{it:fusion:crop:1}: raw data cropping}
+\subsection{Step \ref{it:fusion:crop:1} parameters: raw data cropping}
 \label{sec:cli:fuse:raw:data:cropping}
 
 For computational cost purposes, raw data (images acquired by the MuViSPIM microscope) are cropped (only in X and Y dimensions) before co-registration. A threshold is computed with Otsu's method \cite{otsu:tsmc:1979} on the maximum intensity projection (MIP) image. The cropping parameters are computed to keep the above-threshold points in the MIP image, plus some extra margins. Hyper-intense areas may biased the threshold computation, hence the cropping.
@@ -394,27 +400,82 @@ raw_crop = False
 \end{verbatim}
 has to be added in the parameter file.
 
-\subsubsection{Step \ref{it:fusion:registration}: image co-registration}
+\subsection{Step \ref{it:fusion:registration} parameters: image co-registration}
 \label{sec:cli:fuse:image:coregistration}
 
-To fuse the images, they are co-registered onto a reference one. Co-registration are conducted only on the first channel (in case of multiple channel acquisitions), and the computed transformations are also applied onto the other channels. The reference image is chosen as being the acquisition from the left camera for the first stack (also denoted stack \#0). The co-registration strategy is given by the variable \texttt{fusion\_strategy}.
+To fuse the images, they are co-registered onto a reference one. Co-registration are conducted only on the first channel (in case of multiple channel acquisitions), and the computed transformations are also applied onto the other channels. The reference image is chosen as being the acquisition from the left camera for the first stack (also denoted stack \#0). The co-registration strategy is given by the variable \texttt{fusion\_strategy} in the parameter file.
 
-\begin{itemize}
-\item The line
+
+\subsubsection{Fusion \textit{direct} strategy}
+
+\begin{figure}
+\begin{center}
+\includegraphics[height=50mm]{figures/fusion-direct-strategy.png}
+\end{center}
+\caption{\label{fig:cli:fuse:direct:strategy} Fusion \textit{direct} strategy: each 3D image is co-registered on the reference one, chosen here as the left camera image of stack \#0.}
+\end{figure}
+
+In the parameter file, the line
 \begin{verbatim}
 fusion_strategy = 'direct-fusion'
 \end{verbatim}
 will set the co-registration strategy to the one described in \cite{guignard:tel-01278725,guignard:hal-01938126}: each acquisition image is linearly co-registered with the reference one, i.e. the one from the left camera and for the first stack.
-\item The line
+
+Let us denote by $I^{0}_{LC}$ the left camera image of stack\#0, the three other images are $I^{0}_{RC}$, $I^{1}_{LC}$, and $I^{1}_{RC}$. By (linear) co-registration (see section \ref{sec:cli:fuse:acquisition:registration}) of these image with $I^{0}_{LC}$, the 3 transformations
+$T_{I^{0}_{RC} \leftarrow I^{0}_{LC}}$,
+$T_{I^{1}_{LC} \leftarrow I^{0}_{LC}}$, and
+$T_{I^{1}_{RC} \leftarrow I^{0}_{LC}}$
+are computed.
+$T_{I^{0}_{RC} \leftarrow I^{0}_{LC}}$ is the transformation that allows to resample $I^{0}_{RC}$ in the same frame than $I^{0}_{LC}$:
+$I^{0}_{RC} \circ T_{I^{0}_{RC} \leftarrow I^{0}_{LC}}$ denotes this resampled image.
+
+
+\subsubsection{Fusion \textit{hierarchical} strategy}
+
+\begin{figure}
+\begin{center}
+\begin{tabular}{ccc}
+\includegraphics[height=50mm]{figures/fusion-hierarchical-strategy-1.png} &
+\includegraphics[height=50mm]{figures/fusion-hierarchical-strategy-2.png} &
+\includegraphics[height=50mm]{figures/fusion-hierarchical-strategy-3.png} \\
+Stack \#0 fusion &
+Stack \#1 fusion &
+Stacks \#0 and \#1 co-registration
+\end{tabular}
+\end{center}
+\caption{\label{fig:cli:fuse:hierarchical:strategy} Fusion \textit{hierarchical} strategy. Stacks \#0 and \#1 are reconstructed independently and then co-registered}
+\end{figure}
+
+In the parameter file, the line
 \begin{verbatim}
 fusion_strategy = 'hierarchical-fusion'
 \end{verbatim}
-defines a hierarchical  co-registration  strategy. First, stacks are reconstructed with the two acquisition from the left and the right cameras: here the left and right acquisitions are linearly co-registered. Then, the second stack (stack \#1) is non-linearly co-registered onto the first one (stack \#0). Transformation compositions yield the final transformations that co-registered each acquisition onto the reference one. Note that the acquisition from the right camera of the first stack is only linearly co-registered with the reference acquisition, while both acquisitions for the second stack are non-linearly co-registered.
-\end{itemize}
+defines a hierarchical  co-registration  strategy. First, the right camera image of each stack is linearly co-registered (see section \ref{sec:cli:fuse:acquisition:registration}) on its left camera counterpart, yielding the transformations
+$T_{I^{0}_{RC} \leftarrow I^{0}_{LC}}$ and
+$T_{I^{1}_{RC} \leftarrow I^{1}_{LC}}$.
+According that the left and right camera images of a stack are acquired simultaneously, a linear transformation is then completely adequate to co-register them.
+
+This allows to fuse (see section \ref{sec:cli:fuse:stack:fusion}) the two acquisition of the corresponding left and right cameras into a single stack:
+\begin{eqnarray*}
+I^{0} & = & \omega^{0}_{LC} I^{0}_{LC} 
+          + \omega^{0}_{RC} I^{0}_{RC} \circ T_{I^{0}_{RC} \leftarrow I^{0}_{LC}} \quad \textrm{and} \\
+I^{1} & = & \omega^{1}_{LC} I^{1}_{LC} 
+          + \omega^{1}_{RC} I^{1}_{RC} \circ T_{I^{1}_{RC} \leftarrow I^{1}_{LC}}                         
+\end{eqnarray*}
+
+The reconstructed stacks are then (potentially non-linearly, see section \ref{sec:cli:fuse:stack:registration}) co-registered together, yielding the transformation $T_{I^{1} \leftarrow I^{0}}$. This allows to get the 
+$T_{I^{1}_{RC} \leftarrow I^{0}_{RC}}$ and
+$T_{I^{1}_{LC} \leftarrow I^{0}_{RC}}$ transformations 
+\begin{eqnarray*}
+T_{I^{1}_{LC} \leftarrow I^{0}_{LC}} & = & T_{I^{1} \leftarrow I^{0}} \quad \textrm{and} \\
+T_{I^{1}_{RC} \leftarrow I^{0}_{LC}} & = &
+T_{I^{1}_{RC} \leftarrow I^{1}_{LC}} \circ T_{I^{1} \leftarrow I^{0}}                      
+\end{eqnarray*}
+Using a non-linear registration in this last step allows to compensate for some distortions that may occur between the two stacks \#0 and \#1. Please note that stack \#0 is then assumed to be the non-distorted reference while left and right camera image of stack \#1 will be deformed before fusion.
 
 
-\paragraph{Acquisitions linear co-registration}
-
+\subsubsection{Acquisitions linear co-registration}
+\label{sec:cli:fuse:acquisition:registration}
 The linear co-registrations are either used to co-registered each acquisition onto the reference one in the \texttt{'direct-fusion'} strategy, or to build stacks from the left and right cameras in the \texttt{'hierarchical-fusion'} strategy.
 Variables that controls the linear co-registrations are either prefixed by \texttt{fusion\_preregistration\_} or by \texttt{fusion\_registration\_}.
 
@@ -430,7 +491,7 @@ Adding the following line in the parameter file.
 \begin{verbatim}
 fusion_registration_transformation_type = translation
 \end{verbatim}
-will search for a translation which is supposed to be sufficient, according that only translations relates the 4 acquisitions of the MuViSPIM microscope (in a perfect setting). If the search for an affine transformation (the default behavior) failed (the fusion looks poor) while the search for a translation is successful (the fusion looks good), a two-steps registration may help to refine the found translation by a subsequent affine transformation as explained below.
+will search for a translation which could be supposed to be sufficient, according that only translations relates the 4 acquisitions of the MuViSPIM microscope (in a perfect setting). If the search for an affine transformation (the default behavior) failed (the fusion looks poor) while the search for a translation is successful (the fusion looks good), a two-steps registration may help to refine the found translation by a subsequent affine transformation as explained below.
 
 Hyper-intensities areas may also bias the threshold calculation used for the automatic crop (step \ref{it:fusion:crop:1} of fusion). In such cases, the iterative registration method may find a local minimum that is not the desired one, because the relative positions of the two images to be co-registered are too far apart. To circumvent such a behavior, a two-steps registration can be done. It consists on a first pre-registration with a transformation with fewer degrees of freedom (i.e. a 3D translation). 
 
@@ -438,19 +499,34 @@ This pre-registration can be activated by adding the following line in the param
 \begin{verbatim}
 fusion_preregistration_compute_registration = True
 \end{verbatim}
-It may be also preferable to  deactivate the image normalization for both registration steps with
+It may be also preferable to deactivate the image normalization for both registration steps with
 \begin{verbatim}
 fusion_preregistration_normalization = False
 fusion_registration_normalization = False
 \end{verbatim}
 
-\paragraph{Stacks non-linear co-registration}
+\subsubsection{Stacks non-linear co-registration}
+\label{sec:cli:fuse:stack:registration}
+Variables that controls the non-linear co-registrations are either prefixed by \texttt{fusion\_stack\_preregistration\_} or by \texttt{fusion\_stack\_registration\_}. They are defined similarly as the one of acquisitions co-registration. 
 
-Variables that controls the non-linear co-registrations are either prefixed by \texttt{fusion\_stack\_preregistration\_} or by \texttt{fusion\_stack\_registration\_}.
 
-\subsubsection{Step \ref{it:fusion:combination}: linear combination of co-registered stacks}
 
-The resampled co-registered stacks are fused together by the means of a weighted linear combination.  The choice of the weighting function is controlled by the variable \texttt{fusion\_weighting}, eventually suffixed by \texttt{\_channel\_[1,2,3]}.
+
+
+
+\subsection{Step \ref{it:fusion:combination}: linear combination of co-registered image stacks}
+\label{sec:cli:fuse:stack:fusion}
+
+The resampled co-registered image stacks are fused together by the means of a weighted linear combination.
+\begin{displaymath}
+I_{fuse} =
+\omega^{0}_{LC} I^{0}_{LC}
++ \omega^{0}_{RC} I^{0}_{RC} \circ T_{I^{0}_{RC} \leftarrow I^{0}_{LC}}
++ \omega^{1}_{LC} I^{1}_{LC} \circ T_{I^{1}_{LC} \leftarrow I^{0}_{LC}}
++ \omega^{1}_{RC} I^{1}_{RC} \circ T_{I^{1}_{RC} \leftarrow I^{0}_{LC}}
+\end{displaymath}
+
+The choice of the weighting function is controlled by the variable \texttt{fusion\_weighting}, eventually suffixed by \texttt{\_channel\_[1,2,3]}.
 
 \begin{itemize}
 \item The line
@@ -473,7 +549,7 @@ fusion_weighting_channel_2 = 'uniform'
 \end{verbatim}
 
 
-\subsubsection{Step \ref{it:fusion:crop:2}: fused data cropping}
+\subsection{Step \ref{it:fusion:crop:2}: fused data cropping}
 \label{sec:cli:fuse:fused:data:cropping}
 
 To save disk storage, fused images are cropped at the end of the fusion stage. To desactivate this cropping, the line
@@ -508,7 +584,7 @@ Please also refer to the file
 \texttt{parameter-file-examples/1-fuse-parameters.py}
 
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \texttt{DIR\_LEFTCAM\_STACKONE} see section \ref{sec:cli:fuse:input:data}
 \item \texttt{DIR\_LEFTCAM\_STACKONE\_CHANNEL\_2} see section \ref{sec:cli:fuse:input:data}
 \item \texttt{DIR\_LEFTCAM\_STACKONE\_CHANNEL\_3} see section \ref{sec:cli:fuse:input:data}

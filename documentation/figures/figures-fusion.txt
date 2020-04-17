@@ -1,0 +1,8 @@
+
+convert -crop 575x300+26+46 figures-fusion/Diapositive1.png acquisition-spim.png
+convert -crop 285x300+26+46 figures-fusion/Diapositive3.png fusion-direct-strategy.png
+convert -crop 285x300+26+46 figures-fusion/Diapositive5.png fusion-hierarchical-strategy-1.png
+convert -crop 285x300+26+46 figures-fusion/Diapositive6.png fusion-hierarchical-strategy-2.png
+convert -crop 285x300+26+46 figures-fusion/Diapositive7.png fusion-hierarchical-strategy-3.png
+
+

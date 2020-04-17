@@ -167,11 +167,15 @@ class ReconstructionParameters(object):
 
         if hasattr(parameters, 'normalization_min_percentile'):
             self.normalization_min_percentile = parameters.normalization_min_percentile
+        if hasattr(parameters, 'mars_normalization_min_percentile'):
+            self.normalization_min_percentile = parameters.mars_normalization_min_percentile
         if hasattr(parameters, 'astec_normalization_min_percentile'):
             self.normalization_min_percentile = parameters.astec_normalization_min_percentile
 
         if hasattr(parameters, 'normalization_max_percentile'):
             self.normalization_max_percentile = parameters.normalization_max_percentile
+        if hasattr(parameters, 'mars_normalization_max_percentile'):
+            self.normalization_max_percentile = parameters.mars_normalization_max_percentile
         if hasattr(parameters, 'astec_normalization_max_percentile'):
             self.normalization_max_percentile = parameters.astec_normalization_max_percentile
 

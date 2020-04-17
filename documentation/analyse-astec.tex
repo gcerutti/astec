@@ -377,7 +377,7 @@ On r\'ealise une ouverture morphologique sur le masque de l'embryon (un ouvert e
 \color{\mycolor}
 Appel \`a \texttt{segmentation\_propagation()}, cf section \ref{sec:segmentation:propagation}, page \pageref{sec:segmentation:propagation}
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
 \item \verb|fused_file_ref| : nom de l'image d'intensite (fusionn\'ee) \`a $t$, $I_t$
 \item \verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$
@@ -534,7 +534,7 @@ Pour une sous-image contenant une cellule et une sous-image correspondant conten
 \end{verbatim} 
 \color{\mycolor}
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|seg_c| : une sous-image o\`u la cellule est \`a $c$ et le reste \`a 1.
 \item \verb|c| : le label de la cellule
 \item \verb|seeds_not_prop| : la sous-image des $h$-minima \'etiquet\'es
@@ -588,7 +588,7 @@ Cependant \texttt{extract\_seeds()} renvoie le nombre total de graines dans la c
 \color{\mycolor}
 Appel\'e par \texttt{get\_seeds\_from\_optimized\_parameters} (section \ref{sec:get:seeds:from:optimized:parameters}, page \pageref{sec:get:seeds:from:optimized:parameters}). Il y a des similarit\'es avec \texttt{cell\_propagation()}
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|seg_c| : sous-image o\`u la cellule est \`a $c$ et le reste \`a 1
 \item \verb|c| : label de la cellule
 \item \verb|path_seeds_not_prop| : sous-image des $h$-minima, s'appelait \verb|seeds_ex| lors de l'appel. Les $h$-minima ont\'et\'e \'etiquet\'es par \texttt{find\_local\_minima()}
@@ -707,7 +707,7 @@ Compte les $h$-minima strictement inclus dans la cellule pour un ensemble de val
 \color{\mycolor}
 Appel \`a \texttt{get\_seeds()}, cf section \ref{sec:get:seeds}, page \pageref{sec:get:seeds}.
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|seg| : image de segmentation $\tilde{S}_{t+1}$. S'appelait \verb|segmentation| lors de l'appel
 \item \verb|h_min_min| : plus petite valeur de $h$ pour le calcul des $h$-minima
 \item \verb|h_min_max| : plus grande valeur de $h$ pour le calcul des $h$-minima
@@ -772,7 +772,7 @@ Pour chaque cellule $c$, on dilate sa boite englobante, puis on construit une so
 \color{\mycolor}
 on passe \`a \texttt{cell\_propagation()} (section \ref{sec:cell:propagation}, page \pageref{sec:cell:propagation})
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|seg_c| : une sous-image o\`u la cellule est \`a $c$ et le reste \`a 1.
 \item \verb|c| : le label de la cellule
 \item \verb|seeds_not_prop[bb]| : la sous-image des $h$-minima \'etiquet\'es
@@ -785,7 +785,7 @@ on passe \`a \texttt{cell\_propagation()} (section \ref{sec:cell:propagation}, p
 \color{\mycolor}
 \texttt{cell\_propagation()} retourne
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|seg_c| : \texttt{None},
 \item \verb|nb| : le nombre de $h$-minima strictement inclus dans la cellule
 \item \verb|labels| : liste des labels de ces $h$-minima
@@ -813,7 +813,7 @@ on passe \`a \texttt{cell\_propagation()} (section \ref{sec:cell:propagation}, p
 \color{\mycolor}
 Retourne
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|nb_cells| : liste pour chaque cellule, du nombre de $h$-minima strictement inclus dans la cellule de  $\tilde{S}_{t+1}$
 \item \verb|parameters| : liste pour chaque cellule,  des param\`etres de calcul des $h$-minima ($h$ et $\sigma$)
 \end{itemize}
@@ -834,7 +834,7 @@ section \ref{sec:segmentation:propagation:from:seeds}
 \end{verbatim} 
 \color{\mycolor}
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|nb_cells| : liste pour chaque cellule, du nombre de $h$-minima strictement inclus dans la cellule de  $\tilde{S}_{t+1}$. C'est le $\mathrm{Count}^{h}(c)$ de \cite[section 2.3.3.5, page 71]{guignard:tel-01278725}.
 \item \verb|parameters| : liste pour chaque cellule,  des param\`etres de calcul des $h$-minima ($h$ et $\sigma$)
 \item \verb|lin_tree| : fichier de lin\'eage
@@ -860,7 +860,7 @@ section \ref{sec:segmentation:propagation:from:seeds}
 \color{\mycolor}
 \verb|nb_2| et \verb|nb_3| repr\'esentent respectivement $N_2(c)$ et $N_{2^{+}}(c)$. La r\`egle est donc
 \begin{enumerate}
-\itemsep -1ex
+\itemsep -0.5ex
 \item S'il existe des $h$ donnant 1 ou 2 graines
 \begin{enumerate}
 \itemsep -0.5ex
@@ -911,7 +911,7 @@ section \ref{sec:segmentation:propagation:from:seeds}, page \pageref{sec:segment
 \end{verbatim} 
 \color{\mycolor}
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
 \item \verb|seg| :  image de segmentation $\tilde{S}_{t+1}$, \texttt{SpatialImage}. S'appelait \verb|segmentation|  lors de l'appel
 \item \verb|cells| : liste des cellules
@@ -971,14 +971,14 @@ Pour chaque cellule (qui a des graines), on dilate sa boite englobante, et on cr
 \color{\mycolor}
 Appel \`a \texttt{extract\_seeds()} (section \ref{sec:extract:seeds}, page \pageref{sec:extract:seeds})
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|seg_c| : sous-image o\`u la cellule est \`a $c$ et le reste \`a 1
 \item \verb|c| : label de la cellule
 \item \verb|seeds_ex| : sous-image des $h$-minima
 \end{itemize}
 \texttt{extract\_seeds()} (re)calcule les graines strictement incluses dans la cellule $c$ et renvoie une sous-image des graines num\'erot\'ees \`a partir de 1
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|nb| : le nombre de graines
 \item \verb|seeds_c| : sous-image des graines num\'erot\'ees \`a partir de 1
 \end{itemize}
@@ -1096,7 +1096,7 @@ On met les cellules correspondant au fond \`a 1. Cela n'aurait pas \'et\'e n\'ec
 \color{\mycolor}
 Retourne
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|seeds_from_opt_h| : une \texttt{SpatialImage} contenant les graines
 \item \verb|seg_from_opt_h| : une \texttt{SpatialImage} contenant la segmentation
 \item \verb|corres| : un tableau contenant les filiations
@@ -1132,7 +1132,7 @@ Appel\'e par \texttt{volume\_checking()}
 \end{verbatim} 
 \color{\mycolor}
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|m| : label de la cellule m\`ere 
 \item \verb|daughters| : labels des cellules filles
 \item \verb|bb| : boite englobante de la cellule m\`ere transform\'ee et dilat\'ee (15 fois)
@@ -1209,7 +1209,7 @@ Appel\'e par \texttt{segmentation\_propagation\_from\_seeds()}
 \end{verbatim} 
 \color{\mycolor}
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
 \item \verb|delta_t| : 
 \item \verb|seg| : image de segmentation $\tilde{S}_{t+1}$, \texttt{SpatialImage}. S'appelait \verb|segmentation| lors de l'appel. C'est la segmentation de $I_{t+1}$ avec les graines projet\'ees $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$,
@@ -1274,7 +1274,7 @@ $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$. S'appelait \verb|path_seg_tr
 \end{verbatim} 
 \color{\mycolor}
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|volumes_from_opt_h| : volumes des cellules de la segmentation \verb|seg_from_opt_h| \`a $t+1$
 \item \verb|volumes| : volumes des cellules de la segmentation \verb|segmentation_file_ref| \`a $t$ 
 (a priori provient de la lecture du lin\'eage lors de l'appel : \verb|volumes_t_1|).
@@ -1304,7 +1304,7 @@ $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$. S'appelait \verb|path_seg_tr
 \color{\mycolor}
 Calcule $volume_{ratio} = 1 - vol(mother) / \sum vol(daughter)$
 \begin{enumerate}
-\itemsep -1ex
+\itemsep -0.5ex
 \item Si $vol(mother) / \sum vol(daughter) \geq 1 + VRS$ ou $1 - VRS > vol(mother) / \sum vol(daughter)$ (variation de volume de plus de 10\%)
 \begin{enumerate}
 \item Si $\sum vol(daughter) > vol(mother)$, on met le couple (m\`ere, liste des filles) dans \verb|bigger|
@@ -1315,7 +1315,7 @@ Calcule $volume_{ratio} = 1 - vol(mother) / \sum vol(daughter)$
 \end{enumerate}
 Notes:
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item Les m\`eres dans  \verb|to_look_at| sont aussi dans \verb|lower|
 \item Le cas $vol(mother) / \sum vol(daughter) \leq 1 + VRB$ n'est pas consid\'er\'e
 \end{itemize}
@@ -1351,7 +1351,7 @@ Notes:
 On recalcule le score $s(c) = N_{2^{+}}(c) . N_{2}(c) > \tau$ (d\'ej\`a calcul\'e dans \texttt{get\_back\_parameters()} (section \ref{sec:get:back:parameters}, page \pageref{sec:get:back:parameters}).
 Les premi\`eres lignes (479 \`a 488) sont identiques aux lignes (247 \`a 256) de \texttt{get\_back\_parameters()}, except\'e que c'est le plus petit $h$ qui donne ce nombre de graines qui est retenu (plut\^ot que le plus grand -- l'indice [-1] au lieu de [0])
 \begin{enumerate}
-\itemsep -1ex
+\itemsep -0.5ex
 \item Si le score donne une graine (\verb|nb_final| = 1) et il existe des $h$ qui donnent 2 graines,  on r\'ecup\`ere le premier $h$ qui donne $2$ graines   et on passe donc \`a 2 graines (mais il y a un test bizarre)
 
 \item Si le score donne une ou deux graine(s) (\verb|nb_final| = 1 \verb|or| \verb|nb_final| = 2) et il existe un $h$ qui donne plus de  2 graines, on r\'ecup\`ere les param\`etres li\'es au plus petit $h$ (\verb|parameters[c][-1]|), donc forc\'ement plus de 2 graines. 
@@ -1430,7 +1430,7 @@ On cr\'ee une sous-image \verb|seg_c| de 0 pour la cellule $c$ dans laquelle on 
 \color{\mycolor}
 On cr\'ee une sous-image \verb|seeds_c| de 0 pour la cellule $c$ dans laquelle on met \`a 
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item 1 : l'intersection des cellules filles de $c$ (marqu\'ees dans \verb|seg_c|) et des $h_{min}$-minima
 \item 2  : l'intersection de la cellule $c$ de $\tilde{S}_{t+1}$ et des $h_{min}$-minima (qui ne sont pas dans les cellules filles). Ces points sont donc des graines en-dehors des cellules filles.
 \end{itemize}
@@ -1590,7 +1590,7 @@ On regarde donc s'il y a des diminutions de volumes de plus de 10\%.
 \end{verbatim} 
 \color{\mycolor}
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|cell_before| : sous-image bool\'eenne \'ecrivant la cellule $c$ dans $S^{\star}_t$ 
 \item \verb|cell_after| : sous-image bool\'eenne \'ecrivant les cellules filles de  $c$ dans la nouvelle segmentation \verb|seg_from_opt_h|
 \item \verb|lost| : masque de la sous-image de \verb|seg_from_opt_h| masqu\'ee par le  XOR de  \verb|cell_before| et \verb|cell_after|, c'est donc \`a la fois ce qui a \'et\'e perdu et ce qui a \'et\'e gagn\'e [Rq: sur ma machine, le XOR se comporte comme un OR ...]
@@ -1634,7 +1634,7 @@ On v\'erifie que $1$ (le fond) est bien le label le plus repr\'esent\'e dans la 
 \color{\mycolor}
 Appel \`a \texttt{perform\_ac()}, cf section \ref{sec:perform:ac}, page \pageref{sec:perform:ac}.
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|m| : label de la cellule m\`ere 
 \item \verb|daughters| : labels des cellules filles
 \item \verb|bb| : boite englobante de la cellule m\`ere transform\'ee et dilat\'ee (15 fois)
@@ -1695,7 +1695,7 @@ Traitement de \verb|to_fuse_3| : couples (m\`ere, triplets de labels des filles)
 \end{verbatim}
 \color{\mycolor}
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|seg_from_opt_h| : image de segmentation
 \item \verb|bigger| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus grand (de plus de 10\%) de celui de la m\`ere
 \item \verb|lower| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus petit (de plus de 10\%) de celui de la m\`ere
@@ -1725,7 +1725,7 @@ Appel\'e par \texttt{segmentation\_propagation\_seeds\_init\_and\_deform()} (sec
 \end{verbatim}
 \color{\mycolor}
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|seg_from_opt_h| : image de segmentation
 \item \verb|exterior_correction| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus petit (de plus de 10\%) de celui de la m\`ere, et proches du fond, sur lesquels on a lanc\'e le morphosnake.
 \item \verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$
@@ -1775,7 +1775,7 @@ Plut\^ot que de faire une boucle sur les cellules, on pourrait juste les cellule
 \end{verbatim}
 \color{\mycolor}
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
 \item \verb|segmentation_ref| : image (ie \texttt{SpatialImage}) de segmentation \`a $t$, $S^{\star}_t$
 \item \verb|fused_file| : nom de l'image d'intensite (fusionn\'ee) \`a $t+1$, $I_{t+1}$
@@ -1820,7 +1820,7 @@ La derni\`ere ligne calcule $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t
 \end{verbatim} 
 \color{\mycolor}
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
 \item \verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$
 \item \verb|fused_file| : ce peut \^etre l'image originale $I_{t+1}$ ou  l'image \`a segmenter sur 1 octet. S'appelait \verb|graylevel_file| lors de l'appel
@@ -1885,7 +1885,7 @@ Calcul des bounding boxes pour les cellules
 \color{\mycolor}
 Appel \`a \texttt{get\_seeds()}, cf section \ref{sec:get:seeds}, page \pageref{sec:get:seeds}.
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|segmentation| : image de segmentation $\tilde{S}_{t+1}$ 
 \item \verb|h_min_min| : plus petite valeur de $h$ pour le calcul des $h$-minima
 \item \verb|h_min_max| : plus grande valeur de $h$ pour le calcul des $h$-minima
@@ -1897,7 +1897,7 @@ Appel \`a \texttt{get\_seeds()}, cf section \ref{sec:get:seeds}, page \pageref{s
 \end{itemize}
 Retourne
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|nb_cells| : liste pour chaque cellule, du nombre de $h$-minima strictement inclus dans la cellule de  $\tilde{S}_{t+1}$. C'est le $\mathrm{Count}^{h}(c)$ de \cite[section 2.3.3.5, page 71]{guignard:tel-01278725}.
 \item \verb|parameters| : liste pour chaque cellule,  des param\`etres de calcul des $h$-minima ($h$ et $\sigma$)
 \end{itemize}
@@ -1909,7 +1909,7 @@ Retourne
 \color{\mycolor}
 Appel \`a \texttt{get\_back\_parameters()}, cf section \ref{sec:get:back:parameters}, page \pageref{sec:get:back:parameters}.
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|nb_cells| : liste pour chaque cellule, du nombre de $h$-minima strictement inclus dans la cellule de  $\tilde{S}_{t+1}$. C'est le $\mathrm{Count}^{h}(c)$ de \cite[section 2.3.3.5, page 71]{guignard:tel-01278725}.
 \item \verb|parameters| : liste pour chaque cellule,  de tous les param\`etres de calcul des $h$-minima ($h$ et $\sigma$)
 \item \verb|lin_tree| : fichier de lin\'eage
@@ -1924,7 +1924,7 @@ Retourne un tableau avec, pour chaque cellule $c$, les valeurs de $h$, $\sigma$,
 \color{\mycolor}
 Appel \`a \texttt{get\_seeds\_from\_optimized\_parameters()}, cf section \ref{sec:get:seeds:from:optimized:parameters}, page \pageref{sec:get:seeds:from:optimized:parameters}.
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
 \item \verb|segmentation| :  image de segmentation $\tilde{S}_{t+1}$, \texttt{SpatialImage}
 \item \verb|cells| : liste des cellules
@@ -1945,7 +1945,7 @@ Appel \`a \texttt{get\_seeds\_from\_optimized\_parameters()}, cf section \ref{se
 \color{\mycolor}
 Retourne
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|seeds_from_opt_h| : une \texttt{SpatialImage} contenant les graines 
 \item \verb|seg_from_opt_h| : une \texttt{SpatialImage} contenant la segmentation
 \item \verb|corres| : un tableau contenant les filiations
@@ -1963,7 +1963,7 @@ Retourne
 \color{\mycolor}
 Appel \`a \texttt{volume\_checking()}, cf section \ref{sec:volume:checking}, page \pageref{sec:volume:checking}.
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
 \item \verb|delta_t| : 
 \item \verb|segmentation| : image de segmentation $\tilde{S}_{t+1}$, \texttt{SpatialImage}
@@ -1998,7 +1998,7 @@ $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
 \color{\mycolor}
 \texttt{volume\_checking()} retourne
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|seg_from_opt_h| : image de segmentation
 \item \verb|bigger| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus grand (de plus de 10\%) de celui de la m\`ere
 \item \verb|lower| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus petit (de plus de 10\%) de celui de la m\`ere
@@ -2016,7 +2016,7 @@ $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
 Appel \`a \texttt{outer\_correction()}
 (section \ref{sec:outer:correction}, page \pageref{sec:outer:correction})
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|seg_from_opt_h| : image de segmentation
 \item \verb|exterior_correction| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus petit (de plus de 10\%) de celui de la m\`ere, et proches du fond, sur lesquels on a lanc\'e le morphosnake.
 \item \verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$ (le nom sert juste pour cr\'eer des noms d'images interm\'ediaires qui seront effac\'ees)
@@ -2066,7 +2066,7 @@ Appel \`a \texttt{outer\_correction()}
 \end{verbatim} 
 \color{\mycolor}
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
 \item \verb|fused_file_ref| : nom de l'image d'intensite (fusionn\'ee) \`a $t$, $I_t$
 \item \verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$
@@ -2272,7 +2272,7 @@ $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
 \color{\mycolor}
 Appel \`a \texttt{segmentation\_propagation\_from\_seeds()}, cf section \ref{sec:segmentation:propagation:from:seeds}, page \pageref{sec:segmentation:propagation:from:seeds}.
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
 \item \verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$
 \item \verb|graylevel_file| : ce peut \^etre l'image originale $I_{t+1}$ ou  l'image \`a segmenter sur 1 octet
