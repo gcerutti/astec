@@ -390,7 +390,7 @@ def _get_cotrsf_path(experiment):
     :param experiment:
     :return:
     """
-    cotrsf_path = os.path.join(experiment.embryo_path, experiment.intrareg_dir.get_directory(), 'CO-TRSFS')
+    cotrsf_path = os.path.join(experiment.get_embryo_path(), experiment.intrareg_dir.get_directory(), 'CO-TRSFS')
     return cotrsf_path
 
 
@@ -428,7 +428,7 @@ def _get_trsf_path(experiment):
     firstindex = experiment.first_time_point + experiment.delay_time_point
     lastindex = experiment.last_time_point + experiment.delay_time_point
     trsf_dir = 'TRSFS' + "_t" + str(firstindex) + "-" + str(lastindex)
-    trsf_path = os.path.join(experiment.embryo_path, experiment.intrareg_dir.get_directory(), trsf_dir)
+    trsf_path = os.path.join(experiment.get_embryo_path(), experiment.intrareg_dir.get_directory(), trsf_dir)
     return trsf_path
 
 
@@ -486,7 +486,7 @@ def _check_data(experiment, suffix=None):
     first_time_point = experiment.first_time_point + experiment.delay_time_point
     last_time_point = experiment.last_time_point + experiment.delay_time_point
 
-    path_fusion = os.path.join(experiment.embryo_path, experiment.fusion_dir.get_directory())
+    path_fusion = os.path.join(experiment.get_embryo_path(), experiment.fusion_dir.get_directory())
 
     for current_time in range(first_time_point + experiment.delta_time_point,
                               last_time_point + 1, experiment.delta_time_point):
@@ -732,7 +732,7 @@ def _transformations_and_template(experiment, parameters, temporary_dir):
         #
         # check whether segmentation image share a common suffix
         #
-        path_template_format = os.path.join(experiment.embryo_path, experiment.astec_dir.get_directory())
+        path_template_format = os.path.join(experiment.get_embryo_path(), experiment.astec_dir.get_directory())
         suffix = common.get_file_suffix(experiment, path_template_format, experiment.astec_dir.get_image_format(),
                                         flag_time=experiment.get_time_format())
 
@@ -752,7 +752,7 @@ def _transformations_and_template(experiment, parameters, temporary_dir):
         #
         # check whether post-corrected segmentation image share a common suffix
         #
-        path_template_format = os.path.join(experiment.embryo_path, experiment.post_dir.get_directory())
+        path_template_format = os.path.join(experiment.get_embryo_path(), experiment.post_dir.get_directory())
         suffix = common.get_file_suffix(experiment, path_template_format, experiment.post_dir.get_image_format(),
                                         flag_time=experiment.get_time_format())
 
@@ -774,7 +774,7 @@ def _transformations_and_template(experiment, parameters, temporary_dir):
         #
         # check whether fusion image share a common suffix
         #
-        path_template_format = os.path.join(experiment.embryo_path, experiment.fusion_dir.get_directory())
+        path_template_format = os.path.join(experiment.get_embryo_path(), experiment.fusion_dir.get_directory())
         suffix = common.get_file_suffix(experiment, path_template_format, experiment.fusion_dir.get_image_format(),
                                         flag_time=experiment.get_time_format())
         if suffix is None:
@@ -876,7 +876,7 @@ def _resample_images(experiment, parameters, template_image, directory_type, int
 
         dir_input = working_dir.get_directory(idir)
         monitoring.to_log_and_console("     . resampling '" + str(dir_input) + "'", 2)
-        dir_input = os.path.join(experiment.embryo_path, working_dir.get_directory(idir))
+        dir_input = os.path.join(experiment.get_embryo_path(), working_dir.get_directory(idir))
         dir_output = os.path.join(experiment.intrareg_dir.get_directory(), working_dir.get_sub_directory(idir))
         if not os.path.isdir(dir_output):
             os.makedirs(dir_output)

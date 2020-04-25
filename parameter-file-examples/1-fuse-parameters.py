@@ -54,28 +54,39 @@ end = 0
 
 
 
-raw_ori = 'left'
-raw_mirrors = False
-raw_resolution = (.17, .17, 1.)
+acquisition_orientation = 'left'
+acquisition_mirrors = False
+acquisition_leftcamera_stacking_direction = 'increasing'
+acquisition_resolution = (.17, .17, 1.)
 # raw_delay = 0
 
 ## ##### explanation #####
 ##
 ## raw data parameters
 ##
-## raw_ori: image orientation ('right' or 'left')
-##   if im2 angle - im1 angle < 0 => raw_ori = 'right'
-## raw_mirrors: depends on the acquisition protocol, value
-## 	can be set to True or False
-## 	- the standard value of this parameter is False
-## 	- in case of axial symmetry between left
-## 	  and right cameras, then set to True
-## raw_resolution: acquisition voxel size
+## acquisition_orientation: image orientation ('right' or 'left')
+##   gives the rotation (wrt to the Y axis) of the left camera frame of stack #0
+##   to be aligned with the the left camera frame of stack #1
+##   - 'right': +90 degrees
+##   - 'left': -90 degrees
+## acquisition_mirrors: mirroring of the right camera image along the X-axis
+## 	 Right camera images may have to be mirrored along the X-axis to be aligned
+##   with the left camera images
+##   - 'True': the mirroring is done
+##   - 'False': the mirroring is still to be done
+##   Since it should depend on the apparatus, all acquisitions performed by the same
+##   microscope should be the same tuning
+## acquisition_leftcamera_stacking_direction
+##   gives the order of stacking of in the Z direction
+##   'increasing': from the high-contrasted images to the fuzzy ones
+##   'decreasing': from the fuzzy images to the high-contrasted ones
+## acquisition_resolution: acquisition voxel size
 ##   e.g. raw_resolution = (.21, .21, 1.)
 ## raw_delay: increment to to be added to the time values
 ##   (values in range [begin,end]) when generating the
 ##   fused image names (default is 0)
 ##   eg: acquisition at time point 't' results in the fused image at time 't+raw_delay'
+## acquisition_leftcamera_stacking_direction
 ##
 ## To determine the configuration (raw_ori,raw_resolution) (ie ('left',False),
 ## ('left',True), ('right', False), or ('right', True)), it is advised to perform the fusion

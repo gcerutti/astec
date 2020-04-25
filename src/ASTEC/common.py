@@ -1228,8 +1228,8 @@ class Experiment(object):
         #
         # images suffixes/formats
         #
-        self.result_image_suffix = 'inr'
-        self.default_image_suffix = 'inr'
+        self.result_image_suffix = 'mha'
+        self.default_image_suffix = 'mha'
 
     ############################################################
     #
@@ -1282,7 +1282,7 @@ class Experiment(object):
                 logfile.write("\n")
                 logfile.write('Experiment parameters\n')
 
-                logfile.write('- _embryo_path is ' + str(self._get_embryo_path())+'\n')
+                logfile.write('- _embryo_path is ' + str(self.get_embryo_path())+'\n')
                 logfile.write('- _embryo_name is ' + str(self.get_embryo_name())+'\n')
 
                 logfile.write('- first_time_point is ' + str(self.first_time_point)+'\n')
@@ -1320,7 +1320,7 @@ class Experiment(object):
             logfile.write("\n")
             if start_time is not None:
                 logfile.write("# " + time.strftime("%a, %d %b %Y %H:%M:%S", start_time) + "\n")
-            logfile.write("# Embryo path: '" + str(self._get_embryo_path()) + "'\n")
+            logfile.write("# Embryo path: '" + str(self.get_embryo_path()) + "'\n")
             logfile.write("# Embryo name: '" + str(self.get_embryo_name()) + "'\n")
             if parameter_file is not None:
                 logfile.write("# Parameter file: '" + str(parameter_file) + "'\n")
@@ -1505,7 +1505,7 @@ class Experiment(object):
             self._set_embryo_name(self._embryo_path.split(os.path.sep)[-1])
         return self._embryo_name
 
-    def _get_embryo_path(self):
+    def get_embryo_path(self):
         return self._embryo_path
 
     def get_log_dirname(self):
@@ -1530,7 +1530,10 @@ class Experiment(object):
         mars_image = find_file(self.mars_dir.get_directory(), mars_name, callfrom=proc, local_monitoring=None,
                                verbose=False)
         if mars_image is not None:
-            seg_name += "." + self.result_image_suffix
+            #
+            # copy mars image with the same suffix
+            #
+            seg_name += "." + mars_image[len(mars_name)+1:]
             monitoring.to_log_and_console("    .. " + proc + ": copy '" + str(mars_image) + "' into '"
                                           + str(seg_name) + "'", 2)
             mars_image = os.path.join(self.mars_dir.get_directory(), mars_image)

@@ -43,8 +43,27 @@ class FusionParameters(object):
         #
         # acquisition parameters
         #
+        # self.acquisition_orientation
+        #   defines the rotation/transformation from S0LC (stack #0, left camera) to S1LC (stack #1, left camera)
+        #   rotation axis is the Y axis, thus the rotation pushes the Z axis towards the X axis
+        #   this transformation allows then to resample S1LC in the same frame than S0LC, and is
+        #   also the initial transformation when registering S1LC onto S0LC
+        #   'left': -90 deg rotation
+        #   'right': 90 rotation
+        #
+        # self.acquisition_mirrors
+        #   if False, we have to mirror (along the X axis) the right camera images to make them
+        #   similar to the left camera images
+        #
+        # acquisition_stack0_leftcamera_stacking_direction
+        #  defines where are the high contrasted XZ-sections of the left camera image of stack0
+        #  increasing: small z are well contrasted (close to the camera), while large z are fuzzy
+        #  it is useful for direction-dependent weighting schemes
+        #
         self.acquisition_orientation = 'left'
         self.acquisition_mirrors = False
+        self.acquisition_stack0_leftcamera_stacking_direction = 'increasing'
+        self.acquisition_stack1_leftcamera_stacking_direction = 'increasing'
         self.acquisition_resolution = None
 
         #
@@ -117,32 +136,37 @@ class FusionParameters(object):
         print("")
         print('FusionParameters')
 
-        print('- acquisition_orientation = '+str(self.acquisition_orientation))
-        print('- acquisition_mirrors     = '+str(self.acquisition_mirrors))
-        print('- acquisition_resolution  = '+str(self.acquisition_resolution))
+        print('- acquisition_orientation = ' + str(self.acquisition_orientation))
+        print('- acquisition_mirrors     = ' + str(self.acquisition_mirrors))
+        print('- acquisition_resolution  = ' + str(self.acquisition_resolution))
 
-        print('- acquisition_slit_line_correction = '+str(self.acquisition_slit_line_correction))
+        print('- acquisition_stack0_leftcamera_stacking_direction = ' +
+              str(self.acquisition_stack0_leftcamera_stacking_direction))
+        print('- acquisition_stack1_leftcamera_stacking_direction = ' +
+              str(self.acquisition_stack1_leftcamera_stacking_direction))
 
-        print('- target_resolution  = '+str(self.target_resolution))
+        print('- acquisition_slit_line_correction = ' + str(self.acquisition_slit_line_correction))
+
+        print('- target_resolution  = ' + str(self.target_resolution))
 
         print('- fusion_strategy  = ' + str(self.fusion_strategy))
 
-        print('- acquisition_cropping = '+str(self.acquisition_cropping))
-        print('- acquisition_cropping_margin_x_0 = '+str(self.acquisition_cropping_margin_x_0))
-        print('- acquisition_cropping_margin_x_1 = '+str(self.acquisition_cropping_margin_x_1))
-        print('- acquisition_cropping_margin_y_0 = '+str(self.acquisition_cropping_margin_y_0))
-        print('- acquisition_cropping_margin_y_1 = '+str(self.acquisition_cropping_margin_y_1))
+        print('- acquisition_cropping = ' + str(self.acquisition_cropping))
+        print('- acquisition_cropping_margin_x_0 = ' + str(self.acquisition_cropping_margin_x_0))
+        print('- acquisition_cropping_margin_x_1 = ' + str(self.acquisition_cropping_margin_x_1))
+        print('- acquisition_cropping_margin_y_0 = ' + str(self.acquisition_cropping_margin_y_0))
+        print('- acquisition_cropping_margin_y_1 = ' + str(self.acquisition_cropping_margin_y_1))
 
         for p in self.acquisition_registration:
             p.print_parameters()
         for p in self.stack_registration:
             p.print_parameters()
 
-        print('- fusion_cropping = '+str(self.fusion_cropping))
-        print('- fusion_cropping_margin_x_0 = '+str(self.fusion_cropping_margin_x_0))
-        print('- fusion_cropping_margin_x_1 = '+str(self.fusion_cropping_margin_x_1))
-        print('- fusion_cropping_margin_y_0 = '+str(self.fusion_cropping_margin_y_0))
-        print('- fusion_cropping_margin_y_1 = '+str(self.fusion_cropping_margin_y_1))
+        print('- fusion_cropping = ' + str(self.fusion_cropping))
+        print('- fusion_cropping_margin_x_0 = ' + str(self.fusion_cropping_margin_x_0))
+        print('- fusion_cropping_margin_x_1 = ' + str(self.fusion_cropping_margin_x_1))
+        print('- fusion_cropping_margin_y_0 = ' + str(self.fusion_cropping_margin_y_0))
+        print('- fusion_cropping_margin_y_1 = ' + str(self.fusion_cropping_margin_y_1))
 
         print("")
 
@@ -151,32 +175,37 @@ class FusionParameters(object):
             logfile.write("\n")
             logfile.write('FusionParameters\n')
 
-            logfile.write('- acquisition_orientation = '+str(self.acquisition_orientation)+'\n')
-            logfile.write('- acquisition_mirrors     = '+str(self.acquisition_mirrors)+'\n')
-            logfile.write('- acquisition_resolution  = '+str(self.acquisition_resolution)+'\n')
+            logfile.write('- acquisition_orientation = ' + str(self.acquisition_orientation)+'\n')
+            logfile.write('- acquisition_mirrors     = ' + str(self.acquisition_mirrors)+'\n')
+            logfile.write('- acquisition_resolution  = ' + str(self.acquisition_resolution)+'\n')
 
-            logfile.write('- acquisition_slit_line_correction = '+str(self.acquisition_slit_line_correction)+'\n')
+            logfile.write('- acquisition_stack0_leftcamera_stacking_direction = '
+                          + str(self.acquisition_stack0_leftcamera_stacking_direction)+'\n')
+            logfile.write('- acquisition_stack1_leftcamera_stacking_direction = '
+                          + str(self.acquisition_stack1_leftcamera_stacking_direction)+'\n')
 
-            logfile.write('- target_resolution  = '+str(self.target_resolution)+'\n')
+            logfile.write('- acquisition_slit_line_correction = ' + str(self.acquisition_slit_line_correction)+'\n')
+
+            logfile.write('- target_resolution  = ' + str(self.target_resolution)+'\n')
 
             logfile.write('- fusion_strategy  = ' + str(self.fusion_strategy) + '\n')
 
-            logfile.write('- acquisition_cropping = '+str(self.acquisition_cropping)+'\n')
-            logfile.write('- acquisition_cropping_margin_x_0 = '+str(self.acquisition_cropping_margin_x_0)+'\n')
-            logfile.write('- acquisition_cropping_margin_x_1 = '+str(self.acquisition_cropping_margin_x_1)+'\n')
-            logfile.write('- acquisition_cropping_margin_y_0 = '+str(self.acquisition_cropping_margin_y_0)+'\n')
-            logfile.write('- acquisition_cropping_margin_y_1 = '+str(self.acquisition_cropping_margin_y_1)+'\n')
+            logfile.write('- acquisition_cropping = ' + str(self.acquisition_cropping)+'\n')
+            logfile.write('- acquisition_cropping_margin_x_0 = ' + str(self.acquisition_cropping_margin_x_0)+'\n')
+            logfile.write('- acquisition_cropping_margin_x_1 = ' + str(self.acquisition_cropping_margin_x_1)+'\n')
+            logfile.write('- acquisition_cropping_margin_y_0 = ' + str(self.acquisition_cropping_margin_y_0)+'\n')
+            logfile.write('- acquisition_cropping_margin_y_1 = ' + str(self.acquisition_cropping_margin_y_1)+'\n')
 
             for p in self.acquisition_registration:
                 p.write_parameters(log_file_name)
             for p in self.stack_registration:
                 p.write_parameters(log_file_name)
 
-            logfile.write('- fusion_cropping = '+str(self.fusion_cropping)+'\n')
-            logfile.write('- fusion_cropping_margin_x_0 = '+str(self.fusion_cropping_margin_x_0)+'\n')
-            logfile.write('- fusion_cropping_margin_x_1 = '+str(self.fusion_cropping_margin_x_1)+'\n')
-            logfile.write('- fusion_cropping_margin_y_0 = '+str(self.fusion_cropping_margin_y_0)+'\n')
-            logfile.write('- fusion_cropping_margin_y_1 = '+str(self.fusion_cropping_margin_y_1)+'\n')
+            logfile.write('- fusion_cropping = ' + str(self.fusion_cropping)+'\n')
+            logfile.write('- fusion_cropping_margin_x_0 = ' + str(self.fusion_cropping_margin_x_0)+'\n')
+            logfile.write('- fusion_cropping_margin_x_1 = ' + str(self.fusion_cropping_margin_x_1)+'\n')
+            logfile.write('- fusion_cropping_margin_y_0 = ' + str(self.fusion_cropping_margin_y_0)+'\n')
+            logfile.write('- fusion_cropping_margin_y_1 = ' + str(self.fusion_cropping_margin_y_1)+'\n')
 
             logfile.write("\n")
         return
@@ -202,6 +231,9 @@ class FusionParameters(object):
         if hasattr(parameters, 'raw_ori'):
             if parameters.raw_ori is not None:
                 self.acquisition_orientation = parameters.raw_ori
+        elif hasattr(parameters, 'raw_orientation'):
+            if parameters.raw_orientation is not None:
+                self.acquisition_orientation = parameters.raw_orientation
         elif hasattr(parameters, 'acquisition_orientation'):
             if parameters.acquisition_orientation is not None:
                 self.acquisition_orientation = parameters.acquisition_orientation
@@ -212,6 +244,29 @@ class FusionParameters(object):
         elif hasattr(parameters, 'acquisition_mirrors'):
             if parameters.acquisition_mirrors is not None:
                 self.acquisition_mirrors = parameters.acquisition_mirrors
+
+        if hasattr(parameters, 'raw_leftcamera_stacking_direction'):
+            if parameters.raw_leftcamera_stacking_direction is not None:
+                self.acquisition_stack0_leftcamera_stacking_direction = parameters.raw_leftcamera_stacking_direction
+                self.acquisition_stack1_leftcamera_stacking_direction = parameters.raw_leftcamera_stacking_direction
+        elif hasattr(parameters, 'acquisition_leftcamera_stacking_direction'):
+            if parameters.raw_leftcamera_stacking_direction is not None:
+                self.acquisition_stack0_leftcamera_stacking_direction = parameters.acquisition_leftcamera_stacking_direction
+                self.acquisition_stack1_leftcamera_stacking_direction = parameters.acquisition_leftcamera_stacking_direction
+
+        if hasattr(parameters, 'raw_stack0_leftcamera_stacking_direction'):
+            if parameters.raw_stack0_leftcamera_stacking_direction is not None:
+                self.acquisition_stack0_leftcamera_stacking_direction = parameters.raw_stack0_leftcamera_stacking_direction
+        elif hasattr(parameters, 'acquisition_stack0_leftcamera_stacking_direction'):
+            if parameters.acquisition_stack0_leftcamera_stacking_direction is not None:
+                self.acquisition_stack0_leftcamera_stacking_direction = parameters.acquisition_stack0_leftcamera_stacking_direction
+
+        if hasattr(parameters, 'raw_stack1_leftcamera_stacking_direction'):
+            if parameters.raw_stack1_leftcamera_stacking_direction is not None:
+                self.acquisition_stack1_leftcamera_stacking_direction = parameters.raw_stack1_leftcamera_stacking_direction
+        elif hasattr(parameters, 'acquisition_stack1_leftcamera_stacking_direction'):
+            if parameters.acquisition_stack1_leftcamera_stacking_direction is not None:
+                self.acquisition_stack1_leftcamera_stacking_direction = parameters.acquisition_stack1_leftcamera_stacking_direction
 
         if hasattr(parameters, 'raw_resolution'):
             if parameters.raw_resolution is not None:
@@ -913,13 +968,13 @@ def _exp_func(x, length=500, speed=5):
     return .1+np.exp(-((np.float32(x)*speed)/length))
 
 
-def _build_guignard_weighting(image, direction):
+def _build_guignard_weighting(image, decreasing_weight_with_z):
     """Return the mask on a given image from the decay function
     im : intensity image (SpatialImage)
     direction : if True the camera is in the side of the first slices in Z
     """
-
     proc = "_build_guignard_weighting"
+
     if not isinstance(image, SpatialImage):
         print proc + ": argument image is not an ndarray"
         return
@@ -927,12 +982,69 @@ def _build_guignard_weighting(image, direction):
     th = _threshold_otsu(image)
     im_th = np.zeros_like(image, dtype=np.float32)
     im_th[image > th] = 1
-    if direction is False:
+    if decreasing_weight_with_z is False:
         im_th = im_th[:, :, -1::-1]
     im_th_sum = np.cumsum(im_th, axis=2)
-    if direction is False:
+    if decreasing_weight_with_z is False:
         im_th_sum = im_th_sum[:, :, -1::-1]
     mask = _exp_func(im_th_sum, np.max(im_th_sum))
+    return mask
+
+
+def _build_corner_weighting(image, decreasing_weight_with_z):
+    """
+
+    :param image:
+    :return:
+    """
+    proc = "_build_corner_weighting"
+
+    if not isinstance(image, SpatialImage):
+        print proc + ": argument image is not an ndarray"
+        return
+
+    mask = np.full_like(image, 0.1, dtype=np.float32)
+    dimx = image.shape[0]
+    dimz = image.shape[2]
+    # build a corner-like weighting image
+    # - constant z-slices (during cz slices)
+    # - linear decrease along the x dimension until dimz/2 - dz is reached
+    # cz : plans entiers de 1 -> [dimz-cz, dimz-1]
+    # dz : decalage vers z=0 a partir de mz=dimz/2
+    cz = int(dimz/8.0)
+    dz = int(dimz/8.0)
+    mz = int(dimz/2.0 + 0.5)
+    # partie constante
+    for z in range(dimz-cz, dimz):
+        mask[:, :, z] = 1.0
+    # partie variable
+    for z in range(mz-dz,dimz-cz):
+        dx = int( (z - float(dimz-cz))/ float((mz-dz)-(dimz-cz)) * float(dimx / 2.0) + 0.5)
+        if dimx - dx > dx:
+            mask[dx:dimx-dx, :, z] = 1.0
+    if decreasing_weight_with_z is True:
+        mask = mask[:, :, -1::-1]
+    return mask
+
+
+def _build_ramp_weighting(image, decreasing_weight_with_z):
+    """
+
+    :param image:
+    :return:
+    """
+    proc = "_build_ramp_weighting"
+
+    if not isinstance(image, SpatialImage):
+        print proc + ": argument image is not an ndarray"
+        return
+
+    mask = np.zeros_like(image, dtype=np.float32)
+    dimz = image.shape[2]
+    for z in range(0, dimz):
+        mask[:, :, z] = z
+    if decreasing_weight_with_z is True:
+        mask = mask[:, :, -1::-1]
     return mask
 
 
@@ -952,7 +1064,8 @@ def _build_uniform_weighting(image):
     return mask
 
 
-def _build_unreg_weighting_image(template_image_name, weighting_image_name, direction, fusion_weighting='none'):
+def _build_unreg_weighting_image(template_image_name, weighting_image_name, decreasing_weight_with_z=True,
+                                 fusion_weighting='none'):
     """
 
     :param template_image_name:
@@ -962,18 +1075,29 @@ def _build_unreg_weighting_image(template_image_name, weighting_image_name, dire
     """
     proc = "_build_unreg_weighting_image"
 
+    print(str(proc) + ": decreasing_weight_with_z = " + str(decreasing_weight_with_z))
+
     im = imread(template_image_name)
     if fusion_weighting.lower() == 'none' or fusion_weighting.lower() == 'uniform' \
             or fusion_weighting.lower() == 'uniform-weighting':
         unreg_weight = _build_uniform_weighting(im)
     elif fusion_weighting.lower() == 'guignard' or fusion_weighting.lower() == 'guignard-weighting':
-        unreg_weight = _build_guignard_weighting(im, direction)
+        unreg_weight = _build_guignard_weighting(im, decreasing_weight_with_z)
+    elif fusion_weighting.lower() == 'corner' or fusion_weighting.lower() == 'corner-weighting':
+        unreg_weight = _build_corner_weighting(im, decreasing_weight_with_z)
+    elif fusion_weighting.lower() == 'ramp' or fusion_weighting.lower() == 'ramp-weighting':
+        unreg_weight = _build_ramp_weighting(im, decreasing_weight_with_z)
     else:
         print proc + ": unknown weighting function, switch to uniform"
         unreg_weight = _build_uniform_weighting(im)
 
     unreg_weight._set_resolution(im._get_resolution())
     imsave(weighting_image_name, unreg_weight)
+
+    if fusion_weighting.lower() == 'corner' or fusion_weighting.lower() == 'corner-weighting':
+        cpp_wrapping.linear_smoothing(weighting_image_name, weighting_image_name, 5.0, real_scale=False,
+                                      monitoring=monitoring)
+
     del im
     del unreg_weight
     return
@@ -1268,12 +1392,9 @@ def _direct_fusion_process(input_image_list, the_image_list, fused_image, experi
             # - other channels: resampling with transformation of channel #0
             #
             else:
-
                 if c == 0:
-
                     monitoring.to_log_and_console("       co-registering '" + the_images[i].split(os.path.sep)[-1]
                                                   + "'", 2)
-
                     #
                     # initial transformation
                     #
@@ -1339,7 +1460,6 @@ def _direct_fusion_process(input_image_list, the_image_list, fused_image, experi
                 # other channels
                 #
                 else:
-
                     monitoring.to_log_and_console("       resampling '" + the_images[i].split(os.path.sep)[-1] + "'", 2)
                     if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
                         cpp_wrapping.apply_transformation(the_images[i], res_images[i],
@@ -1359,16 +1479,57 @@ def _direct_fusion_process(input_image_list, the_image_list, fused_image, experi
 
             monitoring.to_log_and_console("       .. computing weights for fusion", 2)
 
-            if i % 2 == 1:
-                direction = False
-            else:
-                direction = True
+            decreasing_weight_with_z = None
+            # stack 0, left camera
+            if i == 0:
+                if parameters.acquisition_stack0_leftcamera_stacking_direction.lower() == 'increasing':
+                    decreasing_weight_with_z = True
+                elif parameters.acquisition_stack0_leftcamera_stacking_direction.lower() == 'decreasing':
+                    decreasing_weight_with_z = False
+                else:
+                    monitoring.to_log_and_console(proc + ": unknown stack0 left camera position '"
+                                                  + str(parameters.acquisition_stack0_leftcamera_stacking_direction) + "'", 0)
+                    monitoring.to_log_and_console("Exiting.", 0)
+                    sys.exit(1)
+            # stack 0, right camera
+            elif i == 1:
+                if parameters.acquisition_stack0_leftcamera_stacking_direction.lower() == 'increasing':
+                    decreasing_weight_with_z = False
+                elif parameters.acquisition_stack0_leftcamera_stacking_direction.lower() == 'decreasing':
+                    decreasing_weight_with_z = True
+                else:
+                    monitoring.to_log_and_console(proc + ": unknown stack0 left camera position '"
+                                                  + str(parameters.acquisition_stack0_leftcamera_stacking_direction) + "'", 0)
+                    monitoring.to_log_and_console("Exiting.", 0)
+                    sys.exit(1)
+            # stack 1, left camera
+            elif i == 2:
+                if parameters.acquisition_stack1_leftcamera_stacking_direction.lower() == 'increasing':
+                    decreasing_weight_with_z = True
+                elif parameters.acquisition_stack1_leftcamera_stacking_direction.lower() == 'decreasing':
+                    decreasing_weight_with_z = False
+                else:
+                    monitoring.to_log_and_console(proc + ": unknown stack1 left camera position '"
+                                                  + str(parameters.acquisition_stack1_leftcamera_stacking_direction) + "'", 0)
+                    monitoring.to_log_and_console("Exiting.", 0)
+                    sys.exit(1)
+            # stack 1, right camera
+            elif i == 3:
+                if parameters.acquisition_stack1_leftcamera_stacking_direction.lower() == 'increasing':
+                    decreasing_weight_with_z = False
+                elif parameters.acquisition_stack1_leftcamera_stacking_direction.lower() == 'decreasing':
+                    decreasing_weight_with_z = True
+                else:
+                    monitoring.to_log_and_console(proc + ": unknown stack1 left camera position '"
+                                                  + str(parameters.acquisition_stack1_leftcamera_stacking_direction) + "'", 0)
+                    monitoring.to_log_and_console("Exiting.", 0)
+                    sys.exit(1)
 
             if not os.path.isfile(unreg_weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
                 #
                 #
                 #
-                _build_unreg_weighting_image(the_images[i], unreg_weight_images[i], direction,
+                _build_unreg_weighting_image(the_images[i], unreg_weight_images[i], decreasing_weight_with_z,
                                              experiment.rawdata_dir.channel[c].fusion_weighting)
             else:
                 monitoring.to_log_and_console("          already existing", 2)
@@ -1726,13 +1887,55 @@ def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, 
             monitoring.to_log_and_console("         process '"
                                           + the_images[i].split(os.path.sep)[-1] + "' for weight", 2)
 
-            if j == 1:
-                direction = False
-            else:
-                direction = True
+            decreasing_weight_with_z = None
+            # stack 0, left camera
+            if i == 0:
+                if parameters.acquisition_stack0_leftcamera_stacking_direction.lower() == 'increasing':
+                    decreasing_weight_with_z = True
+                elif parameters.acquisition_stack0_leftcamera_stacking_direction.lower() == 'decreasing':
+                    decreasing_weight_with_z = False
+                else:
+                    monitoring.to_log_and_console(proc + ": unknown stack0 left camera position '"
+                                                  + str(parameters.acquisition_stack0_leftcamera_stacking_direction) + "'", 0)
+                    monitoring.to_log_and_console("Exiting.", 0)
+                    sys.exit(1)
+            # stack 0, right camera
+            elif i == 1:
+                if parameters.acquisition_stack0_leftcamera_stacking_direction.lower() == 'increasing':
+                    decreasing_weight_with_z = False
+                elif parameters.acquisition_stack0_leftcamera_stacking_direction.lower() == 'decreasing':
+                    decreasing_weight_with_z = True
+                else:
+                    monitoring.to_log_and_console(proc + ": unknown stack0 left camera position '"
+                                                  + str(parameters.acquisition_stack0_leftcamera_stacking_direction) + "'", 0)
+                    monitoring.to_log_and_console("Exiting.", 0)
+                    sys.exit(1)
+            # stack 1, left camera
+            elif i == 2:
+                if parameters.acquisition_stack1_leftcamera_stacking_direction.lower() == 'increasing':
+                    decreasing_weight_with_z = True
+                elif parameters.acquisition_stack1_leftcamera_stacking_direction.lower() == 'decreasing':
+                    decreasing_weight_with_z = False
+                else:
+                    monitoring.to_log_and_console(proc + ": unknown stack1 left camera position '"
+                                                  + str(parameters.acquisition_stack1_leftcamera_stacking_direction) + "'", 0)
+                    monitoring.to_log_and_console("Exiting.", 0)
+                    sys.exit(1)
+            # stack 1, right camera
+            elif i == 3:
+                if parameters.acquisition_stack1_leftcamera_stacking_direction.lower() == 'increasing':
+                    decreasing_weight_with_z = False
+                elif parameters.acquisition_stack1_leftcamera_stacking_direction.lower() == 'decreasing':
+                    decreasing_weight_with_z = True
+                else:
+                    monitoring.to_log_and_console(proc + ": unknown stack1 left camera position '"
+                                                  + str(parameters.acquisition_stack1_leftcamera_stacking_direction) + "'", 0)
+                    monitoring.to_log_and_console("Exiting.", 0)
+                    sys.exit(1)
+
 
             if not os.path.isfile(unreg_weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                _build_unreg_weighting_image(the_images[i], unreg_weight_images[i], direction,
+                _build_unreg_weighting_image(the_images[i], unreg_weight_images[i], decreasing_weight_with_z,
                                              experiment.rawdata_dir.channel[0].fusion_weighting)
             else:
                 monitoring.to_log_and_console("         already existing", 2)

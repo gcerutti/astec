@@ -12,7 +12,7 @@ The fusion is made of the following steps.
 
 \item \label{it:fusion:crop:1} Optionally, a crop of the resampled acquisitions. It allows to decrease the volume of data, hence the computational cost. The crop is based on the analysis of a MIP view (in the Z direction) of  the volume, and thus is sensitive to hyper-intensities if any. By default, it is done.
 
-\item Optionally, a mirroring of the 'right' image. It depends on the value of  \verb|raw_mirrors| variable.
+\item Optionally, a mirroring along the X axis of the 'right camera' image. It depends on the value of  \verb|acquisition_mirrors| variable.
 
 \item \label{it:fusion:registration} Co-registration of the 3 last images onto the first one (the acquisition from the left camera for stack \#0) considered as a reference. The reference image is resampled again, to get an isotropic voxel (whose size is given by \verb|target_resolution|), i.e. the voxel size is the same along the 3 directions: X, Y, Z. There are two alternative methods.
 \begin{enumerate}
@@ -21,7 +21,7 @@ The fusion is made of the following steps.
 \item The hierarchical method. Each stack is first reconstructed (with the acquisition couple of both left and right cameras), then stack \#1 is \textit{non-linearly} co-registered onto stack \#0. From this last registration, non-linear co-registrations are deduced for the stack \#1 acquisitions, while linear co-registration is still considered for the right camera acquisition of stack \#0.
 \end{enumerate}
 
-\item \label{it:fusion:combination}  Linear combination of images, weighted by an ad-hoc function.
+\item \label{it:fusion:combination} Weighted linear combination of images.
 
 \item  \label{it:fusion:crop:2} Optionally, a crop of the fused image, still based on the analysis of a MIP view (in the Z direction). By default, it is done.
 \end{enumerate}
@@ -51,6 +51,25 @@ The following options are available:
 \end{description}
 
 
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=150mm]{figures/acquisition-spim-right.png}
+\end{center}
+\caption{\label{fig:cli:fuse:spim:right:acquisition} Multiview lightsheet microscope acquisition: at a time point, two acquisitions (stack \#0 and stack \#1) are sequentially performed, the second one orthogonal to the first. For each acquisition, two 3D intensity image stacks are acquired, respectively by the left and the right cameras. 
+It yields four image stacks to be fused. 
+The frame $(\mathbf{X}, \mathbf{Z})$ of the left camera of stack \#0 needs to be rotated clockwise (90 degrees along the $\mathbf{Y}$ axis) to correspond to the frame of the left camera of stack \#1: \texttt{acquisition\_orientation} has to be set to \texttt{'right'}.}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=150mm]{figures/acquisition-spim-left.png}
+\end{center}
+\caption{\label{fig:cli:fuse:spim:left:acquisition} The frame $(\mathbf{X}, \mathbf{Z})$ of the left camera of stack \#0 needs to be rotated counterclockwise (-90 degrees along the $\mathbf{Y}$ axis) to correspond to the frame of the left camera of stack \#1: \texttt{acquisition\_orientation} has to be set to \texttt{'left'}.}
+\end{figure}
+
+
+
 \subsection{Important parameters in the parameter file}
 \label{sec:cli:fuse:important:parameters}
 
@@ -62,14 +81,25 @@ Indicating the right values of the
 acquisition parameters is crucial; these parameters are
 \begin{itemize}
 \itemsep -0.5ex
-\item \texttt{raw\_ori} is a parameter describing the acquisition
-  orientation of the acquisition of the second pair of images. Its value can be either \texttt{'left'} (orientation of
-  $270 \degree$) or \texttt{'right'} (orientation of
-  $90 \degree$).
-\item \texttt{raw\_mirrors} is a parameter indicating whether the
-  right camera images have to be mirrored or not. Its value is either
-  \texttt{False} or \texttt{True}.
-\item \texttt{raw\_resolution} is the voxel size (along the 3
+\item \texttt{acquisition\_mirrors}  (or \texttt{raw\_mirrors}) is a parameter indicating whether the right camera images have already been mirrored along the X axis (so that the X axis direction is the one of the left cameras) or not. Its value is either \texttt{False} or \texttt{True}. Such a parameter should depend on the acquisition apparatus (ie the microscope) and the should be identical for all acquisitions.
+
+In acquisitions depicted in figures \ref{fig:cli:fuse:spim:right:acquisition} and \ref{fig:cli:fuse:spim:left:acquisition}, it can be seen that the X-axis of the right camera image is inverted with respect to the left camera image. \texttt{acquisition\_mirrors} has to be set to \texttt{'False'}
+  
+  
+\item \texttt{acquisition\_orientation} (or \texttt{raw\_ori}) is a parameter describing the acquisition orientation of the acquisition of the stack \#1 images with respect to the stack \#0 ones. 
+
+\begin{itemize}
+\item \texttt{'right'}: the frame $(\mathbf{X}, \mathbf{Z})$ of the left camera of stack \#0 needs to be rotated clockwise (90 degrees along the $\mathbf{Y}$ axis) to correspond to the left camera of stack \#1 (see figure \ref{fig:cli:fuse:spim:right:acquisition}).
+\item \texttt{'left'}: the frame $(\mathbf{X}, \mathbf{Z})$ of the left camera of stack \#0 needs to be rotated counterclockwise (-90 degrees along the $\mathbf{Y}$ axis) to correspond to the left camera of stack \#1 (see figure \ref{fig:cli:fuse:spim:left:acquisition}).
+\end{itemize}
+
+\item \texttt{acquisition\_leftcamera\_stacking\_direction} gives the order of stacking of in the Z direction for the left camera images.
+\begin{itemize}
+\item \texttt{'increasing'}: \textbf{z} increases from the high-contrasted images to the fuzzy ones (see figure \ref{fig:cli:fuse:spim:right:acquisition}).
+\item \texttt{'decreasing'}: \textbf{z} increases from the fuzzy images to the high-contrasted ones (see figure \ref{fig:cli:fuse:spim:left:acquisition}).
+\end{itemize}
+
+\item \texttt{acquisition\_resolution} (or \texttt{raw\_resolution}) is the voxel size (along the 3
     dimensions X, Y and Z) of the acquired images.
 \item \texttt{target\_resolution} is the desired isotropic (the
     same along the 3 dimensions) voxel size for the result fusion
@@ -102,13 +132,7 @@ calculations.
 \subsection{Input data}
 \label{sec:cli:fuse:input:data}
 
-\begin{figure}
-\begin{center}
-\includegraphics[height=50mm]{figures/acquisition-spim.png}
-\end{center}
-\caption{\label{fig:cli:fuse:spim:acquisition} Multiview lightsheet microscope acquisition: at a time point, two acquisitions (stack \#0 and stack \#1) are sequentially performed, the second one orthogonal to the first. For each acquisition, two 3D intensity image stacks are acquired, respectively by the left and the right cameras. 
-It yields four image stacks to be fused.}
-\end{figure}
+
 
 Input data (acquired images from the MuViSPIM microscope, see figure \ref{fig:cli:fuse:spim:acquisition}) are assumed
 to be organized in a separate \texttt{RAWDATA/} directory in the 
@@ -434,16 +458,9 @@ $I^{0}_{RC} \circ T_{I^{0}_{RC} \leftarrow I^{0}_{LC}}$ denotes this resampled i
 
 \begin{figure}
 \begin{center}
-\begin{tabular}{ccc}
-\includegraphics[height=50mm]{figures/fusion-hierarchical-strategy-1.png} &
-\includegraphics[height=50mm]{figures/fusion-hierarchical-strategy-2.png} &
-\includegraphics[height=50mm]{figures/fusion-hierarchical-strategy-3.png} \\
-Stack \#0 fusion &
-Stack \#1 fusion &
-Stacks \#0 and \#1 co-registration
-\end{tabular}
+\includegraphics[height=50mm]{figures/fusion-hierarchical-strategy.png}  
 \end{center}
-\caption{\label{fig:cli:fuse:hierarchical:strategy} Fusion \textit{hierarchical} strategy. Stacks \#0 and \#1 are reconstructed independently and then co-registered}
+\caption{\label{fig:cli:fuse:hierarchical:strategy} Fusion \textit{hierarchical} strategy. Stacks \#0 and \#1 are reconstructed independently: right camera images are co-registered on the left camera ones, and stacks \#0 and \#1 are reconstructed by fusing left and right camera images. Fused image of stack \#1 is co-registered on fused image of stack \#0: by transformation composition, it allows to compute the transformations of left and right camera images of stack \#1 onto the left camera image of stack \#0.}
 \end{figure}
 
 In the parameter file, the line
@@ -526,25 +543,62 @@ I_{fuse} =
 + \omega^{1}_{RC} I^{1}_{RC} \circ T_{I^{1}_{RC} \leftarrow I^{0}_{LC}}
 \end{displaymath}
 
-The choice of the weighting function is controlled by the variable \texttt{fusion\_weighting}, eventually suffixed by \texttt{\_channel\_[1,2,3]}.
+
+
+\begin{figure}
+\begin{center}
+\includegraphics[height=50mm]{figures/fusion-uniform-combination.png}
+\end{center}
+\caption{\label{fig:cli:fuse:uniform:combination} At the left, XZ-sections of 4 co-registered stacks. 
+At the right, the linear combination of the 4 co-registered stacks with an uniform (or constant) weighting function. It comes to make an average of the 4 co-registered stacks.}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+\includegraphics[height=50mm]{figures/fusion-ramp-combination.png}
+\end{center}
+\caption{\label{fig:cli:fuse:ramp:combination} At the left, XZ-sections of 4 co-registered stacks together with their ramp weighting function.
+At the right, the linear combination of the 4 co-registered stacks with this ramp weighting function.}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+\includegraphics[height=50mm]{figures/fusion-corner-combination.png}
+\end{center}
+\caption{\label{fig:cli:fuse:corner:combination} At the left, XZ-sections of 4 co-registered stacks together with their corner weighting function.
+At the right, the linear combination of the 4 co-registered stacks with this corner weighting function.}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+\includegraphics[height=50mm]{figures/fusion-guignard-combination.png}
+\end{center}
+\caption{\label{fig:cli:fuse:guignard:combination} At the left, XZ-sections of 4 co-registered stacks together with their Guignard's weighting function.
+At the right, the linear combination of the 4 co-registered stacks with this weighting function.}
+\end{figure}
+
+
+
+The choice of the weighting function is controlled by the variable \texttt{fusion\_weighting}, eventually suffixed by \texttt{\_channel\_[1,2,3]} if one wants to use different weighting schemes for the different channels to be fused.
+
+
+The variable \texttt{fusion\_weighting} can be set to
 
 \begin{itemize}
-\item The line
-\begin{verbatim}
-fusion_weighting = 'guignard-weighting'
-\end{verbatim}
-will set the weighting function to the one described in \cite{guignard:tel-01278725}: more weight are given to sections close to the camera and it also takes into account the traversed material. Such a weighting depends on the stacks to be fused.
-\item The line
-\begin{verbatim}
-fusion_weighting = 'uniform'
-\end{verbatim}
-comes to the average of the resampled co-registered stacks. Such a weighting does not depend on the stacks to be fused.
+\item \texttt{'uniform'}:
+it comes to the average of the resampled co-registered stacks (see figure \ref{fig:cli:fuse:uniform:combination}). Such a weighting does not depend on the stacks to be fused.
+\item \texttt{'ramp'}:
+the weights are linearly increasing or decreasing along the \textbf{Z} axis (see figure \ref{fig:cli:fuse:ramp:combination}), depending on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction}. If the latter is \texttt{'increasing'} (see section \ref{sec:cli:fuse:important:parameters}), the weights are decreasing along \textbf{Z}, and vice versa.
+\item \texttt{'corner'}: the weights are linearly increasing or decreasing along the \textbf{Z} axis (see figure \ref{fig:cli:fuse:corner:combination}), depending on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction}, while narrowing at the center of the image. It somehow mimics a stitching of the 4 resampled co-registered image stacks, where the information is kept from the most informative image.
+\item \texttt{'guignard'}: 
+the weighting function is the one described in \cite{guignard:tel-01278725}.
+More weight are given to sections close to the camera and it also takes into account the traversed material (see figure \ref{fig:cli:fuse:guignard:combination}). Such a weighting depends on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction} and on the stacks to be fused.
 \end{itemize}
 
 
 When using the variable \texttt{fusion\_weighting}, the same weights (computed on the first channel to be processed) are used for all fusion. However, different weighting functions can be used for the channels to be fused by using the variables  \texttt{fusion\_weighting\_channel\_[1,2,3]}, eg
 \begin{verbatim}
-fusion_weighting_channel_1 = 'guignard-weighting'
+fusion_weighting_channel_1 = 'guignard'
 fusion_weighting_channel_2 = 'uniform'
 \end{verbatim}
 
@@ -607,6 +661,7 @@ Please also refer to the file
 \item \texttt{PATH\_EMBRYO} see section \ref{sec:cli:fuse:input:data}
 \item \texttt{RESULT\_IMAGE\_SUFFIX\_FUSE}
 \item \texttt{acquisition\_leftcam\_image\_prefix}  see section \ref{sec:cli:fuse:input:data}
+\item \texttt{acquisition\_leftcamera\_stacking\_direction}
 \item \texttt{acquisition\_mirrors} same as \texttt{raw\_mirrors}
 \item \texttt{acquisition\_orientation} same as \texttt{raw\_ori}
 \item \texttt{acquisition\_resolution} same as \texttt{raw\_resolution}
@@ -656,6 +711,7 @@ Please also refer to the file
 \item \texttt{fusion\_weighting\_channel\_3}
 \item \texttt{raw\_crop} see section \ref{sec:cli:fuse:raw:data:cropping}
 \item \texttt{raw\_delay}
+\item \texttt{raw\_leftcamera\_stacking\_direction}
 \item \texttt{raw\_margin\_x\_0}
 \item \texttt{raw\_margin\_x\_1}
 \item \texttt{raw\_margin\_y\_0}
