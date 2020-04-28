@@ -95,8 +95,8 @@ In acquisitions depicted in figures \ref{fig:cli:fuse:spim:right:acquisition} an
 
 \item \texttt{acquisition\_leftcamera\_stacking\_direction} gives the order of stacking of in the Z direction for the left camera images.
 \begin{itemize}
-\item \texttt{'increasing'}: \textbf{z} increases from the high-contrasted images to the fuzzy ones (see figure \ref{fig:cli:fuse:spim:right:acquisition}).
-\item \texttt{'decreasing'}: \textbf{z} increases from the fuzzy images to the high-contrasted ones (see figure \ref{fig:cli:fuse:spim:left:acquisition}).
+\item \texttt{'increasing'}: \textbf{z} increases from the high-contrasted images to the blurred ones (see figure \ref{fig:cli:fuse:spim:right:acquisition}).
+\item \texttt{'decreasing'}: \textbf{z} increases from the blurred images to the high-contrasted ones (see figure \ref{fig:cli:fuse:spim:left:acquisition}).
 \end{itemize}
 
 \item \texttt{acquisition\_resolution} (or \texttt{raw\_resolution}) is the voxel size (along the 3
@@ -588,8 +588,9 @@ The variable \texttt{fusion\_weighting} can be set to
 \item \texttt{'uniform'}:
 it comes to the average of the resampled co-registered stacks (see figure \ref{fig:cli:fuse:uniform:combination}). Such a weighting does not depend on the stacks to be fused.
 \item \texttt{'ramp'}:
-the weights are linearly increasing or decreasing along the \textbf{Z} axis (see figure \ref{fig:cli:fuse:ramp:combination}), depending on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction}. If the latter is \texttt{'increasing'} (see section \ref{sec:cli:fuse:important:parameters}), the weights are decreasing along \textbf{Z}, and vice versa.
-\item \texttt{'corner'}: the weights are linearly increasing or decreasing along the \textbf{Z} axis (see figure \ref{fig:cli:fuse:corner:combination}), depending on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction}, while narrowing at the center of the image. It somehow mimics a stitching of the 4 resampled co-registered image stacks, where the information is kept from the most informative image.
+the weights are linearly increasing or decreasing along the \textbf{Z} axis (see figure \ref{fig:cli:fuse:ramp:combination}), depending on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction}. 
+If the latter is \texttt{'increasing'} (see section \ref{sec:cli:fuse:important:parameters}), the weights are decreasing along \textbf{Z}, and vice versa.
+\item \texttt{'corner'}: the weights are constant in a corner portion of the stack, defined by two diagonals in the \textbf{XZ}-section (see figure \ref{fig:cli:fuse:corner:combination}), depending on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction}. It somehow mimics a stitching of the 4 resampled co-registered image stacks, where the information is kept from the most informative image.
 \item \texttt{'guignard'}: 
 the weighting function is the one described in \cite{guignard:tel-01278725}.
 More weight are given to sections close to the camera and it also takes into account the traversed material (see figure \ref{fig:cli:fuse:guignard:combination}). Such a weighting depends on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction} and on the stacks to be fused.

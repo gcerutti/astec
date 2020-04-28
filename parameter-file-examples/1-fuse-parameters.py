@@ -399,13 +399,14 @@ target_resolution = .3
 
 ## ##### explanation #####
 ##
-## there are two ways to perform the fusion of the 4 acquisitions:
+## the weighted linear combination of the 4 co-registered stacks can be tuned by the 'fusion_weighting'
+## variable
 ##
-## 1. 'guignard-weighting'
-##    original historical weighting function, described in Leo Guignard's Phd thesis, that puts more weight to
-##    sections close to the camera and take also account the traversed material
-## 2. 'uniform'
-##    the average of the acquisitions
+## - 'uniform': uniform (or constant) weighting, it comes to the average of the resampled co-registered stacks
+## - 'ramp': the weights are linearly increasing or decreasing along the Z axis
+## - 'corner': the weights are constant in a corner portion of the stack, defined by two diagonals in the XZ-section
+## - 'guignard': original historical weighting function, described in Leo Guignard's Phd thesis, that puts more weight
+##    to sections close to the camera and take also account the traversed material
 ##
 ## The variable 'fusion_weighting' allows to set the fusion weighting for all the channels to be processed. Using
 ## the variables 'fusion_weighting_channel_X' allows to set different weighting schemes for each channel.

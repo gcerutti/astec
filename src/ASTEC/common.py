@@ -345,7 +345,7 @@ class RawdataChannel(object):
         #
         #
         #
-        self._acquisition_time_digits = 3
+        self._time_digits_for_acquisition = 3
 
     ############################################################
     #
@@ -378,6 +378,7 @@ class RawdataChannel(object):
             print('    - tmp_directory #' + str(j) + ' = ' + str(self.tmp_directory[j]))
 
         print('    - fusion_weighting = ' + str(self.fusion_weighting))
+        print('    - _time_digits_for_acquisition = ' + str(self._time_digits_for_acquisition))
         return
 
     def write_parameters_in_file(self, logfile, desc=None):
@@ -406,6 +407,7 @@ class RawdataChannel(object):
             logfile.write('    - tmp_directory #' + str(j) + ' = ' + str(self.tmp_directory[j]) + '\n')
 
         logfile.write('    - fusion_weighting = ' + str(self.fusion_weighting) + '\n')
+        logfile.write('    - _time_digits_for_acquisition = ' + str(self._time_digits_for_acquisition) + '\n')
         return
 
     ############################################################
@@ -498,6 +500,10 @@ class RawdataChannel(object):
         self._parent_directory = parentdir
         return
 
+    def set_time_digits_for_acquisition(self, time_digits=3):
+        self._time_digits_for_acquisition = time_digits
+        return
+
     ############################################################
     #
     # misc
@@ -529,7 +535,7 @@ class RawdataChannel(object):
         return False
 
     def timepoint_to_str(self, i):
-        return '{:0{width}d}'.format(i, width=self._acquisition_time_digits)
+        return '{:0{width}d}'.format(i, width=self._time_digits_for_acquisition)
 
 #
 #
@@ -553,6 +559,9 @@ class RawdataSubdirectory(object):
         for i in range(self._n_max_channels):
             c = RawdataChannel(i)
             self.channel.append(c)
+        self._time_digits_for_acquisition = 3
+        self.set_time_digits_for_acquisition(self._time_digits_for_acquisition)
+        return
 
     ############################################################
     #
@@ -563,11 +572,13 @@ class RawdataSubdirectory(object):
     def print_parameters(self):
         for i in range(self._n_max_channels):
             self.channel[i].print_parameters('channel #' + str(i))
+        print('  - _time_digits_for_acquisition = ' + str(self._time_digits_for_acquisition))
         return
 
     def write_parameters_in_file(self, logfile):
         for i in range(self._n_max_channels):
             self.channel[i].write_parameters_in_file(logfile, 'channel #' + str(i))
+        logfile.write('  - _time_digits_for_acquisition = ' + str(self._time_digits_for_acquisition) + '\n')
         return
 
     ############################################################
@@ -601,6 +612,9 @@ class RawdataSubdirectory(object):
             return None
         return _get_directory(self.channel[channel_id].tmp_directory, i)
 
+    def get_time_digits_for_acquisition(self):
+        return self._time_digits_for_acquisition
+
     ############################################################
     #
     # setters
@@ -614,6 +628,12 @@ class RawdataSubdirectory(object):
             sys.exit(1)
         for i in range(self._n_max_channels):
             self.channel[i].set_parent_directory(parentdir)
+        return
+
+    def set_time_digits_for_acquisition(self, time_digits=3):
+        self._time_digits_for_acquisition = time_digits
+        for i in range(self._n_max_channels):
+            self.channel[i].set_time_digits_for_acquisition(time_digits)
         return
 
 
@@ -669,7 +689,7 @@ class GenericSubdirectory(object):
         self._file_prefix = None
         self._file_suffix = None
         self._time_prefix = '_t'
-        self._acquisition_time_digits = 3
+        self._time_digits_for_filename = 3
 
     ############################################################
     #
@@ -697,7 +717,7 @@ class GenericSubdirectory(object):
         #
         print("    - _file_prefix = " + str(self._file_prefix))
         print("    - _file_suffix = " + str(self._file_suffix))
-        print("    - _acquisition_time_digits = " + str(self._acquisition_time_digits))
+        print("    - _time_digits_for_filename = " + str(self._time_digits_for_filename))
         return
 
     def _write_directory_list_in_file(self, logfile):
@@ -732,7 +752,7 @@ class GenericSubdirectory(object):
         #
         logfile.write("    - _file_prefix = " + str(self._file_prefix) + "\n")
         logfile.write("    - _file_suffix = " + str(self._file_suffix) + "\n")
-        logfile.write("    - _acquisition_time_digits = " + str(self._acquisition_time_digits) + "\n")
+        logfile.write("    - _time_digits_for_filename = " + str(self._time_digits_for_filename) + "\n")
         return
 
     ############################################################
@@ -831,7 +851,7 @@ class GenericSubdirectory(object):
         return _get_directory(self._sub_directory, i)
 
     def _get_time_format(self):
-        form = "%0" + str(self._acquisition_time_digits) + "d"
+        form = "%0" + str(self._time_digits_for_filename) + "d"
         return form
 
     def get_time_prefix(self):
@@ -964,6 +984,10 @@ class GenericSubdirectory(object):
         for i in range(len(self._directory)):
             self._tmp_directory.append(os.path.join(self.get_directory(i), "TEMP_" + self.timepoint_to_str(timepoint)))
         return
+    
+    def set_time_digits_for_filename(self, time_digits=3):
+        self._time_digits_for_filename = time_digits
+        return
 
     ############################################################
     #
@@ -1004,9 +1028,9 @@ class GenericSubdirectory(object):
 
     def timepoint_to_str(self, i):
         if type(i) is int:
-            return '{:0{width}d}'.format(i, width=self._acquisition_time_digits)
+            return '{:0{width}d}'.format(i, width=self._time_digits_for_filename)
         elif type(i) is str:
-            return '{:0{width}d}'.format(int(i), width=self._acquisition_time_digits)
+            return '{:0{width}d}'.format(int(i), width=self._time_digits_for_filename)
         else:
             print("GenericSubdirectory.timepoint_to_str: type '" + str(type(i)) + "' not handled yet.")
             return None
@@ -1206,8 +1230,8 @@ class Experiment(object):
         self.delta_time_point = 1
         self.delay_time_point = 0
 
-        self._acquisition_time_digits = 3
-        self._unique_id_time_digits = 4
+        self._time_digits_for_filename = 3
+        self._time_digits_for_cell_id = 4
 
         #
         # sub-directories
@@ -1224,6 +1248,11 @@ class Experiment(object):
         self.intrareg_dir = IntraregSubdirectory()
 
         self.working_dir = GenericSubdirectory()
+
+        #
+        #
+        #
+        self.set_time_digits_for_filename(self._time_digits_for_filename)
 
         #
         # images suffixes/formats
@@ -1249,8 +1278,8 @@ class Experiment(object):
         print('- delta_time_point is ' + str(self.delta_time_point))
         print('- delay_time_point is ' + str(self.delay_time_point))
 
-        print('- _acquisition_time_digits is ' + str(self._acquisition_time_digits))
-        print('- _unique_id_time_digits is ' + str(self._unique_id_time_digits))
+        print('- _time_digits_for_filename is ' + str(self._time_digits_for_filename))
+        print('- _time_digits_for_cell_id is ' + str(self._time_digits_for_cell_id))
 
         print('- raw data directory is')
         self.rawdata_dir.print_parameters()
@@ -1290,8 +1319,8 @@ class Experiment(object):
                 logfile.write('- delta_time_point is ' + str(self.delta_time_point)+'\n')
                 logfile.write('- delay_time_point is ' + str(self.delay_time_point)+'\n')
 
-                logfile.write('- _acquisition_time_digits is ' + str(self._acquisition_time_digits) + '\n')
-                logfile.write('- _unique_id_time_digits is ' + str(self._unique_id_time_digits) + '\n')
+                logfile.write('- _time_digits_for_filename is ' + str(self._time_digits_for_filename) + '\n')
+                logfile.write('- _time_digits_for_cell_id is ' + str(self._time_digits_for_cell_id) + '\n')
 
                 logfile.write('- raw data directory is \n')
                 self.rawdata_dir.write_parameters_in_file(logfile)
@@ -1463,6 +1492,14 @@ class Experiment(object):
             if parameters.raw_delay is not None:
                 self.delay_time_point = parameters.raw_delay
 
+        if hasattr(parameters, 'time_digits_for_filename'):
+            if parameters.time_digits_for_filename is not None:
+                self.set_time_digits_for_filename(parameters.time_digits_for_filename)
+                
+        if hasattr(parameters, 'time_digits_for_cell_id'):
+            if parameters.time_digits_for_cell_id is not None:
+                self._time_digits_for_cell_id = parameters.time_digits_for_cell_id
+
         self.rawdata_dir.update_from_parameters(parameters)
         self.fusion_dir.update_from_parameters(parameters)
         self.mars_dir.update_from_parameters(parameters)
@@ -1552,18 +1589,18 @@ class Experiment(object):
 
         return None
 
-    def get_acquisition_time_digits(self):
-        return self._acquisition_time_digits
+    def get_time_digits_for_filename(self):
+        return self._time_digits_for_filename
 
-    def get_unique_id_time_digits(self):
-        return self._unique_id_time_digits
+    def get_time_digits_for_cell_id(self):
+        return self._time_digits_for_cell_id
 
     def get_time_format(self):
-        form = "%0" + str(self._acquisition_time_digits) + "d"
+        form = "%0" + str(self._time_digits_for_filename) + "d"
         return form
 
     def get_time_index(self, index):
-        ind = '{:0{width}d}'.format(index, width=self._acquisition_time_digits)
+        ind = '{:0{width}d}'.format(index, width=self._time_digits_for_filename)
         return ind
 
     ############################################################
@@ -1606,9 +1643,9 @@ class Experiment(object):
             print("Experiment.set_fusion_tmp_directory: number of channels is different from fusion directories.")
             print("\t Exiting.")
             sys.exit(1)
-        self.rawdata_dir.tmp_directory = []
         t = "TEMP_" + self.fusion_dir.timepoint_to_str(time_value)
         for c in range(self.fusion_dir.get_number_directories()):
+            self.rawdata_dir.channel[c].tmp_directory = []
             d = os.path.join(self.fusion_dir.get_directory(c), t, "ANGLE_0")
             self.rawdata_dir.channel[c].tmp_directory.append(d)
             d = os.path.join(self.fusion_dir.get_directory(c), t, "ANGLE_1")
@@ -1622,6 +1659,14 @@ class Experiment(object):
             for d in self.rawdata_dir.channel[c].tmp_directory:
                 if not os.path.isdir(d):
                     os.makedirs(d)
+
+    def set_time_digits_for_filename(self, time_digits=3):
+        self._time_digits_for_filename = time_digits
+        self.fusion_dir.set_time_digits_for_filename(time_digits)
+        self.mars_dir.set_time_digits_for_filename(time_digits)
+        self.astec_dir.set_time_digits_for_filename(time_digits)
+        self.post_dir.set_time_digits_for_filename(time_digits)
+        self.intrareg_dir.set_time_digits_for_filename(time_digits)
 
     ############################################################
     #

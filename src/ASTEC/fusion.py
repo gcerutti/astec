@@ -1075,8 +1075,6 @@ def _build_unreg_weighting_image(template_image_name, weighting_image_name, decr
     """
     proc = "_build_unreg_weighting_image"
 
-    print(str(proc) + ": decreasing_weight_with_z = " + str(decreasing_weight_with_z))
-
     im = imread(template_image_name)
     if fusion_weighting.lower() == 'none' or fusion_weighting.lower() == 'uniform' \
             or fusion_weighting.lower() == 'uniform-weighting':
@@ -2857,8 +2855,8 @@ def fusion_control(experiment, parameters):
         #
 
         extra_zeros = ''
-        if time_length0 < experiment.get_acquisition_time_digits():
-            extra_zeros = (experiment.get_acquisition_time_digits() - time_length0) * '0'
+        if time_length0 < experiment.rawdata_dir.get_time_digits_for_acquisition():
+            extra_zeros = (experiment.rawdata_dir.get_time_digits_for_acquisition() - time_length0) * '0'
 
         #
         # no indication about the time interval to be process

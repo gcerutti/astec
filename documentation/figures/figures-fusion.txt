@@ -1,14 +1,10 @@
 
-convert -crop 575x300+26+46 figures-fusion/Diapositive1.png acquisition-spim.png
-convert -crop 285x300+26+46 figures-fusion/Diapositive3.png fusion-direct-strategy.png
-convert -crop 285x300+26+46 figures-fusion/Diapositive5.png fusion-hierarchical-strategy-1.png
-convert -crop 285x300+26+46 figures-fusion/Diapositive6.png fusion-hierarchical-strategy-2.png
-convert -crop 285x300+26+46 figures-fusion/Diapositive7.png fusion-hierarchical-strategy-3.png
 
-convert -crop 675x360+0+10  FIGURES-FUSION/Diapositive01.png acquisition-spim-right.png 
-convert -crop 675x360+0+10  FIGURES-FUSION/Diapositive02.png acquisition-spim-left.png 
-convert -crop 649x350+25+12 FIGURES-FUSION/Diapositive03.png fusion-direct-strategy.png 
-convert -crop 660x372+13+2  FIGURES-FUSION/Diapositive04.png fusion-hierarchical-strategy.png
+
+convert -crop 671x355+6+117 FIGURES-FUSION/Diapositive01.png acquisition-spim-right.png 
+convert -crop 671x355+6+117 FIGURES-FUSION/Diapositive02.png acquisition-spim-left.png 
+# convert -crop 649x350+25+12 FIGURES-FUSION/Diapositive03.png fusion-direct-strategy.png 
+# convert -crop 660x372+13+2  FIGURES-FUSION/Diapositive04.png fusion-hierarchical-strategy.png
 # convert -crop 360x187+0+106 FIGURES-FUSION/Diapositive05.png acquisition-z-increasing.png
 # convert -crop 360x187+0+106 FIGURES-FUSION/Diapositive06.png acquisition-z-decreasing.png
 convert -crop 642x292+0+112 FIGURES-FUSION/Diapositive07.png fusion-uniform-combination.png
