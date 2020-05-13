@@ -1592,7 +1592,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
         #
         # update volumes and lineage (cells may disappear if the erosion is too strong)
         #
-        time_digits = experiment.get_unique_id_time_digits()
+        time_digits = experiment.get_time_digits_for_cell_id()
 
         current_volumes = _compute_volumes(astec_image)
         volume_key = properties.keydictionary['volume']['output_key']
