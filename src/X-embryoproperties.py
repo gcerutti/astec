@@ -13,7 +13,7 @@ from argparse import ArgumentParser
 #
 
 
-import ASTEC.commonTools as commonTools
+import ASTEC.common as common
 import ASTEC.EMBRYOPROPERTIES as embryoProp
 from ASTEC.CommunFunctions.cpp_wrapping import path_to_vt
 #
@@ -129,21 +129,20 @@ if __name__ == '__main__':
     #
 
     start_time = time.localtime()
-    monitoring = commonTools.Monitoring()
-    experiment = commonTools.Experiment()
-    parameters = embryoProp.CellPropertiesParameters()
-    diagnosis = embryoProp.DiagnosisParameters()
+    monitoring = common.Monitoring()
+    experiment = common.Experiment()
 
     #
     # reading command line arguments
+    # and update from command line arguments
     #
-
-    parser = ArgumentParser(description='Computation of cell properties')
+    parser = ArgumentParser(description='Embryoproperties')
     _set_options(parser)
     args = parser.parse_args()
 
     monitoring.update_from_args(args)
-    diagnosis.update_from_args(args)
+    experiment.update_from_args(args)
+
 
     #
     # is there a parameter file?
@@ -151,41 +150,71 @@ if __name__ == '__main__':
     #
     if args.parameterFile is not None and os.path.isfile(args.parameterFile):
 
-        experiment.update_from_file(args.parameterFile)
-        experiment.update_from_stage("PROPERTIES", __file__, start_time)
-
-        if not os.path.isdir(experiment.path_logdir):
-            os.makedirs(experiment.path_logdir)
-
-        parameters.update_from_file(args.parameterFile)
-
         #
-        # write history information in history file
+        # reading parameter files
+        # and updating parameters
         #
-        commonTools.write_history_information(experiment.path_history_file,
-                                              experiment,
-                                              args.parameterFile,
-                                              start_time,
-                                              os.path.dirname(__file__),
-                                              path_to_vt())
+        parameter_file = common.get_parameter_file(args.parameterFile)
+        experiment.update_from_parameters(parameter_file)
 
         #
-        # define log file
-        # and write some information
+        # set
+        # 1. the working directory
+        #    that's where the logfile will be written
+        # 2. the log file name
+        #    it creates the logfile dir, if necessary
         #
-        monitoring.logfile = experiment.path_log_file
+        experiment.working_dir = experiment.intrareg_dir
+        monitoring.set_log_filename(experiment, __file__, start_time)
+
+        #
+        # keep history of command line executions
+        # and copy parameter file
+        #
+        experiment.update_history_at_start(__file__, start_time, parameter_file, path_to_vt())
+        experiment.copy_stamped_file(start_time, parameter_file)
+
+        #
+        # copy monitoring information into other "files"
+        # so the log
+        #
+        # filename is known
+        #
+        common.monitoring.copy(monitoring)
+
+        #
+        # write generic information into the log file
+        #
+        monitoring.write_parameters()
+        experiment.write_parameters()
+
+        ############################################################
+        #
+        # specific part
+        #
+        ############################################################
+
+        #
+        # copy monitoring information into other "files"
+        # so the log filename is known
+        #
         embryoProp.monitoring.copy(monitoring)
-        commonTools.monitoring.copy(monitoring)
-
-        monitoring.write_parameters(monitoring.logfile)
-        experiment.write_parameters(monitoring.logfile)
-        parameters.write_parameters(monitoring.logfile)
-        diagnosis.write_parameters(monitoring.logfile)
 
         #
-        # copy parameter file
+        # manage parameters
+        # 1. initialize
+        # 2. update parameters
+        # 3. write parameters into the logfile
         #
-        commonTools.copy_date_stamped_file(args.parameterFile, experiment.path_logdir, start_time)
+
+        parameters = embryoProp.CellPropertiesParameters()
+        diagnosis = embryoProp.DiagnosisParameters()
+
+        diagnosis.update_from_args(args)
+        parameters.update_from_file(parameter_file)
+
+        parameters.write_parameters(monitoring.log_filename)
+        diagnosis.write_parameters(monitoring.log_filename)
 
         #
         # compute sequence properties in xml format
@@ -238,7 +267,7 @@ if __name__ == '__main__':
         monitoring.to_log_and_console("Total execution time = "+str(time.mktime(endtime)-time.mktime(start_time))+"sec")
         monitoring.to_log_and_console("")
 
-    else:
+    else :
 
         #
         # read input file(s)

@@ -10,7 +10,7 @@ import math
 
 from operator import itemgetter
 
-import commonTools
+import common
 import CommunFunctions.cpp_wrapping as cpp_wrapping
 
 #
@@ -19,7 +19,7 @@ import CommunFunctions.cpp_wrapping as cpp_wrapping
 #
 #
 
-monitoring = commonTools.Monitoring()
+monitoring = common.Monitoring()
 
 
 ########################################################################################
@@ -86,12 +86,16 @@ def property_computation(experiment):
     #
 
     stage = None
-    intrareg_path = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory(),
-                                 experiment.post.get_directory())
+    intrareg_path = os.path.join(experiment.intrareg_dir.get_directory(), experiment.post_dir.get_sub_directory())
+    #
+    # is there a post-segmentation directory in the intra-registration directory ?
+    #
     if not os.path.isdir(intrareg_path):
         monitoring.to_log(proc + ": '" + str(intrareg_path) + "' does not exist")
-        intrareg_path = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory(),
-                                     experiment.seg.get_directory())
+        intrareg_path = os.path.join(experiment.intrareg_dir.get_directory(), experiment.astec_dir.get_sub_directory())
+        #
+        # if no, is there a segmentation directory in the intra-registration directory ?
+        #
         if not os.path.isdir(intrareg_path):
             monitoring.to_log(proc + ": '" + str(intrareg_path) + "' does not exist")
             intrareg_path = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory())
@@ -101,25 +105,21 @@ def property_computation(experiment):
             return None
         else:
             stage = "seg"
+            working_dir = experiment.astec_dir
     else:
         stage = "post"
+        working_dir = experiment.post_dir
 
     monitoring.to_log_and_console("... will compute sequence properties from '" + str(intrareg_path) + "'", 0)
 
     #
     # build name format for (post-corrected) segmentation images
     #
+    name_format = experiment.intrareg_dir.get_file_prefix() + experiment.intrareg_dir.get_file_suffix() + \
+                  working_dir.get_file_suffix() + experiment.intrareg_dir.get_time_prefix() + \
+                  experiment.get_time_format()
 
-    if stage.lower() == 'post':
-        name_format = experiment.get_image_format('intrareg', 'post')
-    elif stage.lower() == 'seg':
-        name_format = experiment.get_image_format('intrareg', 'seg')
-    else:
-        monitoring.to_log_and_console(proc + ": weird, this should not be reached", 0)
-        monitoring.to_log_and_console("Exiting.", 0)
-        sys.exit(1)
-
-    suffix = commonTools.get_file_suffix(experiment, intrareg_path, name_format, flag_time=experiment.get_time_format())
+    suffix = common.get_file_suffix(experiment, intrareg_path, name_format, flag_time=experiment.get_time_format())
     if suffix is None:
         monitoring.to_log_and_console(proc + ": no consistent naming was found in '"
                                       + str(intrareg_path) + "'", 1)
@@ -131,8 +131,9 @@ def property_computation(experiment):
     #
     #
     #
-
-    output_name = os.path.join(intrareg_path, experiment.get_image_suffix('intrareg', stage) + "_lineage")
+    output_name = experiment.intrareg_dir.get_file_prefix() + experiment.intrareg_dir.get_file_suffix() + \
+                  working_dir.get_file_suffix() + "_lineage"
+    output_name = os.path.join(intrareg_path, output_name)
 
     if os.path.isfile(output_name + ".xml") and os.path.isfile(output_name + ".pkl"):
         if not monitoring.forceResultsToBeBuilt:
