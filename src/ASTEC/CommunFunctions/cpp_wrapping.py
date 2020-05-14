@@ -283,6 +283,28 @@ def compose_trsf(the_trsfs, res_trsf, other_options=None, monitoring=None):
     return
 
 
+def ext_image(input_image, output_image, options, other_options=None, monitoring=None):
+
+    path_to_exec = _find_exec('extImage')
+
+    #
+    #
+    #
+
+    command_line = path_to_exec
+
+    command_line += " " + input_image
+    command_line += " " + output_image
+    command_line += " " + options
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
 def mc_mask_seeds(seed_image, cell_image, seed_result, other_options=None, monitoring=None):
     # type: (object, object, object, object, object) -> object
     """

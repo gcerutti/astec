@@ -118,6 +118,11 @@ class FusionParameters(object):
         self.stack_registration[1].lts_fraction = 1.0
 
         #
+        #
+        #
+        self.xzsection_extraction = False
+
+        #
         # Cropping of fused image (after fusion)
         #
         self.fusion_cropping = True
@@ -162,6 +167,8 @@ class FusionParameters(object):
         for p in self.stack_registration:
             p.print_parameters()
 
+        print('- xzsection_extraction = ' + str(self.xzsection_extraction))
+
         print('- fusion_cropping = ' + str(self.fusion_cropping))
         print('- fusion_cropping_margin_x_0 = ' + str(self.fusion_cropping_margin_x_0))
         print('- fusion_cropping_margin_x_1 = ' + str(self.fusion_cropping_margin_x_1))
@@ -200,6 +207,8 @@ class FusionParameters(object):
                 p.write_parameters(log_file_name)
             for p in self.stack_registration:
                 p.write_parameters(log_file_name)
+
+            logfile.write('- xzsection_extraction = ' + str(self.xzsection_extraction) + '\n')
 
             logfile.write('- fusion_cropping = ' + str(self.fusion_cropping)+'\n')
             logfile.write('- fusion_cropping_margin_x_0 = ' + str(self.fusion_cropping_margin_x_0)+'\n')
@@ -348,10 +357,18 @@ class FusionParameters(object):
 
         #
         # registration parameters
+        #
         for p in self.acquisition_registration:
             p.update_from_file(parameter_file)
         for p in self.stack_registration:
             p.update_from_file(parameter_file)
+
+        #
+        #
+        #
+        if hasattr(parameters, 'fusion_xzsection_extraction'):
+            if parameters.fusion_xzsection_extraction is not None:
+                self.xzsection_extraction = parameters.fusion_xzsection_extraction
 
         #
         # Cropping of fused image (after fusion)
@@ -1157,6 +1174,67 @@ def _linear_registration(path_ref, path_flo, path_output, path_output_trsf, path
 #
 ########################################################################################
 
+def _get_image_shape(template_image_name):
+    im = imread(template_image_name)
+    shape = im.shape
+    del im
+    return shape
+
+def _extract_xzsection(weight_images, res_images, tmp_fused_image, channel_id, experiment):
+    """
+    Extract XZ sections from registered raw images and weights as well as the fused image
+    (before the last crop (if any))
+    :param weight_images:
+    :param res_images:
+    :param tmp_fused_image:
+    :param channel_id:
+    :param experiment:
+    :return:
+    """
+
+    d = experiment.fusion_dir.get_xzsection_directory(channel_id)
+    shape = _get_image_shape(res_images[0])
+    options = "-xz " + str(int(shape[1]/2))
+
+    name = experiment.get_embryo_name() + "_xy" + format(int(shape[1]/2), '0>4')
+
+    xzsection = os.path.join(d, name + "_stack0_lc_reg." + experiment.result_image_suffix)
+    cpp_wrapping.ext_image(res_images[0], xzsection, options, monitoring=monitoring)
+
+    xzsection = os.path.join(d, name + "_stack0_rc_reg." + experiment.result_image_suffix)
+    cpp_wrapping.ext_image(res_images[1], xzsection, options, monitoring=monitoring)
+
+    xzsection = os.path.join(d, name + "_stack1_lc_reg." + experiment.result_image_suffix)
+    cpp_wrapping.ext_image(res_images[2], xzsection, options, monitoring=monitoring)
+
+    xzsection = os.path.join(d, name + "_stack1_rc_reg." + experiment.result_image_suffix)
+    cpp_wrapping.ext_image(res_images[3], xzsection, options, monitoring=monitoring)
+
+    xzsection = os.path.join(d, name + "_stack0_lc_weight." + experiment.result_image_suffix)
+    cpp_wrapping.ext_image(weight_images[0], xzsection, options, monitoring=monitoring)
+
+    xzsection = os.path.join(d, name + "_stack0_rc_weight." + experiment.result_image_suffix)
+    cpp_wrapping.ext_image(weight_images[1], xzsection, options, monitoring=monitoring)
+
+    xzsection = os.path.join(d, name + "_stack1_lc_weight." + experiment.result_image_suffix)
+    cpp_wrapping.ext_image(weight_images[2], xzsection, options, monitoring=monitoring)
+
+    xzsection = os.path.join(d, name + "_stack1_rc_weight." + experiment.result_image_suffix)
+    cpp_wrapping.ext_image(weight_images[3], xzsection, options, monitoring=monitoring)
+
+    xzsection = os.path.join(d, name + "_fuse." + experiment.result_image_suffix)
+    cpp_wrapping.ext_image(tmp_fused_image, xzsection, options, monitoring=monitoring)
+
+    return
+
+
+
+########################################################################################
+#
+#
+#
+########################################################################################
+
 #
 # historical fusion procedure
 # each image is co-registered with the left camera acquisition of stack 30
@@ -1570,12 +1648,18 @@ def _direct_fusion_process(input_image_list, the_image_list, fused_image, experi
         cpp_wrapping.linear_combination(weight_images, res_images, tmp_fused_image, monitoring=monitoring)
 
         if not os.path.isfile(tmp_fused_image):
-            monitoring.to_log_and_console(proc + ': fused image has not been generated', 0)
+            monitoring.to_log_and_console(proc + ': fused image (channel #' + str(c) +') has not been generated', 0)
             monitoring.to_log_and_console("Exiting.", 0)
             sys.exit(1)
 
         #
-        # save image if fusion is required
+        #
+        #
+        if parameters.xzsection_extraction is True:
+            _extract_xzsection(weight_images, res_images, tmp_fused_image, c, experiment)
+
+        #
+        # last crop
         #
         if parameters.fusion_cropping is True:
 
@@ -2073,7 +2157,13 @@ def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, 
         sys.exit(1)
 
     #
-    # save image if fusion is required
+    #
+    #
+    if parameters.xzsection_extraction is True:
+        _extract_xzsection(weight_images, res_images, tmp_fused_image, 0, experiment)
+
+    #
+    # last crop
     #
     if parameters.fusion_cropping is True:
 
@@ -2210,7 +2300,13 @@ def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, 
             sys.exit(1)
 
         #
-        # save image if fusion is required
+        #
+        #
+        if parameters.xzsection_extraction is True:
+            _extract_xzsection(weight_images, res_images, tmp_fused_image, c, experiment)
+
+        #
+        # last crop
         #
         if parameters.fusion_cropping is True:
 
@@ -2691,6 +2787,7 @@ def _fusion_preprocess(input_images, fused_image, time_point, experiment, parame
     # i=4 experiment.fusion_dir.get_directory(c) / "TEMP_time_value"
     #
     experiment.set_fusion_tmp_directory(int(time_point))
+    experiment.fusion_dir.set_xzsection_directory(int(time_point))
 
     #
     # get image file names

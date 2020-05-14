@@ -392,6 +392,7 @@ target_resolution = .3
 # fusion_weighting_channel_1 = 'guignard-weighting'
 # fusion_weighting_channel_2 = 'guignard-weighting'
 # fusion_weighting_channel_3 = 'guignard-weighting'
+# fusion_xzsection_extraction = False
 
 ##
 ## step 6. weighted linear combination of the resampled co-registered acquisitions
@@ -410,6 +411,10 @@ target_resolution = .3
 ##
 ## The variable 'fusion_weighting' allows to set the fusion weighting for all the channels to be processed. Using
 ## the variables 'fusion_weighting_channel_X' allows to set different weighting schemes for each channel.
+##
+## Setting 'fusion_xzsection_extraction' to True allows to extract XZ-sections of the 4 co-registered stacks
+## as well as the weighting function images. It provides an efficient way to check whether the
+## 'acquisition_leftcamera_stacking_direction' variable was correcly set
 ##
 
 

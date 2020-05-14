@@ -89,15 +89,18 @@ In acquisitions depicted in figures \ref{fig:cli:fuse:spim:right:acquisition} an
 \item \texttt{acquisition\_orientation} (or \texttt{raw\_ori}) is a parameter describing the acquisition orientation of the acquisition of the stack \#1 images with respect to the stack \#0 ones. 
 
 \begin{itemize}
+\itemsep -0.5ex
 \item \texttt{'right'}: the frame $(\mathbf{X}, \mathbf{Z})$ of the left camera of stack \#0 needs to be rotated clockwise (90 degrees along the $\mathbf{Y}$ axis) to correspond to the left camera of stack \#1 (see figure \ref{fig:cli:fuse:spim:right:acquisition}).
 \item \texttt{'left'}: the frame $(\mathbf{X}, \mathbf{Z})$ of the left camera of stack \#0 needs to be rotated counterclockwise (-90 degrees along the $\mathbf{Y}$ axis) to correspond to the left camera of stack \#1 (see figure \ref{fig:cli:fuse:spim:left:acquisition}).
 \end{itemize}
 
 \item \texttt{acquisition\_leftcamera\_stacking\_direction} gives the order of stacking of in the Z direction for the left camera images.
 \begin{itemize}
+\itemsep -0.5ex
 \item \texttt{'increasing'}: \textbf{z} increases from the high-contrasted images to the blurred ones (see figure \ref{fig:cli:fuse:spim:right:acquisition}).
 \item \texttt{'decreasing'}: \textbf{z} increases from the blurred images to the high-contrasted ones (see figure \ref{fig:cli:fuse:spim:left:acquisition}).
 \end{itemize}
+Looking at XZ-sections of the registered images (see figures \ref{fig:cli:fuse:uniform:combination}, \ref{fig:cli:fuse:ramp:combination}, \ref{fig:cli:fuse:corner:combination}, and \ref{fig:cli:fuse:guignard:combination}) provides an efficient means to check whether this parameter is correctly set (see also section \ref{sec:cli:fuse:stack:fusion}).
 
 \item \texttt{acquisition\_resolution} (or \texttt{raw\_resolution}) is the voxel size (along the 3
     dimensions X, Y and Z) of the acquired images.
@@ -123,9 +126,19 @@ It comes to write four parameter files that differ only for the
 parameters \texttt{raw\_ori}, \texttt{raw\_mirrors}, and
 \texttt{EXP\_FUSE}  (to store the fusion result in different
 directories, see section \ref{sec:cli:fuse:output:data}).
-For these first experiments, it is also advised to set
+For these first experiments, it is advised 
+\begin{itemize}
+\itemsep -0.5ex
+\item to set
 \texttt{target\_resolution} to a large value, in order to speed up the
-calculations.
+calculations, and
+\item to set  \texttt{fusion\_xzsection\_extraction} to \texttt{True}, in order to check whether \texttt{acquisition\_leftcamera\_stacking\_direction} was correctly set (see also section \ref{sec:cli:fuse:stack:fusion}).
+\end{itemize}
+
+Please recall that \texttt{raw\_ori} should depend on the acquisition apparatus (ie the microscope), and should not change for all the other acquisitions on the same microscope (unless the microscope settings change). Then, for most experiments, one change only to test the value of 
+\texttt{raw\_ori}.
+
+ \texttt{fusion\_xzsection\_extraction}
 
 
 
@@ -134,7 +147,7 @@ calculations.
 
 
 
-Input data (acquired images from the MuViSPIM microscope, see figure \ref{fig:cli:fuse:spim:acquisition}) are assumed
+Input data (acquired images from the MuViSPIM microscope, see figures \ref{fig:cli:fuse:spim:right:acquisition} and \ref{fig:cli:fuse:spim:left:acquisition}) are assumed
 to be organized in a separate \texttt{RAWDATA/} directory in the 
 \texttt{/path/to/experiment/} directory as depicted below. 
 \begin{itemize}
@@ -590,11 +603,27 @@ it comes to the average of the resampled co-registered stacks (see figure \ref{f
 \item \texttt{'ramp'}:
 the weights are linearly increasing or decreasing along the \textbf{Z} axis (see figure \ref{fig:cli:fuse:ramp:combination}), depending on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction}. 
 If the latter is \texttt{'increasing'} (see section \ref{sec:cli:fuse:important:parameters}), the weights are decreasing along \textbf{Z}, and vice versa.
-\item \texttt{'corner'}: the weights are constant in a corner portion of the stack, defined by two diagonals in the \textbf{XZ}-section (see figure \ref{fig:cli:fuse:corner:combination}), depending on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction}. It somehow mimics a stitching of the 4 resampled co-registered image stacks, where the information is kept from the most informative image.
+\item \texttt{'corner'}: the weights are constant in a corner portion of the stack, defined by two diagonals in the \textbf{XZ}-section (see figure \ref{fig:cli:fuse:corner:combination}), depending on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction} parameter. It somehow mimics a stitching of the 4 resampled co-registered image stacks, where the information is kept from the most informative image.
 \item \texttt{'guignard'}: 
 the weighting function is the one described in \cite{guignard:tel-01278725}.
-More weight are given to sections close to the camera and it also takes into account the traversed material (see figure \ref{fig:cli:fuse:guignard:combination}). Such a weighting depends on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction} and on the stacks to be fused.
+More weight are given to sections close to the camera and it also takes into account the traversed material (see figure \ref{fig:cli:fuse:guignard:combination}). Such a weighting depends on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction} parameter and on the stacks to be fused.
 \end{itemize}
+
+
+The weighting function may depend on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction} parameter, so setting it to the wrong value (\texttt{'increasing'} instead of \texttt{'decreasing'}, or vice-versa) may then decrease the fusion quality. Looking at XZ-sections of the co-registered image stacks, as well as the weighting function images, (see figures \ref{fig:cli:fuse:uniform:combination}, \ref{fig:cli:fuse:ramp:combination}, \ref{fig:cli:fuse:corner:combination}, and \ref{fig:cli:fuse:guignard:combination}) provides a direct and efficient means to check whether this parameter is correctly set. Such sections can be extracted by setting the \texttt{fusion\_xzsection\_extraction} parameter to \texttt{True}. It creates \texttt{XZSECTION\_<xxx>/} subdirectories (one par time point, \texttt{<xxx>} being the time point index) in the \texttt{FUSE/FUSE\_<EXP\_FUSE>/} directory.
+
+\mbox{}
+\dirtree{%
+.1 /path/to/experiment/.
+.2 RAWDATA/.
+.3 \ldots.
+.2 FUSE/.
+.3 FUSE\_<EXP\_FUSE>/.
+.4 \ldots.
+.4 XZSECTION\_<xxx>/.
+.4 \ldots.
+}
+\mbox{}
 
 
 When using the variable \texttt{fusion\_weighting}, the same weights (computed on the first channel to be processed) are used for all fusion. However, different weighting functions can be used for the channels to be fused by using the variables  \texttt{fusion\_weighting\_channel\_[1,2,3]}, eg
@@ -710,6 +739,7 @@ Please also refer to the file
 \item \texttt{fusion\_weighting\_channel\_1}
 \item \texttt{fusion\_weighting\_channel\_2}
 \item \texttt{fusion\_weighting\_channel\_3}
+\item \texttt{fusion\_xzsection\_extraction} see section \ref{sec:cli:fuse:stack:fusion}
 \item \texttt{raw\_crop} see section \ref{sec:cli:fuse:raw:data:cropping}
 \item \texttt{raw\_delay}
 \item \texttt{raw\_leftcamera\_stacking\_direction}

@@ -1051,6 +1051,8 @@ class FuseSubdirectory(GenericSubdirectory):
         self._sub_directory_suffix = 'RELEASE'
         self._file_suffix = "_fuse"
 
+        self._xzsection_directory = list()
+
     def print_parameters(self):
         self._set_directory()
         print("  - subpath/to/fusion is")
@@ -1068,6 +1070,18 @@ class FuseSubdirectory(GenericSubdirectory):
                 self._sub_directory_suffix = parameters.EXP_FUSE
         return
 
+    def set_xzsection_directory(self, time_value):
+        t = "XZSECTION_" + self.timepoint_to_str(time_value)
+        for c in range(self.get_number_directories()):
+            d = os.path.join(self.get_directory(c), t)
+            self._xzsection_directory.append(d)
+        return
+
+    def get_xzsection_directory(self, channel_id=0):
+        d = _get_directory(self._xzsection_directory, channel_id)
+        if not os.path.isdir(d):
+            os.makedirs(d)
+        return d
 
 #
 #
