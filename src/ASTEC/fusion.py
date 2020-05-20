@@ -259,7 +259,7 @@ class FusionParameters(object):
                 self.acquisition_stack0_leftcamera_stacking_direction = parameters.raw_leftcamera_stacking_direction
                 self.acquisition_stack1_leftcamera_stacking_direction = parameters.raw_leftcamera_stacking_direction
         elif hasattr(parameters, 'acquisition_leftcamera_stacking_direction'):
-            if parameters.raw_leftcamera_stacking_direction is not None:
+            if parameters.acquisition_leftcamera_stacking_direction is not None:
                 self.acquisition_stack0_leftcamera_stacking_direction = parameters.acquisition_leftcamera_stacking_direction
                 self.acquisition_stack1_leftcamera_stacking_direction = parameters.acquisition_leftcamera_stacking_direction
 

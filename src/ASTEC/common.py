@@ -2249,6 +2249,7 @@ def get_file_suffix(experiment, data_path, file_format, flag_time=None):
     if nfiles < nimages:
         monitoring.to_log_and_console(proc + ": weird, not enough images '" + str(file_format)
                                       + "' were found in '" + str(data_path) + "'", 0)
+        monitoring.to_log_and_console("\t found "+str(nfiles)+" images instead of "+str(nimages))
         monitoring.to_log_and_console("\t Exiting.", 0)
         exit(1)
 
