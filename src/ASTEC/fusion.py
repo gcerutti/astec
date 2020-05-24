@@ -55,15 +55,16 @@ class FusionParameters(object):
         #   if False, we have to mirror (along the X axis) the right camera images to make them
         #   similar to the left camera images
         #
-        # acquisition_stack0_leftcamera_stacking_direction
-        #  defines where are the high contrasted XZ-sections of the left camera image of stack0
-        #  increasing: small z are well contrasted (close to the camera), while large z are fuzzy
-        #  it is useful for direction-dependent weighting schemes
+        # acquisition_stack0_leftcamera_z_stacking
+        #  defines where are the high contrasted XZ-sections of the *left* camera image of stack0
+        #  'direct': small z are well contrasted (close to the camera), while large z are fuzzy
+        #            it is useful for direction-dependent weighting schemes
+        #  'inverse': the other way around
         #
         self.acquisition_orientation = 'left'
         self.acquisition_mirrors = False
-        self.acquisition_stack0_leftcamera_stacking_direction = 'increasing'
-        self.acquisition_stack1_leftcamera_stacking_direction = 'increasing'
+        self.acquisition_stack0_leftcamera_z_stacking = 'direct'
+        self.acquisition_stack1_leftcamera_z_stacking = 'direct'
         self.acquisition_resolution = None
 
         #
@@ -145,10 +146,10 @@ class FusionParameters(object):
         print('- acquisition_mirrors     = ' + str(self.acquisition_mirrors))
         print('- acquisition_resolution  = ' + str(self.acquisition_resolution))
 
-        print('- acquisition_stack0_leftcamera_stacking_direction = ' +
-              str(self.acquisition_stack0_leftcamera_stacking_direction))
-        print('- acquisition_stack1_leftcamera_stacking_direction = ' +
-              str(self.acquisition_stack1_leftcamera_stacking_direction))
+        print('- acquisition_stack0_leftcamera_z_stacking = ' +
+              str(self.acquisition_stack0_leftcamera_z_stacking))
+        print('- acquisition_stack1_leftcamera_z_stacking = ' +
+              str(self.acquisition_stack1_leftcamera_z_stacking))
 
         print('- acquisition_slit_line_correction = ' + str(self.acquisition_slit_line_correction))
 
@@ -186,10 +187,10 @@ class FusionParameters(object):
             logfile.write('- acquisition_mirrors     = ' + str(self.acquisition_mirrors)+'\n')
             logfile.write('- acquisition_resolution  = ' + str(self.acquisition_resolution)+'\n')
 
-            logfile.write('- acquisition_stack0_leftcamera_stacking_direction = '
-                          + str(self.acquisition_stack0_leftcamera_stacking_direction)+'\n')
-            logfile.write('- acquisition_stack1_leftcamera_stacking_direction = '
-                          + str(self.acquisition_stack1_leftcamera_stacking_direction)+'\n')
+            logfile.write('- acquisition_stack0_leftcamera_z_stacking = '
+                          + str(self.acquisition_stack0_leftcamera_z_stacking)+'\n')
+            logfile.write('- acquisition_stack1_leftcamera_z_stacking = '
+                          + str(self.acquisition_stack1_leftcamera_z_stacking)+'\n')
 
             logfile.write('- acquisition_slit_line_correction = ' + str(self.acquisition_slit_line_correction)+'\n')
 
@@ -254,28 +255,28 @@ class FusionParameters(object):
             if parameters.acquisition_mirrors is not None:
                 self.acquisition_mirrors = parameters.acquisition_mirrors
 
-        if hasattr(parameters, 'raw_leftcamera_stacking_direction'):
-            if parameters.raw_leftcamera_stacking_direction is not None:
-                self.acquisition_stack0_leftcamera_stacking_direction = parameters.raw_leftcamera_stacking_direction
-                self.acquisition_stack1_leftcamera_stacking_direction = parameters.raw_leftcamera_stacking_direction
-        elif hasattr(parameters, 'acquisition_leftcamera_stacking_direction'):
-            if parameters.acquisition_leftcamera_stacking_direction is not None:
-                self.acquisition_stack0_leftcamera_stacking_direction = parameters.acquisition_leftcamera_stacking_direction
-                self.acquisition_stack1_leftcamera_stacking_direction = parameters.acquisition_leftcamera_stacking_direction
+        if hasattr(parameters, 'raw_leftcamera_z_stacking'):
+            if parameters.raw_leftcamera_z_stacking is not None:
+                self.acquisition_stack0_leftcamera_z_stacking = parameters.raw_leftcamera_z_stacking
+                self.acquisition_stack1_leftcamera_z_stacking = parameters.raw_leftcamera_z_stacking
+        elif hasattr(parameters, 'acquisition_leftcamera_z_stacking'):
+            if parameters.acquisition_leftcamera_z_stacking is not None:
+                self.acquisition_stack0_leftcamera_z_stacking = parameters.acquisition_leftcamera_z_stacking
+                self.acquisition_stack1_leftcamera_z_stacking = parameters.acquisition_leftcamera_z_stacking
 
-        if hasattr(parameters, 'raw_stack0_leftcamera_stacking_direction'):
-            if parameters.raw_stack0_leftcamera_stacking_direction is not None:
-                self.acquisition_stack0_leftcamera_stacking_direction = parameters.raw_stack0_leftcamera_stacking_direction
-        elif hasattr(parameters, 'acquisition_stack0_leftcamera_stacking_direction'):
-            if parameters.acquisition_stack0_leftcamera_stacking_direction is not None:
-                self.acquisition_stack0_leftcamera_stacking_direction = parameters.acquisition_stack0_leftcamera_stacking_direction
+        if hasattr(parameters, 'raw_stack0_leftcamera_z_stacking'):
+            if parameters.raw_stack0_leftcamera_z_stacking is not None:
+                self.acquisition_stack0_leftcamera_z_stacking = parameters.raw_stack0_leftcamera_z_stacking
+        elif hasattr(parameters, 'acquisition_stack0_leftcamera_z_stacking'):
+            if parameters.acquisition_stack0_leftcamera_z_stacking is not None:
+                self.acquisition_stack0_leftcamera_z_stacking = parameters.acquisition_stack0_leftcamera_z_stacking
 
-        if hasattr(parameters, 'raw_stack1_leftcamera_stacking_direction'):
-            if parameters.raw_stack1_leftcamera_stacking_direction is not None:
-                self.acquisition_stack1_leftcamera_stacking_direction = parameters.raw_stack1_leftcamera_stacking_direction
-        elif hasattr(parameters, 'acquisition_stack1_leftcamera_stacking_direction'):
-            if parameters.acquisition_stack1_leftcamera_stacking_direction is not None:
-                self.acquisition_stack1_leftcamera_stacking_direction = parameters.acquisition_stack1_leftcamera_stacking_direction
+        if hasattr(parameters, 'raw_stack1_leftcamera_z_stacking'):
+            if parameters.raw_stack1_leftcamera_z_stacking is not None:
+                self.acquisition_stack1_leftcamera_z_stacking = parameters.raw_stack1_leftcamera_z_stacking
+        elif hasattr(parameters, 'acquisition_stack1_leftcamera_z_stacking'):
+            if parameters.acquisition_stack1_leftcamera_z_stacking is not None:
+                self.acquisition_stack1_leftcamera_z_stacking = parameters.acquisition_stack1_leftcamera_z_stacking
 
         if hasattr(parameters, 'raw_resolution'):
             if parameters.raw_resolution is not None:
@@ -1556,50 +1557,22 @@ def _direct_fusion_process(input_image_list, the_image_list, fused_image, experi
             monitoring.to_log_and_console("       .. computing weights for fusion", 2)
 
             decreasing_weight_with_z = None
-            # stack 0, left camera
+
             if i == 0:
-                if parameters.acquisition_stack0_leftcamera_stacking_direction.lower() == 'increasing':
-                    decreasing_weight_with_z = True
-                elif parameters.acquisition_stack0_leftcamera_stacking_direction.lower() == 'decreasing':
-                    decreasing_weight_with_z = False
-                else:
-                    monitoring.to_log_and_console(proc + ": unknown stack0 left camera position '"
-                                                  + str(parameters.acquisition_stack0_leftcamera_stacking_direction) + "'", 0)
-                    monitoring.to_log_and_console("Exiting.", 0)
-                    sys.exit(1)
-            # stack 0, right camera
+                # stack 0, left camera
+                decreasing_weight_with_z = True
+
             elif i == 1:
-                if parameters.acquisition_stack0_leftcamera_stacking_direction.lower() == 'increasing':
-                    decreasing_weight_with_z = False
-                elif parameters.acquisition_stack0_leftcamera_stacking_direction.lower() == 'decreasing':
-                    decreasing_weight_with_z = True
-                else:
-                    monitoring.to_log_and_console(proc + ": unknown stack0 left camera position '"
-                                                  + str(parameters.acquisition_stack0_leftcamera_stacking_direction) + "'", 0)
-                    monitoring.to_log_and_console("Exiting.", 0)
-                    sys.exit(1)
-            # stack 1, left camera
+                # stack 0, right camera
+                decreasing_weight_with_z = False
+
             elif i == 2:
-                if parameters.acquisition_stack1_leftcamera_stacking_direction.lower() == 'increasing':
-                    decreasing_weight_with_z = True
-                elif parameters.acquisition_stack1_leftcamera_stacking_direction.lower() == 'decreasing':
-                    decreasing_weight_with_z = False
-                else:
-                    monitoring.to_log_and_console(proc + ": unknown stack1 left camera position '"
-                                                  + str(parameters.acquisition_stack1_leftcamera_stacking_direction) + "'", 0)
-                    monitoring.to_log_and_console("Exiting.", 0)
-                    sys.exit(1)
-            # stack 1, right camera
+                # stack 1, left camera
+                decreasing_weight_with_z = True
+
             elif i == 3:
-                if parameters.acquisition_stack1_leftcamera_stacking_direction.lower() == 'increasing':
-                    decreasing_weight_with_z = False
-                elif parameters.acquisition_stack1_leftcamera_stacking_direction.lower() == 'decreasing':
-                    decreasing_weight_with_z = True
-                else:
-                    monitoring.to_log_and_console(proc + ": unknown stack1 left camera position '"
-                                                  + str(parameters.acquisition_stack1_leftcamera_stacking_direction) + "'", 0)
-                    monitoring.to_log_and_console("Exiting.", 0)
-                    sys.exit(1)
+                # stack 1, right camera
+                decreasing_weight_with_z = False
 
             if not os.path.isfile(unreg_weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
                 #
@@ -1970,51 +1943,22 @@ def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, 
                                           + the_images[i].split(os.path.sep)[-1] + "' for weight", 2)
 
             decreasing_weight_with_z = None
-            # stack 0, left camera
-            if i == 0:
-                if parameters.acquisition_stack0_leftcamera_stacking_direction.lower() == 'increasing':
-                    decreasing_weight_with_z = True
-                elif parameters.acquisition_stack0_leftcamera_stacking_direction.lower() == 'decreasing':
-                    decreasing_weight_with_z = False
-                else:
-                    monitoring.to_log_and_console(proc + ": unknown stack0 left camera position '"
-                                                  + str(parameters.acquisition_stack0_leftcamera_stacking_direction) + "'", 0)
-                    monitoring.to_log_and_console("Exiting.", 0)
-                    sys.exit(1)
-            # stack 0, right camera
-            elif i == 1:
-                if parameters.acquisition_stack0_leftcamera_stacking_direction.lower() == 'increasing':
-                    decreasing_weight_with_z = False
-                elif parameters.acquisition_stack0_leftcamera_stacking_direction.lower() == 'decreasing':
-                    decreasing_weight_with_z = True
-                else:
-                    monitoring.to_log_and_console(proc + ": unknown stack0 left camera position '"
-                                                  + str(parameters.acquisition_stack0_leftcamera_stacking_direction) + "'", 0)
-                    monitoring.to_log_and_console("Exiting.", 0)
-                    sys.exit(1)
-            # stack 1, left camera
-            elif i == 2:
-                if parameters.acquisition_stack1_leftcamera_stacking_direction.lower() == 'increasing':
-                    decreasing_weight_with_z = True
-                elif parameters.acquisition_stack1_leftcamera_stacking_direction.lower() == 'decreasing':
-                    decreasing_weight_with_z = False
-                else:
-                    monitoring.to_log_and_console(proc + ": unknown stack1 left camera position '"
-                                                  + str(parameters.acquisition_stack1_leftcamera_stacking_direction) + "'", 0)
-                    monitoring.to_log_and_console("Exiting.", 0)
-                    sys.exit(1)
-            # stack 1, right camera
-            elif i == 3:
-                if parameters.acquisition_stack1_leftcamera_stacking_direction.lower() == 'increasing':
-                    decreasing_weight_with_z = False
-                elif parameters.acquisition_stack1_leftcamera_stacking_direction.lower() == 'decreasing':
-                    decreasing_weight_with_z = True
-                else:
-                    monitoring.to_log_and_console(proc + ": unknown stack1 left camera position '"
-                                                  + str(parameters.acquisition_stack1_leftcamera_stacking_direction) + "'", 0)
-                    monitoring.to_log_and_console("Exiting.", 0)
-                    sys.exit(1)
 
+            if i == 0:
+                # stack 0, left camera
+                decreasing_weight_with_z = True
+
+            elif i == 1:
+                # stack 0, right camera
+                decreasing_weight_with_z = False
+
+            elif i == 2:
+                # stack 1, left camera
+                decreasing_weight_with_z = True
+
+            elif i == 3:
+                # stack 1, right camera
+                decreasing_weight_with_z = False
 
             if not os.path.isfile(unreg_weight_images[i]) or monitoring.forceResultsToBeBuilt is True:
                 _build_unreg_weighting_image(the_images[i], unreg_weight_images[i], decreasing_weight_with_z,
@@ -2324,7 +2268,8 @@ def _hierarchical_fusion_process(input_image_list, the_image_list, fused_image, 
 # 1. (optional) slit line correction
 # 2. resolution change (only in X and Y directions)
 # 3. (optional) 2D crop
-# 4. mirroring of the right camera images (parameter dependent)
+# 4. mirroring of the right camera images (parameter dependent) wrt the X axis
+# 5. mirroring of the all camera images (parameter dependent) wrt the Z axis
 # then call a fusion method
 #
 
@@ -2401,7 +2346,8 @@ def _fusion_process(input_image_list, fused_image, experiment, parameters):
     # 1. (optional) slit line correction
     # 2. resolution change (only in X and Y directions)
     # 3. (optional) 2D crop
-    # 4. mirroring of the right camera images (parameter dependent)
+    # 4. mirroring of the right camera images (parameter dependent) wrt the X axis
+    # 5. mirroring of all camera images (parameter dependent) wrt the Z axis
     #
 
     #
@@ -2633,10 +2579,15 @@ def _fusion_process(input_image_list, fused_image, experiment, parameters):
                     monitoring.to_log_and_console("       already existing", 2)
 
     #
-    # 4. Mirroring of 'right' images if required
+    # 4. mirroring of the 'right; camera images (parameter dependent) wrt the X axis, if required
+    # 5. mirroring of all camera images (parameter dependent) wrt the Z axis, if required
+    #
+    # Both are done at the same time to avoid reading/writing of images
     #
 
-    if parameters.acquisition_mirrors is False:
+    if parameters.acquisition_mirrors is False \
+        or parameters.acquisition_stack0_leftcamera_z_stacking.lower() == 'inverse' \
+        or parameters.acquisition_stack1_leftcamera_z_stacking.lower() == 'inverse':
 
         the_image_list = res_image_list[:]
         res_image_list = list()
@@ -2651,12 +2602,44 @@ def _fusion_process(input_image_list, fused_image, experiment, parameters):
             #
 
             for i in range(0, len(the_images)):
-                if i == 0 or i == 2:
-                    res_images.append(the_images[i])
+
+                if i == 0:
+                    # stack 0, left camera
+                    if parameters.acquisition_stack0_leftcamera_z_stacking.lower() == 'inverse':
+                        res_images.append(common.add_suffix(input_image_list[c][i], "_mirror",
+                                                            new_dirname=experiment.rawdata_dir.get_tmp_directory(i, c),
+                                                            new_extension=experiment.default_image_suffix))
+                    else:
+                        res_images.append(the_images[i])
+                elif i == 1:
+                    # stack 0, right camera
+                    if parameters.acquisition_stack0_leftcamera_z_stacking.lower() == 'inverse' \
+                        or parameters.acquisition_mirrors is False:
+                        res_images.append(common.add_suffix(input_image_list[c][i], "_mirror",
+                                                            new_dirname=experiment.rawdata_dir.get_tmp_directory(i, c),
+                                                            new_extension=experiment.default_image_suffix))
+                    else:
+                        res_images.append(the_images[i])
+                elif i == 2:
+                    # stack 1, left camera
+                    if parameters.acquisition_stack1_leftcamera_z_stacking.lower() == 'inverse':
+                        res_images.append(common.add_suffix(input_image_list[c][i], "_mirror",
+                                                            new_dirname=experiment.rawdata_dir.get_tmp_directory(i, c),
+                                                            new_extension=experiment.default_image_suffix))
+                    else:
+                        res_images.append(the_images[i])
+                elif i == 3:
+                    # stack 1, right camera
+                    if parameters.acquisition_stack1_leftcamera_z_stacking.lower() == 'inverse' \
+                        or parameters.acquisition_mirrors is False:
+                        res_images.append(common.add_suffix(input_image_list[c][i], "_mirror",
+                                                            new_dirname=experiment.rawdata_dir.get_tmp_directory(i, c),
+                                                            new_extension=experiment.default_image_suffix))
+                    else:
+                        res_images.append(the_images[i])
                 else:
-                    res_images.append(common.add_suffix(input_image_list[c][i], "_mirror",
-                                                        new_dirname=experiment.rawdata_dir.get_tmp_directory(i, c),
-                                                        new_extension=experiment.default_image_suffix))
+                    monitoring.to_log_and_console("       weird index:'"+str(i)+"'", 2)
+
             res_image_list.append(res_images)
 
             #
@@ -2665,19 +2648,81 @@ def _fusion_process(input_image_list, fused_image, experiment, parameters):
 
             for i in range(0, len(the_images)):
 
-                if i == 0 or i == 2:
-                    continue
-                monitoring.to_log_and_console("    .. mirroring  #" + str(i) + " '"
-                                              + the_images[i].split(os.path.sep)[-1], 2)
-                if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
-                    the_im = imread(the_images[i])
-                    res_im = SpatialImage(the_im.copy())[-1::-1, :, :]
-                    res_im._set_resolution(the_im._get_resolution())
-                    imsave(res_images[i], res_im)
-                    del the_im
-                    del res_im
-                else:
-                    monitoring.to_log_and_console("       already existing", 2)
+                if i == 0:
+                    # stack 0, left camera
+                    if parameters.acquisition_stack0_leftcamera_z_stacking.lower() == 'inverse':
+                        monitoring.to_log_and_console("    .. mirroring  #" + str(i) + " '"
+                                                      + the_images[i].split(os.path.sep)[-1], 2)
+                        if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                            the_im = imread(the_images[i])
+                            res_im = SpatialImage(the_im.copy())[:, :, -1::-1]
+                            res_im._set_resolution(the_im._get_resolution())
+                            imsave(res_images[i], res_im)
+                            del the_im
+                            del res_im
+                        else:
+                            monitoring.to_log_and_console("       already existing", 2)
+
+                elif i == 1:
+                    # stack 0, right camera
+                    if parameters.acquisition_stack0_leftcamera_z_stacking.lower() == 'inverse' \
+                        or parameters.acquisition_mirrors is False:
+                        monitoring.to_log_and_console("    .. mirroring  #" + str(i) + " '"
+                                                      + the_images[i].split(os.path.sep)[-1], 2)
+                        if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                            the_im = imread(the_images[i])
+                            if parameters.acquisition_mirrors is False:
+                                if parameters.acquisition_stack0_leftcamera_z_stacking.lower() == 'inverse':
+                                    res_im = SpatialImage(the_im.copy())[-1::-1, :, -1::-1]
+                                else:
+                                    res_im = SpatialImage(the_im.copy())[-1::-1, :, :]
+                            else:
+                                if parameters.acquisition_stack0_leftcamera_z_stacking.lower() == 'inverse':
+                                    res_im = SpatialImage(the_im.copy())[:, :, -1::-1]
+                            res_im._set_resolution(the_im._get_resolution())
+                            imsave(res_images[i], res_im)
+                            del the_im
+                            del res_im
+                        else:
+                            monitoring.to_log_and_console("       already existing", 2)
+
+                elif i == 2:
+                    # stack 1, left camera
+                    if parameters.acquisition_stack1_leftcamera_z_stacking.lower() == 'inverse':
+                        monitoring.to_log_and_console("    .. mirroring  #" + str(i) + " '"
+                                                      + the_images[i].split(os.path.sep)[-1], 2)
+                        if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                            the_im = imread(the_images[i])
+                            res_im = SpatialImage(the_im.copy())[:, :, -1::-1]
+                            res_im._set_resolution(the_im._get_resolution())
+                            imsave(res_images[i], res_im)
+                            del the_im
+                            del res_im
+                        else:
+                            monitoring.to_log_and_console("       already existing", 2)
+
+                elif i == 3:
+                    # stack 1, right camera
+                    if parameters.acquisition_stack1_leftcamera_z_stacking.lower() == 'inverse' \
+                        or parameters.acquisition_mirrors is False:
+                        monitoring.to_log_and_console("    .. mirroring  #" + str(i) + " '"
+                                                      + the_images[i].split(os.path.sep)[-1], 2)
+                        if not os.path.isfile(res_images[i]) or monitoring.forceResultsToBeBuilt is True:
+                            the_im = imread(the_images[i])
+                            if parameters.acquisition_mirrors is False:
+                                if parameters.acquisition_stack1_leftcamera_z_stacking.lower() == 'inverse':
+                                    res_im = SpatialImage(the_im.copy())[-1::-1, :, -1::-1]
+                                else:
+                                    res_im = SpatialImage(the_im.copy())[-1::-1, :, :]
+                            else:
+                                if parameters.acquisition_stack1_leftcamera_z_stacking.lower() == 'inverse':
+                                    res_im = SpatialImage(the_im.copy())[:, :, -1::-1]
+                            res_im._set_resolution(the_im._get_resolution())
+                            imsave(res_images[i], res_im)
+                            del the_im
+                            del res_im
+                        else:
+                            monitoring.to_log_and_console("       already existing", 2)
 
     #
     #

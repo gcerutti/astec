@@ -56,7 +56,7 @@ end = 0
 
 acquisition_orientation = 'left'
 acquisition_mirrors = False
-acquisition_leftcamera_stacking_direction = 'increasing'
+acquisition_leftcamera_z_stacking = 'direct'
 acquisition_resolution = (.17, .17, 1.)
 # raw_delay = 0
 
@@ -76,10 +76,10 @@ acquisition_resolution = (.17, .17, 1.)
 ##   - 'False': the mirroring is still to be done
 ##   Since it should depend on the apparatus, all acquisitions performed by the same
 ##   microscope should be the same tuning
-## acquisition_leftcamera_stacking_direction
+## acquisition_leftcamera_z_stacking
 ##   gives the order of stacking of in the Z direction
-##   'increasing': from the high-contrasted images to the fuzzy ones
-##   'decreasing': from the fuzzy images to the high-contrasted ones
+##   'direct': from the high-contrasted images (small values of z) to the fuzzy/blurred ones (large values of z)
+##   'inverse':
 ## acquisition_resolution: acquisition voxel size
 ##   e.g. raw_resolution = (.21, .21, 1.)
 ## raw_delay: increment to to be added to the time values

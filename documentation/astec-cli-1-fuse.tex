@@ -12,7 +12,11 @@ The fusion is made of the following steps.
 
 \item \label{it:fusion:crop:1} Optionally, a crop of the resampled acquisitions. It allows to decrease the volume of data, hence the computational cost. The crop is based on the analysis of a MIP view (in the Z direction) of  the volume, and thus is sensitive to hyper-intensities if any. By default, it is done.
 
-\item Optionally, a mirroring along the X axis of the 'right camera' image. It depends on the value of  \verb|acquisition_mirrors| variable.
+\item Optionally, a mirroring of the images:
+\begin{itemize}
+\item if the \verb|acquisition_mirrors| variable is set to \verb|False|, a mirroring along the X axis of the 'right camera' images (see also section \ref{sec:cli:fuse:important:parameters}), and
+\item if the \verb|acquisition_leftcamera_z_stacking| variable is set to \verb|'inverse'|, a mirroring along the Z axis of both 'left camera' and 'right camera' images (see also section \ref{sec:cli:fuse:important:parameters}).
+\end{itemize}
 
 \item \label{it:fusion:registration} Co-registration of the 3 last images onto the first one (the acquisition from the left camera for stack \#0) considered as a reference. The reference image is resampled again, to get an isotropic voxel (whose size is given by \verb|target_resolution|), i.e. the voxel size is the same along the 3 directions: X, Y, Z. There are two alternative methods.
 \begin{enumerate}
@@ -58,14 +62,14 @@ The following options are available:
 \end{center}
 \caption{\label{fig:cli:fuse:spim:right:acquisition} Multiview lightsheet microscope acquisition: at a time point, two acquisitions (stack \#0 and stack \#1) are sequentially performed, the second one orthogonal to the first. For each acquisition, two 3D intensity image stacks are acquired, respectively by the left and the right cameras. 
 It yields four image stacks to be fused. 
-The frame $(\mathbf{X}, \mathbf{Z})$ of the left camera of stack \#0 needs to be rotated clockwise (90 degrees along the $\mathbf{Y}$ axis) to correspond to the frame of the left camera of stack \#1: \texttt{acquisition\_orientation} has to be set to \texttt{'right'}.}
+The frame $(\mathbf{X}, \mathbf{Z})$ of the left camera of stack \#0 needs to be rotated clockwise (90 degrees along the $\mathbf{Y}$ axis) to correspond to the frame of the left camera of stack \#1: \texttt{acquisition\_orientation} has to be set to \texttt{'right'} if \texttt{acquisition\_leftcamera\_z\_stacking} is set to \texttt{'direct'}.}
 \end{figure}
 
 \begin{figure}
 \begin{center}
 \includegraphics[width=150mm]{figures/acquisition-spim-left.png}
 \end{center}
-\caption{\label{fig:cli:fuse:spim:left:acquisition} The frame $(\mathbf{X}, \mathbf{Z})$ of the left camera of stack \#0 needs to be rotated counterclockwise (-90 degrees along the $\mathbf{Y}$ axis) to correspond to the frame of the left camera of stack \#1: \texttt{acquisition\_orientation} has to be set to \texttt{'left'}.}
+\caption{\label{fig:cli:fuse:spim:left:acquisition} The frame $(\mathbf{X}, \mathbf{Z})$ of the left camera of stack \#0 needs to be rotated counterclockwise (-90 degrees along the $\mathbf{Y}$ axis) to correspond to the frame of the left camera of stack \#1: \texttt{acquisition\_orientation} has to be set to \texttt{'left'} if \texttt{acquisition\_leftcamera\_z\_stacking} is set to \texttt{'direct'}.}
 \end{figure}
 
 
@@ -94,11 +98,12 @@ In acquisitions depicted in figures \ref{fig:cli:fuse:spim:right:acquisition} an
 \item \texttt{'left'}: the frame $(\mathbf{X}, \mathbf{Z})$ of the left camera of stack \#0 needs to be rotated counterclockwise (-90 degrees along the $\mathbf{Y}$ axis) to correspond to the left camera of stack \#1 (see figure \ref{fig:cli:fuse:spim:left:acquisition}).
 \end{itemize}
 
-\item \texttt{acquisition\_leftcamera\_stacking\_direction} gives the order of stacking of in the Z direction for the left camera images.
+\item \texttt{acquisition\_leftcamera\_z\_stacking}
+ gives the order of stacking of in the Z direction for the left camera images.
 \begin{itemize}
 \itemsep -0.5ex
-\item \texttt{'increasing'}: \textbf{z} increases from the high-contrasted images to the blurred ones (see figure \ref{fig:cli:fuse:spim:right:acquisition}).
-\item \texttt{'decreasing'}: \textbf{z} increases from the blurred images to the high-contrasted ones (see figure \ref{fig:cli:fuse:spim:left:acquisition}).
+\item \texttt{'direct'}: \textbf{z} increases from the high-contrasted images to the blurred ones (see figure \ref{fig:cli:fuse:spim:right:acquisition}).
+\item \texttt{'inverse'}: \textbf{z} increases from the blurred images to the high-contrasted ones (see figure \ref{fig:cli:fuse:spim:left:acquisition}).
 \end{itemize}
 Looking at XZ-sections of the registered images (see figures \ref{fig:cli:fuse:uniform:combination}, \ref{fig:cli:fuse:ramp:combination}, \ref{fig:cli:fuse:corner:combination}, and \ref{fig:cli:fuse:guignard:combination}) provides an efficient means to check whether this parameter is correctly set (see also section \ref{sec:cli:fuse:stack:fusion}).
 
@@ -113,10 +118,10 @@ Looking at XZ-sections of the registered images (see figures \ref{fig:cli:fuse:u
 \end{itemize}
 
 
-When one may not be sure of the \texttt{raw\_ori} and
-\texttt{raw\_mirrors} right values, it is advised to perform the
+When one may not be sure of the \texttt{raw\_ori},
+\texttt{raw\_mirrors}, and  \texttt{acquisition\_leftcamera\_z\_stacking}right values, it is advised to perform the
 fusion on only one time point (by indicating the same index for both
-\texttt{begin}  and \texttt{end}), with the four possibilities for the
+\texttt{begin}  and \texttt{end}), e.g. with the four possibilities for the
 variable couple (\texttt{raw\_ori}, \texttt{raw\_mirrors}), i.e.
 (\texttt{'left'}, \texttt{False}),
 (\texttt{'left'}, \texttt{True}),
@@ -132,13 +137,14 @@ For these first experiments, it is advised
 \item to set
 \texttt{target\_resolution} to a large value, in order to speed up the
 calculations, and
-\item to set  \texttt{fusion\_xzsection\_extraction} to \texttt{True}, in order to check whether \texttt{acquisition\_leftcamera\_stacking\_direction} was correctly set (see also section \ref{sec:cli:fuse:stack:fusion}).
+\item to set  \texttt{fusion\_xzsection\_extraction} to \texttt{True}, in order to check whether \texttt{acquisition\_leftcamera\_z\_stacking} was correctly set (see also section \ref{sec:cli:fuse:stack:fusion}).
 \end{itemize}
 
 Please recall that \texttt{raw\_ori} should depend on the acquisition apparatus (ie the microscope), and should not change for all the other acquisitions on the same microscope (unless the microscope settings change). Then, for most experiments, one change only to test the value of 
 \texttt{raw\_ori}.
 
- \texttt{fusion\_xzsection\_extraction}
+Please note that changing the value of \texttt{acquisition\_leftcamera\_z\_stacking} implies to change also the value of \texttt{acquisition\_orientation}.
+
 
 
 
@@ -601,16 +607,16 @@ The variable \texttt{fusion\_weighting} can be set to
 \item \texttt{'uniform'}:
 it comes to the average of the resampled co-registered stacks (see figure \ref{fig:cli:fuse:uniform:combination}). Such a weighting does not depend on the stacks to be fused.
 \item \texttt{'ramp'}:
-the weights are linearly increasing or decreasing along the \textbf{Z} axis (see figure \ref{fig:cli:fuse:ramp:combination}), depending on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction}. 
-If the latter is \texttt{'increasing'} (see section \ref{sec:cli:fuse:important:parameters}), the weights are decreasing along \textbf{Z}, and vice versa.
-\item \texttt{'corner'}: the weights are constant in a corner portion of the stack, defined by two diagonals in the \textbf{XZ}-section (see figure \ref{fig:cli:fuse:corner:combination}), depending on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction} parameter. It somehow mimics a stitching of the 4 resampled co-registered image stacks, where the information is kept from the most informative image.
+the weights are linearly increasing along the \textbf{Z} axis (see figure \ref{fig:cli:fuse:ramp:combination}).
+\item \texttt{'corner'}: the weights are constant in a corner portion of the stack, defined by two diagonals in the \textbf{XZ}-section (see figure \ref{fig:cli:fuse:corner:combination}). It somehow mimics a stitching of the 4 resampled co-registered image stacks, where the information is kept from the most informative image.
 \item \texttt{'guignard'}: 
 the weighting function is the one described in \cite{guignard:tel-01278725}.
-More weight are given to sections close to the camera and it also takes into account the traversed material (see figure \ref{fig:cli:fuse:guignard:combination}). Such a weighting depends on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction} parameter and on the stacks to be fused.
-\end{itemize}
+More weight are given to sections close to the camera and it also takes into account the traversed material (see figure \ref{fig:cli:fuse:guignard:combination}). 
+\end{itemize} 
 
+Weighting functions are designed so that the weights decrease with \textbf{Z} for the left camera images and increase with \textbf{Z} for the left camera images. So, setting the \texttt{acquisition\_leftcamera\_z\_stacking} variable to the wrong value (\texttt{'direct'} instead of \texttt{'inverse'}, or vice-versa) may then decrease the fusion quality. 
 
-The weighting function may depend on the value of the \texttt{acquisition\_leftcamera\_stacking\_direction} parameter, so setting it to the wrong value (\texttt{'increasing'} instead of \texttt{'decreasing'}, or vice-versa) may then decrease the fusion quality. Looking at XZ-sections of the co-registered image stacks, as well as the weighting function images, (see figures \ref{fig:cli:fuse:uniform:combination}, \ref{fig:cli:fuse:ramp:combination}, \ref{fig:cli:fuse:corner:combination}, and \ref{fig:cli:fuse:guignard:combination}) provides a direct and efficient means to check whether this parameter is correctly set. Such sections can be extracted by setting the \texttt{fusion\_xzsection\_extraction} parameter to \texttt{True}. It creates \texttt{XZSECTION\_<xxx>/} subdirectories (one par time point, \texttt{<xxx>} being the time point index) in the \texttt{FUSE/FUSE\_<EXP\_FUSE>/} directory.
+Looking at XZ-sections of the co-registered image stacks, as well as the weighting function images, (see figures \ref{fig:cli:fuse:uniform:combination}, \ref{fig:cli:fuse:ramp:combination}, \ref{fig:cli:fuse:corner:combination}, and \ref{fig:cli:fuse:guignard:combination}) provides a direct and efficient means to check whether this parameter is correctly set. Such sections can be extracted by setting the \texttt{fusion\_xzsection\_extraction} parameter to \texttt{True}. It creates \texttt{XZSECTION\_<xxx>/} subdirectories (one par time point, \texttt{<xxx>} being the time point index) in the \texttt{FUSE/FUSE\_<EXP\_FUSE>/} directory.
 
 \mbox{}
 \dirtree{%
@@ -691,7 +697,7 @@ Please also refer to the file
 \item \texttt{PATH\_EMBRYO} see section \ref{sec:cli:fuse:input:data}
 \item \texttt{RESULT\_IMAGE\_SUFFIX\_FUSE}
 \item \texttt{acquisition\_leftcam\_image\_prefix}  see section \ref{sec:cli:fuse:input:data}
-\item \texttt{acquisition\_leftcamera\_stacking\_direction}
+\item \texttt{acquisition\_leftcamera\_z\_stacking}
 \item \texttt{acquisition\_mirrors} same as \texttt{raw\_mirrors}
 \item \texttt{acquisition\_orientation} same as \texttt{raw\_ori}
 \item \texttt{acquisition\_resolution} same as \texttt{raw\_resolution}
@@ -742,7 +748,7 @@ Please also refer to the file
 \item \texttt{fusion\_xzsection\_extraction} see section \ref{sec:cli:fuse:stack:fusion}
 \item \texttt{raw\_crop} see section \ref{sec:cli:fuse:raw:data:cropping}
 \item \texttt{raw\_delay}
-\item \texttt{raw\_leftcamera\_stacking\_direction}
+\item \texttt{raw\_leftcamera\_z\_stacking}
 \item \texttt{raw\_margin\_x\_0}
 \item \texttt{raw\_margin\_x\_1}
 \item \texttt{raw\_margin\_y\_0}
