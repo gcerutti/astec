@@ -1770,7 +1770,7 @@ class RegistrationParameters(object):
         self.lts_fraction = 0.55
         self.fluid_sigma = 4.0
 
-        self.normalization = True
+        self.normalization = False
 
     ############################################################
     #

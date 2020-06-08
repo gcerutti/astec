@@ -57,7 +57,7 @@ end = 0
 acquisition_orientation = 'left'
 acquisition_mirrors = False
 acquisition_leftcamera_z_stacking = 'direct'
-acquisition_resolution = (.17, .17, 1.)
+acquisition_resolution = (.195, .195, 1.)
 # raw_delay = 0
 
 ## ##### explanation #####
@@ -324,7 +324,7 @@ target_resolution = .3
 # fusion_preregistration_lts_fraction = 0.55
 # fusion_preregistration_pyramid_highest_level = 6
 # fusion_preregistration_pyramid_lowest_level = 3
-# fusion_preregistration_normalization = True
+# fusion_preregistration_normalization = False
 
 # fusion_registration_compute_registration = True
 # fusion_registration_transformation_type = 'affine'
@@ -332,7 +332,7 @@ target_resolution = .3
 # fusion_registration_lts_fraction = 0.55
 # fusion_registration_pyramid_highest_level = 6
 # fusion_registration_pyramid_lowest_level = 3
-# fusion_registration_normalization = True
+# fusion_registration_normalization = False
 
 # fusion_stack_preregistration_compute_registration = True
 # fusion_stack_preregistration_transformation_type = 'affine'
@@ -340,7 +340,7 @@ target_resolution = .3
 # fusion_stack_preregistration_lts_fraction = 0.55
 # fusion_stack_preregistration_pyramid_highest_level = 6
 # fusion_stack_preregistration_pyramid_lowest_level = 3
-# fusion_stack_preregistration_normalization = True
+# fusion_stack_preregistration_normalization = False
 
 # fusion_stack_registration_compute_registration = True
 # fusion_stack_registration_transformation_type = 'vectorfield'
@@ -348,7 +348,7 @@ target_resolution = .3
 # fusion_stack_registration_lts_fraction = 1.0
 # fusion_stack_registration_pyramid_highest_level = 6
 # fusion_stack_registration_pyramid_lowest_level = 3
-# fusion_stack_registration_normalization = True
+# fusion_stack_registration_normalization = False
 
 ##
 ## step 5. co-registration of acquisitions ('direct-fusion' and 'hierarchical-fusion')

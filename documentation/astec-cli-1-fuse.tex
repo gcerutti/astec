@@ -515,13 +515,6 @@ Using a non-linear registration in this last step allows to compensate for some 
 The linear co-registrations are either used to co-registered each acquisition onto the reference one in the \texttt{'direct-fusion'} strategy, or to build stacks from the left and right cameras in the \texttt{'hierarchical-fusion'} strategy.
 Variables that controls the linear co-registrations are either prefixed by \texttt{fusion\_preregistration\_} or by \texttt{fusion\_registration\_}.
 
-To decrease the computational cost, images are normalized and cast on one byte before registration. While it generally does not degrade the registration quality, it may induce troubles when hyper-intensities areas are present in the image. In such a case, the useful information may then be summarized in only a few intensity values.
-
-Intensity normalization in registration can be deactivated by adding the following line in the parameter file
-\begin{verbatim}
-fusion_registration_normalization = False
-\end{verbatim}
-
 To verify whether a good quality registration can be conducted, the searched transformation type can be changed for a simpler one than affine. 
 Adding the following line in the parameter file.
 \begin{verbatim}
@@ -529,16 +522,11 @@ fusion_registration_transformation_type = translation
 \end{verbatim}
 will search for a translation which could be supposed to be sufficient, according that only translations relates the 4 acquisitions of the MuViSPIM microscope (in a perfect setting). If the search for an affine transformation (the default behavior) failed (the fusion looks poor) while the search for a translation is successful (the fusion looks good), a two-steps registration may help to refine the found translation by a subsequent affine transformation as explained below.
 
-Hyper-intensities areas may also bias the threshold calculation used for the automatic crop (step \ref{it:fusion:crop:1} of fusion). In such cases, the iterative registration method may find a local minimum that is not the desired one, because the relative positions of the two images to be co-registered are too far apart. To circumvent such a behavior, a two-steps registration can be done. It consists on a first pre-registration with a transformation with fewer degrees of freedom (i.e. a 3D translation). 
+Hyper-intensities areas may bias the threshold calculation used for the automatic crop (step \ref{it:fusion:crop:1} of fusion). In such cases, the iterative registration method may find a local minimum that is not the desired one, because the relative positions of the two images to be co-registered are too far apart. To circumvent such a behavior, a two-steps registration can be done. It consists on a first pre-registration with a transformation with fewer degrees of freedom (i.e. a 3D translation). 
 
 This pre-registration can be activated by adding the following line in the parameter file.
 \begin{verbatim}
 fusion_preregistration_compute_registration = True
-\end{verbatim}
-It may be also preferable to deactivate the image normalization for both registration steps with
-\begin{verbatim}
-fusion_preregistration_normalization = False
-fusion_registration_normalization = False
 \end{verbatim}
 
 \subsubsection{Stacks non-linear co-registration}
@@ -657,7 +645,6 @@ has to be added in the parameter file.
   \item Are the values of the variable couple (\texttt{raw\_ori}, \texttt{raw\_mirrors}) the right ones? Conduct experiments as suggested in section \ref{sec:cli:fuse:important:parameters}  (see also section \ref{sec:cli:fuse:output:data}) to get the right values.
   \item The registration may have failed.
     \begin{enumerate}
-    \item Deactivate the 1-byte normalization (see section \ref{sec:cli:fuse:image:coregistration}).
     \item Try to register with a simpler transformation type (i.e. translation) and/or with a two-steps registration (see section \ref{sec:cli:fuse:image:coregistration}).
     \end{enumerate}
   \end{enumerate}
@@ -715,14 +702,14 @@ Please also refer to the file
 \item \texttt{fusion\_strategy}  see section \ref{sec:cli:fuse:image:coregistration}
 \item \texttt{fusion\_preregistration\_compute\_registration} see section \ref{sec:cli:fuse:image:coregistration}
 \item \texttt{fusion\_preregistration\_lts\_fraction}
-\item \texttt{fusion\_preregistration\_normalization} see section \ref{sec:cli:fuse:image:coregistration}
+\item \texttt{fusion\_preregistration\_normalization}
 \item \texttt{fusion\_preregistration\_pyramid\_highest\_level}
 \item \texttt{fusion\_preregistration\_pyramid\_lowest\_level}
 \item \texttt{fusion\_preregistration\_transformation\_estimation\_type}
 \item \texttt{fusion\_preregistration\_transformation\_type}
 \item \texttt{fusion\_registration\_compute\_registration}
 \item \texttt{fusion\_registration\_lts\_fraction}
-\item \texttt{fusion\_registration\_normalization} see section \ref{sec:cli:fuse:image:coregistration}
+\item \texttt{fusion\_registration\_normalization}
 \item \texttt{fusion\_registration\_pyramid\_highest\_level}
 \item \texttt{fusion\_registration\_pyramid\_lowest\_level}
 \item \texttt{fusion\_registration\_transformation\_estimation\_type}
