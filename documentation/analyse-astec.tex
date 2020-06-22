@@ -1,5 +1,6 @@
 \documentclass{article}
 \usepackage{fullpage}
+\usepackage{amsfonts}
 \usepackage[usenames,dvipsnames]{xcolor}
 \usepackage[linesnumbered,boxed]{algorithm2e}
 \def \mycolor {red}
@@ -97,21 +98,52 @@ $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$, so
 
 
 
-\item \texttt{get\_back\_parameters()} (section \ref{sec:get:back:parameters}, page \pageref{sec:get:back:parameters}), qui d\'etermine pour chaque cellule, selon les nombres de $h$-minima inclus, le nombre optimal de graines \`a consid\'erer et les valeurs de param\`etres $(h, \sigma)$, associ\'es (on prend le plus grand $h$ donnant ce nombre de graines). Pour cela, on compte le nombre de fois qu'un nombre de $h$-minima est atteint, soit les grandeurs
-\begin{displaymath}
-N_{n}(c) = \mathrm{Card} \{ h | \mathrm{Count}^{h}(c) = n\}
-\quad 
-N_{n^{+}}(c) = \mathrm{Card} \{ h | \mathrm{Count}^{h}(c) \geq n\}
-\end{displaymath}
-et on calcule le score 
-\begin{displaymath}
-s(c) = N_{2^{+}}(c) . N_2(c)
-\end{displaymath}
-qui permet de d\'eterminer le nombre optimal de graines $\# seeds_{opt} $ (cf Alg. \ref{alg:get:back:parameters})
+\item \texttt{get\_back\_parameters()} (section \ref{sec:get:back:parameters}, page \pageref{sec:get:back:parameters}), qui d\'etermine pour chaque cellule, selon les nombres de $h$-minima inclus, le nombre optimal de graines \`a consid\'erer et les valeurs de param\`etres $(h, \sigma)$, associ\'es (on prend le plus grand $h$ donnant ce nombre de graines). Il y a ici une diff\'erence significative entre la description dans la th\`ese et ce qui est mis en {\oe}uvre.
+
+D'apr\`es la th\`ese \cite[page 72]{guignard:tel-01278725}, on utilise $N_2(c)$ le nombre de $h$ donnant exactement 2 graines et $N_{2^{+}}(c)$, la plus grande valeur de $h$ donnant 2 graines. De plus $N_2(c)$ est d\'efini par $N_{2^{+}}(c) - N_{2^{-}}(c) +1$, o\`u $N_{2^{-}}(c)$ est la plus petite valeur de $h$ donnant 2 graines. 
+
+D'apr\`es \cite{guignard:tel-01278725}, $h$ peut \^etre vu comme une mesure de contraste (si la hauteur de la membrane entre 2 cellules adjacentes est plus petite que $h$, alors il n'y aura qu'une seule 
+Une premi\`ere hypoth\`ese est que le premier $h$ donnant plus de 2 graines est une mesure du "bruit" (consid\'er\'e comme un contraste) du "fond" de la cellule, ce premier $h$ est donc $N_{2^{-}}(c) - 1$. Il y a une vraie division si le contraste de la membrane entre les deux cellules apr\`es division est suffisamment \'elev\'e (ce contraste est estim\'e par $N_{2^{+}}(c)$) et si ce contraste est suffisamment diff\'erent du contraste du bruit, donc si la diff\'erence $N_{2^{+}}(c) - (N_{2^{-}}(c) - 1) = N_{2}(c)$ est suffisamment \'elev\'ee. D'o\`u le crit\`ere
+\begin{equation}
+s(c) = N_{2^{+}}(c) . N_{2}(c) > \tau
+\end{equation}
+
+On calcule le score $s(c) = N_{2^{+}}(c) . N_2(c)$ que l'on compare \`a $\tau$. Il y aura division si $s(c) = N_{2^{+}}(c) . N_2(c) > \tau$.
+\begin{itemize}
+\itemsep -0.5ex
+\item si plusieurs $h$ donnent 2 graines, on prend le plus grand de ces $h$
+\item s'il y a toujours au moins 3 graines, on prend 3 graines (et le plus grand $h$ donnant 3 graines) et la plus petite des 3 r\'egions r\'esultant de ces graines sera fusionn\'ee avec celle avec laquelle elle partage la plus grande fronti\`ere. [En fait c'est faux, car dans \texttt{get\_seeds\_from\_optimized\_parameters()} qui sera ensuite appel\'e dans \texttt{segmentation\_propagation\_from\_seeds()} on cr\'ee les graines avec \texttt{extract\_seeds(\ldots, accept\_3\_seeds=False)} : on ne num\'erotera que les 2 premi\`eres graines.] 
+\end{itemize}
+
+L'impl\'ementation est sensiblement diff\'erente
+\begin{itemize}
+\itemsep -0.5ex
+\item On a $h_{min}=4$, $h_{max}=18$ et on parcourt les $h$ avec un pas  $\delta h$ de 2. L'ensemble des $h$ test\'es n'est $[h_{min}, h_{max}] \subset \mathbb{N}$ mais $\{4, 6, 8, 10, 12, 14, 16, 18\}$.
+\item On calcule $NB_2$ par \verb|nb_2=np.sum(np.array(s)==2)|, c'est le nombre de $h$ qui donnent 2 graines. Cette valeur n'est \'egale \`a
+$N_2(c) =  N_{2^{+}}(c) - N_{2^{-}}(c) +1$ que si $\delta h =1$
+\item On calcule $NB_3$ par \verb|nb_3=np.sum(np.array(s)>=2)|, c'est le nombre de $h$ qui donnent 2 graines ou plus. Cette valeur n'a rien \`a voir avec $N_{2^{+}}(c)$. On a \'evidemment $NB_3 \geq NB_2$
+\end{itemize}
+
+La r\`egle impl\'ement\'ee  (cf Alg. \ref{alg:get:back:parameters}) est 
+\begin{enumerate}
+\itemsep -0.5ex
+\item S'il existe des $h$ donnant 1 ou 2 graines (la question de la division se pose donc)
+\begin{enumerate}
+\itemsep -0.5ex
+\item si le score $s(c) = NB_2 \cdot NB_3 \geq \tau$, alors on garde 2 graines. Comme $\tau = 25$, cela signifie que s'il y a au moins 5 valeurs de $h$ qui donnent 2 graines, alors on divisera la cellule.
+\item sinon ($s(c) = NB_2 \cdot NB_3 <\tau$) et il existe des $h$ donnant 1 graine, alors on garde une graine
+\item sinon ($s(c) = NB_2 \cdot NB_3 <\tau$ et il n'existe pas de $h$ donnant 1 graine) on garde 2 graines [ce cas doit difficilement survenir, il faut que beaucoup de $h$ ne donnent aucune graine, puis que les suivants donnent au moins 2 graines].
+\end{enumerate}
+\item sinon (il n'existe pas de $h$ donnant 1 ou 2 graines) et il existe des $h$ donnant 3 graines, alors on garde 3 graines [en fait seules les 2 premi\`eres seront effectivement gard\'ees].
+\item sinon  (il n'existe pas de $h$ donnant 1 ou 2 ou 3 graines), on dit qu'il n'y a pas de graines
+\end{enumerate}
+On r\'ecup\`ere le premier $h$ donnant le nombre choisi de graines. Comme les $h$ sont parcourus par ordre d\'ecroissant, c'est donc le plus grand $h$ donnant ce nombre de graines qui est retenu.
+
 
 \begin{algorithm}
 \uIf{$N_1(c) > 0$ or $N_2(c) > 0$}{
-  \uIf{$N_{2^{+}}(c) . N_2(c) \geq \tau$}{
+  \tcp{Il y a des $h$ donnant 1 ou 2 graines}
+  \uIf{$NB_2 \cdot NB_3 \geq \tau$}{
   \tcp{Rq: \cite[page 72]{guignard:tel-01278725} utilise une in\'egalit\'e stricte}
   \tcp{$\tau$ est fix\'e \`a 25}
     $\# seeds_{opt} = 2$
@@ -135,7 +167,7 @@ qui permet de d\'eterminer le nombre optimal de graines $\# seeds_{opt} $ (cf Al
 Quelques remarques:
 \begin{itemize}
 \item Le score d\'epend du nombre de $h$ utilis\'es pour le calcul des graines, donc de $h_{min}$, de $h_{max}$ et du pas entre 2 $h$ successifs.
-\item Le nombre de $h$-minima est une fonction d\'ecroissante en fonction de $h$ (qui est born\'e inf\'erieurement par 1), donc on peut utiliser des longueurs d'intervalle plut\^ot que des d\'enombrements, et  ainsi s'abstraire de $h_{min}$ et du pas entre 2 $h$. Reste la d\'ependance par rapport \`a $h_{max}$
+% \item Le nombre de $h$-minima est une fonction d\'ecroissante en fonction de $h$ (qui est born\'e inf\'erieurement par 1), donc on peut utiliser des longueurs d'intervalle plut\^ot que des d\'enombrements, et  ainsi s'abstraire de $h_{min}$ et du pas entre 2 $h$. Reste la d\'ependance par rapport \`a $h_{max}$
 \end{itemize}
 
 
@@ -858,17 +890,34 @@ section \ref{sec:segmentation:propagation:from:seeds}
    245	        score=nb_2*nb_3
 \end{verbatim} 
 \color{\mycolor}
-\verb|nb_2| et \verb|nb_3| repr\'esentent respectivement $N_2(c)$ et $N_{2^{+}}(c)$. La r\`egle est donc
+D'apr\`es \cite[page 72]{guignard:tel-01278725}, on utilise $N_2(c)$ le nombre de $h$ donnant exactement 2 graines et $N_{2^{+}}(c)$, la plus grande valeur de $h$ donnant 2 graines. De plus $N_2(c)$ est d\'efini par $N_{2^{+}}(c) - N_{2^{-}}(c) +1$, o\`u $N_{2^{-}}(c)$ est la plus petite valeur de $h$ donnant 2 graines. 
+On calcule le score $s(c) = N_{2^{+}}(c) . N_2(c)$ que l'on compare \`a $\tau$. Il y aura division si $s(c) = N_{2^{+}}(c) . N_2(c) > \tau$.
+\begin{itemize}
+\itemsep -0.5ex
+\item si plusieurs $h$ donnent 2 graines, on prend le plus grand de ces $h$
+\item s'il y a toujours au moins 3 graines, on prend 3 graines (et le plus grand $h$ donnant 3 graines) et la plus petite des 3 r\'egions r\'esultant de ces graines sera fusionn\'ee avec celle avec laquelle elle partage la plus grande fronti\`ere. [En fait c'est faux, car dans \texttt{get\_seeds\_from\_optimized\_parameters()} qui sera ensuite appel\'e dans \texttt{segmentation\_propagation\_from\_seeds()} on cr\'ee les graines avec \texttt{extract\_seeds(\ldots, accept\_3\_seeds=False)} : on ne num\'erotera que les 2 premi\`eres graines.] 
+\end{itemize}
+
+L'impl\'ementation est sensiblement diff\'erente
+\begin{itemize}
+\itemsep -0.5ex
+\item On a $h_{min}=4$, $h_{max}=18$ et on parcourt les $h$ avec un pas  $\delta h$ de 2. L'ensemble des $h$ test\'es n'est $[h_{min}, h_{max}] \subset \mathbb{N}$ mais $\{4, 6, 8, 10, 12, 14, 16, 18\}$.
+\item On calcule $NB_2$ par \verb|nb_2=np.sum(np.array(s)==2)|, c'est le nombre de $h$ qui donnent 2 graines. Cette valeur n'est \'egale \`a
+$N_2(c) =  N_{2^{+}}(c) - N_{2^{-}}(c) +1$ que si $\delta h =1$
+\item On calcule $NB_3$ par \verb|nb_3=np.sum(np.array(s)>=2)|, c'est le nombre de $h$ qui donnent 2 graines ou plus. Cette valeur n'a rien \`a voir avec $N_{2^{+}}(c)$. On a \'evidemment $NB_3 \geq NB_2$
+\end{itemize}
+
+La r\`egle impl\'ement\'ee est 
 \begin{enumerate}
 \itemsep -0.5ex
-\item S'il existe des $h$ donnant 1 ou 2 graines
+\item S'il existe des $h$ donnant 1 ou 2 graines (la question de la division se pose donc)
 \begin{enumerate}
 \itemsep -0.5ex
-\item si le score $s(c) = N_{2^{+}}(c) . N_2(c)$ est plus grand ou \'egal que $\tau$ (la th\`ese dit strictement), alors on garde 2 graines
-\item sinon ($s(c) = N_{2^{+}}(c) . N_2(c) <\tau$) et il existe des $h$ donnant 1 graine, alors on garde une graine
-\item sinon ($s(c) = N_{2^{+}}(c) . N_2(c) <\tau$ et il n'existe pas de $h$ donnant 1 graine) on garde 2 graines
+\item si le score $s(c) = NB_2 \cdot NB_3 \geq \tau$, alors on garde 2 graines. Comme $\tau = 25$, cela signifie que s'il y a au moins 5 valeurs de $h$ qui donnent 2 graines, alors on divisera la cellule.
+\item sinon ($s(c) = NB_2 \cdot NB_3 <\tau$) et il existe des $h$ donnant 1 graine, alors on garde une graine
+\item sinon ($s(c) = NB_2 \cdot NB_3 <\tau$ et il n'existe pas de $h$ donnant 1 graine) on garde 2 graines [ce cas doit difficilement survenir, il faut que beaucoup de $h$ ne donnent aucune graine, puis que les suivants donnent au moins 2 graines].
 \end{enumerate}
-\item sinon (il n'existe pas de $h$ donnant 1 ou 2 graines) et il existe des $h$ donnant 3 graines, alors on garde 3 graines
+\item sinon (il n'existe pas de $h$ donnant 1 ou 2 graines) et il existe des $h$ donnant 3 graines, alors on garde 3 graines [en fait seules les 2 premi\`eres seront effectivement gard\'ees].
 \item sinon  (il n'existe pas de $h$ donnant 1 ou 2 ou 3 graines), on dit qu'il n'y a pas de graines
 \end{enumerate}
 On r\'ecup\`ere le premier $h$ donnant le nombre choisi de graines. Comme les $h$ sont parcourus par ordre d\'ecroissant, c'est donc le plus grand $h$ donnant ce nombre de graines qui est retenu.
