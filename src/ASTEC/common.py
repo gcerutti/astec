@@ -1071,6 +1071,7 @@ class FuseSubdirectory(GenericSubdirectory):
         return
 
     def set_xzsection_directory(self, time_value):
+        self._xzsection_directory = list()
         t = "XZSECTION_" + self.timepoint_to_str(time_value)
         for c in range(self.get_number_directories()):
             d = os.path.join(self.get_directory(c), t)
@@ -2083,12 +2084,14 @@ def add_suffix(filename, suffix, new_dirname=None, new_extension=None):
     d = os.path.dirname(filename)
     e = get_extension(b)
     if e is None:
-        print(proc + ": file extension of '"+str(filename)+"' was not recognized")
-        print("\t Exiting")
+        # print(proc + ": file extension of '"+str(filename)+"' was not recognized")
+        # print("\t Exiting")
 #        monitoring.to_log_and_console(proc + ": file extension of '"+str(filename)+"' was not recognized", 0)
 #        monitoring.to_log_and_console("\t Exiting", 0)
-        sys.exit(1)
-    new_basename = b[0:len(b)-len(e)]
+        # sys.exit(1)
+        new_basename = b
+    else:
+        new_basename = b[0:len(b)-len(e)]
     new_basename += suffix
     if new_extension is None:
         new_basename += e

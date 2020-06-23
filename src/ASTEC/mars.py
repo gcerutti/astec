@@ -578,6 +578,12 @@ def watershed(seed_image, membrane_image, result_image, experiment, parameters):
                                       + str(type(experiment)))
         sys.exit(1)
 
+    if not isinstance(parameters, WatershedParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
+        sys.exit(1)
+
+
     if parameters.watershed_membrane_sigma > 0.0:
         monitoring.to_log_and_console("    .. smoothing '" + str(membrane_image).split(os.path.sep)[-1] +
                                       "' with sigma = " + str(parameters.watershed_membrane_sigma), 2)
@@ -609,7 +615,8 @@ def watershed(seed_image, membrane_image, result_image, experiment, parameters):
 
     monitoring.to_log_and_console("    .. watershed '" + str(height_image).split(os.path.sep)[-1] + "'", 2)
 
-    if not os.path.isfile(result_image) or monitoring.forceResultsToBeBuilt is True or parameters.n_seed_editions() > 0:
+    if not os.path.isfile(result_image) or monitoring.forceResultsToBeBuilt is True \
+            or (isinstance(parameters, MarsParameters) and parameters.n_seed_editions()) > 0:
         cpp_wrapping.watershed(seed_image, height_image, result_image, monitoring=monitoring)
 
     return

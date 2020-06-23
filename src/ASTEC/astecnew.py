@@ -1119,11 +1119,12 @@ def _volume_diagnosis(prev_volumes, curr_volumes, correspondences, parameters):
     return large_volume_ratio, small_volume_ratio, small_volume_daughter, all_daughter_label
 
 
-def _volume_decrease_correction(previous_segmentation, segmentation_from_selection, deformed_seeds, selected_seeds,
-                                membrane_image, correspondences, selected_parameter_seeds, n_seeds, parameter_seeds,
-                                bounding_boxes, experiment, parameters):
+def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_from_selection, deformed_seeds,
+                                selected_seeds, membrane_image, correspondences, selected_parameter_seeds, n_seeds,
+                                parameter_seeds, bounding_boxes, experiment, parameters):
     """
-    :param previous_segmentation: watershed segmentation obtained with the deformed_seeds
+    :param astec_name: generic name for image file name construction
+    :param previous_segmentation: watershed segmentation obtained with segmentation image at previous timepoint
     :param segmentation_from_selection:
     :param deformed_seeds: seeds obtained from the segmentation at a previous time and deformed into the current time
     :param selected_seeds:
@@ -1134,7 +1135,7 @@ def _volume_decrease_correction(previous_segmentation, segmentation_from_selecti
     :param n_seeds: dictionary, gives, for each parent cell, give the number of seeds for each couple of
     parameters [h-min, sigma]
     :param parameter_seeds: dictionary, for each parent cell, give the list of used parameters [h-min, sigma]
-    :param bounding_boxes:
+    :param bounding_boxes: bounding boxes defined on previous_segmentation
     :param experiment:
     :param parameters:
     :return:
@@ -1313,7 +1314,7 @@ def _volume_decrease_correction(previous_segmentation, segmentation_from_selecti
                 n_found_seeds, labeled_found_seeds = _extract_seeds(mother_c, submask_mother_c, seed_image_name, bb)
                 if n_found_seeds == 2:
                     new_correspondences = [seed_label_max+1, seed_label_max+2]
-                    monitoring.to_log_and_console('          .. cell ' + str(mother_c) + ': '
+                    monitoring.to_log_and_console('          .. (1)  cell ' + str(mother_c) + ': '
                                                   + str(correspondences[mother_c]) + ' -> ' + str(new_correspondences),
                                                   3)
                     #
@@ -1328,7 +1329,7 @@ def _volume_decrease_correction(previous_segmentation, segmentation_from_selecti
                     seed_label_max += 2
                     change_in_seeds += 1
                 else:
-                    monitoring.to_log_and_console('          .. (1)  cell ' + str(mother_c) + ': weird, has found '
+                    monitoring.to_log_and_console('          .. (2)  cell ' + str(mother_c) + ': weird, has found '
                                                   + str(n_found_seeds) + " instead of 2", 2)
             elif (nb_final == 1 or nb_final == 2) and (np.array(s) > 2).any():
                 #
@@ -1366,9 +1367,9 @@ def _volume_decrease_correction(previous_segmentation, segmentation_from_selecti
                 del aux_seed_image
                 if 2 in seeds_c:
                     new_correspondences = [seed_label_max + 1, seed_label_max + 2]
-                    monitoring.to_log_and_console('          .. (2)  cell ' + str(mother_c) + ': '
-                                                  + str(correspondences[mother_c] + ' -> '
-                                                  + str(new_correspondences)), 3)
+                    monitoring.to_log_and_console('          .. (3)  cell ' + str(mother_c) + ': '
+                                                  + str(correspondences[mother_c]) + ' -> '
+                                                  + str(new_correspondences), 3)
                     #
                     # remove previous seed
                     # add new seeds, note that they might be several seeds per label '1' or '2'
@@ -1382,7 +1383,7 @@ def _volume_decrease_correction(previous_segmentation, segmentation_from_selecti
                     seed_label_max += 2
                     change_in_seeds += 1
                 else:
-                    monitoring.to_log_and_console('          .. (3)  cell ' + str(mother_c) +
+                    monitoring.to_log_and_console('          .. (4)  cell ' + str(mother_c) +
                                                   ': does not know what to do', 3)
 
             elif nb_final == 1:
@@ -1390,14 +1391,15 @@ def _volume_decrease_correction(previous_segmentation, segmentation_from_selecti
                 # here s.count(2) == 0 and np.array(s) > 2).any() is False
                 # replace the computed seed with the seed from the previous segmentation
                 #
-                monitoring.to_log_and_console('          .. (4)  cell ' + str(mother_c) +
+                monitoring.to_log_and_console('          .. (5)  cell ' + str(mother_c) +
                                               ': get seed from previous eroded segmentation', 3)
                 selected_seeds_image[selected_seeds_image == correspondences[mother_c][0]] = 0
                 selected_seeds_image[deformed_seeds_image == mother_c] = correspondences[mother_c]
                 selected_parameter_seeds[mother_c] = [-1, -1, 1]
                 change_in_seeds += 1
             else:
-                monitoring.to_log_and_console('          .. (5)  cell ' + str(mother_c) + ': does not know what to do', 3)
+                monitoring.to_log_and_console('          .. (6)  cell ' + str(mother_c) + ': does not know what to do',
+                                              3)
 
         elif s.count(3) != 0:
             #
@@ -1420,9 +1422,8 @@ def _volume_decrease_correction(previous_segmentation, segmentation_from_selecti
                                                                 accept_3_seeds=True)
             if n_found_seeds == 3:
                 new_correspondences = [seed_label_max + 1, seed_label_max + 2, seed_label_max + 3]
-                monitoring.to_log_and_console('          .. (6)  cell ' + str(mother_c) + ': '
-                                              + str(correspondences[mother_c] + ' -> ' + str(new_correspondences)),
-                                              3)
+                monitoring.to_log_and_console('          .. (7)  cell ' + str(mother_c) + ': '
+                                              + str(correspondences[mother_c]) + ' -> ' + str(new_correspondences), 3)
                 #
                 # remove previous seed
                 # add new seeds
@@ -1438,17 +1439,17 @@ def _volume_decrease_correction(previous_segmentation, segmentation_from_selecti
                 change_in_seeds += 1
                 # labels_to_be_fused.append([mother_c, new_correspondences])
             else:
-                monitoring.to_log_and_console('          .. (7)  cell ' + str(mother_c) + ': weird, has found '
-                                              + str(n_found_seeds) + " instead of 3", 2)
+                monitoring.to_log_and_console('          .. (8)  cell ' + str(mother_c) + ': weird, has found '
+                                              + str(n_found_seeds) + " seeds instead of 3", 2)
         else:
             if s[0] is 0 and s[-1] is 0:
-                monitoring.to_log_and_console('          .. (8a) cell ' + str(mother_c) +
+                monitoring.to_log_and_console('          .. (9a) cell ' + str(mother_c) +
                                               ': no h-minima found, no correction ', 2)
             elif s[0] > 4 and s[-1] > 4:
-                monitoring.to_log_and_console('          .. (8b) cell ' + str(mother_c) +
+                monitoring.to_log_and_console('          .. (9b) cell ' + str(mother_c) +
                                               ': too many h-minima found, no correction ', 2)
             else:
-                monitoring.to_log_and_console('          .. (8c) cell ' + str(mother_c) +
+                monitoring.to_log_and_console('          .. (9c) cell ' + str(mother_c) +
                                               ': unexpected case, no correction ', 2)
 
     # if len(labels_to_be_fused) > 0:
@@ -1509,14 +1510,14 @@ def _volume_decrease_correction(previous_segmentation, segmentation_from_selecti
     #
     monitoring.to_log_and_console('      .. ' + str(change_in_seeds) + ' changes in seeds, recompute segmentation', 2)
 
-    corr_selected_seeds = common.add_suffix(membrane_image, '_seeds_from_corrected_selection',
+    corr_selected_seeds = common.add_suffix(astec_name, '_seeds_from_corrected_selection',
                                             new_dirname=experiment.astec_dir.get_tmp_directory(),
                                             new_extension=experiment.default_image_suffix)
     voxelsize = selected_seeds_image._get_resolution()
     imsave(corr_selected_seeds, SpatialImage(selected_seeds_image, voxelsize=voxelsize).astype(np.uint16))
     del selected_seeds_image
 
-    segmentation_from_corr_selection = common.add_suffix(membrane_image, '_watershed_from_corrected_selection',
+    segmentation_from_corr_selection = common.add_suffix(astec_name, '_watershed_from_corrected_selection',
                                                          new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                          new_extension=experiment.default_image_suffix)
     mars.watershed(corr_selected_seeds, membrane_image, segmentation_from_corr_selection, experiment, parameters)
@@ -1596,7 +1597,7 @@ def _multiple_label_fusion(input_segmentation, output_segmentation, corresponden
         share_label = shared_labels[np.argmax(shared_volumes)]
         monitoring.to_log_and_console('         merge ' + str(min_label) + ' with ' + str(share_label), 2)
         segmentation[segmentation == min_label] = share_label
-        correspondences[mother] = daughters.remove(min_label)
+        correspondences[mother].remove(min_label)
 
     imsave(output_segmentation, segmentation)
     return correspondences
@@ -1698,7 +1699,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
                                       + str(previous_time), 2)
         return False
 
-    deformed_segmentation = common.add_suffix(previous_segmentation, '_deformed_segmentation_from_previous',
+    deformed_segmentation = common.add_suffix(astec_name, '_deformed_segmentation_from_previous',
                                               new_dirname=experiment.astec_dir.get_tmp_directory(),
                                               new_extension=experiment.default_image_suffix)
 
@@ -1708,7 +1709,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
         cpp_wrapping.apply_transformation(previous_segmentation, deformed_segmentation, deformation,
                                           interpolation_mode='nearest', monitoring=monitoring)
 
-    deformed_seeds = common.add_suffix(previous_segmentation, '_deformed_seeds_from_previous',
+    deformed_seeds = common.add_suffix(astec_name, '_deformed_seeds_from_previous',
                                        new_dirname=experiment.astec_dir.get_tmp_directory(),
                                        new_extension=experiment.default_image_suffix)
     if not os.path.isfile(deformed_seeds):
@@ -1723,7 +1724,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     if parameters.propagation_strategy is 'seeds_from_previous_segmentation':
         segmentation_from_previous = astec_image
     else:
-        segmentation_from_previous = common.add_suffix(membrane_image, '_watershed_from_previous',
+        segmentation_from_previous = common.add_suffix(astec_name, '_watershed_from_previous',
                                                        new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                        new_extension=experiment.default_image_suffix)
 
@@ -1741,7 +1742,6 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
         #
         lineage_tree_information = _update_volume_properties(lineage_tree_information, astec_image, current_time,
                                                              experiment)
-
 
         #
         # update lineage. It is somehow just to check since cells are not supposed to disappeared
@@ -1766,8 +1766,6 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     cells = list(np.unique(first_segmentation))
     cells.remove(1)
     bounding_boxes = dict(zip(range(1, max(cells) + 1), nd.find_objects(first_segmentation)))
-    for i in range(1, max(cells) + 1):
-        print(str(i)+": "+str(bounding_boxes[i]))
     del first_segmentation
 
     #
@@ -1833,7 +1831,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     #
     monitoring.to_log_and_console('    build seed image from all h-minima images', 2)
 
-    selected_seeds = common.add_suffix(membrane_image, '_seeds_from_selection',
+    selected_seeds = common.add_suffix(astec_name, '_seeds_from_selection',
                                        new_dirname=experiment.astec_dir.get_tmp_directory(),
                                        new_extension=experiment.default_image_suffix)
 
@@ -1849,7 +1847,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     #
 
     monitoring.to_log_and_console('    watershed from selection of seeds', 2)
-    segmentation_from_selection = common.add_suffix(membrane_image, '_watershed_from_selection',
+    segmentation_from_selection = common.add_suffix(astec_name, '_watershed_from_selection',
                                                     new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                     new_extension=experiment.default_image_suffix)
     if not os.path.isfile(segmentation_from_selection):
@@ -1866,9 +1864,10 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     # print("parameter_seeds: " + str(parameter_seeds))
 
     monitoring.to_log_and_console('    volume decrease correction', 2)
-    output = _volume_decrease_correction(previous_segmentation, segmentation_from_selection, deformed_seeds,
-                                         selected_seeds, membrane_image, correspondences, selected_parameter_seeds,
-                                         n_seeds, parameter_seeds, bounding_boxes, experiment, parameters)
+    output = _volume_decrease_correction(astec_name, segmentation_from_previous, segmentation_from_selection,
+                                         deformed_seeds, selected_seeds, membrane_image, correspondences,
+                                         selected_parameter_seeds, n_seeds, parameter_seeds, bounding_boxes, experiment,
+                                         parameters)
     segmentation_from_selection, selected_seeds, correspondences = output
 
     # - segmentation_from_selection: new segmentation image (if any correction)
@@ -1877,13 +1876,10 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     #
     #
 
-
-
     #
     #
     #
     monitoring.to_log_and_console('    active contours (morphosnakes): to be done', 2)
-
 
     #
     #
@@ -1899,9 +1895,9 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
         #
         # bounding boxes have been defined with the watershed obtained with seeds issued
         # from the previous segmentation
-        # borders may have changed, so recompute the boundding boxes
+        # borders may have changed, so recompute the bounding boxes
         #
-        output_segmentation = common.add_suffix(membrane_image, '_after_3seeds_fusion',
+        output_segmentation = common.add_suffix(astec_name, '_watershed_after_seeds_fusion',
                                                 new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                 new_extension=experiment.default_image_suffix)
         if not os.path.isfile(segmentation_from_selection):
@@ -1911,12 +1907,10 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
                                                  labels_to_be_fused)
         input_segmentation = output_segmentation
 
-
     #
     #
     #
     monitoring.to_log_and_console('    outer correction: to be done', 2)
-
 
     #
     # copy the last segmentation image (in the auxiliary directory) as the result
