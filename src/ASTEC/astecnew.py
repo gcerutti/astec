@@ -980,7 +980,7 @@ def _build_correspondences_from_segmentation(segmented_image):
     tmp = {}
     # if the volume exists, it means that this cell has a mother cell with the same label
     for key, value in volumes.iteritems():
-        tmp[key] = int(key)
+        tmp[key] = [int(key)]
     return tmp
 
 
@@ -1472,6 +1472,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
     # - remove the too small daughter cell from the seed image
     # - remove it from the correspondence array
     # - remove the mother cell is it has no more daughter
+    #
     ############################################################
     if len(small_volume_daughter) > 0:
         monitoring.to_log_and_console('        process cell(s) with too small daughters', 2)
@@ -1499,7 +1500,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
     #
 
     if change_in_seeds == 0:
-        monitoring.to_log_and_console('      .. no changes in seeds', 2)
+        monitoring.to_log_and_console('        .. no changes in seeds', 2)
         del selected_seeds_image
         return segmentation_from_selection, selected_seeds, correspondences
 
@@ -1539,6 +1540,154 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
     #
 
     return segmentation_from_corr_selection, corr_selected_seeds, correspondences
+
+
+########################################################################################
+#
+# Morphosnake correction for cell whoch have a volume decrease
+# due to background infiltration
+#
+########################################################################################
+
+
+def _outer_volume_decrease_correction(astec_name, previous_segmentation, segmentation_from_selection, deformed_seeds,
+                                selected_seeds, membrane_image, correspondences, selected_parameter_seeds, n_seeds,
+                                parameter_seeds, bounding_boxes, experiment, parameters):
+    """
+    :param astec_name: generic name for image file name construction
+    :param previous_segmentation: watershed segmentation obtained with segmentation image at previous timepoint
+    :param segmentation_from_selection:
+    :param deformed_seeds: seeds obtained from the segmentation at a previous time and deformed into the current time
+    :param selected_seeds:
+    :param membrane_image:
+    :param correspondences: is a dictionary that gives, for each 'parent' cell (in the segmentation built from previous
+    time segmentation) (ie the key), the list of 'children' cells (in the segmentation built from selected seeds)
+    :param selected_parameter_seeds:
+    :param n_seeds: dictionary, gives, for each parent cell, give the number of seeds for each couple of
+    parameters [h-min, sigma]
+    :param parameter_seeds: dictionary, for each parent cell, give the list of used parameters [h-min, sigma]
+    :param bounding_boxes: bounding boxes defined on previous_segmentation
+    :param experiment:
+    :param parameters:
+    :return:
+    """
+
+    proc = "_outer_volume_decrease_correction"
+
+    #
+    # parameter type checking
+    #
+
+    if not isinstance(experiment, common.Experiment):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'experiment' variable: "
+                                      + str(type(experiment)))
+        sys.exit(1)
+
+    if not isinstance(parameters, AstecParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
+        sys.exit(1)
+
+    #
+    # compute volumes
+    #
+    prev_seg = imread(previous_segmentation)
+    curr_seg = imread(segmentation_from_selection)
+
+    prev_volumes = _compute_volumes(prev_seg)
+    curr_volumes = _compute_volumes(curr_seg)
+
+    #
+    # cell volume diagnosis
+    # - large_volume_ratio: list of mother cells such that volume(mother) << SUM volume(childrens)
+    # - small_volume_ratio: list of mother cells such that volume(mother) >> SUM volume(childrens)
+    # - small_volume_daughter: list of [mother_c, daughter_c] such that one of the daughter has
+    #                          a too small volume (with its mother not in one of the two above lists)
+    # - all_daughter_label: all labels of daughter cells
+
+    output = _volume_diagnosis(prev_volumes, curr_volumes, correspondences, parameters)
+    large_volume_ratio, small_volume_ratio, small_volume_daughter, all_daughter_label = output
+    #
+    # here we look at cells that experiment a large decrease of volume
+    # ie vol(mother) >> vol(daughter(s))
+    # this is the step (1) of section 2.3.3.6 of L. Guignard thesis
+    # [corresponds to the list to_look_at in historical astec code]
+    #
+
+    ############################################################
+    #
+    # BEGIN: cell with large decrease of volume
+    # volume_ratio < 0  <=> volume(mother) > SUM volume(childrens)
+    # try to add seeds
+    #
+    ############################################################
+    if len(small_volume_ratio) > 0:
+        monitoring.to_log_and_console('        process cell(s) with large decrease of volume (morphosnake)', 2)
+
+    #
+    # find cells with a volume decrease due to the background
+    #
+    exterior_correction = []
+    for mother_c in small_volume_ratio:
+        #
+        # create a sub-image where cells 'daughter_c' has the 'True' value
+        # and a background at 'False'
+        # create a sub-image where the cell 'mother_c' has the 'True' value
+        # and a background at 'False'
+        #
+        # get the labels of the missed part (mother cell - all daughter cells)
+        # 'labels' is no more a nd-array, just an array
+        #
+        bb = bounding_boxes[mother_c]
+        submask_daughter_c = np.zeros_like(curr_seg[bb])
+        for daughter_c in correspondences[mother_c]:
+            submask_daughter_c[curr_seg[bb] == mother_c] = mother_c
+        submask_daughter_c = (submask_daughter_c == mother_c)
+        submask_mother_c = (prev_seg[bb] == mother_c)
+
+        labels = curr_seg[bb][submask_mother_c & (submask_daughter_c==False)]
+
+        #
+        # is the main label 1 (the background label)?
+        #
+        labels_size = {}
+        max_size = 0
+        label_max = 0
+        for v in np.unique(labels):
+            labels_size[v] = np.sum(labels == v)
+            if max_size < labels_size[v]:
+                max_size = labels_size[v]
+                label_max = v
+
+        #
+        # the main label is 1, and was also in the bounding box of the 'mother' cell
+        # [we should have check that the background is adjacent to the mother cell]
+        #
+        #
+        if label_max == 1 and 1 in curr_seg[bb]:
+            exterior_correction.append((mother_c, correspondences[mother_c]))
+
+    if len(exterior_correction) == 0:
+        monitoring.to_log_and_console('        .. no correction to be done', 2)
+        del prev_seg
+        del curr_seg
+        return
+
+    monitoring.to_log_and_console('        .. corrections to be done: ' +str(exterior_correction), 2)
+
+    del prev_seg
+    del curr_seg
+    #
+    #
+    #
+    return
+
+
+########################################################################################
+#
+# 3-seeds fusion
+#
+########################################################################################
 
 
 def _multiple_label_fusion(input_segmentation, output_segmentation, correspondences, labels_to_be_fused):
@@ -1601,6 +1750,7 @@ def _multiple_label_fusion(input_segmentation, output_segmentation, corresponden
 
     imsave(output_segmentation, segmentation)
     return correspondences
+
 
 ########################################################################################
 #
@@ -1881,6 +2031,10 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     #
     monitoring.to_log_and_console('    active contours (morphosnakes): to be done', 2)
 
+    output = _volume_decrease_correction(astec_name, segmentation_from_previous, segmentation_from_selection,
+                                         deformed_seeds, selected_seeds, membrane_image, correspondences,
+                                         selected_parameter_seeds, n_seeds, parameter_seeds, bounding_boxes, experiment,
+                                         parameters)
     #
     #
     #
@@ -1890,7 +2044,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
         if len(value) >= 3:
             labels_to_be_fused.append([key, value])
     if len(labels_to_be_fused) > 0:
-        monitoring.to_log_and_console('    3-seed fusion', 2)
+        monitoring.to_log_and_console('    3-seeds fusion', 2)
         monitoring.to_log_and_console('      seeds to be fused: ' + str(labels_to_be_fused), 2)
         #
         # bounding boxes have been defined with the watershed obtained with seeds issued
@@ -2047,17 +2201,20 @@ def astec_control(experiment, parameters):
                 monitoring.to_log_and_console("       time '" + str(t) + "' seems ok", 1)
             t += 1
         first_time_point = restart
-        monitoring.to_log_and_console(".. " + proc + ": restart computation at time '"
-                                      + str(first_time_point) + "'", 1)
+        monitoring.to_log_and_console(".. " + proc + ": restart computation at time '" + str(first_time_point) + "'", 1)
     else:
-        monitoring.to_log_and_console(".. " + proc + ": start computation at time '"
-                                      + str(first_time_point) + "'", 1)
+        monitoring.to_log_and_console(".. " + proc + ": start computation at time '" + str(first_time_point) + "'", 1)
 
     #
     # compute volumes for the first time point
     # (well, it may exist, if we just restart the segmentation)
     #
     first_segmentation = experiment.get_segmentation_image(first_time_point)
+    if first_segmentation is None:
+        monitoring.to_log_and_console(".. " + proc + ": no segmentation image found for time '" + str(first_time_point)
+                                      + "'", 1)
+        monitoring.to_log_and_console("\t Exiting", 1)
+        sys.exit(1)
     lineage_tree_information = _update_volume_properties(lineage_tree_information, first_segmentation,
                                                          first_time_point, experiment)
 
