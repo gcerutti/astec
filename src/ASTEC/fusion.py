@@ -1104,7 +1104,7 @@ def _build_unreg_weighting_image(template_image_name, weighting_image_name, decr
     elif fusion_weighting.lower() == 'ramp' or fusion_weighting.lower() == 'ramp-weighting':
         unreg_weight = _build_ramp_weighting(im, decreasing_weight_with_z)
     else:
-        print proc + ": unknown weighting function, switch to uniform"
+        monitoring.to_log_and_console(str(proc) + ": unknown weighting function, switch to uniform")
         unreg_weight = _build_uniform_weighting(im)
 
     unreg_weight._set_resolution(im._get_resolution())

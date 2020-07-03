@@ -10,7 +10,7 @@ import common
 import reconstruction
 
 import CommunFunctions.cpp_wrapping as cpp_wrapping
-from CommunFunctions.ImageHandling import imread
+from CommunFunctions.ImageHandling import imread, imsave
 
 #
 #
@@ -403,7 +403,7 @@ class MarsParameters(WatershedParameters, SeedEditionParameters, reconstruction.
 ########################################################################################
 
 def build_seeds(input_image, difference_image, output_seed_image, experiment, parameters,
-                operation_type='min'):
+                operation_type='min', check_background_label=False):
     """
     Extract regional minima or maxima from an image and label them.
 
@@ -413,6 +413,7 @@ def build_seeds(input_image, difference_image, output_seed_image, experiment, pa
     :param experiment:
     :param parameters:
     :param operation_type: 'min' for regional h-minima, 'max' for regional h-maxima
+    :param check_background_label: check whether the largest seed (assumed to be the background one) is labeled 1
     :return:
     """
 
@@ -551,6 +552,29 @@ def build_seeds(input_image, difference_image, output_seed_image, experiment, pa
         cpp_wrapping.connected_components(local_difference_image, output_seed_image, high_threshold=high_threshold,
                                           monitoring=monitoring)
 
+    #
+    # check whether the largest connected component has been labeled '1' (background)
+    #
+    # get the list of labels (remove 0)
+    # get the list of volumes
+    # get the list of indexes associated with the maximal volume
+    #
+    if check_background_label:
+        seeds = imread(output_seed_image)
+        labels = list(np.unique(seeds))
+        labels.pop(0)
+        volumes = nd.sum(np.ones_like(seeds), seeds, index=np.int16(labels))
+        indexmax = [i for i, j in enumerate(volumes) if j == max(volumes)]
+        if len(indexmax) > 1:
+            monitoring.to_log_and_console("       several regional extrema have a maximal count", 2)
+        if int(labels[indexmax[0]]) is not 1:
+            monitoring.to_log_and_console("       relabel seed #" + str(labels[indexmax[0]]) + " into 1 (background)", 2)
+            newlabel = max(labels) + 1
+            seeds[seeds == 1] = newlabel
+            seeds[seeds == labels[indexmax[0]]] = 1
+            imsave(output_seed_image, seeds)
+        del seeds
+
     if difference_image is None:
         os.remove(local_difference_image)
 
@@ -582,7 +606,6 @@ def watershed(seed_image, membrane_image, result_image, experiment, parameters):
         monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
                                       + str(type(parameters)))
         sys.exit(1)
-
 
     if parameters.watershed_membrane_sigma > 0.0:
         monitoring.to_log_and_console("    .. smoothing '" + str(membrane_image).split(os.path.sep)[-1] +
@@ -686,7 +709,7 @@ def _mars_watershed(template_image, membrane_image, mars_image, experiment, para
                                    new_extension=experiment.default_image_suffix)
 
     if not os.path.isfile(seed_image) or monitoring.forceResultsToBeBuilt is True:
-        build_seeds(membrane_image, None, seed_image, experiment, parameters)
+        build_seeds(membrane_image, None, seed_image, experiment, parameters, check_background_label=True)
 
     #
     # seed correction (if any)

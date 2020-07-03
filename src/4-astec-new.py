@@ -171,7 +171,7 @@ def main():
     #
     # processing
     #
-    ret = astec.astec_control(experiment, parameters)
+    astec.astec_control(experiment, parameters)
 
     #
     # end of execution
@@ -180,6 +180,8 @@ def main():
     end_time = time.localtime()
     monitoring.update_execution_time(start_time, end_time)
     experiment.update_history_execution_time(__file__, start_time, end_time)
+
+    monitoring.to_console('Total computation time = ' + str(time.mktime(end_time) - time.mktime(start_time)) + ' s')
 
 
 #

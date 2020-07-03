@@ -786,7 +786,60 @@ def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False
     #
     # filter type
     #
-    if type is not None:
+    if filter_type is not None:
+        command_line += " -gaussian-type " + str(filter_type)
+    command_line += " -x 0 -y 0 -z 0"
+
+    #
+    # add points at borders
+    #
+    command_line += " -cont 10"
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def gradient_norm(path_input, path_output, filter_value=1.0, real_scale=False, filter_type='deriche',
+                  other_options=None, monitoring=None):
+    """
+
+    :param path_input: path to the image to filter
+    :param path_output: path to the output image
+    :param filter_value: sigma of the gaussian filter for each axis (default is 1.0)
+    :param real_scale: scale values are in 'real' units (will be divided by the voxel size to get 'voxel' values)
+           if this option is at True (default=False)
+    :param filter_type: gaussian type, can be ['deriche'|'fidrich'|'young-1995'|'young-2002'|...
+           ...|'gabor-young-2002'|'convolution'] or None (default is 'deriche')
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('linearFilter')
+
+    command_line = path_to_exec + " " + path_input + " " + path_output
+
+    command_line += " -gradient-modulus"
+    #
+    # filter parameter value
+    #
+    command_line += " -sigma " + str(filter_value)
+    if real_scale is True:
+        command_line += " -unit real"
+    else:
+        command_line += " -unit voxel"
+
+    #
+    # filter type
+    #
+    if filter_type is not None:
         command_line += " -gaussian-type " + str(filter_type)
     command_line += " -x 0 -y 0 -z 0"
 
