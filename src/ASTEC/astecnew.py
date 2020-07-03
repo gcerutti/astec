@@ -1669,7 +1669,7 @@ def _morphosnakes(parameters_for_parallelism):
 
     mother_c, bb, subimage_name, subsegmentation_name, astec_parameters = parameters_for_parallelism
     proc = "_morphosnakes"
-    write_images = False
+    write_images = True
 
     #
     # dilation of the mother cell from subsegmentation to get the initial curve
@@ -1729,6 +1729,8 @@ def _morphosnakes(parameters_for_parallelism):
 
     cell_out = macwe.levelset
     cell_out = cell_out.astype(bool)
+
+    cell_out = nd.binary_dilation(cell_out, iterations=2)
     del energy
 
     if write_images:
@@ -1749,9 +1751,8 @@ def _slices_dilation(slices, maximum, iterations=1):
     return slices
 
 
-def _outer_volume_decrease_correction(astec_name, previous_segmentation, segmentation_from_selection, deformed_seeds,
-                                selected_seeds, membrane_image, correspondences, selected_parameter_seeds, n_seeds,
-                                parameter_seeds, bounding_boxes, experiment, parameters):
+def _outer_volume_decrease_correction(astec_name, previous_segmentation, segmentation_from_selection, membrane_image,
+                                      correspondences, bounding_boxes, experiment, parameters):
     """
     :param astec_name: generic name for image file name construction
     :param previous_segmentation: watershed segmentation obtained with segmentation image at previous timepoint
@@ -1823,8 +1824,10 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
     if True or len(small_volume_ratio) > 0:
         monitoring.to_log_and_console('        process cell(s) with large decrease of volume (morphosnake)', 2)
     else:
+        del prev_seg
+        del curr_seg
         monitoring.to_log_and_console('        .. no correction to be done', 2)
-        return
+        return segmentation_from_selection, correspondences, []
 
     #
     # find cells with a volume decrease due to the background
@@ -1877,15 +1880,17 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
         exterior_correction.append(45)
 
     if len(exterior_correction) == 0:
-        monitoring.to_log_and_console('        .. no cells with large background part', 2)
         del prev_seg
         del curr_seg
-        return
+        monitoring.to_log_and_console('        .. no cells with large background part', 2)
+        return segmentation_from_selection, correspondences, []
+
 
     #
     #
     #
-    monitoring.to_log_and_console('        .. (mother) cell(s) to be corrected: ' + str(exterior_correction), 2)
+    monitoring.to_log_and_console('        .. (mother) cell(s) to be corrected (morphosnake step): '
+                                  + str(exterior_correction), 2)
 
     #
     # parameters for morphosnake
@@ -1913,6 +1918,7 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
         mapping.append(parameters_for_parallelism)
 
     del greylevel_image
+    del prev_seg
 
     #
     #
@@ -1924,23 +1930,45 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
     pool.terminate()
 
     #
+    # do the corrections issued from the morphosnake
+    # check whether they are effective
     #
-    #
+    effective_exterior_correction = []
     for mother_c, bb, cell_out in outputs:
         daughter_c = correspondences[mother_c][0]
-        prev_seg[bb][prev_seg[bb] == 1 & cell_out] = daughter_c
+        if np.sum(curr_seg[bb] == 1 & cell_out) > 0:
+            effective_exterior_correction.append(mother_c)
+            curr_seg[bb][curr_seg[bb] == 1 & cell_out] = daughter_c
         if len(correspondences[mother_c]) > 1:
             monitoring.to_log_and_console('           cell ' + str(mother_c) + 'will no more divide', 2)
             for d in correspondences[mother_c]:
-                prev_seg[bb][prev_seg[bb] == d] = daughter_c
+                curr_seg[bb][curr_seg[bb] == d] = daughter_c
         correspondences[mother_c] = [daughter_c]
 
-    del prev_seg
+    #
+    #
+    #
+    if len(effective_exterior_correction) == 0:
+        del curr_seg
+        monitoring.to_log_and_console('        .. no effective correction', 2)
+        return segmentation_from_selection, correspondences, []
+
+    #
+    # there has been some effective corrections
+    # save the image
+    #
+    monitoring.to_log_and_console('        .. (mother) cell(s) that have been corrected (morphosnake step): '
+                                  + str(effective_exterior_correction), 2)
+
+    segmentation_after_morphosnakes = common.add_suffix(astec_name, '_morphosnakes',
+                                                        new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                                        new_extension=experiment.default_image_suffix)
+    imsave(segmentation_after_morphosnakes, curr_seg)
     del curr_seg
     #
     #
     #
-    return exterior_correction
+    return segmentation_after_morphosnakes, correspondences, effective_exterior_correction
 
 
 ########################################################################################
@@ -2280,25 +2308,32 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
                                          parameters)
     segmentation_from_selection, selected_seeds, correspondences = output
 
+    #
     # - segmentation_from_selection: new segmentation image (if any correction)
     # - selected_seeds: new seeds image (if any correction)
     # - correspondences: new lineage correspondences (if any correction)
     #
-    #
 
-    #
-    #
-    #
-    monitoring.to_log_and_console('    outer volume decrease correction (morphosnakes)', 2)
-
-    output = _outer_volume_decrease_correction(astec_name, segmentation_from_previous, segmentation_from_selection,
-                                         deformed_seeds, selected_seeds, membrane_image, correspondences,
-                                         selected_parameter_seeds, n_seeds, parameter_seeds, bounding_boxes, experiment,
-                                         parameters)
-    #
-    #
-    #
     input_segmentation = segmentation_from_selection
+
+    #
+    # Morphosnakes
+    #
+    if True:
+        monitoring.to_log_and_console('    outer volume decrease correction (morphosnakes)', 2)
+
+        output = _outer_volume_decrease_correction(astec_name, segmentation_from_previous, input_segmentation,
+                                                   membrane_image, correspondences, bounding_boxes, experiment,
+                                                   parameters)
+        output_segmentation, correspondences, effective_exterior_correction = output
+        input_segmentation = output_segmentation
+    else:
+        effective_exterior_correction = []
+
+    #
+    #
+    #
+
     labels_to_be_fused = []
     for key, value in correspondences.iteritems():
         if len(value) >= 3:
