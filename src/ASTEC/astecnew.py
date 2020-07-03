@@ -203,6 +203,11 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
         self.volume_ratio_threshold = 0.5
         self.volume_minimal_value = 1000
 
+        #
+        # outer morphosnake correction
+        #
+        self.outer_correction_radius_opening = 20
+
     ############################################################
     #
     # print / write
@@ -230,6 +235,8 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
         print('- volume_ratio_tolerance = ' + str(self.volume_ratio_tolerance))
         print('- volume_ratio_threshold = ' + str(self.volume_ratio_threshold))
         print('- volume_minimal_value = ' + str(self.volume_minimal_value))
+
+        print('- outer_correction_radius_opening = ' + str(self.outer_correction_radius_opening))
 
         mars.WatershedParameters.print_parameters(self)
         reconstruction.ReconstructionParameters.print_parameters(self)
@@ -261,6 +268,8 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
             logfile.write('- volume_ratio_tolerance = ' + str(self.volume_ratio_tolerance) + '\n')
             logfile.write('- volume_ratio_threshold = ' + str(self.volume_ratio_threshold) + '\n')
             logfile.write('- volume_minimal_value = ' + str(self.volume_minimal_value) + '\n')
+
+            logfile.write('- outer_correction_radius_opening = ' + str(self.outer_correction_radius_opening) + '\n')
 
             mars.WatershedParameters.write_parameters(self, log_file_name)
             reconstruction.ReconstructionParameters.write_parameters(self, log_file_name)
@@ -1666,10 +1675,9 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
 
 def _morphosnakes(parameters_for_parallelism):
 
-
     mother_c, bb, subimage_name, subsegmentation_name, astec_parameters = parameters_for_parallelism
     proc = "_morphosnakes"
-    write_images = True
+    write_images = False
 
     #
     # dilation of the mother cell from subsegmentation to get the initial curve
@@ -1720,7 +1728,7 @@ def _morphosnakes(parameters_for_parallelism):
         # print(str(i) + " condition 1 " + str(np.sum(before != macwe.levelset)))
         # print(str(i) + " condition 2 " + str(np.sum(bbefore != macwe.levelset)))
         if write_images:
-            if i > 0 and i%10 == 0:
+            if i > 0 and i % 10 == 0:
                 result_name = common.add_suffix(subsegmentation_name, '_step' + str(i))
                 imsave(result_name, SpatialImage(macwe.levelset.astype(np.uint8)))
         if np.sum(before != macwe.levelset) < astec_parameters.ms_delta_voxel \
@@ -1740,7 +1748,6 @@ def _morphosnakes(parameters_for_parallelism):
     return mother_c, bb, cell_out
 
 
-
 def _slices_dilation_iteration(slices, maximum):
     return tuple([slice(max(0, s.start-1), min(s.stop+1, maximum[i])) for i, s in enumerate(slices)])
 
@@ -1757,15 +1764,9 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
     :param astec_name: generic name for image file name construction
     :param previous_segmentation: watershed segmentation obtained with segmentation image at previous timepoint
     :param segmentation_from_selection:
-    :param deformed_seeds: seeds obtained from the segmentation at a previous time and deformed into the current time
-    :param selected_seeds:
     :param membrane_image:
     :param correspondences: is a dictionary that gives, for each 'parent' cell (in the segmentation built from previous
     time segmentation) (ie the key), the list of 'children' cells (in the segmentation built from selected seeds)
-    :param selected_parameter_seeds:
-    :param n_seeds: dictionary, gives, for each parent cell, give the number of seeds for each couple of
-    parameters [h-min, sigma]
-    :param parameter_seeds: dictionary, for each parent cell, give the list of used parameters [h-min, sigma]
     :param bounding_boxes: bounding boxes defined on previous_segmentation
     :param experiment:
     :param parameters:
@@ -1821,7 +1822,7 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
     # try to add seeds
     #
     ############################################################
-    if True or len(small_volume_ratio) > 0:
+    if len(small_volume_ratio) > 0:
         monitoring.to_log_and_console('        process cell(s) with large decrease of volume (morphosnake)', 2)
     else:
         del prev_seg
@@ -1876,15 +1877,11 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
         if label_max == 1 and 1 in curr_seg[bb]:
             exterior_correction.append(mother_c)
 
-    if True:
-        exterior_correction.append(45)
-
     if len(exterior_correction) == 0:
         del prev_seg
         del curr_seg
         monitoring.to_log_and_console('        .. no cells with large background part', 2)
         return segmentation_from_selection, correspondences, []
-
 
     #
     #
@@ -1911,7 +1908,7 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
         subsegmentation = os.path.join(experiment.astec_dir.get_tmp_directory(), "cellsegment_" + str(mother_c) + "."
                                        + experiment.default_image_suffix)
         subimage = os.path.join(experiment.astec_dir.get_tmp_directory(), "cellimage_" + str(mother_c) + "."
-                                       + experiment.default_image_suffix)
+                                + experiment.default_image_suffix)
         imsave(subsegmentation, prev_seg[bb])
         imsave(subimage, greylevel_image[bb])
         parameters_for_parallelism = (mother_c, bb, subimage, subsegmentation, parameters)
@@ -1937,10 +1934,11 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
     for mother_c, bb, cell_out in outputs:
         daughter_c = correspondences[mother_c][0]
         if np.sum(curr_seg[bb] == 1 & cell_out) > 0:
-            effective_exterior_correction.append(mother_c)
+            effective_exterior_correction.append(daughter_c)
             curr_seg[bb][curr_seg[bb] == 1 & cell_out] = daughter_c
         if len(correspondences[mother_c]) > 1:
-            monitoring.to_log_and_console('           cell ' + str(mother_c) + 'will no more divide', 2)
+            monitoring.to_log_and_console('           cell ' + str(mother_c) + 'will no more divide -> '
+                                          + str(daughter_c), 2)
             for d in correspondences[mother_c]:
                 curr_seg[bb][curr_seg[bb] == d] = daughter_c
         correspondences[mother_c] = [daughter_c]
@@ -1957,7 +1955,7 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
     # there has been some effective corrections
     # save the image
     #
-    monitoring.to_log_and_console('        .. (mother) cell(s) that have been corrected (morphosnake step): '
+    monitoring.to_log_and_console('        .. cell(s) that have been corrected (morphosnake step): '
                                   + str(effective_exterior_correction), 2)
 
     segmentation_after_morphosnakes = common.add_suffix(astec_name, '_morphosnakes',
@@ -1969,6 +1967,34 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
     #
     #
     return segmentation_after_morphosnakes, correspondences, effective_exterior_correction
+
+
+def _outer_morphosnake_correction(astec_name, input_segmentation, output_segmentation, effective_exterior_correction,
+                                  experiment, parameters):
+    if len(effective_exterior_correction) == 0:
+        return
+
+    #
+    #
+    #
+    opening_name = common.add_suffix(astec_name, '_morphosnakes_opening',
+                                     new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                     new_extension=experiment.default_image_suffix)
+    options = "-opening -R " + str(parameters.outer_correction_radius_opening)
+    cpp_wrapping.mathematical_morphology(input_segmentation, opening_name, other_options=options, monitoring=monitoring)
+
+    #
+    # remove part of cell that are outside the opening
+    #
+    segmentation = imread(input_segmentation)
+    opening = imread(opening_name)
+    for daughter_c in effective_exterior_correction:
+        segmentation[((segmentation == daughter_c) & (opening == 1))] = 1
+
+    del opening
+    imsave(output_segmentation, segmentation)
+    del segmentation
+    return
 
 
 ########################################################################################
@@ -2141,7 +2167,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
                                               new_dirname=experiment.astec_dir.get_tmp_directory(),
                                               new_extension=experiment.default_image_suffix)
 
-    if not os.path.isfile(deformed_segmentation):
+    if not os.path.isfile(deformed_segmentation) or monitoring.forceResultsToBeBuilt is True:
         deformation = reconstruction.get_deformation_from_current_to_previous(current_time, experiment,
                                                                               parameters, previous_time)
         cpp_wrapping.apply_transformation(previous_segmentation, deformed_segmentation, deformation,
@@ -2150,7 +2176,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     deformed_seeds = common.add_suffix(astec_name, '_deformed_seeds_from_previous',
                                        new_dirname=experiment.astec_dir.get_tmp_directory(),
                                        new_extension=experiment.default_image_suffix)
-    if not os.path.isfile(deformed_seeds):
+    if not os.path.isfile(deformed_seeds) or monitoring.forceResultsToBeBuilt is True:
         _build_seeds_from_previous_segmentation(deformed_segmentation, deformed_seeds, parameters)
 
     #
@@ -2166,7 +2192,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
                                                        new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                        new_extension=experiment.default_image_suffix)
 
-    if not os.path.isfile(segmentation_from_previous):
+    if not os.path.isfile(segmentation_from_previous) or monitoring.forceResultsToBeBuilt is True:
         mars.watershed(deformed_seeds, membrane_image, segmentation_from_previous, experiment, parameters)
 
     #
@@ -2278,7 +2304,6 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
                                                    membrane_image, experiment, parameters)
 
     label_max, correspondences, divided_cells = output
-    # print("divided_cells: " +str(divided_cells))
 
     #
     # second watershed segmentation (with the selected seeds)
@@ -2288,7 +2313,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     segmentation_from_selection = common.add_suffix(astec_name, '_watershed_from_selection',
                                                     new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                     new_extension=experiment.default_image_suffix)
-    if not os.path.isfile(segmentation_from_selection):
+    if not os.path.isfile(segmentation_from_selection) or monitoring.forceResultsToBeBuilt is True:
         mars.watershed(selected_seeds, membrane_image, segmentation_from_selection, experiment, parameters)
 
     #
@@ -2331,7 +2356,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
         effective_exterior_correction = []
 
     #
-    #
+    # multiple label processing
     #
 
     labels_to_be_fused = []
@@ -2357,9 +2382,16 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
         input_segmentation = output_segmentation
 
     #
+    # Outer correction (to correct morphosnake)
     #
-    #
-    monitoring.to_log_and_console('    outer correction: to be done', 2)
+    if len(effective_exterior_correction) > 0:
+        monitoring.to_log_and_console('    outer morphosnake correction', 2)
+        output_segmentation = common.add_suffix(astec_name, '_morphosnakes_correction',
+                                                new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                                new_extension=experiment.default_image_suffix)
+        _outer_morphosnake_correction(astec_name, input_segmentation, output_segmentation,
+                                      effective_exterior_correction, experiment, parameters)
+        input_segmentation = output_segmentation
 
     #
     # copy the last segmentation image (in the auxiliary directory) as the result
