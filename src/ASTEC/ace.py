@@ -303,7 +303,7 @@ def global_membrane_enhancement(path_input, path_output, experiment, binary_inpu
     # - e is the extension, including the '.' (e.g. '.inr')
     # - prefix_name is the basename without extension
 
-    e = common.get_extension(path_input)
+    e = common.get_image_extension(path_input)
     b = os.path.basename(path_input)
     prefix_name = b[0:len(b) - len(e)]
 
@@ -328,12 +328,12 @@ def global_membrane_enhancement(path_input, path_output, experiment, binary_inpu
         #    - 'tmp_prefix_name'.phi
         #      the two angle images that give the direction of the vector orthogonal to the membrane
         #
-        ext_image = common.find_file(temporary_path, prefix_name + ".ext", callfrom=proc, local_monitoring=None,
-                                     verbose=False)
-        phi_image = common.find_file(temporary_path, prefix_name + ".phi", callfrom=proc, local_monitoring=None,
-                                     verbose=False)
-        theta_image = common.find_file(temporary_path, prefix_name + ".theta", callfrom=proc, local_monitoring=None,
-                                       verbose=False)
+        ext_image = common.find_file(temporary_path, prefix_name + ".ext", file_type='image', callfrom=proc,
+                                     local_monitoring=None, verbose=False)
+        phi_image = common.find_file(temporary_path, prefix_name + ".phi", file_type='image', callfrom=proc,
+                                     local_monitoring=None, verbose=False)
+        theta_image = common.find_file(temporary_path, prefix_name + ".theta", file_type='image', callfrom=proc,
+                                       local_monitoring=None, verbose=False)
         if ext_image is None or phi_image is None or theta_image is None or monitoring.forceResultsToBeBuilt is True:
             monitoring.to_log_and_console("       membrane extraction of '"
                                           + str(path_input).split(os.path.sep)[-1] + "'", 2)
@@ -356,7 +356,8 @@ def global_membrane_enhancement(path_input, path_output, experiment, binary_inpu
         #    - 'tmp_prefix_name'.hist.txt
         #      a text file describing the image histogram
         #
-        ext_image = common.find_file(temporary_path, prefix_name + ".ext", callfrom=proc, local_monitoring=monitoring)
+        ext_image = common.find_file(temporary_path, prefix_name + ".ext", file_type='image', callfrom=proc,
+                                     local_monitoring=monitoring)
         if ext_image is None:
             monitoring.to_log_and_console("       image '" + str(prefix_name + ".ext") + "' not found in '"
                                           + str(temporary_path) + "'", 2)
@@ -365,7 +366,8 @@ def global_membrane_enhancement(path_input, path_output, experiment, binary_inpu
         ext_image = os.path.join(temporary_path, ext_image)
         hist_file = os.path.join(temporary_path, prefix_name + ".histogram.txt")
 
-        bin_image = common.find_file(temporary_path, prefix_name + ".bin", callfrom=proc, local_monitoring=None,
+        bin_image = common.find_file(temporary_path, prefix_name + ".bin", file_type='image', callfrom=proc,
+                                     local_monitoring=None,
                                      verbose=False)
         if bin_image is None or monitoring.forceResultsToBeBuilt is True:
             if bin_image is None:
@@ -415,7 +417,7 @@ def global_membrane_enhancement(path_input, path_output, experiment, binary_inpu
     monitoring.to_log_and_console("       tensor voting from '"
                                   + str(path_tv_input).split(os.path.sep)[-1] + "'", 2)
 
-    e = common.get_extension(path_tv_input)
+    e = common.get_image_extension(path_tv_input)
     b = os.path.basename(path_tv_input)
     bin_name = b[0:len(b) - len(e)]
 
@@ -432,14 +434,14 @@ def global_membrane_enhancement(path_input, path_output, experiment, binary_inpu
     #
     if binary_input is False:
         for suffix in ['.ext', '.phi', '.theta', '.bin']:
-            tmp_image = common.find_file(temporary_path, prefix_name + suffix, callfrom=proc, local_monitoring=None,
-                                         verbose=False)
+            tmp_image = common.find_file(temporary_path, prefix_name + suffix, file_type='image', callfrom=proc,
+                                         local_monitoring=None, verbose=False)
             if tmp_image is not None and monitoring.keepTemporaryFiles is False:
                 os.remove(os.path.join(temporary_path, tmp_image))
 
     for suffix in ['.imvp1', '.imvp2', '.imvp3', '.tv', '.lf']:
-        tmp_image = common.find_file(temporary_path, bin_name + suffix, callfrom=proc, local_monitoring=None,
-                                     verbose=False)
+        tmp_image = common.find_file(temporary_path, bin_name + suffix, file_type='image', callfrom=proc,
+                                     local_monitoring=None, verbose=False)
         if tmp_image is not None and monitoring.keepTemporaryFiles is False:
             os.remove(os.path.join(temporary_path, tmp_image))
 
@@ -581,7 +583,7 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
     # set names
     #
 
-    e = common.get_extension(path_input)
+    e = common.get_image_extension(path_input)
     b = os.path.basename(path_input)
     prefix_name = b[0:len(b) - len(e)]
 

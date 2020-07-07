@@ -780,6 +780,12 @@ class GenericSubdirectory(object):
     def get_directory_suffix(self):
         return self._sub_directory_suffix
 
+    def get_file_name(self, suffix=None):
+        name = self._file_prefix + self._file_suffix
+        if suffix is not None:
+            return name + str(suffix)
+        return name
+
     def get_file_prefix(self):
         return self._file_prefix
 
@@ -1242,6 +1248,7 @@ class Experiment(object):
 
         self.first_time_point = -1
         self.last_time_point = -1
+        self.restart_time_point = -1
         self.delta_time_point = 1
         self.delay_time_point = 0
 
@@ -1275,6 +1282,8 @@ class Experiment(object):
         self.result_image_suffix = 'mha'
         self.default_image_suffix = 'mha'
 
+        self.result_lineage_suffix = 'xml'
+
     ############################################################
     #
     # print / write
@@ -1290,6 +1299,7 @@ class Experiment(object):
 
         print('- first_time_point is ' + str(self.first_time_point))
         print('- last_time_point is ' + str(self.last_time_point))
+        print('- restart_time_point is ' + str(self.restart_time_point))
         print('- delta_time_point is ' + str(self.delta_time_point))
         print('- delay_time_point is ' + str(self.delay_time_point))
 
@@ -1313,6 +1323,8 @@ class Experiment(object):
 
         print('- result_image_suffix = ' + str(self.result_image_suffix))
         print('- default_image_suffix = ' + str(self.default_image_suffix))
+
+        print('- result_lineage_suffix = ' + str(self.result_lineage_suffix))
         print("")
         return
 
@@ -1331,6 +1343,7 @@ class Experiment(object):
 
                 logfile.write('- first_time_point is ' + str(self.first_time_point)+'\n')
                 logfile.write('- last_time_point is ' + str(self.last_time_point)+'\n')
+                logfile.write('- restart_time_point is ' + str(self.restart_time_point) + '\n')
                 logfile.write('- delta_time_point is ' + str(self.delta_time_point)+'\n')
                 logfile.write('- delay_time_point is ' + str(self.delay_time_point)+'\n')
 
@@ -1354,6 +1367,8 @@ class Experiment(object):
 
                 logfile.write('- result_image_suffix = ' + str(self.result_image_suffix) + '\n')
                 logfile.write('- default_image_suffix = ' + str(self.default_image_suffix) + '\n')
+
+                logfile.write('- result_lineage_suffix = ' + str(self.result_lineage_suffix) + '\n')
 
                 logfile.write("\n")
         return
@@ -1499,6 +1514,10 @@ class Experiment(object):
                 print("\t Exiting.")
                 sys.exit(1)
 
+        if hasattr(parameters, 'restart'):
+            if parameters.restart is not None:
+                self.restart_time_point = parameters.restart
+
         if hasattr(parameters, 'delta'):
             if parameters.delta is not None:
                 self.delta_time_point = parameters.delta
@@ -1544,6 +1563,14 @@ class Experiment(object):
                 if not hasattr(parameters, 'result_image_suffix') \
                         and not hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
                     self.result_image_suffix = parameters.default_image_suffix
+
+        #
+        # set result_lineage_suffix
+        #
+        if hasattr(parameters, 'result_lineage_suffix'):
+            if parameters.result_lineage_suffix is not None:
+                self.result_lineage_suffix = parameters.result_lineage_suffix
+
         return
 
     ############################################################
@@ -1563,7 +1590,7 @@ class Experiment(object):
     def get_log_dirname(self):
         return os.path.join(self.working_dir.get_log_directory())
 
-    def get_segmentation_image(self, time_value):
+    def get_segmentation_image(self, time_value, verbose=True):
         proc = 'Experiment.get_segmentation_image'
         #
         # try to find segmentation image
@@ -1571,16 +1598,16 @@ class Experiment(object):
         if time_value is None:
             return None
         seg_name = self.astec_dir.get_image_name(time_value)
-        seg_image = find_file(self.astec_dir.get_directory(), seg_name, callfrom=proc, local_monitoring=None,
-                              verbose=False)
+        seg_image = find_file(self.astec_dir.get_directory(), seg_name, file_type='image', callfrom=proc,
+                              local_monitoring=None, verbose=False)
         if seg_image is not None:
             return os.path.join(self.astec_dir.get_directory(), seg_image)
         #
         # try to find mars image
         #
         mars_name = self.mars_dir.get_image_name(time_value)
-        mars_image = find_file(self.mars_dir.get_directory(), mars_name, callfrom=proc, local_monitoring=None,
-                               verbose=False)
+        mars_image = find_file(self.mars_dir.get_directory(), mars_name, file_type='image', callfrom=proc,
+                               local_monitoring=None, verbose=False)
         if mars_image is not None:
             #
             # copy mars image with the same suffix
@@ -1595,6 +1622,9 @@ class Experiment(object):
         #
         #
         #
+        if not verbose:
+            return None
+
         monitoring.to_log_and_console("    .. " + proc + ": no segmentation image was found for time "
                                       + str(time_value), 2)
         monitoring.to_log_and_console("       \t" + "1. was looking for file '" + str(seg_name) + "'", 2)
@@ -1637,8 +1667,9 @@ class Experiment(object):
         return
 
     def _set_embryo_path(self, embryo_path):
+        proc = "Experiment._set_embryo_path"
         if not os.path.isdir(embryo_path):
-            print("Experiment._set_embryo_path: '" + str(embryo_path) + "' is not a valid directory.")
+            print(str(proc) + ": '" + str(embryo_path) + "' is not a valid directory.")
             print("\t Exiting.")
             sys.exit(1)
         self._embryo_path = embryo_path
@@ -1654,8 +1685,9 @@ class Experiment(object):
         return
 
     def set_fusion_tmp_directory(self, time_value):
+        proc = "Experiment.set_fusion_tmp_directory"
         if self.rawdata_dir.get_number_channels() is not self.fusion_dir.get_number_directories():
-            print("Experiment.set_fusion_tmp_directory: number of channels is different from fusion directories.")
+            print(str(proc) + ": number of channels is different from fusion directories.")
             print("\t Exiting.")
             sys.exit(1)
         t = "TEMP_" + self.fusion_dir.timepoint_to_str(time_value)
@@ -1675,7 +1707,15 @@ class Experiment(object):
                 if not os.path.isdir(d):
                     os.makedirs(d)
 
-    def set_time_digits_for_filename(self, time_digits=3):
+    def set_time_digits_for_filename(self, digits=3):
+        proc = "Experiment.set_time_digits_for_filename"
+        if type(digits) is int:
+            time_digits = digits
+        elif type(digits) is str:
+            time_digits = int(digits)
+        else:
+            print(str(proc) + ": unexpected type '" + str(type(digits)) + "' for 'digits'")
+            return
         self._time_digits_for_filename = time_digits
         self.fusion_dir.set_time_digits_for_filename(time_digits)
         self.mars_dir.set_time_digits_for_filename(time_digits)
@@ -2043,13 +2083,10 @@ def read_lut(filename):
 #
 ########################################################################################
 
-
-recognized_extensions = ['.zip', '.h5', '.tif', '.tiff', '.TIF', '.TIFF', '.inr', '.inr.gz', '.mha', '.mha.gz']
-
-
-def get_extension(filename):
+def _get_extension(filename, recognized_extensions):
     """ Return the file extension. Must be in the set of recognized extensions.
     :param filename:
+    :param recognized_extensions:
     :return: None in case of unrecognized extension,
              else the recognized extension (begins with '.')
     """
@@ -2060,6 +2097,29 @@ def get_extension(filename):
             return e
     return None
 
+
+recognized_image_extensions = ['.zip', '.h5', '.tif', '.tiff', '.TIF', '.TIFF', '.inr', '.inr.gz', '.mha', '.mha.gz']
+
+
+def get_image_extension(filename):
+    """ Return the file extension. Must be in the set of recognized extensions.
+    :param filename:
+    :return: None in case of unrecognized extension,
+             else the recognized extension (begins with '.')
+    """
+    return _get_extension(filename, recognized_image_extensions)
+
+
+recognized_lineage_extensions = ['.pkl', '.xml']
+
+
+def get_lineage_extension(filename):
+    """ Return the file extension. Must be in the set of recognized extensions.
+    :param filename:
+    :return: None in case of unrecognized extension,
+             else the recognized extension (begins with '.')
+    """
+    return _get_extension(filename, recognized_lineage_extensions)
 #
 #
 #
@@ -2069,7 +2129,7 @@ def get_extension(filename):
 
 def add_suffix(filename, suffix, new_dirname=None, new_extension=None):
     """
-    Add a suffix to a filename (ie before the extension)
+    Add a suffix to a *image* filename (ie before the extension)
     :param filename:
     :param suffix: suffix to be added
     :param new_dirname: change the directory name of the file
@@ -2082,12 +2142,12 @@ def add_suffix(filename, suffix, new_dirname=None, new_extension=None):
         return
     b = os.path.basename(filename)
     d = os.path.dirname(filename)
-    e = get_extension(b)
+    e = get_image_extension(b)
     if e is None:
         # print(proc + ": file extension of '"+str(filename)+"' was not recognized")
         # print("\t Exiting")
-#        monitoring.to_log_and_console(proc + ": file extension of '"+str(filename)+"' was not recognized", 0)
-#        monitoring.to_log_and_console("\t Exiting", 0)
+        # monitoring.to_log_and_console(proc + ": file extension of '"+str(filename)+"' was not recognized", 0)
+        # monitoring.to_log_and_console("\t Exiting", 0)
         # sys.exit(1)
         new_basename = b
     else:
@@ -2113,7 +2173,7 @@ def add_suffix(filename, suffix, new_dirname=None, new_extension=None):
 #
 #
 
-def find_file(data_path, file_prefix, callfrom=None, local_monitoring=None, verbose=True):
+def find_file(data_path, file_prefix, file_type=None, callfrom=None, local_monitoring=None, verbose=True):
     """
     find a file in a directory with a given prefix. The suffix is unknown
 
@@ -2151,7 +2211,10 @@ def find_file(data_path, file_prefix, callfrom=None, local_monitoring=None, verb
     # if there is any extension, remove if from the file_prefix length
     # recall that the '.' is part of the extension
     #
-    extension = get_extension(file_prefix)
+    if file_type.lower() == 'lineage':
+        extension = get_lineage_extension(file_prefix)
+    elif file_type.lower() == 'image':
+        extension = get_image_extension(file_prefix)
     if extension is not None:
         length_file_prefix = len(file_prefix) - len(extension)
     else:
@@ -2160,30 +2223,42 @@ def find_file(data_path, file_prefix, callfrom=None, local_monitoring=None, verb
     #
     # get all file names beginning by the given prefix followed by '.'
     #
-    filenames = []
+    prefixedfilenames = []
     for f in os.listdir(data_path):
         if len(f) <= length_file_prefix:
             pass
         if f[0:length_file_prefix] == file_prefix[0:length_file_prefix] and f[length_file_prefix] == '.':
-            filenames.append(f)
+            prefixedfilenames.append(f)
+
+    filenames = []
+    if file_type.lower() == 'lineage':
+        for f in prefixedfilenames:
+            if f[length_file_prefix:] in recognized_lineage_extensions:
+                filenames.append(f)
+    elif file_type.lower() == 'image':
+        for f in prefixedfilenames:
+            if f[length_file_prefix:] in recognized_image_extensions:
+                filenames.append(f)
+    else:
+        filenames = prefixedfilenames
 
     if len(filenames) == 0:
         if local_monitoring is not None:
-            local_monitoring.to_log_and_console(proc + ": no image with name '" + str(file_prefix)
+            local_monitoring.to_log_and_console(proc + ": no file with name '" + str(file_prefix)
                                                 + "' was found in '" + str(data_path) + "'", 4)
         elif verbose is True:
-            print(proc + ": no image with name '" + str(file_prefix) + "' was found in '" + str(data_path) + "'")
+            print(proc + ": no file with name '" + str(file_prefix) + "' was found in '" + str(data_path) + "'")
         return None
 
     if len(filenames) > 1:
         if local_monitoring is not None:
             local_monitoring.to_log_and_console("\t " + proc + ": warning")
-            local_monitoring.to_log_and_console("\t several images with name '" + str(file_prefix) + "' were found in")
+            local_monitoring.to_log_and_console("\t several files with name '" + str(file_prefix) + "' were found in")
             local_monitoring.to_log_and_console("\t    '" + str(data_path) + "'")
             local_monitoring.to_log_and_console("\t    -> "+str(filenames))
             local_monitoring.to_log_and_console("\t returned file is '" + str(filenames[0]) + "'")
         elif verbose is True:
-            print(proc + ": several images with name '"
+            print(proc + ": several files with name '"
                   + str(file_prefix) + "' were found in '" + str(data_path) + "'")
             print("\t "+str(filenames))
             print("\t returned file is '" + str(filenames[0]) + "'")

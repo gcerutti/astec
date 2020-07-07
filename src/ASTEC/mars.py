@@ -817,7 +817,8 @@ def mars_process(current_time, experiment, parameters):
     #
     mars_dir = experiment.mars_dir.get_directory(0)
     mars_name = experiment.mars_dir.get_image_name(current_time)
-    mars_image = common.find_file(mars_dir, mars_name, callfrom=proc, local_monitoring=None, verbose=False)
+    mars_image = common.find_file(mars_dir, mars_name, file_type='image', callfrom=proc, local_monitoring=None,
+                                  verbose=False)
 
     if mars_image is not None:
         mars_image = os.path.join(mars_dir, mars_image)
@@ -840,7 +841,7 @@ def mars_process(current_time, experiment, parameters):
     input_dir = experiment.fusion_dir.get_directory(0)
     input_name = experiment.fusion_dir.get_image_name(current_time)
 
-    input_image = common.find_file(input_dir, input_name, callfrom=proc, local_monitoring=monitoring)
+    input_image = common.find_file(input_dir, input_name, file_type='image', callfrom=proc, local_monitoring=monitoring)
 
     if input_image is None:
         monitoring.to_log_and_console("    .. image '" + input_name + "' not found in '" + str(input_dir) + "'", 2)

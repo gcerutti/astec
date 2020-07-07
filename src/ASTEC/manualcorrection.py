@@ -347,7 +347,8 @@ def correction_control(experiment, parameters):
         else:
             mars_dir = experiment.mars_dir.get_directory(0)
             mars_name = experiment.mars_dir.get_image_name(experiment.first_time_point + experiment.delay_time_point)
-            mars_image = common.find_file(mars_dir, mars_name, callfrom=proc, local_monitoring=None, verbose=False)
+            mars_image = common.find_file(mars_dir, mars_name, file_type='image', callfrom=proc, local_monitoring=None,
+                                          verbose=False)
             if mars_image is None:
                 monitoring.to_log_and_console("       '" + str(mars_name) + "' does not exist", 2)
                 monitoring.to_log_and_console("\t Exiting.")
@@ -365,7 +366,8 @@ def correction_control(experiment, parameters):
         else:
             astec_dir = experiment.astec_dir.get_directory(0)
             seg_name = experiment.astec_dir.get_image_name(experiment.first_time_point + experiment.delay_time_point)
-            seg_image = common.find_file(astec_dir, seg_name, callfrom=proc, local_monitoring=None, verbose=False)
+            seg_image = common.find_file(astec_dir, seg_name, file_type='image', callfrom=proc, local_monitoring=None,
+                                         verbose=False)
             if seg_image is not None:
                 if monitoring.forceResultsToBeBuilt is False:
                     monitoring.to_log_and_console("    manual corrected image '" + str(seg_image) + "' exists", 2)
@@ -406,7 +408,8 @@ def correction_control(experiment, parameters):
 
             mars_dir = experiment.mars_dir.get_directory(0)
             mars_name = experiment.mars_dir.get_image_name(time_value)
-            mars_image = common.find_file(mars_dir, mars_name, callfrom=proc, local_monitoring=None, verbose=False)
+            mars_image = common.find_file(mars_dir, mars_name, file_type='image', callfrom=proc, local_monitoring=None,
+                                          verbose=False)
 
             if mars_image is None:
                 monitoring.to_log_and_console("    mars image '" + str(mars_image) + "' not found: skip time "
@@ -417,7 +420,8 @@ def correction_control(experiment, parameters):
 
             astec_dir = experiment.astec_dir.get_directory(0)
             seg_name = experiment.astec_dir.get_image_name(experiment.first_time_point + experiment.delay_time_point)
-            seg_image = common.find_file(astec_dir, seg_name, callfrom=proc, local_monitoring=None, verbose=False)
+            seg_image = common.find_file(astec_dir, seg_name, file_type='image', callfrom=proc, local_monitoring=None,
+                                         verbose=False)
 
             if seg_image is None or monitoring.forceResultsToBeBuilt is True:
                 if seg_image is None:

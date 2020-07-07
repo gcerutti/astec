@@ -242,16 +242,16 @@ def get_deformation_from_current_to_previous(current_time, experiment, parameter
     #
 
     current_name = experiment.fusion_dir.get_image_name(current_time)
-    current_image = common.find_file(experiment.fusion_dir.get_directory(), current_name, callfrom=proc,
-                                     local_monitoring=None, verbose=False)
+    current_image = common.find_file(experiment.fusion_dir.get_directory(), current_name, file_type='image',
+                                     callfrom=proc, local_monitoring=None, verbose=False)
     if current_image is None:
         monitoring.to_log_and_console("    .. " + proc + " no fused image was found for time " + str(current_time), 2)
         return None
     current_image = os.path.join(experiment.fusion_dir.get_directory(), current_image)
 
     previous_name = experiment.fusion_dir.get_image_name(previous_time)
-    previous_image = common.find_file(experiment.fusion_dir.get_directory(), previous_name, callfrom=proc,
-                                      local_monitoring=None, verbose=False)
+    previous_image = common.find_file(experiment.fusion_dir.get_directory(), previous_name, file_type='image',
+                                      callfrom=proc, local_monitoring=None, verbose=False)
     if previous_image is None:
         monitoring.to_log_and_console("    .. " + proc + " no fused image was found for time " + str(previous_time), 2)
         return None
@@ -414,7 +414,7 @@ def build_membrane_image(current_time, experiment, parameters, previous_time=Non
     input_dir = experiment.fusion_dir.get_directory(0)
     input_name = experiment.fusion_dir.get_image_name(current_time)
 
-    input_image = common.find_file(input_dir, input_name, callfrom=proc, local_monitoring=monitoring)
+    input_image = common.find_file(input_dir, input_name, file_type='image', callfrom=proc, local_monitoring=monitoring)
 
     if input_image is None:
         monitoring.to_log_and_console("    .. image '" + input_name + "' not found in '" + str(input_dir) + "'", 2)

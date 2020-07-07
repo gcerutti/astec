@@ -494,7 +494,8 @@ def _check_data(experiment, suffix=None):
         input_name = experiment.get_image_name(current_time, 'fuse')
 
         if suffix is None:
-            input_image = common.find_file(path_fusion, input_name, local_monitoring=monitoring, callfrom=proc)
+            input_image = common.find_file(path_fusion, input_name, file_type='image', callfrom=proc,
+                                           local_monitoring=monitoring)
 
             if input_image is None:
                 monitoring.to_log_and_console("    .. image '" + input_name + "' not found in '"
@@ -558,14 +559,16 @@ def _coregistration_control(experiment, parameters):
         if not os.path.isfile(trsf_name) or monitoring.forceResultsToBeBuilt is True:
 
             floating_prefix = experiment.fusion_dir.get_image_name(floating_time)
-            floating_name = common.find_file(path_fusion, floating_prefix, local_monitoring=monitoring, callfrom=proc)
+            floating_name = common.find_file(path_fusion, floating_prefix, file_type='image', callfrom=proc,
+                                             local_monitoring=monitoring)
             if floating_name is None:
                 monitoring.to_log_and_console(proc + ": error, image '" + str(floating_prefix) + "' was not found", 1)
                 monitoring.to_log_and_console("\t Exiting")
                 sys.exit(1)
 
             reference_prefix = experiment.fusion_dir.get_image_name(reference_time)
-            reference_name = common.find_file(path_fusion, reference_prefix, local_monitoring=monitoring, callfrom=proc)
+            reference_name = common.find_file(path_fusion, reference_prefix, file_type='image', callfrom=proc,
+                                              local_monitoring=monitoring)
             if reference_name is None:
                 monitoring.to_log_and_console(proc + ": error, image '" + str(reference_prefix) + "' was not found", 1)
                 monitoring.to_log_and_console("\t Exiting")
@@ -837,7 +840,7 @@ def _resample_images(experiment, parameters, template_image, directory_type, int
 
     b = os.path.basename(template_image)
     d = os.path.dirname(template_image)
-    local_template_name = common.find_file(d, b, local_monitoring=monitoring, callfrom=proc)
+    local_template_name = common.find_file(d, b, file_type='image', callfrom=proc, local_monitoring=monitoring)
     if local_template_name is None:
         monitoring.to_log_and_console(proc + ": template '" + str(b) + "' was not found in '" + str(d) + "'", 1)
         monitoring.to_log_and_console("\t resampling will not be done")
@@ -894,12 +897,13 @@ def _resample_images(experiment, parameters, template_image, directory_type, int
                           working_dir.get_file_suffix() + experiment.intrareg_dir.get_time_prefix() + \
                           experiment.get_time_index(t)
 
-            output_image = common.find_file(dir_output, output_name, local_monitoring=None, verbose=False,
-                                                 callfrom=proc)
+            output_image = common.find_file(dir_output, output_name, file_type='image', callfrom=proc,
+                                            local_monitoring=None, verbose=False)
 
             if output_image is None or monitoring.forceResultsToBeBuilt is True or parameters.rebuild_template is True:
 
-                input_image = common.find_file(dir_input, input_name, local_monitoring=monitoring, callfrom=proc)
+                input_image = common.find_file(dir_input, input_name, file_type='image', callfrom=proc,
+                                               local_monitoring=monitoring)
                 output_image = os.path.join(dir_output, output_name + '.' + str(experiment.result_image_suffix))
                 trsf_name = os.path.join(trsf_dir, _get_trsf_name(experiment, t))
 
@@ -993,7 +997,8 @@ def _make_movies(experiment, parameters, directory_type, xylist, xzlist, yzlist)
             first_prefix = experiment.intrareg_dir.get_file_prefix() + experiment.intrareg_dir.get_file_suffix() + \
                           working_dir.get_file_suffix() + experiment.intrareg_dir.get_time_prefix() + \
                           experiment.get_time_index(first_time_point)
-            first_name = common.find_file(dir_input, first_prefix, local_monitoring=None, verbose=False, callfrom=proc)
+            first_name = common.find_file(dir_input, first_prefix, file_type='image', callfrom=proc,
+                                          local_monitoring=None, verbose=False)
             if first_name is None:
                 monitoring.to_log_and_console(proc + ": no file '" + str(first_prefix) + "' in '" + str(dir_input) +
                                               "'", 1)

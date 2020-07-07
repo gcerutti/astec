@@ -15,7 +15,7 @@ import ace
 import mars
 import common
 import reconstruction
-import EMBRYOPROPERTIES as properties
+import properties as properties
 import CommunFunctions.cpp_wrapping as cpp_wrapping
 
 from CommunFunctions.ImageHandling import imread, imsave, SpatialImage
@@ -414,7 +414,7 @@ def _build_seeds_from_previous_segmentation(label_image, output_image, parameter
     # since the label_image is obtained through the deformation of the segmentation at previous
     # time point, it may contains 0 values
     #
-    for i in labels[labels!=0]:
+    for i in labels[labels != 0]:
         tmp = seg[bboxes[i - 1]] == i
         size_cell = np.sum(tmp)
         if size_cell > parameters.previous_seg_erosion_cell_min_size:
@@ -1720,7 +1720,7 @@ def _morphosnakes(parameters_for_parallelism):
         # print(str(i) + " condition 1 " + str(np.sum(before != macwe.levelset)))
         # print(str(i) + " condition 2 " + str(np.sum(bbefore != macwe.levelset)))
         if write_images:
-            if i > 0 and i%10 == 0:
+            if i > 0 and i % 10 == 0:
                 result_name = common.add_suffix(subsegmentation_name, '_step' + str(i))
                 imsave(result_name, SpatialImage(macwe.levelset.astype(np.uint8)))
         if np.sum(before != macwe.levelset) < astec_parameters.ms_delta_voxel \
@@ -1740,7 +1740,6 @@ def _morphosnakes(parameters_for_parallelism):
     return mother_c, bb, cell_out
 
 
-
 def _slices_dilation_iteration(slices, maximum):
     return tuple([slice(max(0, s.start-1), min(s.stop+1, maximum[i])) for i, s in enumerate(slices)])
 
@@ -1757,15 +1756,9 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
     :param astec_name: generic name for image file name construction
     :param previous_segmentation: watershed segmentation obtained with segmentation image at previous timepoint
     :param segmentation_from_selection:
-    :param deformed_seeds: seeds obtained from the segmentation at a previous time and deformed into the current time
-    :param selected_seeds:
     :param membrane_image:
     :param correspondences: is a dictionary that gives, for each 'parent' cell (in the segmentation built from previous
     time segmentation) (ie the key), the list of 'children' cells (in the segmentation built from selected seeds)
-    :param selected_parameter_seeds:
-    :param n_seeds: dictionary, gives, for each parent cell, give the number of seeds for each couple of
-    parameters [h-min, sigma]
-    :param parameter_seeds: dictionary, for each parent cell, give the list of used parameters [h-min, sigma]
     :param bounding_boxes: bounding boxes defined on previous_segmentation
     :param experiment:
     :param parameters:
@@ -1885,7 +1878,6 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
         monitoring.to_log_and_console('        .. no cells with large background part', 2)
         return segmentation_from_selection, correspondences, []
 
-
     #
     #
     #
@@ -1911,7 +1903,7 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
         subsegmentation = os.path.join(experiment.astec_dir.get_tmp_directory(), "cellsegment_" + str(mother_c) + "."
                                        + experiment.default_image_suffix)
         subimage = os.path.join(experiment.astec_dir.get_tmp_directory(), "cellimage_" + str(mother_c) + "."
-                                       + experiment.default_image_suffix)
+                                + experiment.default_image_suffix)
         imsave(subsegmentation, prev_seg[bb])
         imsave(subimage, greylevel_image[bb])
         parameters_for_parallelism = (mother_c, bb, subimage, subsegmentation, parameters)
@@ -2047,12 +2039,6 @@ def _multiple_label_fusion(input_segmentation, output_segmentation, corresponden
 ########################################################################################
 
 
-#
-#
-#
-#
-#
-
 def astec_process(previous_time, current_time, lineage_tree_information, experiment, parameters):
     """
 
@@ -2099,7 +2085,8 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     #
     astec_dir = experiment.astec_dir.get_directory()
     astec_name = experiment.astec_dir.get_image_name(current_time)
-    astec_image = common.find_file(astec_dir, astec_name, callfrom=proc, local_monitoring=None, verbose=False)
+    astec_image = common.find_file(astec_dir, astec_name, file_type='image', callfrom=proc, local_monitoring=None,
+                                   verbose=False)
 
     if astec_image is not None:
         if monitoring.forceResultsToBeBuilt is False:
@@ -2377,10 +2364,106 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     return lineage_tree_information
 
 
+########################################################################################
+#
+#
+#
+########################################################################################
+
 #
 # check whether a lineage file exists
 # loops over the time points
 #
+
+def _get_last_first_time_from_lineage(lineage_tree_information, first_time_point, delta_time_point=1,
+                                      time_digits_for_cell_id=4):
+    if lineage_tree_information == {}:
+        return first_time_point
+    if len(lineage_tree_information) > 0 \
+            and properties.keydictionary['lineage']['output_key'] in lineage_tree_information.keys():
+        monitoring.to_log_and_console("    .. test existing lineage tree", 1)
+        cellinlineage = {}
+        div = 10**time_digits_for_cell_id
+        for c in lineage_tree_information[properties.keydictionary['lineage']['output_key']].keys():
+            t = int(c)/div
+            if t not in cellinlineage:
+                cellinlineage[t] = 1
+            else:
+                cellinlineage[t] += 1
+        first_time = first_time_point
+        while True:
+            if first_time in cellinlineage.keys():
+                first_time += delta_time_point
+            else:
+                return first_time
+
+    return first_time_point
+
+
+def _get_last_first_time_from_images(experiment, first_time_point, delta_time_point=1):
+    first_time = first_time_point + delta_time_point
+    segmentation_dir = experiment.astec_dir.get_directory()
+    while True:
+        segmentation_file = experiment.get_segmentation_image(first_time, verbose=False)
+        if segmentation_file is None or not os.path.isfile(os.path.join(segmentation_dir, segmentation_file)):
+            return first_time - delta_time_point
+        first_time += delta_time_point
+
+
+def _clean_lineage(lineage_tree_information, first_time_point, time_digits_for_cell_id=4):
+    proc = "_clean_lineage"
+    if lineage_tree_information == {}:
+        return
+    mul = 10 ** time_digits_for_cell_id
+    for key in lineage_tree_information.keys():
+        if key == properties.keydictionary['lineage']['output_key']:
+            tmp = lineage_tree_information[properties.keydictionary['lineage']['output_key']]
+            for k in tmp.keys():
+                if int(k) > first_time_point * mul:
+                    del lineage_tree_information[properties.keydictionary['lineage']['output_key']][k]
+        elif key == properties.keydictionary['volume']['output_key']:
+            tmp = lineage_tree_information[properties.keydictionary['volume']['output_key']]
+            for k in tmp.keys():
+                if int(k) > (first_time_point + 1) * mul:
+                    del lineage_tree_information[properties.keydictionary['volume']['output_key']][k]
+        else:
+            monitoring.to_log_and_console(str(proc) + ": unhandled key '" + str(key) + "'")
+    return
+
+
+def _clean_images(experiment, first_time_point, delta_time_point=1):
+    current_time = first_time_point + delta_time_point
+    segmentation_dir = experiment.astec_dir.get_directory()
+    while True:
+        segmentation_file = experiment.get_segmentation_image(current_time, verbose=False)
+        if segmentation_file is not None and os.path.isfile(os.path.join(segmentation_dir, segmentation_file)):
+            print("remove " + str(segmentation_file))
+            os.remove(os.path.join(segmentation_dir, segmentation_file))
+            current_time += delta_time_point
+        else:
+            return
+
+
+def _fill_volumes(lineage_tree_information, first_time_point, experiment):
+    proc = "_clean_lineage"
+    mul = 10 ** experiment.get_time_digits_for_cell_id()
+    if lineage_tree_information != {}:
+        if properties.keydictionary['volume']['output_key'] in lineage_tree_information.keys():
+            tmp = lineage_tree_information[properties.keydictionary['volume']['output_key']]
+            for k in tmp.keys():
+                if int(k) >= first_time_point * mul:
+                    return lineage_tree_information
+    #
+    # no key found for first time point
+    #
+    first_segmentation = experiment.get_segmentation_image(first_time_point)
+    if first_segmentation is None:
+        monitoring.to_log_and_console(".. " + proc + ": no segmentation image found for time '" + str(first_time_point)
+                                      + "'", 1)
+        monitoring.to_log_and_console("\t Exiting", 1)
+        sys.exit(1)
+    monitoring.to_log_and_console("    .. computes cell volumes for time #" + str(first_time_point), 1)
+    return _update_volume_properties(lineage_tree_information, first_segmentation, first_time_point, experiment)
 
 
 def astec_control(experiment, parameters):
@@ -2423,97 +2506,62 @@ def astec_control(experiment, parameters):
     #
 
     experiment.astec_dir.make_directory()
+    segmentation_dir = experiment.astec_dir.get_directory()
 
     #
     # re-read the lineage file, if any
-    # and check whether any time point should be re-computed
+    # find the restart time point, it is the minimum among
+    # - the one issued from the lineage
+    # - the one issued from the segmentation images
+    # - the one from the parameters
     #
+    lineage_tree_file = common.find_file(segmentation_dir, experiment.astec_dir.get_file_name("_lineage"),
+                                         file_type='lineage', callfrom=proc)
 
-    first_time_point = experiment.first_time_point + experiment.delay_time_point
-    last_time_point = experiment.last_time_point + experiment.delay_time_point
-
-    lineage_tree_name = experiment.get_embryo_name() + "_seg_lineage.pkl"
-    lineage_tree_path = os.path.join(experiment.astec_dir.get_directory(), lineage_tree_name)
-
-    if os.path.isfile(lineage_tree_path):
+    if lineage_tree_file is not None and os.path.isfile(os.path.join(segmentation_dir, lineage_tree_file)):
+        lineage_tree_path = os.path.join(segmentation_dir, lineage_tree_file)
         lineage_tree_information = properties.read_dictionary(lineage_tree_path)
     else:
+        lineage_tree_path = os.path.join(segmentation_dir, experiment.astec_dir.get_file_name("_lineage") + "."
+                                         + experiment.result_lineage_suffix)
         lineage_tree_information = {}
 
-    # print environment.path_seg_exp_lineage
-    # print lineage_tree_information
+    #
+    #
+    #
+    first_time_point = experiment.first_time_point + experiment.delay_time_point
+    last_time_point = experiment.last_time_point + experiment.delay_time_point
+    time_digits_for_cell_id = experiment.get_time_digits_for_cell_id()
+
+    first_time_lineage = _get_last_first_time_from_lineage(lineage_tree_information, first_time_point,
+                                                           delta_time_point=experiment.delta_time_point,
+                                                           time_digits_for_cell_id=time_digits_for_cell_id)
+    first_time_images = _get_last_first_time_from_images(experiment, first_time_point,
+                                                         delta_time_point=experiment.delta_time_point)
+    restart = min(first_time_lineage, first_time_images)
+    if experiment.restart_time_point >= 0:
+        restart = min(restart, experiment.restart_time_point)
+    monitoring.to_log_and_console(".. " + proc + ": start computation at time #" + str(restart), 1)
 
     #
-    # TODO
-    # test a mettre dans une fonction
-    # l'idee est de savoir ou repartir :
-    # 1. tester depuis la fin si l'image de segmentation existe
-    # 2. tester si le lineage existe
-    # a partir de ce temps, effacer ce qu'il y a dans l'arbre
+    # do some cleaning
+    # - the lineage tree
+    # - the segmentation image
     #
-    if len(lineage_tree_information) > 0 and 'lin_tree' in lineage_tree_information:
-        monitoring.to_log_and_console("    .. test '" + str(lineage_tree_path) + "'", 1)
-        cellat = {}
-        for y in lineage_tree_information['lin_tree']:
-            t = y/10**4
-            if t not in cellat:
-                cellat[t] = 1
-            else:
-                cellat[t] += 1
-
-        segmentation_dir = experiment.astec_dir.get_directory()
-
-        restart = -1
-        t = first_time_point
-        while restart == -1 and t <= last_time_point:
-            #
-            # possible time point of segmentation, test if ok
-            #
-            time_value = t + experiment.delta_time_point
-            segmentation_name = experiment.astec_dir.get_image_name(time_value)
-            segmentation_file = common.find_file(segmentation_dir, segmentation_name)
-            if segmentation_file is None or not os.path.isfile(os.path.join(segmentation_dir, segmentation_file)):
-                monitoring.to_log_and_console("       image '" + segmentation_file + "' not found", 1)
-                restart = t
-            else:
-                if cellat[t] == 0:
-                    monitoring.to_log_and_console("       lineage of image '" + segmentation_file + "' not found", 1)
-                    restart = t
-                else:
-                    try:
-                        #
-                        # pourquoi on lit l'image ?
-                        #
-                        segmentation_image = imread(segmentation_file)
-                    except IOError:
-                        monitoring.to_log_and_console("       error in image '" + segmentation_file + "'", 1)
-                        restart = t
-            #
-            #
-            #
-
-            if restart == -1:
-                monitoring.to_log_and_console("       time '" + str(t) + "' seems ok", 1)
-            t += 1
-        first_time_point = restart
-        monitoring.to_log_and_console(".. " + proc + ": restart computation at time '" + str(first_time_point) + "'", 1)
-    else:
-        monitoring.to_log_and_console(".. " + proc + ": start computation at time '" + str(first_time_point) + "'", 1)
+    monitoring.to_log_and_console("    .. clean lineage and segmentation directory", 1)
+    _clean_lineage(lineage_tree_information, restart, time_digits_for_cell_id=time_digits_for_cell_id)
+    _clean_images(experiment, restart, delta_time_point=experiment.delta_time_point)
 
     #
-    # compute volumes for the first time point
+    # compute volumes for the first time point if required
     # (well, it may exist, if we just restart the segmentation)
     #
-    first_segmentation = experiment.get_segmentation_image(first_time_point)
-    if first_segmentation is None:
-        monitoring.to_log_and_console(".. " + proc + ": no segmentation image found for time '" + str(first_time_point)
-                                      + "'", 1)
-        monitoring.to_log_and_console("\t Exiting", 1)
-        sys.exit(1)
-    lineage_tree_information = _update_volume_properties(lineage_tree_information, first_segmentation,
-                                                         first_time_point, experiment)
+    lineage_tree_information = _fill_volumes(lineage_tree_information, restart, experiment)
 
-    for current_time in range(first_time_point + experiment.delay_time_point + experiment.delta_time_point,
+    #
+    #
+    #
+    for current_time in range(restart + experiment.delay_time_point + experiment.delta_time_point,
                               last_time_point + experiment.delay_time_point + 1, experiment.delta_time_point):
 
         acquisition_time = experiment.get_time_index(current_time)
@@ -2523,7 +2571,7 @@ def astec_control(experiment, parameters):
         # start processing
         #
 
-        monitoring.to_log_and_console('... astec processing of time ' + acquisition_time, 1)
+        monitoring.to_log_and_console('... astec processing of time #' + acquisition_time, 1)
         start_time = time.time()
 
         #
@@ -2554,14 +2602,11 @@ def astec_control(experiment, parameters):
             experiment.astec_dir.rmtree_tmp_directory()
 
         #
-        # save pkl here
+        # save lineage here
         # thus, we have intermediary pkl in case of future failure
-        # TODO: should we use embryoproperties utilities ?
         #
-        if lineage_tree_path.endswith("pkl") is True:
-            lineagefile = open(lineage_tree_path, 'w')
-            pkl.dump(lineage_tree_information, lineagefile)
-            lineagefile.close()
+
+        properties.write_dictionary(lineage_tree_path, lineage_tree_information)
 
         #
         # end processing for a time point
@@ -2570,5 +2615,9 @@ def astec_control(experiment, parameters):
 
         monitoring.to_log_and_console('    computation time = ' + str(end_time - start_time) + ' s', 1)
         monitoring.to_log_and_console('', 1)
+
+    #
+    # TODO: test sur le lineage
+    #
 
     return

@@ -85,7 +85,6 @@ def property_computation(experiment):
     # as well as the common image suffix
     #
 
-    stage = None
     intrareg_path = os.path.join(experiment.intrareg_dir.get_directory(), experiment.post_dir.get_sub_directory())
     #
     # is there a post-segmentation directory in the intra-registration directory ?
@@ -104,10 +103,8 @@ def property_computation(experiment):
             monitoring.to_log_and_console("Exiting.", 0)
             return None
         else:
-            stage = "seg"
             working_dir = experiment.astec_dir
     else:
-        stage = "post"
         working_dir = experiment.post_dir
 
     monitoring.to_log_and_console("... will compute sequence properties from '" + str(intrareg_path) + "'", 0)
@@ -234,6 +231,38 @@ keydictionary = {'lineage': {'output_key': 'cell_lineage',
                               'input_keys': ['urchin_vegetal_distance']},
                  'unknown': {'output_key': 'unknown_key',
                              'input_keys': ['unknown_key']}}
+
+
+def normalize_dictionary_keys(inputdict):
+    """
+
+    :param inputdict:
+    :return:
+    """
+
+    if inputdict == {}:
+        return {}
+
+    outputdict = {}
+
+    for inputkey in inputdict.keys():
+        foundkey = False
+        for k in keydictionary.keys():
+            # print "       compare '" + str(tmpkey) + "' with '" + str(k) + "'"
+            if inputkey in keydictionary[k]['input_keys']:
+                outputkey = keydictionary[k]['output_key']
+                monitoring.to_log_and_console("   ... recognized key '" + str(outputkey) + "'", 3)
+                #
+                # update if key already exists, else just create the dictionary entry
+                #
+                outputdict[outputkey] = inputdict[inputkey]
+                foundkey = True
+                break
+
+        if foundkey is False:
+            outputdict[inputkey] = inputdict[inputkey]
+
+    return outputdict
 
 ########################################################################################
 #
@@ -743,6 +772,8 @@ def read_dictionary(inputfilenames, inputpropertiesdict={}):
             propertiesdict = _read_pkl_file(inputfilenames, propertiesdict)
         else:
             monitoring.to_log_and_console(proc + ": error: extension not recognized for '" + str(inputfilenames) + "'")
+
+        propertiesdict = normalize_dictionary_keys(propertiesdict)
         return propertiesdict
 
     #
@@ -789,9 +820,35 @@ def read_dictionary(inputfilenames, inputpropertiesdict={}):
         else:
             monitoring.to_log_and_console(proc + ": error: extension not recognized for '" + str(filename) + "'")
 
+    propertiesdict = normalize_dictionary_keys(propertiesdict)
     return propertiesdict
 
 
+def write_dictionary(inputfilename, inputpropertiesdict):
+    """
+
+    :param inputfilename:
+    :param inputpropertiesdict:
+    :return:
+    """
+    proc = 'write_dictionary'
+
+    if inputfilename.endswith("pkl") is True:
+        lineagefile = open(inputfilename, 'w')
+        pkl.dump(inputpropertiesdict, lineagefile)
+        lineagefile.close()
+    elif inputfilename.endswith("xml") is True:
+        xmltree = dict2xml(inputpropertiesdict)
+        xmltree.write(inputfilename)
+        del xmltree
+    elif inputfilename.endswith("tlp") is True:
+        write_tlp_file(inputfilename, inputpropertiesdict)
+    else:
+        monitoring.to_log_and_console(str(proc) + ": error when writing lineage file. Extension not recognized for '"
+                                      + os.path.basename(inputfilename) + "'", 1)
+    return
+
+
 ########################################################################################
 #
 # comparison of two dictionaries
@@ -799,14 +856,15 @@ def read_dictionary(inputfilenames, inputpropertiesdict={}):
 ########################################################################################
 
 
-def _decode_cell_id(s):
-    return "cell #{:4d}".format(int(s)/10000) + " of image #{:4d}".format(int(s) % 10000)
+def _decode_cell_id(s, time_digits_for_cell_id=4):
+    div = 10**time_digits_for_cell_id
+    return "cell #{:4d}".format(int(s)/div) + " of image #{:4d}".format(int(s) % div)
 
 
 ########################################################################################
 #
 # comparison of two dictionaries
-#
+
 ########################################################################################
 
 
@@ -1604,11 +1662,11 @@ def print_type(d, t=None, desc=None):
 #
 ########################################################################################
 
-def write_tlp_file(dictionary, tlpfilename):
+def write_tlp_file(tlpfilename, dictionary):
     """
 
-    :param dictionary:
     :param tlpfilename:
+    :param dictionary:
     :return:
     """
 

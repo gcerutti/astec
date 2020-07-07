@@ -3147,7 +3147,7 @@ def fusion_control(experiment, parameters):
 
             sname = experiment.rawdata_dir.channel[0].get_image_name(0, time_value)
             sdir = experiment.rawdata_dir.channel[0].get_angle_path(0)
-            im = common.find_file(sdir, sname, callfrom=proc, local_monitoring=monitoring)
+            im = common.find_file(sdir, sname, file_type='image', callfrom=proc, local_monitoring=monitoring)
             if im is None:
                 monitoring.to_log_and_console("    .. image '" + sname + "' not found in '" + sdir + "'", 2)
                 monitoring.to_log_and_console("       skip time " + str(acquisition_time), 2)
@@ -3157,7 +3157,7 @@ def fusion_control(experiment, parameters):
 
             sname = experiment.rawdata_dir.channel[0].get_image_name(1, time_value)
             sdir = experiment.rawdata_dir.channel[0].get_angle_path(1)
-            im = common.find_file(sdir, sname, callfrom=proc, local_monitoring=monitoring)
+            im = common.find_file(sdir, sname, file_type='image', callfrom=proc, local_monitoring=monitoring)
             if im is None:
                 monitoring.to_log_and_console("    .. image '" + sname + "' not found in '" + sdir + "'", 2)
                 monitoring.to_log_and_console("       skip time " + str(acquisition_time), 2)
@@ -3167,7 +3167,7 @@ def fusion_control(experiment, parameters):
 
             sname = experiment.rawdata_dir.channel[0].get_image_name(2, time_value)
             sdir = experiment.rawdata_dir.channel[0].get_angle_path(2)
-            im = common.find_file(sdir, sname, callfrom=proc, local_monitoring=monitoring)
+            im = common.find_file(sdir, sname, file_type='image', callfrom=proc, local_monitoring=monitoring)
             if im is None:
                 monitoring.to_log_and_console("    .. image '" + sname + "' not found in '" + sdir + "'", 2)
                 monitoring.to_log_and_console("       skip time " + str(acquisition_time), 2)
@@ -3177,7 +3177,7 @@ def fusion_control(experiment, parameters):
 
             sname = experiment.rawdata_dir.channel[0].get_image_name(3, time_value)
             sdir = experiment.rawdata_dir.channel[0].get_angle_path(3)
-            im = common.find_file(sdir, sname, callfrom=proc, local_monitoring=monitoring)
+            im = common.find_file(sdir, sname, file_type='image', callfrom=proc, local_monitoring=monitoring)
             if im is None:
                 monitoring.to_log_and_console("    .. image '" + sname + "' not found in '" + sdir + "'", 2)
                 monitoring.to_log_and_console("       skip time " + str(acquisition_time), 2)
