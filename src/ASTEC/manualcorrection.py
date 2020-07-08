@@ -4,10 +4,12 @@ import imp
 import sys
 import time
 import numpy as np
+import shutil
 from scipy import ndimage as nd
 
 import common
 
+import CommunFunctions.cpp_wrapping as cpp_wrapping
 from CommunFunctions.ImageHandling import SpatialImage, imread, imsave
 
 
@@ -217,33 +219,16 @@ def correction_process(input_image, output_image, parameters):
     #
     #
     #
-
-    im = imread(input_image)
-    voxelsize = im._get_resolution()
-    vol = voxelsize[0] * voxelsize[1] * voxelsize[2]
-
-    #
-    #
-    #
     if parameters.mapping_file is not None and len(str(parameters.mapping_file)) > 0 \
         and os.path.isfile(parameters.mapping_file):
-
-        mapping = np.arange(np.max(im)+1)
-        # print str(mapping)
 
         #
         # corrections to be done
         #
-        corrected_mapping = common.read_lut(parameters.mapping_file)
-
-        if len(corrected_mapping) > 0:
-            for k, v in corrected_mapping.iteritems():
-                mapping[k] = v
-            im = mapping[im]
-        else:
-            monitoring.to_log_and_console('    no corrections to be done (no valid mapping file)', 2)
+        cpp_wrapping.mc_seed_edit(input_image, output_image, parameters.mapping_file, None)
 
     else:
+        shutil.copy2(input_image, output_image)
         monitoring.to_log_and_console('    no corrections to be done (no valid mapping file)', 2)
 
     #
@@ -252,6 +237,10 @@ def correction_process(input_image, output_image, parameters):
     # - the list of cell volume
     #
     # build a dictionary and sort it (increasing order) wrt the volume
+
+    im = imread(output_image)
+    voxelsize = im._get_resolution()
+    vol = voxelsize[0] * voxelsize[1] * voxelsize[2]
 
     cell_label = np.unique(im)
     cell_volume = nd.sum(np.ones_like(im), im, index=np.int16(cell_label))
@@ -281,8 +270,6 @@ def correction_process(input_image, output_image, parameters):
             for l in s[-int(parameters.largest_cells):]:
                 monitoring.to_log_and_console('    {:>4d} : {:>9d} {:>15s}'.format(l, int(d[l]),
                                                                                    '({:.2f})'.format(d[l]*vol)), 0)
-
-    imsave(output_image, SpatialImage(im, voxelsize=voxelsize).astype(np.uint16))
 
     return
 

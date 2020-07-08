@@ -2055,7 +2055,7 @@ def read_lut(filename):
     :param filename:
     :return:
     """
-    # proc = 'read_lut'
+    proc = 'read_lut'
     lut = {}
 
     if not os.path.isfile(filename):
@@ -2072,8 +2072,11 @@ def read_lut(filename):
             # if not lut.has_key(int(info[0])):
             #   lut[int(info[0])] = None
             lut[int(info[0])] = int(info[1])
+        else:
+            print(str(proc) + ": can not interpret line '" + str(li) + "'")
     f.close()
 
+    print(str(lut))
     return lut
 
 

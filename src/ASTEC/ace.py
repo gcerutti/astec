@@ -99,7 +99,7 @@ class AceParameters(object):
         #
         #
         #
-        self.default_image_suffix = 'inr'
+        self.default_image_suffix = 'mha'
 
     ############################################################
     #

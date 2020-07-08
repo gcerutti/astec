@@ -120,15 +120,30 @@ class MorphoSnakeParameters(object):
         if hasattr(parameters, 'morphosnake_dilation_iterations'):
             if parameters.morphosnake_dilation_iterations is not None:
                 self.ms_dilation_iterations = parameters.morphosnake_dilation_iterations
+        if hasattr(parameters, 'astec_MorphosnakeIterations'):
+            if parameters.astec_MorphosnakeIterations is not None:
+                self.ms_dilation_iterations = parameters.astec_MorphosnakeIterations
+
         if hasattr(parameters, 'morphosnake_iterations'):
             if parameters.morphosnake_iterations is not None:
                 self.ms_iterations = parameters.morphosnake_iterations
+        if hasattr(parameters, 'astec_NIterations'):
+            if parameters.astec_NIterations is not None:
+                self.ms_iterations = parameters.astec_NIterations
+
         if hasattr(parameters, 'morphosnake_delta_voxel'):
             if parameters.morphosnake_delta_voxel is not None:
                 self.ms_delta_voxel = parameters.morphosnake_delta_voxel
+        if hasattr(parameters, 'astec_DeltaVoxels'):
+            if parameters.astec_DeltaVoxels is not None:
+                self.ms_delta_voxel = parameters.astec_DeltaVoxels
+
         if hasattr(parameters, 'morphosnake_processors'):
             if parameters.morphosnake_processors is not None:
                 self.ms_processors = parameters.morphosnake_processors
+        if hasattr(parameters, 'astec_nb_proc'):
+            if parameters.astec_nb_proc is not None:
+                self.ms_processors = parameters.astec_nb_proc
 
 
 #
@@ -334,6 +349,50 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
         if hasattr(parameters, 'watershed_seed_hmin_delta_value'):
             if parameters.watershed_seed_hmin_delta_value is not None:
                 self.watershed_seed_hmin_delta_value = parameters.watershed_seed_hmin_delta_value
+
+        #
+        # seed selection
+        #
+
+        if hasattr(parameters, 'seed_selection_tau'):
+            if parameters.seed_selection_tau is not None:
+                self.seed_selection_tau = parameters.seed_selection_tau
+        if hasattr(parameters, 'astec_Thau'):
+            if parameters.astec_Thau is not None:
+                self.seed_selection_tau = parameters.astec_Thau
+
+
+        if hasattr(parameters, 'minimum_volume_unseeded_cell'):
+            if parameters.minimum_volume_unseeded_cell is not None:
+                self.minimum_volume_unseeded_cell = parameters.minimum_volume_unseeded_cell
+
+        if hasattr(parameters, 'volume_ratio_tolerance'):
+            if parameters.volume_ratio_tolerance is not None:
+                self.volume_ratio_tolerance = parameters.volume_ratio_tolerance
+        if hasattr(parameters, 'astec_VolumeRatioSmaller'):
+            if parameters.astec_VolumeRatioSmaller is not None:
+                self.volume_ratio_tolerance = parameters.astec_VolumeRatioSmaller
+
+        if hasattr(parameters, 'volume_ratio_threshold'):
+            if parameters.volume_ratio_threshold is not None:
+                self.volume_ratio_threshold = parameters.volume_ratio_threshold
+        if hasattr(parameters, 'astec_VolumeRatioBigger'):
+            if parameters.astec_VolumeRatioBigger is not None:
+                self.volume_ratio_threshold = parameters.astec_VolumeRatioBigger
+
+        if hasattr(parameters, 'volume_minimal_value'):
+            if parameters.volume_minimal_value is not None:
+                self.volume_minimal_value = parameters.volume_minimal_value
+        if hasattr(parameters, 'astec_MinVolume'):
+            if parameters.astec_MinVolume is not None:
+                self.volume_minimal_value = parameters.astec_MinVolume
+
+        if hasattr(parameters, 'outer_correction_radius_opening'):
+            if parameters.outer_correction_radius_opening is not None:
+                self.outer_correction_radius_opening = parameters.outer_correction_radius_opening
+        if hasattr(parameters, 'astec_RadiusOpening'):
+            if parameters.astec_RadiusOpening is not None:
+                self.outer_correction_radius_opening = parameters.astec_RadiusOpening
 
         mars.WatershedParameters.update_from_parameters(self, parameter_file)
         reconstruction.ReconstructionParameters.update_from_parameters(self, parameter_file)
@@ -2556,7 +2615,7 @@ def astec_control(experiment, parameters):
     # - the one from the parameters
     #
     lineage_tree_file = common.find_file(segmentation_dir, experiment.astec_dir.get_file_name("_lineage"),
-                                         file_type='lineage', callfrom=proc)
+                                         file_type='lineage', callfrom=proc, verbose=False)
 
     if lineage_tree_file is not None and os.path.isfile(os.path.join(segmentation_dir, lineage_tree_file)):
         lineage_tree_path = os.path.join(segmentation_dir, lineage_tree_file)

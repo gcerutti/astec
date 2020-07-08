@@ -434,7 +434,7 @@ def _read_image_name(data_path, temporary_path, file_name, resolution, default_e
             if len(f) <= len(prefix):
                 pass
             if f[0:len(prefix)] == prefix:
-                if f[len(prefix):len(f)] in common.recognized_extensions:
+                if f[len(prefix):len(f)] in common.recognized_image_extensions:
                     file_names.append(f)
 
         if len(file_names) > 1:
@@ -590,7 +590,7 @@ def _analyze_data_directory(data_dir):
     # recognize images and extensions
     #
     for f in os.listdir(data_dir):
-        for e in common.recognized_extensions:
+        for e in common.recognized_image_extensions:
             if f[len(f)-len(e):len(f)] == e:
                 if e not in extensions:
                     extensions.append(e)
