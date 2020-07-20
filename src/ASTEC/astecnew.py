@@ -1903,7 +1903,8 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
         # get the labels of the missed part (mother cell - all daughter cells)
         # 'labels' is no more a nd-array, just an array
         #
-        print("check mother " + str(mother_c) + " and daughters " + str(correspondences[mother_c]))
+
+        # print("check mother " + str(mother_c) + " and daughters " + str(correspondences[mother_c]))
         bb = bounding_boxes[mother_c]
         submask_daughter_c = np.zeros_like(curr_seg[bb])
         for daughter_c in correspondences[mother_c]:
@@ -1912,7 +1913,7 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
         submask_mother_c = (prev_seg[bb] == mother_c)
 
         labels = curr_seg[bb][submask_mother_c & (submask_daughter_c == False)]
-        print("labels are " + str(labels))
+        # print("labels are " + str(labels))
 
         #
         # is the main label 1 (the background label)?
@@ -1926,7 +1927,7 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
                 max_size = labels_size[v]
                 label_max = v
 
-        print("label size are " + str(labels_size) + "max label = " + str(label_max))
+        #print("label size are " + str(labels_size) + ", max label = " + str(label_max))
 
         #
         # the main label is 1, and was also in the bounding box of the 'mother' cell
@@ -2501,10 +2502,9 @@ def _get_last_first_time_from_lineage(lineage_tree_information, first_time_point
 
 def _get_last_first_time_from_images(experiment, first_time_point, delta_time_point=1):
     first_time = first_time_point + delta_time_point
-    segmentation_dir = experiment.astec_dir.get_directory()
     while True:
         segmentation_file = experiment.get_segmentation_image(first_time, verbose=False)
-        if segmentation_file is None or not os.path.isfile(os.path.join(segmentation_dir, segmentation_file)):
+        if segmentation_file is None or not os.path.isfile(segmentation_file):
             return first_time - delta_time_point
         first_time += delta_time_point
 
@@ -2532,12 +2532,11 @@ def _clean_lineage(lineage_tree_information, first_time_point, time_digits_for_c
 
 def _clean_images(experiment, first_time_point, delta_time_point=1):
     current_time = first_time_point + delta_time_point
-    segmentation_dir = experiment.astec_dir.get_directory()
     while True:
         segmentation_file = experiment.get_segmentation_image(current_time, verbose=False)
-        if segmentation_file is not None and os.path.isfile(os.path.join(segmentation_dir, segmentation_file)):
-            print("remove " + str(segmentation_file))
-            os.remove(os.path.join(segmentation_dir, segmentation_file))
+        if segmentation_file is not None and os.path.isfile(segmentation_file):
+            print("rename " + str(segmentation_file) + " into " + segmentation_file + ".bak")
+            shutil.move(segmentation_file, segmentation_file + ".bak")
             current_time += delta_time_point
         else:
             return
@@ -2625,8 +2624,10 @@ def astec_control(experiment, parameters):
                                          + experiment.result_lineage_suffix)
         lineage_tree_information = {}
 
+    # print(str(lineage_tree_information))
+
     #
-    #
+    # check whether image at first_time_point exists ...
     #
     first_time_point = experiment.first_time_point + experiment.delay_time_point
     last_time_point = experiment.last_time_point + experiment.delay_time_point
@@ -2637,6 +2638,7 @@ def astec_control(experiment, parameters):
                                                            time_digits_for_cell_id=time_digits_for_cell_id)
     first_time_images = _get_last_first_time_from_images(experiment, first_time_point,
                                                          delta_time_point=experiment.delta_time_point)
+
     restart = min(first_time_lineage, first_time_images)
     if experiment.restart_time_point >= 0:
         restart = min(restart, experiment.restart_time_point)
@@ -2660,8 +2662,9 @@ def astec_control(experiment, parameters):
     #
     #
     #
-    for current_time in range(restart + experiment.delay_time_point + experiment.delta_time_point,
-                              last_time_point + experiment.delay_time_point + 1, experiment.delta_time_point):
+    first_time = restart + experiment.delay_time_point + experiment.delta_time_point
+    last_time = last_time_point + experiment.delay_time_point
+    for current_time in range(first_time, last_time + 1, experiment.delta_time_point):
 
         acquisition_time = experiment.get_time_index(current_time)
         previous_time = current_time - experiment.delta_time_point
@@ -2718,5 +2721,9 @@ def astec_control(experiment, parameters):
     #
     # TODO: test sur le lineage
     #
+
+    monitoring.to_log_and_console("    .. test lineage", 1)
+    properties.check_lineage(lineage_tree_information, first_time, last_time,
+                             time_digits_for_cell_id=time_digits_for_cell_id)
 
     return

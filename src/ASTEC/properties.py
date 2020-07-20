@@ -1610,6 +1610,137 @@ def diagnosis(d, features, diagnosis_parameters):
 
 ########################################################################################
 #
+#
+#
+########################################################################################
+
+def _print_list(tab, time_digits_for_cell_id=4):
+    for c in tab:
+        t = c // 10**time_digits_for_cell_id
+        c -= t * 10**time_digits_for_cell_id
+        monitoring.to_log_and_console("    - cell #" + str(c) + " of time " + str(t), 1)
+
+def check_lineage(d, first_time, last_time, time_digits_for_cell_id=4):
+
+    proc = "check_lineage"
+    keyvolume = None
+    keylineage = None
+
+    #
+    # get keys
+    #
+
+    for k in d.keys():
+        if k in keydictionary['volume']['input_keys']:
+            keyvolume = k
+        elif k in keydictionary['lineage']['input_keys']:
+            keylineage = k
+
+    if keylineage is None:
+        monitoring.to_log_and_console(str(proc) + ": no lineage in input dictionary", 1)
+        return
+
+    #
+    #
+    #
+    cell_in_volume_not_in_lineage = []
+    cell_in_lineage_not_in_volume = []
+    if keyvolume is not None:
+        #
+        for cv in d[keyvolume].keys():
+            for cl in d[keylineage].keys():
+                if cv == cl:
+                    break
+                if cv in d[keylineage][cl]:
+                    break
+            else:
+                cell_in_volume_not_in_lineage.append(cv)
+        #
+        for cl in d[keylineage].keys():
+            if cl not in d[keyvolume].keys():
+                if cl not in cell_in_lineage_not_in_volume:
+                    cell_in_lineage_not_in_volume.append(cl)
+            for dcl in d[keylineage][cl]:
+                if dcl not in d[keyvolume].keys():
+                    if dcl not in cell_in_lineage_not_in_volume:
+                        cell_in_lineage_not_in_volume.append(dcl)
+        #
+
+    if (len(cell_in_volume_not_in_lineage) > 0):
+        cell_in_volume_not_in_lineage.sort()
+        monitoring.to_log_and_console("  - " + str(len(cell_in_volume_not_in_lineage))
+                                      + " cells with volume not present in lineage: ", 1)
+        _print_list(cell_in_volume_not_in_lineage, time_digits_for_cell_id=time_digits_for_cell_id)
+    if (len(cell_in_lineage_not_in_volume) > 0):
+        cell_in_lineage_not_in_volume.sort()
+        monitoring.to_log_and_console("  - " + str(len(cell_in_lineage_not_in_volume))
+                                      + " cells present in lineage without volume: ", 1)
+        _print_list(cell_in_lineage_not_in_volume, time_digits_for_cell_id=time_digits_for_cell_id)
+
+    #
+    #
+    #
+    cell_in_lineage = []
+    cell_n_mothers = {}
+    cell_n_daughters = {}
+    for cl in d[keylineage].keys():
+        if cl not in cell_in_lineage:
+            cell_in_lineage.append(cl)
+        if cl not in cell_n_daughters.keys():
+            cell_n_daughters[cl] = len(d[keylineage][cl])
+        else:
+            cell_n_daughters[cl] += len(d[keylineage][cl])
+        for dcl in d[keylineage][cl]:
+            if dcl not in cell_in_lineage:
+                cell_in_lineage.append(dcl)
+            if dcl not in cell_n_mothers.keys():
+                cell_n_mothers[dcl] = 1
+            else:
+                cell_n_mothers[dcl] += 1
+    #
+    #
+    #
+    cell_without_mother = []
+    cell_with_mothers = []
+    cell_without_daughter = []
+    cell_with_daughters = []
+    for c in cell_in_lineage:
+        t = c // 10**time_digits_for_cell_id
+        if t > first_time:
+            if c not in cell_n_mothers.keys():
+                cell_without_mother.append(c)
+            elif cell_n_mothers[c] > 1:
+                cell_with_mothers.append(c)
+        if t < last_time:
+            if c not in cell_n_daughters.keys():
+                cell_without_daughter.append(c)
+            elif cell_n_daughters[c] > 2:
+                cell_with_daughters.append(c)
+
+    if (len(cell_without_mother) > 0):
+        cell_without_mother.sort()
+        monitoring.to_log_and_console("  - " + str(len(cell_without_mother)) + " cells without mother cell: ", 1)
+        _print_list(cell_without_mother, time_digits_for_cell_id=time_digits_for_cell_id)
+    if (len(cell_with_mothers) > 0):
+        cell_with_mothers.sort()
+        monitoring.to_log_and_console("  - " + str(len(cell_with_mothers)) + " cells with multiple mother cells: ", 1)
+        _print_list(cell_with_mothers, time_digits_for_cell_id=time_digits_for_cell_id)
+    if (len(cell_without_daughter) > 0):
+        cell_without_daughter.sort()
+        monitoring.to_log_and_console("  - " + str(len(cell_without_daughter)) + " cells without daughter cell: ", 1)
+        _print_list(cell_without_daughter, time_digits_for_cell_id=time_digits_for_cell_id)
+    if (len(cell_with_daughters) > 0):
+        cell_with_daughters.sort()
+        monitoring.to_log_and_console("  - " + str(len(cell_with_daughters))
+                                      + " cells with more than 2 daughter cells: ", 1)
+        _print_list(cell_with_daughters, time_digits_for_cell_id=time_digits_for_cell_id)
+
+    return
+
+
+
+########################################################################################
+#
 # utilities for debugging, etc.
 #
 ########################################################################################
