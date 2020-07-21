@@ -97,7 +97,7 @@ def property_computation(experiment):
         #
         if not os.path.isdir(intrareg_path):
             monitoring.to_log(proc + ": '" + str(intrareg_path) + "' does not exist")
-            intrareg_path = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory())
+            intrareg_path = experiment.intrareg_dir.get_directory()
             monitoring.to_log_and_console(proc + ": neither POST/ or SEG/ sub-directories in '"
                                           + str(intrareg_path) + "'", 0)
             monitoring.to_log_and_console("Exiting.", 0)

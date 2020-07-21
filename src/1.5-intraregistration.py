@@ -175,7 +175,7 @@ def main():
 
     parameters.update_from_args(args)
     parameters.update_from_parameters(parameter_file)
-    monitoring.print_parameters()
+
     parameters.write_parameters(monitoring.log_filename)
 
     #

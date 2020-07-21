@@ -1553,15 +1553,15 @@ def non_linear_registration(path_ref, path_flo, path_affine, path_vector, affine
     command_line += " -composition-with-initial"
 
     command_line += " -pyramid-highest-level " + str(py_hl) + " -pyramid-lowest-level " + str(py_ll)
-    if ( gaussian_pyramid ):
+    if gaussian_pyramid:
         command_line += " -py-gf"
 
     command_line += " -trsf-type vectorfield"
 
     command_line += " -estimator " + transformation_estimator
     command_line += " -lts-fraction " + str(lts_fraction)
-    command_line += " -elastic-sigma " + str(elastic_sigma) + " "  + str(elastic_sigma) + " " + str(elastic_sigma)
-    command_line += " -fluid-sigma " + str(fluid_sigma) + " "  + str(fluid_sigma) + " " + str(fluid_sigma)
+    command_line += " -elastic-sigma " + str(elastic_sigma) + " " + str(elastic_sigma) + " " + str(elastic_sigma)
+    command_line += " -fluid-sigma " + str(fluid_sigma) + " " + str(fluid_sigma) + " " + str(fluid_sigma)
 
     if other_options is not None:
         command_line += " " + other_options
@@ -1569,9 +1569,6 @@ def non_linear_registration(path_ref, path_flo, path_affine, path_vector, affine
     _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
-
-
-
 
 
 ############################################################
