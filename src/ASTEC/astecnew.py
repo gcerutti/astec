@@ -198,6 +198,12 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
         self.watershed_seed_hmin_delta_value = 2
 
         #
+        #
+        #
+        self.astec_background_seed_from_hmin = False
+        self.astec_background_seed_from_previous = True
+
+        #
         # to decide whether there will be division
         #
         self.seed_selection_tau = 25
@@ -243,6 +249,9 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
         print('- watershed_seed_hmin_max_value = ' + str(self.watershed_seed_hmin_max_value))
         print('- watershed_seed_hmin_delta_value = ' + str(self.watershed_seed_hmin_delta_value))
 
+        print('- astec_background_seed_from_hmin = ' + str(self.astec_background_seed_from_hmin))
+        print('- astec_background_seed_from_previous = ' + str(self.astec_background_seed_from_previous))
+
         print('- seed_selection_tau = ' + str(self.seed_selection_tau))
 
         print('- minimum_volume_unseeded_cell = ' + str(self.minimum_volume_unseeded_cell))
@@ -275,6 +284,10 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
             logfile.write('- watershed_seed_hmin_min_value = ' + str(self.watershed_seed_hmin_min_value) + '\n')
             logfile.write('- watershed_seed_hmin_max_value = ' + str(self.watershed_seed_hmin_max_value) + '\n')
             logfile.write('- watershed_seed_hmin_delta_value = ' + str(self.watershed_seed_hmin_delta_value) + '\n')
+
+            logfile.write('- astec_background_seed_from_hmin = ' + str(self.astec_background_seed_from_hmin) + '\n')
+            logfile.write('- astec_background_seed_from_previous = ' + str(self.astec_background_seed_from_previous)
+                          + '\n')
 
             logfile.write('- seed_selection_tau = ' + str(self.seed_selection_tau) + '\n')
 
@@ -349,6 +362,17 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
         if hasattr(parameters, 'watershed_seed_hmin_delta_value'):
             if parameters.watershed_seed_hmin_delta_value is not None:
                 self.watershed_seed_hmin_delta_value = parameters.watershed_seed_hmin_delta_value
+
+        #
+        #
+        #
+
+        if hasattr(parameters, 'astec_background_seed_from_hmin'):
+            if parameters.astec_background_seed_from_hmin is not None:
+                self.astec_background_seed_from_hmin = parameters.astec_background_seed_from_hmin
+        if hasattr(parameters, 'astec_background_seed_from_previous'):
+            if parameters.astec_background_seed_from_previous is not None:
+                self.astec_background_seed_from_previous = parameters.astec_background_seed_from_previous
 
         #
         # seed selection
@@ -534,9 +558,10 @@ def _extract_seeds_in_cell(parameters):
     # check whether the cell_segmentation has only two labels
     # it occurs when the cell is a nxmxp cube
     #
-    if len(np.unique(cell_segmentation)) != 2:
+    np_unique = np.unique(cell_segmentation)
+    if len(np_unique) != 2:
         monitoring.to_log_and_console('       .. weird, sub-image of cell ' + str(c) + ' contains '
-                                      + str(len(np.unique(cell_segmentation))) + ' labels', 2)
+                                      + str(len(np_unique)) + ' labels = ' + str(np_unique), 2)
 
     #
     # get the seeds that intersect the cell 'c'
@@ -1044,38 +1069,46 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
 
     monitoring.to_log_and_console('      process background', 3)
 
-    background_cell = np.zeros_like(first_segmentation)
-    background_cell[first_segmentation == 1] = 1
+    if parameters.astec_background_seed_from_hmin or not parameters.astec_background_seed_from_previous:
+        background_cell = np.zeros_like(first_segmentation)
+        background_cell[first_segmentation == 1] = 1
 
-    h_min = min(seed_image_list.keys())
-    n_seeds, labeled_seeds = _extract_seeds(1, background_cell, seed_image_list[h_min], individual_seeds=False)
-    if n_seeds == 0:
-        monitoring.to_log_and_console("       " + proc + ": unable to get background seed", 2)
-    else:
-        new_seed_image[labeled_seeds > 0] = 1
-        correspondences[1] = [1]
-    del labeled_seeds
+        h_min = min(seed_image_list.keys())
+        n_seeds, labeled_seeds = _extract_seeds(1, background_cell, seed_image_list[h_min], individual_seeds=False)
+        if n_seeds == 0:
+            monitoring.to_log_and_console("       " + proc + ": unable to get background seed", 2)
+        else:
+            new_seed_image[labeled_seeds > 0] = 1
+            correspondences[1] = [1]
+
+        del labeled_seeds
 
     #
     # create seeds for cell with no seed found
     #
 
-    if len(unseeded_cells) > 0:
-        monitoring.to_log_and_console('      process cell without childrens', 3)
+    if len(unseeded_cells) > 0 or parameters.astec_background_seed_from_previous:
         first_seeds = imread(seeds_from_previous)
-        for c in unseeded_cells:
-            vol = np.sum(first_segmentation == c)
-            if vol <= parameters.minimum_volume_unseeded_cell:
-                monitoring.to_log_and_console('      .. process cell ' + str(c) + ': volume (' + str(vol) + ') <= ' +
-                                              str(parameters.minimum_volume_unseeded_cell) + ', remove cell', 2)
-            else:
-                monitoring.to_log_and_console('      .. process cell ' + str(c) + ' -> ' + str(label_max), 3)
-                correspondences[c] = [label_max]
-                new_seed_image[first_seeds == c] = label_max
-                label_max += 1
+
+        if parameters.astec_background_seed_from_previous:
+            new_seed_image[first_seeds == 1] = 1
+
+        if len(unseeded_cells) > 0:
+            monitoring.to_log_and_console('      process cell without childrens', 3)
+            for c in unseeded_cells:
+                vol = np.sum(first_segmentation == c)
+                if vol <= parameters.minimum_volume_unseeded_cell:
+                    monitoring.to_log_and_console('      .. process cell ' + str(c) + ': volume (' + str(vol) + ') <= ' +
+                                                  str(parameters.minimum_volume_unseeded_cell) + ', remove cell', 2)
+                else:
+                    monitoring.to_log_and_console('      .. process cell ' + str(c) + ' -> ' + str(label_max), 3)
+                    correspondences[c] = [label_max]
+                    new_seed_image[first_seeds == c] = label_max
+                    label_max += 1
+        else:
+            monitoring.to_log_and_console('      no cell without childrens to be processed', 3)
+
         del first_seeds
-    else:
-        monitoring.to_log_and_console('      no cell without childrens to be processed', 3)
     #
     #
     #
@@ -1636,6 +1669,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
 
     if len(large_volume_ratio) > 0:
         monitoring.to_log_and_console('        cell(s) with large increase of volume are not processed (yet)', 2)
+        monitoring.to_log_and_console('          .. ' + str(large_volume_ratio), 2)
 
     ############################################################
     #
