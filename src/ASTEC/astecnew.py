@@ -385,7 +385,6 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
             if parameters.astec_Thau is not None:
                 self.seed_selection_tau = parameters.astec_Thau
 
-
         if hasattr(parameters, 'minimum_volume_unseeded_cell'):
             if parameters.minimum_volume_unseeded_cell is not None:
                 self.minimum_volume_unseeded_cell = parameters.minimum_volume_unseeded_cell
@@ -407,6 +406,9 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
         if hasattr(parameters, 'volume_minimal_value'):
             if parameters.volume_minimal_value is not None:
                 self.volume_minimal_value = parameters.volume_minimal_value
+        if hasattr(parameters, 'astec_volume_minimal_value'):
+            if parameters.astec_volume_minimal_value is not None:
+                self.volume_minimal_value = parameters.astec_volume_minimal_value
         if hasattr(parameters, 'astec_MinVolume'):
             if parameters.astec_MinVolume is not None:
                 self.volume_minimal_value = parameters.astec_MinVolume
@@ -2696,8 +2698,8 @@ def astec_control(experiment, parameters):
     #
     #
     #
-    first_time = restart + experiment.delay_time_point + experiment.delta_time_point
-    last_time = last_time_point + experiment.delay_time_point
+    first_time = restart + experiment.delta_time_point
+    last_time = last_time_point
     for current_time in range(first_time, last_time + 1, experiment.delta_time_point):
 
         acquisition_time = experiment.get_time_index(current_time)

@@ -1600,14 +1600,12 @@ def cell_properties(format_input, output, first, last, diagnosis_file=None, max_
     if diagnosis_file is not None:
         command_line += " -diagnosis " + str(diagnosis_file)
     if max_chunks is None:
-        command_line += " -max-chunks-properties 1"
+        pass
     elif type(max_chunks) == int:
         if max_chunks >= 1:
             command_line += " -max-chunks-properties " + str(max_chunks)
         else:
             pass
-    else:
-        command_line += " -max-chunks-properties 1"
 
     #
     #

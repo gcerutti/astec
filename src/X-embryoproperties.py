@@ -62,6 +62,11 @@ def _set_options(my_parser):
                                 ", 'all-cells', 'principal-value', 'name', 'contact', 'history', 'principal-vector'" +
                                 ", 'name-score', 'cell-compactness'")
 
+    my_parser.add_argument('--check', '--check-volume-lineage',
+                           action='store_const', dest='check_volume_lineage',
+                           default=False, const=True,
+                           help='perform some tests')
+
     my_parser.add_argument('--diagnosis',
                            action='store_const', dest='print_diagnosis',
                            default=False, const=True,
@@ -143,6 +148,8 @@ if __name__ == '__main__':
     monitoring.update_from_args(args)
     experiment.update_from_args(args)
 
+    diagnosis = properties.DiagnosisParameters()
+    diagnosis.update_from_args(args)
 
     #
     # is there a parameter file?
@@ -208,9 +215,6 @@ if __name__ == '__main__':
         #
 
         parameters = properties.CellPropertiesParameters()
-        diagnosis = properties.DiagnosisParameters()
-
-        diagnosis.update_from_args(args)
         parameters.update_from_file(parameter_file)
 
         parameters.write_parameters(monitoring.log_filename)
@@ -267,13 +271,15 @@ if __name__ == '__main__':
 
     else:
 
+        properties.monitoring.copy(monitoring)
+
         #
         # read input file(s)
         # 1. input file(s): it is assumed that there are keys describing for each dictionary entry
         # 2. lineage file: such a key may be missing
         #
 
-        inputdict = properties.read_dictionary(args.inputFiles)
+        inputdict = properties.read_dictionary(args.inputFiles, inputpropertiesdict={})
 
         if args.print_input_types is True:
             properties.print_type(inputdict, desc="root")
@@ -287,7 +293,7 @@ if __name__ == '__main__':
         #
 
         if args.print_content is True:
-            properties.print_keys(inputdict)
+            properties.print_keys(inputdict, desc="input dictionary")
 
         #
         # is a diagnosis to be done?
@@ -296,12 +302,20 @@ if __name__ == '__main__':
         if args.print_diagnosis is True:
             properties.diagnosis(inputdict, args.outputFeatures, diagnosis)
 
+
+        # is a check to be done?
+        #
+
+        if args.check_volume_lineage is True:
+            properties.check_volume_lineage(inputdict)
+
         #
         # is there some comparison to be done?
         #
-
         if args.compareFiles is not None and len(args.compareFiles) > 0:
-            comparedict = properties.read_dictionary(args.compareFiles)
+            comparedict = properties.read_dictionary(args.compareFiles, inputpropertiesdict={})
+            if args.print_content is True:
+                properties.print_keys(comparedict, desc="dictionary to be compared with")
             if comparedict == {}:
                 print "error: empty dictionary to be compared with"
             else:

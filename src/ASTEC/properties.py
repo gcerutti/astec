@@ -858,7 +858,33 @@ def write_dictionary(inputfilename, inputpropertiesdict):
 
 def _decode_cell_id(s, time_digits_for_cell_id=4):
     div = 10**time_digits_for_cell_id
-    return "cell #{:4d}".format(int(s)/div) + " of image #{:4d}".format(int(s) % div)
+    return "cell #{:4d}".format(int(s) % div) + " of image #{:4d}".format(int(s) / div)
+
+
+def _get_time_interval_from_lineage(direct_lineage, time_digits_for_cell_id=4):
+
+    nodes = list(set(direct_lineage.keys()).union(set([v for values in direct_lineage.values() for v in values])))
+    first_time = min(nodes) / 10 ** time_digits_for_cell_id
+    last_time = max(nodes) / 10 ** time_digits_for_cell_id
+    # monitoring.to_log_and_console("  - estimated time interval = [" + str(first_time) + ", " + str(last_time) + "]", 1)
+
+    return first_time, last_time
+
+
+def _get_time_interval_from_properties(d, time_digits_for_cell_id=4):
+
+    proc = "_get_time_interval_from_properties"
+    keylineage = None
+
+    for k in d.keys():
+        if k in keydictionary['lineage']['input_keys']:
+            keylineage = k
+
+    if keylineage is None:
+        monitoring.to_log_and_console(str(proc) + ": no lineage in input dictionary", 1)
+        return None, None
+
+    return _get_time_interval_from_lineage(d[keylineage], time_digits_for_cell_id=time_digits_for_cell_id)
 
 
 ########################################################################################
@@ -881,23 +907,42 @@ def _intersection_cell_keys(e1, e2, name1, name2):
     difference1 = list(set(e1.keys()).difference(set(e2.keys())))
     difference2 = list(set(e2.keys()).difference(set(e1.keys())))
 
+    monitoring.to_log_and_console("    ... " + str(len(e1.keys())) + " cells are in '" + str(name1) + "'")
+    monitoring.to_log_and_console("    ... " + str(len(e2.keys())) + " cells are in '" + str(name2) + "'")
     if len(difference1) > 0:
-        monitoring.to_log_and_console("    ... cells that are in '" + str(name1) + "' and not in '"
-                                      + str(name2) + "'", 1)
+        monitoring.to_log_and_console("    ... " + str(len(difference1)) + " cells are in '" + str(name1)
+                                      + "' and not in '" + str(name2) + "'", 1)
         s = repr(difference1)
-        monitoring.to_log_and_console("        " + s, 1)
+        monitoring.to_log_and_console("        " + s, 2)
 
     if len(difference2) > 0:
-        monitoring.to_log_and_console("    ... cells that are not in '" + str(name1) + "' but in '"
-                                      + str(name2) + "'", 1)
+        monitoring.to_log_and_console("    ... " + str(len(difference2)) + " cells are not in '" + str(name1)
+                                      + "' but in '" + str(name2) + "'", 1)
         s = repr(difference2)
-        monitoring.to_log_and_console("        " + s, 1)
+        monitoring.to_log_and_console("        " + s, 2)
 
     return intersection
 
 
-# def _compare_lineage(e1, e2, name1, name2, description):
-#     return
+def _compare_lineage(e1, e2, name1, name2, description):
+
+    monitoring.to_log_and_console("  === " + str(description) + " comparison === ", 1)
+
+    intersection = _intersection_cell_keys(e1, e2, name1, name2)
+    if len(intersection) > 0:
+        n = 0
+        for k in intersection:
+            if e1[k] != e2[k]:
+                n += 1
+        monitoring.to_log_and_console("    ... " + str(n) + " cells have different lineages", 1)
+        if n > 0:
+            for k in intersection:
+                if e1[k] != e2[k]:
+                    s = "cell #'" + str(k) + "' has different lineage: "
+                    s += str(e1[k]) + " and " + str(e2[k])
+                    monitoring.to_log_and_console("        " + s, 2)
+
+    return
 
 
 # def _compare_h_min(e1, e2, name1, name2, description):
@@ -918,16 +963,16 @@ def _compare_volume(e1, e2, name1, name2, description):
     #     cell_volume.590002 = <type 'int'>
     #     590002: 236936
 
-    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+    monitoring.to_log_and_console("  === " + str(description) + " comparison === ", 1)
 
     intersection = _intersection_cell_keys(e1, e2, name1, name2)
-
     if len(intersection) > 0:
+        monitoring.to_log_and_console("    ... " + str(len(intersection)) + " cells have different volumes", 1)
         for k in intersection:
             if e1[k] != e2[k]:
                 s = "cell #'" + str(k) + "' has different volumes: "
                 s += str(e1[k]) + " and " + str(e2[k])
-                monitoring.to_log_and_console("        " + s, 1)
+                monitoring.to_log_and_console("        " + s, 2)
 
     return
 
@@ -956,7 +1001,7 @@ def _compare_barycenter(e1, e2, name1, name2, description):
     #     cell_barycenter.590002 = <type 'numpy.ndarray'>
     #     590002: array([ 258.41037242,  226.74975943,  303.67167927])
 
-    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+    monitoring.to_log_and_console("  === " + str(description) + " comparison === ", 1)
 
     intersection = _intersection_cell_keys(e1, e2, name1, name2)
 
@@ -997,7 +1042,7 @@ def _compare_all_cells(e1, e2, name1, name2, description):
     #     liste de numpy.int64
     #     all_cells = <type 'list'>
 
-    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+    monitoring.to_log_and_console("  === " + str(description) + " comparison === ", 1)
 
     difference1 = list(set(e1).difference(set(e2)))
     difference2 = list(set(e2).difference(set(e1)))
@@ -1033,7 +1078,7 @@ def _compare_principal_value(e1, e2, name1, name2, description):
     #     cell_principal_values.590002 = <type 'list'>
     #     590002: [1526.0489371146978, 230.60881177650205, 91.063513300019849]
 
-    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+    monitoring.to_log_and_console("  === " + str(description) + " comparison === ", 1)
 
     intersection = _intersection_cell_keys(e1, e2, name1, name2)
 
@@ -1073,7 +1118,7 @@ def _compare_contact(e1, e2, name1, name2, description):
     #     dictionary de dictionary de int
     #     cell_contact_surface.590002.590019 = <type 'int'>
 
-    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+    monitoring.to_log_and_console("  === " + str(description) + " comparison === ", 1)
 
     intersection = _intersection_cell_keys(e1, e2, name1, name2)
 
@@ -1121,7 +1166,7 @@ def _compare_principal_vector(e1, e2, name1, name2, description):
     #         array([-0.24877611,  0.59437038,  0.7647446 ]),
     #         array([ 0.95276511,  0.29219037,  0.08284582])]
 
-    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+    monitoring.to_log_and_console("  === " + str(description) + " comparison === ", 1)
 
     intersection = _intersection_cell_keys(e1, e2, name1, name2)
 
@@ -1276,8 +1321,7 @@ def comparison(d1, d2, features, name1, name2):
 
         for pk in pairedkeys:
             if pk[0] == keydictionary['lineage']['output_key']:
-                pass
-                # monitoring.to_log_and_console("    comparison of '" + str(pk[0]) + "' not implemented yet", 1)
+                _compare_lineage(d1[pk[0]], d2[pk[1]], name1, name2, pk[0])
             elif pk[0] == keydictionary['h_min']['output_key']:
                 pass
                 # monitoring.to_log_and_console("    comparison of '" + str(pk[0]) + "' not implemented yet", 1)
@@ -1322,8 +1366,7 @@ def comparison(d1, d2, features, name1, name2):
             for i in range(len(pairedkeys)):
                 if pairedkeys[i][0] == outk:
                     if outk == keydictionary['lineage']['output_key']:
-                        pass
-                        # monitoring.to_log_and_console("    comparison of '" + str(outk) + "' not implemented yet", 1)
+                        _compare_lineage(d1[outk], d2[outk], name1, name2, outk)
                     elif outk == keydictionary['h_min']['output_key']:
                         pass
                         # monitoring.to_log_and_console("    comparison of '" + str(outk) + "' not implemented yet", 1)
@@ -1405,8 +1448,70 @@ class DiagnosisParameters(object):
                 self.items = args.diagnosis_items
 
 
-# def _diagnosis_lineage(d):
-#     return
+def _diagnosis_lineage(direct_lineage, description, time_digits_for_cell_id=4):
+
+    proc = "_diagnosis_lineage"
+
+    monitoring.to_log_and_console("  === " + str(description) + " diagnosis === ", 1)
+
+    first_time, last_time = _get_time_interval_from_lineage(direct_lineage,
+                                                            time_digits_for_cell_id=time_digits_for_cell_id)
+    monitoring.to_log_and_console("  - estimated time interval = [" + str(first_time) + ", " + str(last_time) + "]", 1)
+
+    #
+    # cell with more than 2 daughters
+    #
+    multiple_daughters = [cell for cell in direct_lineage.keys() if len(direct_lineage[cell]) > 2]
+
+    #
+    # get cells without daughters, remove cells from the last time point
+    #
+    nodes = list(set(direct_lineage.keys()).union(set([v for values in direct_lineage.values() for v in values])))
+    leaves = set(nodes) - set(direct_lineage.keys())
+    early_leaves = [leave for leave in leaves if (leave/10**time_digits_for_cell_id) < last_time]
+
+    #
+    # build a reverse lineage
+    #
+    reverse_lineage = {}
+    for k, values in direct_lineage.iteritems():
+        for v in values:
+            if v not in reverse_lineage.keys():
+                reverse_lineage[v] = [k]
+            else:
+                reverse_lineage[v].append(k)
+
+    #
+    # get cells with more than 1 mother
+    #
+    multiple_mothers = [cell for cell in reverse_lineage.keys() if len(reverse_lineage[cell]) > 1]
+
+    #
+    # get cells without mother, remove cells from the first time point
+    #
+    nodes = list(set(reverse_lineage.keys()).union(set([v for values in reverse_lineage.values() for v in values])))
+    orphans = set(nodes) - set(reverse_lineage.keys())
+    late_orphans = [orphan for orphan in orphans if (orphan / 10 ** time_digits_for_cell_id) > first_time]
+
+    if len(late_orphans) > 0:
+        late_orphans.sort()
+        monitoring.to_log_and_console("  - " + str(len(late_orphans)) + " cells without mother cell: ", 1)
+        _print_list(late_orphans, time_digits_for_cell_id=time_digits_for_cell_id)
+    if len(multiple_mothers) > 0:
+        multiple_mothers.sort()
+        monitoring.to_log_and_console("  - " + str(len(multiple_mothers)) + " cells with multiple mother cells: ", 1)
+        _print_list(multiple_mothers, time_digits_for_cell_id=time_digits_for_cell_id)
+    if len(early_leaves) > 0:
+        early_leaves.sort()
+        monitoring.to_log_and_console("  - " + str(len(early_leaves)) + " cells without daughter cell: ", 1)
+        _print_list(early_leaves, time_digits_for_cell_id=time_digits_for_cell_id)
+    if len(multiple_daughters) > 0:
+        multiple_daughters.sort()
+        monitoring.to_log_and_console("  - " + str(len(multiple_daughters))
+                                      + " cells with more than 2 daughter cells: ", 1)
+        _print_list(multiple_daughters, time_digits_for_cell_id=time_digits_for_cell_id)
+
+    return
 
 
 # def _diagnosis_h_min(d):
@@ -1426,7 +1531,7 @@ def _diagnosis_volume(dictionary, description, diagnosis_parameters=None):
     #     cell_volume.590002 = <type 'int'>
     #     590002: 236936
 
-    monitoring.to_log_and_console("    === " + str(description) + " diagnosis === ", 1)
+    monitoring.to_log_and_console("  === " + str(description) + " diagnosis === ", 1)
 
     volume = []
 
@@ -1441,7 +1546,7 @@ def _diagnosis_volume(dictionary, description, diagnosis_parameters=None):
     n = int(d.items)
     v = int(d.minimal_volume)
 
-    if diagnosis_parameters is not None:
+    if isinstance(diagnosis_parameters, DiagnosisParameters):
         n = int(diagnosis_parameters.items)
         v = int(diagnosis_parameters.minimal_volume)
 
@@ -1502,14 +1607,13 @@ def diagnosis(d, features, diagnosis_parameters):
     :return:
     """
 
-    monitoring.to_log_and_console("\n", 1)
+    # monitoring.to_log_and_console("\n", 1)
     monitoring.to_log_and_console("... diagnosis", 1)
 
     if features is None or len(features) == 0:
         for k in d.keys():
             if k == keydictionary['lineage']['output_key']:
-                pass
-                # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+                _diagnosis_lineage(d[k], k)
             elif k == keydictionary['h_min']['output_key']:
                 pass
                 # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
@@ -1561,13 +1665,12 @@ def diagnosis(d, features, diagnosis_parameters):
             for i in range(len(d.keys())):
                 if d.keys()[i] == outk:
                     if outk == keydictionary['lineage']['output_key']:
-                        pass
-                        # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+                        _diagnosis_lineage(d[outk], outk)
                     elif outk == keydictionary['h_min']['output_key']:
                         pass
                         # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
                     elif outk == keydictionary['volume']['output_key']:
-                        _diagnosis_volume(d[outk], outk, diagnosis_parameters=diagnosis)
+                        _diagnosis_volume(d[outk], outk, diagnosis_parameters=diagnosis_parameters)
                     elif outk == keydictionary['surface']['output_key']:
                         pass
                     elif outk == keydictionary['sigma']['output_key']:
@@ -1614,15 +1717,22 @@ def diagnosis(d, features, diagnosis_parameters):
 #
 ########################################################################################
 
+def _cell_id(c, time_digits_for_cell_id=4):
+    t = c // 10 ** time_digits_for_cell_id
+    c -= t * 10 ** time_digits_for_cell_id
+    return(c)
+
+
 def _print_list(tab, time_digits_for_cell_id=4):
     for c in tab:
         t = c // 10**time_digits_for_cell_id
         c -= t * 10**time_digits_for_cell_id
-        monitoring.to_log_and_console("    - cell #" + str(c) + " of time " + str(t), 1)
+        monitoring.to_log_and_console("    - cell #" + str(c) + " of time " + str(t), 2)
 
-def check_lineage(d, first_time, last_time, time_digits_for_cell_id=4):
 
-    proc = "check_lineage"
+def check_volume_lineage(d, time_digits_for_cell_id=4):
+
+    proc = "check_volume_lineage"
     keyvolume = None
     keylineage = None
 
@@ -1640,103 +1750,38 @@ def check_lineage(d, first_time, last_time, time_digits_for_cell_id=4):
         monitoring.to_log_and_console(str(proc) + ": no lineage in input dictionary", 1)
         return
 
+    direct_lineage = d[keylineage]
+    nodes = list(set(direct_lineage.keys()).union(set([v for values in direct_lineage.values() for v in values])))
+
     #
+    # check whether cells in volume dictionary are in lineage and vice-versa
     #
-    #
-    cell_in_volume_not_in_lineage = []
-    cell_in_lineage_not_in_volume = []
     if keyvolume is not None:
         #
-        for cv in d[keyvolume].keys():
-            for cl in d[keylineage].keys():
-                if cv == cl:
-                    break
-                if cv in d[keylineage][cl]:
-                    break
-            else:
-                cell_in_volume_not_in_lineage.append(cv)
-        #
-        for cl in d[keylineage].keys():
-            if cl not in d[keyvolume].keys():
-                if cl not in cell_in_lineage_not_in_volume:
-                    cell_in_lineage_not_in_volume.append(cl)
-            for dcl in d[keylineage][cl]:
-                if dcl not in d[keyvolume].keys():
-                    if dcl not in cell_in_lineage_not_in_volume:
-                        cell_in_lineage_not_in_volume.append(dcl)
-        #
+        dict_volume = d[keyvolume]
+        cell_in_volume_not_in_lineage = list(set(dict_volume.keys()).difference(set(nodes)))
+        cell_in_lineage_not_in_volume = list(set(nodes).difference(set(dict_volume.keys())))
 
-    if (len(cell_in_volume_not_in_lineage) > 0):
-        cell_in_volume_not_in_lineage.sort()
-        monitoring.to_log_and_console("  - " + str(len(cell_in_volume_not_in_lineage))
-                                      + " cells with volume not present in lineage: ", 1)
-        _print_list(cell_in_volume_not_in_lineage, time_digits_for_cell_id=time_digits_for_cell_id)
-    if (len(cell_in_lineage_not_in_volume) > 0):
-        cell_in_lineage_not_in_volume.sort()
-        monitoring.to_log_and_console("  - " + str(len(cell_in_lineage_not_in_volume))
-                                      + " cells present in lineage without volume: ", 1)
-        _print_list(cell_in_lineage_not_in_volume, time_digits_for_cell_id=time_digits_for_cell_id)
+        if len(cell_in_volume_not_in_lineage) > 0:
+            cell_in_volume_not_in_lineage.sort()
+            #
+            # remove background cells (label is 1)
+            #
+            erroneous_cells = [c for c in cell_in_volume_not_in_lineage if _cell_id(c, time_digits_for_cell_id) != 1]
+            if len(erroneous_cells) > 0:
+                monitoring.to_log_and_console("  - " + str(len(erroneous_cells))
+                                              + " cells with volume not present in lineage: ", 1)
+                _print_list(erroneous_cells, time_digits_for_cell_id=time_digits_for_cell_id)
+        if len(cell_in_lineage_not_in_volume) > 0:
+            cell_in_lineage_not_in_volume.sort()
+            monitoring.to_log_and_console("  - " + str(len(cell_in_lineage_not_in_volume))
+                                          + " cells present in lineage without volume: ", 1)
+            _print_list(cell_in_lineage_not_in_volume, time_digits_for_cell_id=time_digits_for_cell_id)
 
-    #
-    #
-    #
-    cell_in_lineage = []
-    cell_n_mothers = {}
-    cell_n_daughters = {}
-    for cl in d[keylineage].keys():
-        if cl not in cell_in_lineage:
-            cell_in_lineage.append(cl)
-        if cl not in cell_n_daughters.keys():
-            cell_n_daughters[cl] = len(d[keylineage][cl])
-        else:
-            cell_n_daughters[cl] += len(d[keylineage][cl])
-        for dcl in d[keylineage][cl]:
-            if dcl not in cell_in_lineage:
-                cell_in_lineage.append(dcl)
-            if dcl not in cell_n_mothers.keys():
-                cell_n_mothers[dcl] = 1
-            else:
-                cell_n_mothers[dcl] += 1
-    #
-    #
-    #
-    cell_without_mother = []
-    cell_with_mothers = []
-    cell_without_daughter = []
-    cell_with_daughters = []
-    for c in cell_in_lineage:
-        t = c // 10**time_digits_for_cell_id
-        if t > first_time:
-            if c not in cell_n_mothers.keys():
-                cell_without_mother.append(c)
-            elif cell_n_mothers[c] > 1:
-                cell_with_mothers.append(c)
-        if t < last_time:
-            if c not in cell_n_daughters.keys():
-                cell_without_daughter.append(c)
-            elif cell_n_daughters[c] > 2:
-                cell_with_daughters.append(c)
+        _diagnosis_volume(dict_volume, keyvolume)
 
-    if (len(cell_without_mother) > 0):
-        cell_without_mother.sort()
-        monitoring.to_log_and_console("  - " + str(len(cell_without_mother)) + " cells without mother cell: ", 1)
-        _print_list(cell_without_mother, time_digits_for_cell_id=time_digits_for_cell_id)
-    if (len(cell_with_mothers) > 0):
-        cell_with_mothers.sort()
-        monitoring.to_log_and_console("  - " + str(len(cell_with_mothers)) + " cells with multiple mother cells: ", 1)
-        _print_list(cell_with_mothers, time_digits_for_cell_id=time_digits_for_cell_id)
-    if (len(cell_without_daughter) > 0):
-        cell_without_daughter.sort()
-        monitoring.to_log_and_console("  - " + str(len(cell_without_daughter)) + " cells without daughter cell: ", 1)
-        _print_list(cell_without_daughter, time_digits_for_cell_id=time_digits_for_cell_id)
-    if (len(cell_with_daughters) > 0):
-        cell_with_daughters.sort()
-        monitoring.to_log_and_console("  - " + str(len(cell_with_daughters))
-                                      + " cells with more than 2 daughter cells: ", 1)
-        _print_list(cell_with_daughters, time_digits_for_cell_id=time_digits_for_cell_id)
-
+    _diagnosis_lineage(direct_lineage, keylineage, time_digits_for_cell_id=time_digits_for_cell_id)
     return
-
 
 
 ########################################################################################
@@ -1745,10 +1790,13 @@ def check_lineage(d, first_time, last_time, time_digits_for_cell_id=4):
 #
 ########################################################################################
 
-def print_keys(d):
+def print_keys(d, desc=None):
 
     monitoring.to_log_and_console("\n", 1)
-    monitoring.to_log_and_console("... contents", 1)
+    if desc is None:
+        monitoring.to_log_and_console("... contents", 1)
+    else:
+        monitoring.to_log_and_console("... contents of '" + str(desc) + "'", 1)
 
     if type(d) is dict:
         if d == {}:

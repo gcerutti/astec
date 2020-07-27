@@ -10,7 +10,7 @@ from argparse import ArgumentParser
 
 
 import ASTEC.common as common
-import ASTEC.astecnew as astec
+import ASTEC.postcorrectionnew as post
 from ASTEC.CommunFunctions.cpp_wrapping import path_to_vt
 
 
@@ -119,7 +119,7 @@ def main():
     # 2. the log file name
     #    it creates the logfile dir, if necessary
     #
-    experiment.working_dir = experiment.astec_dir
+    experiment.working_dir = experiment.post_dir
     monitoring.set_log_filename(experiment, __file__, start_time)
 
     #
@@ -151,7 +151,7 @@ def main():
     # copy monitoring information into other "files"
     # so the log filename is known
     #
-    astec.monitoring.copy(monitoring)
+    post.monitoring.copy(monitoring)
 
     #
     # manage parameters
@@ -160,7 +160,7 @@ def main():
     # 3. write parameters into the logfile
     #
 
-    parameters = astec.AstecParameters()
+    parameters = post.PostCorrectionParameters()
 
     parameters.update_from_parameters(parameter_file)
 
@@ -169,7 +169,7 @@ def main():
     #
     # processing
     #
-    astec.astec_control(experiment, parameters)
+    post.postcorrection_process(experiment, parameters)
 
     #
     # end of execution

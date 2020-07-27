@@ -2358,7 +2358,389 @@ $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
 
 
 
+\section{\texttt{5-postcorrection.py}}
 
+\begin{verbatim}
+[...]
+    25	from nomenclature import *
+    26	from lineage import write_tlp_from_lin_tree,read_lineage_tree,\
+    27						write_lineage_tree,timeNamed,timesNamed
+    28	from post_correction import apply_cell_fusion,remove_too_little_branches
+    29	from lineage_test import pkl_lineage_test, imageDict
+[...]
+   146	##########################################
+   147	### Segmentation Post-Correction Stuff ###
+   148	##########################################
+   149	
+   150	# Post correction of the segmentation
+   151	
+   152	# Read the lineage tree (in case it was previously created)
+   153	lin_tree_information=read_lineage_tree(path_seg_exp_lineage) 
+\end{verbatim} 
+\color{\mycolor}
+Appel \`a \verb|remove_too_little_branches()| (section \ref{sec:remove:too:little:branches}, page \pageref{sec:remove:too:little:branches}).
+\color{black}
+\begin{verbatim}  
+   157	# Lineage Tree Post-correction
+   158	
+   159	### CORRECT THE LINEAGE TREE WITH THE CELLS VOLUMES
+   160	lin_tree_cor, new_volumes, to_fuse, been_fused=\
+   161		remove_too_little_branches(lin_tree_information['lin_tree'], \
+   162			lin_tree_information['volumes_information'], \
+   163			p.postcor_Volume_Threshold, soon=p.postcor_Soon)
+   164	
+\end{verbatim} 
+\color{\mycolor}
+Appel \`a \verb|apply_cell_fusion()| (cf section \ref{sec:apply:cell:fusion}, page \pageref{sec:apply:cell:fusion}).
+\color{black}
+\begin{verbatim} 
+   166	### APPLYING THE CORRECTION ON THE IMAGES
+   167	apply_cell_fusion(lin_tree_information['lin_tree'], \
+   168		   lin_tree_information['volumes_information'], \
+   169		   to_fuse,os.path.join(path_seg_exp,path_seg_exp_files), \
+   170	                  os.path.join(path_post_exp,path_post_exp_files),p.begin+p.raw_delay, \
+   171		   p.end+p.raw_delay, p.delta)
+   172	
+   173	#SAVE THE NEW LINEAGE TREE
+   174	lin_tree_information['lin_tree']=lin_tree_cor
+   175	
+   176	
+   177	### SAVE THE FINAL LINEAGE TREE
+   178	write_lineage_tree(path_post_exp_lineage,lin_tree_information)
+[...]
+\end{verbatim}
+
+
+\section{\texttt{ASTEC/post\_correction.py}}
+
+
+\subsection{\texttt{timeNamed()}}
+\label{sec:time:named}
+\begin{verbatim}
+    13	def timeNamed(filename, time):
+    14	    time_point = ('00' + str(time))[-3:]  # Format time on 3 digit
+    15	    return filename.replace('$TIME', time_point)+".inr"
+    16	
+\end{verbatim}
+
+\subsection{\texttt{fuse\_cells()}}
+\label{sec:fuse:cells}
+\begin{verbatim}
+    18	def fuse_cells(couple, lin_tree, bb, im, t):
+    19	    """
+    20	    Return an segmented image where the cells in couple have been fused
+    21	    couple : tuple of cells to fuse, couple[0] is fused to couple[1]
+    22	    lin_tree : lineage tree
+    23	    bb : bounding box of the couple of cells in ``couple``
+    24	    im : segmented image to fuse
+    25	    t : time point of im
+    26	    """
+    27	    inv_lin_tree={ v : k for k, values in lin_tree.iteritems() for v in values }
+    28	    give=couple[0]%10**4
+    29	    get=np.array(couple[1])%10**4
+    30	    possibles=np.array(lin_tree[inv_lin_tree[t*10**4+give]])
+    31	    possibles=possibles[possibles!=10**4*t+give]%10**4
+    32	    possibles=np.array([p for p in possibles if p in get])
+    33	    get=possibles
+    34	    if len(get)==1:
+    35	        final_get=get[0]
+    36	    else:
+    37	        if bb is None:
+    38	            bb=nd.find_objects(im)
+    39	        im_tmp=im[bb[give-1]]
+    40	        im_tmp_d=nd.binary_dilation(im_tmp==give)
+    41	        borders_b=im_tmp_d & (im_tmp!=give)
+    42	        borders=im_tmp[borders_b]
+    43	        count=[]
+    44	        for g in get:
+    45	            count.append([g, np.sum(borders==g)])
+    46	        count=np.array(count)
+    47	        final_get=count[np.argmax(count[:,1]), 0]
+    48	    return bb, (give, final_get)
+    49	    
+\end{verbatim}
+
+\subsection{\texttt{apply\_cell\_fusion()}}
+\label{sec:apply:cell:fusion}
+\begin{verbatim}
+    52	def apply_cell_fusion(lin_tree,volumes, to_fuse, segmented_files,segmented_fused_files,begin, end, step):
+    53	    """
+    54	    Fuse all the cells from the information given by the lineage correction for a time series
+    55	    begin : starting point
+    56	    end : ending point
+    57	    step : dt
+    58	    path : path to the working folder
+    59	    folder : folder containing the segmentations (in path)
+    60	    path_lin_tree : path to the lineage tree
+    61	    to_fuse_file : path the the file containing the informations on the cells to fuse
+    62	    path_file_format : format of the segmented files
+    63	    """
+    64	    print 'Process cell fusion'
+    65	
+    66	    inv_lin_tree={ v : k for k, values in lin_tree.iteritems() for v in values }
+    67	
+    68	    for t in range(begin, end+1, step):
+    69	        current_state=deepcopy(lin_tree)
+    70	        print ' ->Cell fusion at '+str(t)
+    71	        bb=None
+    72	        time=('00'+str(t))[-3:]
+    73	        time_prev=('00'+str(t-1))[-3:]
+    74	        tf=to_fuse.get(t, '')
+    75	        ext_cor=[]
+    76	        segmented_file=timeNamed(segmented_files,t)
+    77	        im=imread(segmented_file)
+    78	        treated=[]
+    79	        mapping=[]
+    80	        if tf!='':
+    81	            if im is None:
+    82	                im=imread(file_name)
+    83	            if mapping==[]:
+    84	                mapping=np.array(range(np.max(im)+1), dtype=np.uint16)
+    85	            getting=[]
+    86	            for couple in tf:
+    87	                bb, trsf=fuse_cells(couple, lin_tree, bb, im, t)
+    88	                getting.append(trsf)
+    89	            getting={i:j for i,j in getting}
+    90	            roots=set(getting.keys()).difference(set(getting.values()))
+    91	            final_pairing={}
+    92	            for r in roots:
+    93	                n=r
+    94	                to_change=[]
+    95	                while getting.has_key(n):
+    96	                    to_change.append(n)
+    97	                    n=getting[n]
+    98	                    final=n
+    99	                for n in to_change:
+   100	                    getting[n]=final
+   101	            for give, get in getting.iteritems():
+   102	                inv_lin_tree={ v : k for k, values in lin_tree.iteritems() for v in values }
+   103	                if give<mapping.shape[0]:
+   104	                    mapping[give]=get
+   105	                tmp=lin_tree.get(10**4*t+get, [])
+   106	                tmp.extend(lin_tree.get(10**4*t+give, []))
+   107	                lin_tree[inv_lin_tree[10**4*t+get]].remove(10**4*t+give)
+   108	                lin_tree[10**4*t+get]=tmp
+   109	                lin_tree.pop(10**4*t+give, None)
+   110	                volumes[10**4*t+get]=volumes[10**4*t+get]+volumes[10**4*t+give]
+   111	        if mapping!=[]:
+   112	            im=SpatialImage(mapping[im], voxelsize=im.voxelsize)
+   113	            
+   114	        segmented_fused_file=timeNamed(segmented_fused_files,t)
+   115	        imsave(segmented_fused_file, im)
+   116	
+\end{verbatim}
+
+\subsection{\texttt{get\_volumes()}}
+\label{sec:get:volumes}
+\begin{verbatim}    
+   118	def get_volumes(n, vol, lin_tree):
+   119	    """
+   120	    Return the volumes of cell n and its progeny up to division
+   121	    n : starting cell
+   122	    vol : dictionary of volumes
+   123	    lin_tree : lineage tree
+   124	    """
+   125	    tmp=[vol[n]]
+   126	    while len(lin_tree.get(n, ''))==1:
+   127	        tmp.append(vol[n])
+   128	        n=lin_tree[n][0]
+   129	    return tmp
+\end{verbatim}
+
+\subsection{\texttt{soon\_to\_divide()}}
+\label{sec:soon:to:divide}
+\begin{verbatim} 
+   131	def soon_to_divide(c, tree, reverse_tree, len_min,time_begin,time_end):
+   132	    """
+   133	    Return if a division is too soon (mother divided to late or cell divided too early)
+   134	    c : daughter cell to check
+   135	    tree : lineage tree
+   136	    reverse_tree : reversed lineage tree
+   137	    len_min : minimum length allowed
+   138	    time_begin: Starting time point
+   139	    time_end : final time of the movie
+   140	    """
+   141	    cell=deepcopy(tree[reverse_tree[c]])
+   142	    cell.remove(c)
+   143	    cell=cell[0]
+   144	    out=[cell]
+   145	    while len(tree.get(cell, []))==1:
+   146	        cell=tree[cell][0]
+   147	        out.append(cell) 
+   148	    cell=reverse_tree[c]
+   149	    out2=[cell]
+   150	    while reverse_tree.has_key(cell):
+   151	        cell=reverse_tree[cell]
+   152	        out2.append(cell)
+   153	    return (len(out)<len_min and out[-1]/10**4!=time_end) or (len(out2)<len_min and out2[-1]/10**4!=time_begin)
+\end{verbatim}
+
+\subsection{\texttt{branches\_to\_delete()}}
+\label{sec:branches:to:delete}
+\begin{verbatim} 
+   159	def branches_to_delete(tree, volumes, threshold, reverse_tree, soon=False,ShortLifespan=25,PearsonThreshold=0.9,time_begin=1,time_end=192):
+   160	    """
+   161	    Return the list of cells that have to be removed sorted from the yougest to the oldest
+   162	    tree : lineage tree
+   163	    volumes : dictionary of volumes information
+   164	    reverse_tree : reversed lineage tree
+   165	    soon : True if the cell life span has to be taken into account
+   166	    """
+   167	    from scipy.stats.stats import pearsonr
+   168	    nodes=list(set(tree.keys()).union(set([v for values in tree.values() for v in values])))
+   169	    leaves=set(nodes)-set(tree.keys())
+   170	    last_time=max(leaves)/10**4
+   171	    leaves_to_delete=[l for l in leaves if (((l/10**4)<last_time) or (volumes[l]<threshold))]
+   172	    branche_max_val=0
+   173	    branche_max=[]
+   174	    for l in leaves_to_delete:
+   175	        b=[]
+   176	        b.append(l)
+   177	        while len(tree.get(reverse_tree.get(l, ''), ''))==1:
+   178	            l=reverse_tree[l]
+   179	            b.append(l)
+   180	        b.reverse()
+   181	        if (min(b)>branche_max_val):
+   182	            if len(b)<ShortLifespan: #Time steps length 
+   183	                branche_max=list(b)
+   184	                branche_max_val=min(b)
+   185	            elif reverse_tree.get(min(b), '')!='':
+   186	                n1, n2=tree[reverse_tree[min(b)]]
+   187	                tmp1, tmp2=get_volumes(n1, volumes, tree), get_volumes(n2, volumes, tree)
+   188	                common_len=min(len(tmp1), len(tmp2))
+   189	                P=pearsonr(tmp1[:common_len-1], tmp2[:common_len-1])
+   190	                if P[0]<-PearsonThreshold:# and deriv>4*10**4:
+   191	                    branche_max=list(b)
+   192	                    branche_max_val=min(b)
+   193	                elif soon and soon_to_divide(min(b), tree, reverse_tree,ShortLifespan,time_begin,time_end):
+   194	                    branche_max=list(b)
+   195	                    branche_max_val=min(b)
+   196	
+   197	    branche_max.reverse()
+   198	    return branche_max
+\end{verbatim}
+
+\subsection{\texttt{get\_sisters()}}
+\label{sec:get:sisters}
+\begin{verbatim} 
+   200	def get_sisters(lin_tree_out, mother, init, end):
+   201	    """
+   202	    Build the list of all the progeny of the sister cells of init
+   203	    lin_tree_out : lineage tree
+   204	    mother : common mother of sisters and init cell
+   205	    init : cell id
+   206	    end : final time point
+   207	    """
+   208	    sisters=[s for s in lin_tree_out[mother] if s!=init]
+   209	    out=[]
+   210	    tmp=sisters
+   211	    while tmp!=[] and sisters[0]/10**4<=end:
+   212	        out.append(sisters)
+   213	        tmp=[]
+   214	        for s in sisters:
+   215	            if lin_tree_out.has_key(s):
+   216	                tmp.extend(lin_tree_out[s])
+   217	        sisters=tmp
+   218	    return out
+\end{verbatim}
+
+\subsection{\texttt{remove\_too\_little\_branches()}}
+\label{sec:remove:too:little:branches}
+\begin{verbatim} 
+   223	def remove_too_little_branches(lin_tree, volumes, threshold=2000, soon=False,ShortLifespan=25,PearsonThreshold=0.9,time_begin=1,time_end=192):
+   224	    """
+   225	    Build a corrected lineage tree (based on volume correlation and cell life span).
+   226	    Return a list of cells to fuse, new volumes and new lineage tree
+   227	    lin_tree : lineage tree
+   228	    volumes : dictionary of volumes
+   229	    threshold : volume low threshold for final cells (in voxels)
+   230	    soon : True if the cell life span has to be taken into account
+   231	    """
+   232	    print 'Process remove too little branches'
+   233	    reverse_tree={v:k for k, values in lin_tree.iteritems() for v in values}
+   234	    branches=branches_to_delete(lin_tree, volumes, threshold, reverse_tree, soon=soon,ShortLifespan=ShortLifespan,PearsonThreshold=PearsonThreshold,time_begin=time_begin,time_end=time_end)
+   235	    lin_tree_out=deepcopy(lin_tree)
+   236	    to_fuse={}
+   237	    new_volumes=deepcopy(volumes)
+   238	    while list(branches)!=[]:
+   239	        reverse_tree={v:k for k, values in lin_tree_out.iteritems() for v in values}
+   240	        b=branches
+   241	        last=b[-1]
+   242	        mother=reverse_tree.get(last, '')
+   243	        if mother!='':
+   244	            tmp=get_sisters(lin_tree_out, mother, last, b[0]/10**4)
+   245	            for t in tmp:
+   246	                time=t[0]/10**4
+   247	                cell=[c for c in b if c/10**4==time]
+   248	                to_fuse.setdefault(time, []).append((cell[0], t))
+   249	                if len(t)==1 and new_volumes.has_key(t[0]) and new_volumes.has_key(cell[0]):
+   250	                    new_volumes[t[0]]=new_volumes[cell[0]]+new_volumes[t[0]]
+   251	            i=1
+   252	            while (i<=len(b)) and (b[-i]/10**4 in [time_cell[0]/10**4 for time_cell in tmp]):
+   253	                n=b[-i]
+   254	                sis=tmp[np.argwhere(np.array([time_cell[0]/10**4 for time_cell in tmp])==n/10**4)[0, 0]][0]
+   255	                lin_tree_out[reverse_tree[n]].remove(n)
+   256	                lin_tree_out.pop(n, None)
+   257	                if i+1<=len(b):
+   258	                    lin_tree_out.setdefault(sis, []).append(b[-(i+1)])
+   259	                    reverse_tree[b[-(i+1)]]=sis
+   260	                i+=1
+   261	        else:
+   262	            for n in b:
+   263	                lin_tree_out.pop(n, None)
+   264	                reverse_tree.pop(n, None)
+   265	        branches=branches_to_delete(lin_tree_out, new_volumes, threshold, reverse_tree, soon=soon,ShortLifespan=ShortLifespan,PearsonThreshold=PearsonThreshold,time_begin=time_begin,time_end=time_end)
+   266	
+   267	    #### FUSE TOO EARLY DIVISIONS
+   268	    from scipy.stats.stats import pearsonr
+   269	    cells_list=[(i[0],i[1]) for i in lin_tree_out.values() if len(i)==2]
+   270	    P={}
+   271	    deriv={}
+   272	    for n1, n2 in cells_list:
+   273	        tmp1, tmp2=get_volumes(n1, new_volumes, lin_tree_out), get_volumes(n2, new_volumes, lin_tree_out)
+   274	        common_len=min(len(tmp1), len(tmp2))
+   275	        if len(tmp1)>8 and len(tmp2)>8: 
+   276	            P[(n1, n2)]=pearsonr(tmp1[:common_len-1], tmp2[:common_len-1])
+   277	    to_check=[k for k, v in P.iteritems() if v[0]<-.80] #.80 WHAT ? 
+   278	    scores_window={}
+   279	    for c1, c2 in to_check:
+   280	        tmp1, tmp2=get_volumes(c1, volumes, lin_tree_out), get_volumes(c2, volumes, lin_tree_out)
+   281	        scores=[]
+   282	        common_len=min(len(tmp1), len(tmp2))
+   283	        for i in range(0, common_len-4):
+   284	            scores.append(pearsonr(tmp1[i:i+5], tmp2[i:i+5])[0])
+   285	        scores_window[(c1, c2)]=np.array(scores)
+   286	
+   287	    been_fused={}
+   288	    for c, scores in scores_window.iteritems():
+   289	        if (np.array(scores)<-.8).all(): #.8 WHAT ? 
+   290	            first_size=len(scores)-1
+   291	        else:
+   292	            out=scores[1:]-scores[:-1]
+   293	            sizes=np.argsort(out)[::-1]
+   294	            sizes=np.array([s for s in sizes if scores[s]<-.8])
+   295	            first_size=sizes[sizes<len(scores)/2]
+   296	            if first_size!=[]:
+   297	                first_size=first_size[0]
+   298	            else:
+   299	                first_size=-1
+   300	        c1, c2=c
+   301	        for i in range(first_size+1):
+   302	            next_c1=lin_tree_out.get(c1, [0])[0]
+   303	            next_c2=lin_tree_out.get(c2, [0])[0]
+   304	            lin_tree_out.setdefault(c1, []).extend(lin_tree_out.get(c2, []))
+   305	            for tmp_c in lin_tree_out[c1]:
+   306	                reverse_tree[tmp_c]=c1
+   307	            lin_tree_out[reverse_tree[c1]]=[c1]
+   308	            lin_tree_out.pop(c2, None)
+   309	            time=c1/10**4
+   310	            to_fuse.setdefault(time, []).append((c2, [c1]))
+   311	            new_volumes[c1]=new_volumes[c1]+new_volumes[c2]
+   312	            c1=next_c1
+   313	            c2=next_c2
+   314	            been_fused[c1]=1
+   315	    return lin_tree_out, new_volumes, to_fuse, been_fused
+\end{verbatim}
 
 \bibliographystyle{unsrt}
 \bibliography{bib-astec}
