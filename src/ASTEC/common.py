@@ -313,10 +313,14 @@ class RawdataChannel(object):
         # raw data directories
         #
         if c == 0:
-            self.angle0_sub_directory = os.path.join('LC', 'Stack0000')
-            self.angle1_sub_directory = os.path.join('RC', 'Stack0000')
-            self.angle2_sub_directory = os.path.join('LC', 'Stack0001')
-            self.angle3_sub_directory = os.path.join('RC', 'Stack0001')
+            # self.angle0_sub_directory = os.path.join('LC', 'Stack0000')
+            # self.angle1_sub_directory = os.path.join('RC', 'Stack0000')
+            # self.angle2_sub_directory = os.path.join('LC', 'Stack0001')
+            # self.angle3_sub_directory = os.path.join('RC', 'Stack0001')
+            self.angle0_sub_directory = 'stack_0_channel_0'
+            self.angle1_sub_directory = 'stack_0_channel_0'
+            self.angle2_sub_directory = 'stack_1_channel_0'
+            self.angle3_sub_directory = 'stack_1_channel_0'
         else:
             self.angle0_sub_directory = None
             self.angle1_sub_directory = None
@@ -602,7 +606,7 @@ class RawdataSubdirectory(object):
         for i in range(self._n_max_channels):
             if self.channel[i].is_empty():
                 return i
-        return None
+        return self._n_max_channels
 
     def get_tmp_directory(self, i, channel_id=0):
         """
