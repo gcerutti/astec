@@ -264,6 +264,20 @@ def normalize_dictionary_keys(inputdict):
 
     return outputdict
 
+
+def get_dictionary_entry(inputdict, keystring):
+    proc = 'get_dictionary_entry'
+    if keystring not in keydictionary.keys():
+        monitoring.to_log_and_console(str(proc) + ": keystring must be in " + str(keydictionary.keys()), 1)
+        return {}
+    for k in keydictionary[keystring]['input_keys']:
+        if k in inputdict.keys():
+            return inputdict[k]
+    else:
+        monitoring.to_log_and_console(str(proc) + ": '" + str(keystring) + "' was not found in input dictionary", 1)
+        monitoring.to_log_and_console("    keys were: " + str(inputdict.keys()), 1)
+        return {}
+
 ########################################################################################
 #
 # to translate a dictionary into XML
@@ -1462,12 +1476,13 @@ def _diagnosis_lineage(direct_lineage, description, time_digits_for_cell_id=4):
     # cell with more than 2 daughters
     #
     multiple_daughters = [cell for cell in direct_lineage.keys() if len(direct_lineage[cell]) > 2]
+    divisions = [cell for cell in direct_lineage.keys() if len(direct_lineage[cell]) >= 2]
 
     #
     # get cells without daughters, remove cells from the last time point
     #
-    nodes = list(set(direct_lineage.keys()).union(set([v for values in direct_lineage.values() for v in values])))
-    leaves = set(nodes) - set(direct_lineage.keys())
+    direct_nodes = list(set(direct_lineage.keys()).union(set([v for values in direct_lineage.values() for v in values])))
+    leaves = set(direct_nodes) - set(direct_lineage.keys())
     early_leaves = [leave for leave in leaves if (leave/10**time_digits_for_cell_id) < last_time]
 
     #
@@ -1482,6 +1497,29 @@ def _diagnosis_lineage(direct_lineage, description, time_digits_for_cell_id=4):
                 reverse_lineage[v].append(k)
 
     #
+    # histogram of lengths for terminal branches
+    #
+    branch_length_histogram = {}
+    branch_lengths = []
+    for leaf in leaves:
+        le = leaf
+        branch = [le]
+        while True:
+            if len(reverse_lineage.get(le, '')) == 1:
+                le = reverse_lineage[le][0]
+                if len(direct_lineage.get(le, '')) == 1:
+                    branch.append(le)
+                else:
+                    break
+            else:
+                break
+        length = len(branch)
+        branch_lengths.append(length)
+        if length in branch_length_histogram.keys():
+            branch_length_histogram[length] += 1
+        else:
+            branch_length_histogram[length] = 1
+    #
     # get cells with more than 1 mother
     #
     multiple_mothers = [cell for cell in reverse_lineage.keys() if len(reverse_lineage[cell]) > 1]
@@ -1489,28 +1527,47 @@ def _diagnosis_lineage(direct_lineage, description, time_digits_for_cell_id=4):
     #
     # get cells without mother, remove cells from the first time point
     #
-    nodes = list(set(reverse_lineage.keys()).union(set([v for values in reverse_lineage.values() for v in values])))
-    orphans = set(nodes) - set(reverse_lineage.keys())
+    reverse_nodes = list(set(reverse_lineage.keys()).union(set([v for values in reverse_lineage.values() for v in values])))
+    orphans = set(reverse_nodes) - set(reverse_lineage.keys())
     late_orphans = [orphan for orphan in orphans if (orphan / 10 ** time_digits_for_cell_id) > first_time]
+
+    monitoring.to_log_and_console("  - found " + str(len(direct_nodes)) + " cells", 1)
 
     if len(late_orphans) > 0:
         late_orphans.sort()
-        monitoring.to_log_and_console("  - " + str(len(late_orphans)) + " cells without mother cell: ", 1)
+        monitoring.to_log_and_console("  - " + str(len(late_orphans))
+                                      + " lineage branches starting after the first time point", 1)
         _print_list(late_orphans, time_digits_for_cell_id=time_digits_for_cell_id)
     if len(multiple_mothers) > 0:
         multiple_mothers.sort()
-        monitoring.to_log_and_console("  - " + str(len(multiple_mothers)) + " cells with multiple mother cells: ", 1)
+        monitoring.to_log_and_console("  - " + str(len(multiple_mothers)) + " cells with multiple mother cells", 1)
         _print_list(multiple_mothers, time_digits_for_cell_id=time_digits_for_cell_id)
+
+    if len(leaves) > 0:
+        monitoring.to_log_and_console("  - " + str(len(leaves))
+                                      + " lineage terminal branches", 1)
     if len(early_leaves) > 0:
         early_leaves.sort()
-        monitoring.to_log_and_console("  - " + str(len(early_leaves)) + " cells without daughter cell: ", 1)
+        monitoring.to_log_and_console("  - " + str(len(early_leaves))
+                                      + " lineage terminal branches ending before the last time point", 1)
         _print_list(early_leaves, time_digits_for_cell_id=time_digits_for_cell_id)
+
+    if len(divisions) > 0:
+        divisions.sort()
+        monitoring.to_log_and_console("  - " + str(len(divisions)) + " cell divisions", 1)
     if len(multiple_daughters) > 0:
         multiple_daughters.sort()
         monitoring.to_log_and_console("  - " + str(len(multiple_daughters))
-                                      + " cells with more than 2 daughter cells: ", 1)
+                                      + " divisions yielding more than 2 branches", 1)
         _print_list(multiple_daughters, time_digits_for_cell_id=time_digits_for_cell_id)
 
+    monitoring.to_log_and_console("  - terminal branch lengths: ", 1)
+    monitoring.to_log_and_console("    " + str(branch_lengths), 1)
+    # lengths = branch_length_histogram.keys()
+    # lengths.sort()
+    # for le in lengths:
+    #    monitoring.to_log_and_console("    length = " + str(le) + " : " + str(branch_length_histogram[le])
+    #                                  + " branches ", 1)
     return
 
 
@@ -1518,7 +1575,7 @@ def _diagnosis_lineage(direct_lineage, description, time_digits_for_cell_id=4):
 #     return
 
 
-def _diagnosis_volume(dictionary, description, diagnosis_parameters=None):
+def _diagnosis_volume(dictionary, description, diagnosis_parameters=None, time_digits_for_cell_id=4):
     """
 
     :param dictionary:
@@ -1533,12 +1590,16 @@ def _diagnosis_volume(dictionary, description, diagnosis_parameters=None):
 
     monitoring.to_log_and_console("  === " + str(description) + " diagnosis === ", 1)
 
-    volume = []
+    all_cell_with_volume = set(dictionary.keys())
+    cell_with_volume = [c for c in all_cell_with_volume if _cell_id(c, time_digits_for_cell_id) != 1]
+    background_with_volume = [c for c in all_cell_with_volume if _cell_id(c, time_digits_for_cell_id) == 1]
 
-    for k in dictionary.keys():
-        volume.append([k, dictionary[k]])
-
+    volume = [[c, dictionary[c]] for c in cell_with_volume]
     volume = sorted(volume, key=itemgetter(1))
+
+    monitoring.to_log_and_console("    ... found " + str(len(background_with_volume))
+                                  + " background cells with volume", 1)
+    monitoring.to_log_and_console("    ... found " + str(len(cell_with_volume)) + " cells with volume", 1)
 
     monitoring.to_log_and_console("    ... smallest volumes", 1)
 
@@ -1733,54 +1794,51 @@ def _print_list(tab, time_digits_for_cell_id=4):
 def check_volume_lineage(d, time_digits_for_cell_id=4):
 
     proc = "check_volume_lineage"
-    keyvolume = None
-    keylineage = None
 
-    #
-    # get keys
-    #
+    direct_lineage = get_dictionary_entry(d, 'lineage')
+    if direct_lineage == {}:
+        monitoring.to_log_and_console(str(proc) + ": empty lineage information")
+        sys.exit(1)
 
-    for k in d.keys():
-        if k in keydictionary['volume']['input_keys']:
-            keyvolume = k
-        elif k in keydictionary['lineage']['input_keys']:
-            keylineage = k
-
-    if keylineage is None:
-        monitoring.to_log_and_console(str(proc) + ": no lineage in input dictionary", 1)
-        return
-
-    direct_lineage = d[keylineage]
-    nodes = list(set(direct_lineage.keys()).union(set([v for values in direct_lineage.values() for v in values])))
+    dict_volume = get_dictionary_entry(d, 'volume')
 
     #
     # check whether cells in volume dictionary are in lineage and vice-versa
     #
-    if keyvolume is not None:
+    if dict_volume is not {}:
+        nodes = list(set(direct_lineage.keys()).union(set([v for values in direct_lineage.values() for v in values])))
         #
-        dict_volume = d[keyvolume]
-        cell_in_volume_not_in_lineage = list(set(dict_volume.keys()).difference(set(nodes)))
-        cell_in_lineage_not_in_volume = list(set(nodes).difference(set(dict_volume.keys())))
+        all_cell_with_volume = set(dict_volume.keys())
+        cell_with_volume = [c for c in all_cell_with_volume if _cell_id(c, time_digits_for_cell_id) != 1]
+        background_with_volume = [c for c in all_cell_with_volume if _cell_id(c, time_digits_for_cell_id) == 1]
+
+        cell_in_volume_not_in_lineage = list(set(cell_with_volume).difference(set(nodes)))
+        cell_in_lineage_not_in_volume = list(set(nodes).difference(set(cell_with_volume)))
+
+        monitoring.to_log_and_console("  === volume/lineage cross-checking === ", 1)
+
+        monitoring.to_log_and_console("    ... found " + str(len(background_with_volume))
+                                      + " background cells with volume", 1)
+        monitoring.to_log_and_console("    ... found " + str(len(cell_with_volume)) + " cells with volume", 1)
+        monitoring.to_log_and_console("    ... found " + str(len(nodes)) + " cells in lineage", 1)
 
         if len(cell_in_volume_not_in_lineage) > 0:
             cell_in_volume_not_in_lineage.sort()
-            #
-            # remove background cells (label is 1)
-            #
-            erroneous_cells = [c for c in cell_in_volume_not_in_lineage if _cell_id(c, time_digits_for_cell_id) != 1]
-            if len(erroneous_cells) > 0:
-                monitoring.to_log_and_console("  - " + str(len(erroneous_cells))
+            if len(cell_in_volume_not_in_lineage) > 0:
+                monitoring.to_log_and_console("  - " + str(len(cell_in_volume_not_in_lineage))
                                               + " cells with volume not present in lineage: ", 1)
-                _print_list(erroneous_cells, time_digits_for_cell_id=time_digits_for_cell_id)
+                _print_list(cell_in_volume_not_in_lineage, time_digits_for_cell_id=time_digits_for_cell_id)
         if len(cell_in_lineage_not_in_volume) > 0:
             cell_in_lineage_not_in_volume.sort()
             monitoring.to_log_and_console("  - " + str(len(cell_in_lineage_not_in_volume))
                                           + " cells present in lineage without volume: ", 1)
             _print_list(cell_in_lineage_not_in_volume, time_digits_for_cell_id=time_digits_for_cell_id)
 
-        _diagnosis_volume(dict_volume, keyvolume)
+        _diagnosis_volume(dict_volume, keydictionary['volume']['output_key'],
+                          time_digits_for_cell_id=time_digits_for_cell_id)
 
-    _diagnosis_lineage(direct_lineage, keylineage, time_digits_for_cell_id=time_digits_for_cell_id)
+    _diagnosis_lineage(direct_lineage, keydictionary['lineage']['output_key'],
+                       time_digits_for_cell_id=time_digits_for_cell_id)
     return
 
 
