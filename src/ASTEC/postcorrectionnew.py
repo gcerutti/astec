@@ -1,9 +1,7 @@
-
 import os
 import imp
 import sys
 import copy
-import time
 import operator
 import shutil
 import numpy as np
@@ -14,7 +12,6 @@ import common
 import properties as properties
 import CommunFunctions.cpp_wrapping as cpp_wrapping
 from CommunFunctions.ImageHandling import imread, imsave, SpatialImage
-
 
 #
 #
@@ -53,13 +50,16 @@ class PostCorrectionParameters(object):
         #
         ############################################################
 
-        self.test_early_division = False
         self.volume_minimal_value = 2000
         self.lifespan_minimal_value = 25
-        self.pearson_threshold = 0.9
+
+        self.test_early_division = False
+
+        self.test_volume_correlation = True
+        self.correlation_threshold = 0.9
 
         # diagnosis
-        self.test_lineage = False
+        self.lineage_diagnosis = False
 
     ############################################################
     #
@@ -71,12 +71,15 @@ class PostCorrectionParameters(object):
         print("")
         print('PostCorrectionParameters')
 
-        print('- soon = ' + str(self.test_early_division))
         print('- volume_minimal_value = ' + str(self.volume_minimal_value))
         print('- lifespan_minimal_value = ' + str(self.lifespan_minimal_value))
-        print('- pearson_threshold = ' + str(self.pearson_threshold))
 
-        print('- test_lineage = ' + str(self.test_lineage))
+        print('- test_early_division = ' + str(self.test_early_division))
+
+        print('- test_volume_correlation = ' + str(self.test_volume_correlation))
+        print('- correlation_threshold = ' + str(self.correlation_threshold))
+
+        print('- lineage_diagnosis = ' + str(self.lineage_diagnosis))
 
         print("")
 
@@ -85,12 +88,15 @@ class PostCorrectionParameters(object):
             logfile.write("\n")
             logfile.write('PostCorrectionParameters\n')
 
-            logfile.write('- test_early_division = ' + str(self.test_early_division) + '\n')
             logfile.write('- volume_minimal_value = ' + str(self.volume_minimal_value) + '\n')
             logfile.write('- lifespan_minimal_value = ' + str(self.lifespan_minimal_value) + '\n')
-            logfile.write('- pearson_threshold = ' + str(self.pearson_threshold) + '\n')
 
-            logfile.write('- test_lineage = ' + str(self.test_lineage) + '\n')
+            logfile.write('- test_early_division = ' + str(self.test_early_division) + '\n')
+
+            logfile.write('- test_volume_correlation = ' + str(self.test_volume_correlation) + '\n')
+            logfile.write('- correlation_threshold = ' + str(self.correlation_threshold) + '\n')
+
+            logfile.write('- lineage_diagnosis = ' + str(self.lineage_diagnosis) + '\n')
 
             print("")
         return
@@ -109,19 +115,6 @@ class PostCorrectionParameters(object):
             sys.exit(1)
 
         parameters = imp.load_source('*', parameter_file)
-
-        if hasattr(parameters, 'test_early_division'):
-            if parameters.test_early_division is not None:
-                self.test_early_division = parameters.test_early_division
-        if hasattr(parameters, 'postcorrection_test_early_division'):
-            if parameters.postcorrection_test_early_division is not None:
-                self.test_early_division = parameters.postcorrection_test_early_division
-        if hasattr(parameters, 'postcorrection_soon'):
-            if parameters.postcorrection_soon is not None:
-                self.test_early_division = parameters.postcorrection_soon
-        if hasattr(parameters, 'postcor_Soon'):
-            if parameters.postcor_Soon is not None:
-                self.test_early_division = parameters.postcor_Soon
 
         if hasattr(parameters, 'volume_minimal_value'):
             if parameters.volume_minimal_value is not None:
@@ -143,15 +136,54 @@ class PostCorrectionParameters(object):
             if parameters.postcor_lifespan_minimal_value is not None:
                 self.lifespan_minimal_value = parameters.postcor_lifespan_minimal_value
 
-        if hasattr(parameters, 'test_lineage'):
-            if parameters.test_lineage is not None:
-                self.test_lineage = parameters.test_lineage
-        if hasattr(parameters, 'postcorrection_test_lineage'):
-            if parameters.postcorrection_test_lineage is not None:
-                self.test_lineage = parameters.postcorrection_test_lineage
-        if hasattr(parameters, 'postcor_test_lineage'):
-            if parameters.postcor_test_lineage is not None:
-                self.test_lineage = parameters.postcor_test_lineage
+        if hasattr(parameters, 'test_early_division'):
+            if parameters.test_early_division is not None:
+                self.test_early_division = parameters.test_early_division
+        if hasattr(parameters, 'postcorrection_test_early_division'):
+            if parameters.postcorrection_test_early_division is not None:
+                self.test_early_division = parameters.postcorrection_test_early_division
+        if hasattr(parameters, 'postcorrection_soon'):
+            if parameters.postcorrection_soon is not None:
+                self.test_early_division = parameters.postcorrection_soon
+        if hasattr(parameters, 'postcor_Soon'):
+            if parameters.postcor_Soon is not None:
+                self.test_early_division = parameters.postcor_Soon
+
+        if hasattr(parameters, 'test_volume_correlation'):
+            if parameters.test_volume_correlation is not None:
+                self.test_volume_correlation = parameters.test_early_division
+        if hasattr(parameters, 'postcorrection_test_volume_correlation'):
+            if parameters.postcorrection_test_volume_correlation is not None:
+                self.test_volume_correlation = parameters.postcorrection_test_volume_correlation
+
+        if hasattr(parameters, 'correlation_threshold'):
+            if parameters.correlation_threshold is not None:
+                self.correlation_threshold = parameters.correlation_threshold
+        if hasattr(parameters, 'postcorrection_correlation_threshold'):
+            if parameters.postcorrection_correlation_threshold is not None:
+                self.correlation_threshold = parameters.postcorrection_correlation_threshold
+        if hasattr(parameters, 'postcor_correlation_threshold'):
+            if parameters.postcor_correlation_threshold is not None:
+                self.correlation_threshold = parameters.postcor_correlation_threshold
+        if hasattr(parameters, 'postcorrection_pearson_threshold'):
+            if parameters.postcorrection_pearson_threshold is not None:
+                self.correlation_threshold = parameters.postcorrection_pearson_threshold
+        if hasattr(parameters, 'postcor_pearson_threshold'):
+            if parameters.postcor_pearson_threshold is not None:
+                self.correlation_threshold = parameters.postcor_pearson_threshold
+        if hasattr(parameters, 'postcor_PearsonThreshold'):
+            if parameters.postcor_PearsonThreshold is not None:
+                self.correlation_threshold = parameters.postcor_PearsonThreshold
+
+        if hasattr(parameters, 'lineage_diagnosis'):
+            if parameters.lineage_diagnosis is not None:
+                self.lineage_diagnosis = parameters.lineage_diagnosis
+        if hasattr(parameters, 'postcorrection_lineage_diagnosis'):
+            if parameters.postcorrection_lineage_diagnosis is not None:
+                self.lineage_diagnosis = parameters.postcorrection_lineage_diagnosis
+        if hasattr(parameters, 'postcor_lineage_diagnosis'):
+            if parameters.postcor_lineage_diagnosis is not None:
+                self.lineage_diagnosis = parameters.postcor_lineage_diagnosis
 
 
 ########################################################################################
@@ -206,17 +238,17 @@ def _map_cell_fusion(astec_image, post_image, current_time, cells_to_be_fused, t
 ########################################################################################
 
 
-def _test_early_division(direct_lineage, reverse_lineage, cell, lifespan_minimal_value, first_time_point, last_time_point, time_digits_for_cell_id):
+def _test_early_division(direct_lineage, reverse_lineage, division_cell, cell, lifespan_minimal_value, first_time_point,
+                         last_time_point, time_digits_for_cell_id):
     proc = "_test_early_division"
 
     #
     # get all the progeny of the mother cell of 'cell'
     #
-    mother_cell = reverse_lineage[cell]
-    sisters = copy.deepcopy(direct_lineage[mother_cell])
+    sisters = copy.deepcopy(direct_lineage[division_cell])
     if len(sisters) > 2:
-        monitoring.to_log_and_console(str(proc) + ": cell #" + str(reverse_lineage[cell]) +
-                                      "divides in more than 2 branches, skip it")
+        monitoring.to_log_and_console(str(proc) + ": cell #" + str(division_cell)
+                                      + "divides in more than 2 branches, skip it")
         return False
     sisters.remove(cell)
     #
@@ -233,27 +265,70 @@ def _test_early_division(direct_lineage, reverse_lineage, cell, lifespan_minimal
     # the sister branch is too short (and ends before the end of the sequence)
     #
     if len(sister_branch) < lifespan_minimal_value \
-            and sister_branch[-1]/10**time_digits_for_cell_id != last_time_point:
+            and sister_branch[-1] / 10 ** time_digits_for_cell_id != last_time_point:
         return True
     #
     # extract the mother branch in the reverse order until the first bifurcation
     #
-    mother_branch = [mother_cell]
-    c = mother_cell
-    while c in reverse_lineage.keys():
+    mother_branch = [division_cell]
+    c = division_cell
+    while c in reverse_lineage:
         c = reverse_lineage[c]
         #
         # TODO: test to be added
         #
-        #if len(direct_lineage.get(c, [])) > 1:
-        #    break
+        # if len(direct_lineage.get(c, [])) > 1:
+        #     break
         mother_branch.append(c)
 
     #
     # the mother branch is too short (and begins after the beginning of the sequence)
     #
     if len(mother_branch) < lifespan_minimal_value \
-            and mother_branch[-1]/10**time_digits_for_cell_id != first_time_point:
+            and mother_branch[-1] / 10 ** time_digits_for_cell_id != first_time_point:
+        return True
+
+    return False
+
+
+def _get_volumes(lineage, volume, cell):
+    """
+    Return the list of volumes of cell n and its progeny up to division
+    lineage: lineage tree
+    volume: dictionary of volumes
+    cell: starting cell
+    """
+    v = [volume[cell]]
+    while len(lineage.get(cell, '')) == 1:
+        v.append(volume[cell])
+        cell = lineage[cell][0]
+    return v
+
+
+def _test_volume_correlation(direct_lineage, volume, division_cell, cell, correlation_threshold):
+    proc = "_test_volume_correlation"
+
+    sisters = copy.deepcopy(direct_lineage[division_cell])
+    if len(sisters) > 2:
+        monitoring.to_log_and_console(str(proc) + ": cell #" + str(division_cell) +
+                                      "divides in more than 2 branches, skip it")
+        return False
+    sisters.remove(cell)
+
+    branch_volume = _get_volumes(direct_lineage, volume, cell)
+    sister_volume = _get_volumes(direct_lineage, volume, sisters[0])
+    min_length = min(len(branch_volume), len(sister_volume))
+
+    #
+    # branches of constant volume
+    #
+    if min(branch_volume[:min_length]) == max(branch_volume[:min_length]):
+        return False
+    if min(sister_volume[:min_length]) == max(sister_volume[:min_length]):
+        return False
+    pearson_correlation = pearsonr(branch_volume[:min_length], sister_volume[:min_length])
+
+    if pearson_correlation[0] < -correlation_threshold:
         return True
 
     return False
@@ -297,7 +372,7 @@ def _get_leaves(direct_lineage, reverse_lineage, volume, experiment, parameters)
     # - the volume of the leave cell is too small
     #
     candidates_for_deletion = [leaf for leaf in leaves if (((leaf / 10 ** time_digits_for_cell_id) < last_time)
-                                                             or (volume[leaf] < parameters.volume_minimal_value))]
+                                                           or (volume[leaf] < parameters.volume_minimal_value))]
 
     lengths = []
     division_cells = []
@@ -337,7 +412,6 @@ def _get_leaves(direct_lineage, reverse_lineage, volume, experiment, parameters)
 
 
 def _fuse_branch(lineage, volume, surfaces, labels_to_be_fused, division_cell, branch, experiment):
-
     proc = "_fuse_branch"
     time_digits_for_cell_id = experiment.get_time_digits_for_cell_id()
 
@@ -386,13 +460,13 @@ def _fuse_branch(lineage, volume, surfaces, labels_to_be_fused, division_cell, b
                 surfaces[progeny[iprogeny]][cell] += surfaces[branch[ibranch]][cell]
             else:
                 surfaces[progeny[iprogeny]][cell] = surfaces[branch[ibranch]][cell]
-        if branch[ibranch] in surfaces[progeny[iprogeny]].keys():
-            del(surfaces[progeny[iprogeny]][branch[ibranch]])
-        for cell in surfaces[progeny[iprogeny]].keys():
-            if cell in surfaces.keys():
+        if branch[ibranch] in surfaces[progeny[iprogeny]]:
+            del (surfaces[progeny[iprogeny]][branch[ibranch]])
+        for cell in surfaces[progeny[iprogeny]]:
+            if cell in surfaces:
                 surfaces[cell][progeny[iprogeny]] = surfaces[progeny[iprogeny]][cell]
-                if branch[ibranch] in surfaces[cell].keys():
-                    del(surfaces[cell][branch[ibranch]])
+                if branch[ibranch] in surfaces[cell]:
+                    del (surfaces[cell][branch[ibranch]])
         surfaces.pop(branch[ibranch], None)
         #
         # update lineage
@@ -417,7 +491,7 @@ def _fuse_branch(lineage, volume, surfaces, labels_to_be_fused, division_cell, b
         iprogeny = -1
         if len(progeny) >= 2:
             for i in range(len(progeny)):
-                if branch[ibranch] in surfaces[progeny[i]].keys():
+                if branch[ibranch] in surfaces[progeny[i]]:
                     if iprogeny == -1:
                         iprogeny = i
                     elif surfaces[progeny[i]][branch[ibranch]] > surfaces[progeny[iprogeny]][branch[ibranch]]:
@@ -446,6 +520,36 @@ def _fuse_branch(lineage, volume, surfaces, labels_to_be_fused, division_cell, b
     return
 
 
+def _get_branch(reverse_lineage, leaf, division_cell):
+    """
+    Given a leaf cell and the division cell, extract the branch (as a list)
+    from the first cell after the division cell to the leaf
+    :param reverse_lineage:
+    :param leaf:
+    :param division_cell:
+    :return:
+    """
+    #
+    # get the whole branch from the leaf
+    #
+    branch = [leaf]
+    while reverse_lineage.get(leaf, '') != division_cell:
+        leaf = reverse_lineage[leaf]
+        branch.append(leaf)
+    #
+    # reverse it, so it begins from the first point after the division cell
+    #
+    branch.reverse()
+    return branch
+
+
+########################################################################################
+#
+#
+#
+########################################################################################
+
+
 def _prune_lineage_tree(lineage, volume, surfaces, experiment, parameters):
     proc = "_prune_lineage_tree"
     #
@@ -472,6 +576,10 @@ def _prune_lineage_tree(lineage, volume, surfaces, experiment, parameters):
 
     labels_to_be_fused = {}
     undeletable_leaves = set()
+
+    total_n_fusions_length = 0
+    total_n_fusions_early_division = 0
+    total_n_fusions_volume_correlation = 0
 
     iteration = 1
     previous_iteration_division_time = last_time
@@ -502,7 +610,9 @@ def _prune_lineage_tree(lineage, volume, surfaces, experiment, parameters):
 
         # candidates is an array of tuples (#leaf_id, branch_length, #division_cell, division_time)
         # sorted by decreasing division cell id (and then by increasing length)
-        n_fusions = 0
+        n_fusions_length = 0
+        n_fusions_early_division = 0
+        n_fusions_volume_correlation = 0
         iteration_division_time = first_time
         for leaf, branch_length, division_cell, division_time in candidates:
 
@@ -532,27 +642,35 @@ def _prune_lineage_tree(lineage, volume, surfaces, experiment, parameters):
                 #                              + " progeny. Skip it", 4)
                 continue
 
+            #
+            # get the whole branch from the leaf
+            # useful for the two last test
+            #
+            branch = _get_branch(reverse_lineage, leaf, division_cell)
+
             if branch_length < parameters.lifespan_minimal_value:
+                n_fusions_length += 1
+                pass
+            elif parameters.test_early_division and _test_early_division(lineage, reverse_lineage, division_cell,
+                                                                         branch[0], parameters.lifespan_minimal_value,
+                                                                         first_time, last_time,
+                                                                         time_digits_for_cell_id):
+                n_fusions_early_division += 1
+                pass
+            elif parameters.test_volume_correlation and _test_volume_correlation(lineage, volume, division_cell,
+                                                                                 branch[0],
+                                                                                 parameters.correlation_threshold):
+                n_fusions_volume_correlation += 1
                 pass
             else:
                 continue
 
+            #
             # we found a branch to be removed
+            # update the iteration division time
+            #
             if division_time > iteration_division_time:
                 iteration_division_time = division_time
-
-            #
-            # get the whole branch from the leaf
-            #
-            le = leaf
-            branch = [le]
-            while reverse_lineage.get(le, '') != division_cell:
-                le = reverse_lineage[le]
-                branch.append(le)
-            #
-            # reverse it, so it begins from the first point after the division cell
-            #
-            branch.reverse()
 
             #
             # fuse the branch
@@ -560,20 +678,28 @@ def _prune_lineage_tree(lineage, volume, surfaces, experiment, parameters):
             # by _fuse_branch() are kept
             #
             _fuse_branch(lineage, volume, surfaces, labels_to_be_fused, division_cell, branch, experiment)
-            n_fusions += 1
 
         #
         # end of an iteration
         # no deletion? end of the loop
         #
+        total_n_fusions_length += n_fusions_length
+        total_n_fusions_early_division += n_fusions_early_division
+        total_n_fusions_volume_correlation += n_fusions_volume_correlation
+
+        n_fusions = n_fusions_length + n_fusions_early_division + n_fusions_volume_correlation
         if n_fusions == 0:
             break
-
         monitoring.to_log_and_console("         " + str(n_fusions) + " branches have been fused at division time "
                                       + str(iteration_division_time), 1)
         previous_iteration_division_time = iteration_division_time
         iteration += 1
 
+    monitoring.to_log_and_console("       - " + str(total_n_fusions_length) + " fusions because of short length", 2)
+    monitoring.to_log_and_console("       - " + str(total_n_fusions_early_division)
+                                  + " fusions because of early division", 2)
+    monitoring.to_log_and_console("       - " + str(total_n_fusions_volume_correlation)
+                                  + " fusions because of volume anti-correlation", 2)
     return lineage, volume, surfaces, labels_to_be_fused
 
 
@@ -646,7 +772,6 @@ def contact_surface_computation(experiment):
 
 
 def postcorrection_process(experiment, parameters):
-
     proc = "postcorrection_process"
     #
     # parameter type checking
@@ -679,12 +804,13 @@ def postcorrection_process(experiment, parameters):
         monitoring.to_log_and_console(str(proc) + ": " + str(lineage_tree_file) + " is not a file?")
         sys.exit(1)
 
+    time_digits_for_cell_id = experiment.get_time_digits_for_cell_id()
+
     #
     # test lineage
     #
-    if parameters.test_lineage:
+    if parameters.lineage_diagnosis:
         monitoring.to_log_and_console("   ... test lineage (before)", 1)
-        time_digits_for_cell_id = experiment.get_time_digits_for_cell_id()
         properties.check_volume_lineage(lineage_tree_information, time_digits_for_cell_id=time_digits_for_cell_id)
 
     #
@@ -733,12 +859,9 @@ def postcorrection_process(experiment, parameters):
     #
     # test lineage
     #
-    if parameters.test_lineage:
+    if parameters.lineage_diagnosis:
         monitoring.to_log_and_console("   ... test lineage (after)", 1)
-        time_digits_for_cell_id = experiment.get_time_digits_for_cell_id()
         properties.check_volume_lineage(new_lineage_tree, time_digits_for_cell_id=time_digits_for_cell_id)
-
-    sys.exit(1)
 
     #
     # apply cell fusion
