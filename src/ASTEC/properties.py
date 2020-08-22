@@ -245,9 +245,9 @@ def normalize_dictionary_keys(inputdict):
 
     outputdict = {}
 
-    for inputkey in inputdict.keys():
+    for inputkey in inputdict:
         foundkey = False
-        for k in keydictionary.keys():
+        for k in keydictionary:
             # print "       compare '" + str(tmpkey) + "' with '" + str(k) + "'"
             if inputkey in keydictionary[k]['input_keys']:
                 outputkey = keydictionary[k]['output_key']
@@ -267,11 +267,11 @@ def normalize_dictionary_keys(inputdict):
 
 def get_dictionary_entry(inputdict, keystring):
     proc = 'get_dictionary_entry'
-    if keystring not in keydictionary.keys():
+    if keystring not in keydictionary:
         monitoring.to_log_and_console(str(proc) + ": keystring must be in " + str(keydictionary.keys()), 1)
         return {}
     for k in keydictionary[keystring]['input_keys']:
-        if k in inputdict.keys():
+        if k in inputdict:
             return inputdict[k]
     else:
         monitoring.to_log_and_console(str(proc) + ": '" + str(keystring) + "' was not found in input dictionary", 1)
@@ -621,10 +621,10 @@ def _update_read_dictionary(propertiesdict, tmpdict, filename):
     proc = "_update_read_dictionary"
     unknownkeys = []
 
-    for tmpkey in tmpdict.keys():
+    for tmpkey in tmpdict:
         foundkey = False
 
-        for k in keydictionary.keys():
+        for k in keydictionary:
             # print "       compare '" + str(tmpkey) + "' with '" + str(k) + "'"
             if tmpkey in keydictionary[k]['input_keys']:
                 outputkey = keydictionary[k]['output_key']
@@ -632,7 +632,7 @@ def _update_read_dictionary(propertiesdict, tmpdict, filename):
                 #
                 # update if key already exists, else just create the dictionary entry
                 #
-                if outputkey in propertiesdict.keys():
+                if outputkey in propertiesdict:
                     if type(propertiesdict[outputkey]) is dict and type(tmpdict[tmpkey]) is dict:
                         propertiesdict[outputkey].update(tmpdict[tmpkey])
                     elif type(propertiesdict[outputkey]) is list and type(tmpdict[tmpkey]) is list:
@@ -655,7 +655,7 @@ def _update_read_dictionary(propertiesdict, tmpdict, filename):
         #
         monitoring.to_log_and_console("   ... assume '" + str(filename) + "' is a lineage", 1)
         outputkey = keydictionary['lineage']['output_key']
-        if outputkey in propertiesdict.keys():
+        if outputkey in propertiesdict:
             if type(propertiesdict[outputkey]) is dict and type(tmpdict) is dict:
                 propertiesdict[outputkey].update(tmpdict)
             else:
@@ -673,7 +673,7 @@ def _update_read_dictionary(propertiesdict, tmpdict, filename):
 
         if len(unknownkeys) == 1:
             tmpkey = unknownkeys[0]
-            if outputkey in propertiesdict.keys():
+            if outputkey in propertiesdict:
                 if type(propertiesdict[outputkey]) is dict and type(tmpdict[tmpkey]) is dict:
                     propertiesdict[outputkey].update(tmpdict[tmpkey])
                 elif type(propertiesdict[outputkey]) is list and type(tmpdict[tmpkey]) is list:
@@ -704,19 +704,19 @@ def _set_types_from_xml(propertiesdict):
     if propertiesdict == {}:
         return {}
 
-    if 'cell_barycenter' in propertiesdict.keys():
+    if 'cell_barycenter' in propertiesdict:
         monitoring.to_log_and_console("   ... translate types of 'cell_barycenter'", 3)
-        for c in propertiesdict['cell_barycenter'].keys():
+        for c in propertiesdict['cell_barycenter']:
             propertiesdict['cell_barycenter'][c] = np.array(propertiesdict['cell_barycenter'][c])
 
-    if 'cell_history' in propertiesdict.keys():
+    if 'cell_history' in propertiesdict:
         monitoring.to_log_and_console("   ... translate types of 'cell_history'", 3)
-        for c in propertiesdict['cell_history'].keys():
+        for c in propertiesdict['cell_history']:
             propertiesdict['cell_history'][c] = np.array(propertiesdict['cell_history'][c])
 
-    if 'cell_principal_vectors' in propertiesdict.keys():
+    if 'cell_principal_vectors' in propertiesdict:
         monitoring.to_log_and_console("   ... translate types of 'cell_principal_vectors'", 3)
-        for c in propertiesdict['cell_principal_vectors'].keys():
+        for c in propertiesdict['cell_principal_vectors']:
             for v in range(len(propertiesdict['cell_principal_vectors'][c])):
                 propertiesdict['cell_principal_vectors'][c][v] \
                     = np.array(propertiesdict['cell_principal_vectors'][c][v])
@@ -890,7 +890,7 @@ def _get_time_interval_from_properties(d, time_digits_for_cell_id=4):
     proc = "_get_time_interval_from_properties"
     keylineage = None
 
-    for k in d.keys():
+    for k in d:
         if k in keydictionary['lineage']['input_keys']:
             keylineage = k
 
@@ -1225,13 +1225,13 @@ def comparison(d1, d2, features, name1, name2):
     unrecognizedkeys1 = []
     unrecognizedkeys2 = []
 
-    for k1 in d1.keys():
+    for k1 in d1:
 
         #
         # loop on known dictionary
         #
         recognizedkey = False
-        for k in keydictionary.keys():
+        for k in keydictionary:
 
             if k1 in keydictionary[k]['input_keys']:
                 recognizedkey = True
@@ -1239,7 +1239,7 @@ def comparison(d1, d2, features, name1, name2):
                 #
                 # got it, try to pair it
                 #
-                for k2 in d2.keys():
+                for k2 in d2:
                     if k2 in keydictionary[k]['input_keys']:
                         pairedkey = True
                         pairedkeys.append([k1, k2])
@@ -1255,20 +1255,20 @@ def comparison(d1, d2, features, name1, name2):
     #
     #
 
-    for k2 in d2.keys():
+    for k2 in d2:
 
         #
         # loop on known dictionary
         #
         recognizedkey = False
-        for k in keydictionary.keys():
+        for k in keydictionary:
             if k2 in keydictionary[k]['input_keys']:
                 recognizedkey = True
                 pairedkey = False
                 #
                 # got it, try to pair it
                 #
-                for k1 in d1.keys():
+                for k1 in d1:
                     if k1 in keydictionary[k]['input_keys']:
                         pairedkey = True
                         # pairedkeys.append([k1,k2])
@@ -1371,7 +1371,7 @@ def comparison(d1, d2, features, name1, name2):
 
     else:
         for f in features:
-            if f not in keydictionary.keys():
+            if f not in keydictionary:
                 monitoring.to_log_and_console("    unknown property '" + str(f) + "' for comparison", 1)
                 continue
 
@@ -1475,8 +1475,8 @@ def _diagnosis_lineage(direct_lineage, description, time_digits_for_cell_id=4):
     #
     # cell with more than 2 daughters
     #
-    multiple_daughters = [cell for cell in direct_lineage.keys() if len(direct_lineage[cell]) > 2]
-    divisions = [cell for cell in direct_lineage.keys() if len(direct_lineage[cell]) >= 2]
+    multiple_daughters = [cell for cell in direct_lineage if len(direct_lineage[cell]) > 2]
+    divisions = [cell for cell in direct_lineage if len(direct_lineage[cell]) >= 2]
 
     #
     # get cells without daughters, remove cells from the last time point
@@ -1491,7 +1491,7 @@ def _diagnosis_lineage(direct_lineage, description, time_digits_for_cell_id=4):
     reverse_lineage = {}
     for k, values in direct_lineage.iteritems():
         for v in values:
-            if v not in reverse_lineage.keys():
+            if v not in reverse_lineage:
                 reverse_lineage[v] = [k]
             else:
                 reverse_lineage[v].append(k)
@@ -1515,14 +1515,14 @@ def _diagnosis_lineage(direct_lineage, description, time_digits_for_cell_id=4):
                 break
         length = len(branch)
         branch_lengths.append(length)
-        if length in branch_length_histogram.keys():
+        if length in branch_length_histogram:
             branch_length_histogram[length] += 1
         else:
             branch_length_histogram[length] = 1
     #
     # get cells with more than 1 mother
     #
-    multiple_mothers = [cell for cell in reverse_lineage.keys() if len(reverse_lineage[cell]) > 1]
+    multiple_mothers = [cell for cell in reverse_lineage if len(reverse_lineage[cell]) > 1]
 
     #
     # get cells without mother, remove cells from the first time point
@@ -1672,7 +1672,7 @@ def diagnosis(d, features, diagnosis_parameters):
     monitoring.to_log_and_console("... diagnosis", 1)
 
     if features is None or len(features) == 0:
-        for k in d.keys():
+        for k in d:
             if k == keydictionary['lineage']['output_key']:
                 _diagnosis_lineage(d[k], k)
             elif k == keydictionary['h_min']['output_key']:
@@ -1717,7 +1717,7 @@ def diagnosis(d, features, diagnosis_parameters):
 
     else:
         for f in features:
-            if f not in keydictionary.keys():
+            if f not in keydictionary:
                 monitoring.to_log_and_console("    unknown property '" + str(f) + "' for comparison", 1)
                 continue
 
@@ -1861,7 +1861,7 @@ def print_keys(d, desc=None):
             monitoring.to_log_and_console("    " + "empty dictionary", 1)
         else:
             monitoring.to_log_and_console("    " + "keys are:", 1)
-            for k in d.keys():
+            for k in d:
                 monitoring.to_log_and_console("    " + "- " + str(k), 1)
     else:
         monitoring.to_log_and_console("    " + "input is not a dictionary", 1)
@@ -1879,7 +1879,7 @@ def print_type(d, t=None, desc=None):
     if type(d) is dict:
 
         print "type of " + desc + " is " + str(t) + str(type(d))
-        for k in d.keys():
+        for k in d:
             print_type(d[k], t + str(type(d)) + ".", desc + "." + str(k))
 
     elif type(d) in (list, np.array, np.ndarray):
@@ -1912,7 +1912,7 @@ def write_tlp_file(tlpfilename, dictionary):
     #
     # is there a lineage
     #
-    if keydictionary['lineage']['output_key'] in dictionary.keys():
+    if keydictionary['lineage']['output_key'] in dictionary:
         lineage = dictionary[keydictionary['lineage']['output_key']]
     else:
         monitoring.to_log_and_console(proc + ": no lineage was found.")
@@ -1954,7 +1954,7 @@ def write_tlp_file(tlpfilename, dictionary):
     #
     #
     #
-    for p in dictionary.keys():
+    for p in dictionary:
         if p == keydictionary['lineage']['output_key']:
             pass
         elif p == keydictionary['all-cells']['output_key']:

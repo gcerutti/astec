@@ -1122,7 +1122,7 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
     #
     del new_seed_image
 
-    for i in seed_image_list.keys():
+    for i in seed_image_list:
         del seed_image_list[i]
 
     del first_segmentation
@@ -1168,7 +1168,7 @@ def _update_volume_properties(lineage_tree_information, segmented_image, current
     volumes = _compute_volumes(segmented_image)
     volume_key = properties.keydictionary['volume']['output_key']
     volume_key = 'volumes_information'
-    if volume_key not in lineage_tree_information.keys():
+    if volume_key not in lineage_tree_information:
         lineage_tree_information[volume_key] = {}
 
     dtmp = {}
@@ -1193,7 +1193,7 @@ def _update_lineage_properties(lineage_tree_information, correspondences, previo
     time_digits = experiment.get_time_digits_for_cell_id()
     lineage_key = properties.keydictionary['lineage']['output_key']
     lineage_key = 'lin_tree'
-    if lineage_key not in lineage_tree_information.keys():
+    if lineage_key not in lineage_tree_information:
         lineage_tree_information[lineage_key] = {}
 
     dtmp = {}
@@ -2516,11 +2516,11 @@ def _get_last_first_time_from_lineage(lineage_tree_information, first_time_point
     if lineage_tree_information == {}:
         return first_time_point
     if len(lineage_tree_information) > 0 \
-            and properties.keydictionary['lineage']['output_key'] in lineage_tree_information.keys():
+            and properties.keydictionary['lineage']['output_key'] in lineage_tree_information:
         monitoring.to_log_and_console("    .. test existing lineage tree", 1)
         cellinlineage = {}
         div = 10**time_digits_for_cell_id
-        for c in lineage_tree_information[properties.keydictionary['lineage']['output_key']].keys():
+        for c in lineage_tree_information[properties.keydictionary['lineage']['output_key']]:
             t = int(c)/div
             if t not in cellinlineage:
                 cellinlineage[t] = 1
@@ -2528,7 +2528,7 @@ def _get_last_first_time_from_lineage(lineage_tree_information, first_time_point
                 cellinlineage[t] += 1
         first_time = first_time_point
         while True:
-            if first_time in cellinlineage.keys():
+            if first_time in cellinlineage:
                 first_time += delta_time_point
             else:
                 return first_time
@@ -2550,15 +2550,15 @@ def _clean_lineage(lineage_tree_information, first_time_point, time_digits_for_c
     if lineage_tree_information == {}:
         return
     mul = 10 ** time_digits_for_cell_id
-    for key in lineage_tree_information.keys():
+    for key in lineage_tree_information:
         if key == properties.keydictionary['lineage']['output_key']:
             tmp = lineage_tree_information[properties.keydictionary['lineage']['output_key']]
-            for k in tmp.keys():
+            for k in tmp:
                 if int(k) > first_time_point * mul:
                     del lineage_tree_information[properties.keydictionary['lineage']['output_key']][k]
         elif key == properties.keydictionary['volume']['output_key']:
             tmp = lineage_tree_information[properties.keydictionary['volume']['output_key']]
-            for k in tmp.keys():
+            for k in tmp:
                 if int(k) > (first_time_point + 1) * mul:
                     del lineage_tree_information[properties.keydictionary['volume']['output_key']][k]
         else:
@@ -2582,9 +2582,9 @@ def _fill_volumes(lineage_tree_information, first_time_point, experiment):
     proc = "_clean_lineage"
     mul = 10 ** experiment.get_time_digits_for_cell_id()
     if lineage_tree_information != {}:
-        if properties.keydictionary['volume']['output_key'] in lineage_tree_information.keys():
+        if properties.keydictionary['volume']['output_key'] in lineage_tree_information:
             tmp = lineage_tree_information[properties.keydictionary['volume']['output_key']]
-            for k in tmp.keys():
+            for k in tmp:
                 if int(k) >= first_time_point * mul:
                     return lineage_tree_information
     #

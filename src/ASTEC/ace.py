@@ -683,7 +683,7 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
     #     labels_of_interest=[x for x in bboxes.keys() if not background.count(x)]
     #
 
-    labels_of_interest = [x for x in bboxes.keys() if x != 0 and x != 1]
+    labels_of_interest = [x for x in bboxes if x != 0 and x != 1]
 
     #
     # parallel cell-based binarization
@@ -1619,7 +1619,7 @@ def GLACE_from_resampled_segmentation(path_fused_1, path_seg_trsf, labels_of_int
             bboxes[x]=tuple(b)
 
     if type(labels_of_interest)==str and labels_of_interest=='all':
-        labels_of_interest=[x for x in bboxes.keys() if not background.count(x)]
+        labels_of_interest=[x for x in bboxes if not background.count(x)]
 
     pool=Pool(processes=nb_proc)
     mapping=[]
