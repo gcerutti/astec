@@ -2,7 +2,7 @@
 ##
 ## useful parameters for segmentation propagation
 ##
-## to be used with 4-astecnew.py
+## to be used with 4-astec-new.py
 ##
 ############################################################
 

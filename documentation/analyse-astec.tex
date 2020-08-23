@@ -2357,7 +2357,7 @@ $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
 \end{verbatim}
 
 
-
+\pagebreak
 \section{\texttt{5-postcorrection.py}}
 
 \begin{verbatim}
@@ -2392,12 +2392,19 @@ Appel \`a \verb|remove_too_little_branches()| (section \ref{sec:remove:too:littl
 \end{verbatim} 
 \color{\mycolor}
 Appel \`a \verb|apply_cell_fusion()| (cf section \ref{sec:apply:cell:fusion}, page \pageref{sec:apply:cell:fusion}).
-\color{black}
+
+Notons que le lin\'eage mis \`a jour n'est pas pass\'e \`a \verb|apply_cell_fusion()| qui prend en entr\'ee le lin\'eage avant correction. De m\^eme les nouveaux volumes (qui ne peuvent pas avoir pris en compte les fusions de branches o\`u il y a division), ne seront pas tenus en compte.
+\color{black}.
 \begin{verbatim} 
    166	### APPLYING THE CORRECTION ON THE IMAGES
    167	apply_cell_fusion(lin_tree_information['lin_tree'], \
    168		   lin_tree_information['volumes_information'], \
    169		   to_fuse,os.path.join(path_seg_exp,path_seg_exp_files), \
+\end{verbatim} 
+\color{\mycolor}
+Il faut v\'erifier si les volumes (mis \`a jour) sont bien remont\'es.
+\color{black}.
+\begin{verbatim} 
    170	                  os.path.join(path_post_exp,path_post_exp_files),p.begin+p.raw_delay, \
    171		   p.end+p.raw_delay, p.delta)
    172	
@@ -2438,10 +2445,20 @@ Appel \`a \verb|apply_cell_fusion()| (cf section \ref{sec:apply:cell:fusion}, pa
     27	    inv_lin_tree={ v : k for k, values in lin_tree.iteritems() for v in values }
     28	    give=couple[0]%10**4
     29	    get=np.array(couple[1])%10**4
+\end{verbatim} 
+\color{\mycolor}
+\verb|give| est la cellule \`a enlever, \verb|get| est un tableau de cellules avec lesquelles fusionner
+\color{black}
+\begin{verbatim}
     30	    possibles=np.array(lin_tree[inv_lin_tree[t*10**4+give]])
     31	    possibles=possibles[possibles!=10**4*t+give]%10**4
     32	    possibles=np.array([p for p in possibles if p in get])
     33	    get=possibles
+\end{verbatim} 
+\color{\mycolor}
+on r\'ecup\`ere l'ensemble des cellules avec lesquelles fusionner qui sont les soeurs de la cellule \`a enlever. En cas de division le long de la branche soeur, cela suppose une certaine mise \`a jour de l'arbre de lin\'eage (cf lignes 253 \`a 260 de \verb|remove_too_little_branches()|, section \ref{sec:remove:too:little:branches}).
+\color{black}
+\begin{verbatim}
     34	    if len(get)==1:
     35	        final_get=get[0]
     36	    else:
@@ -2500,8 +2517,24 @@ Appel \`a \verb|apply_cell_fusion()| (cf section \ref{sec:apply:cell:fusion}, pa
     86	            for couple in tf:
     87	                bb, trsf=fuse_cells(couple, lin_tree, bb, im, t)
     88	                getting.append(trsf)
+\end{verbatim} 
+\color{\mycolor}
+\verb|trsf| est un tuple (ancien label, nouveau label) calcul\'e par \verb|fuse_cells()|, on les conserve dans l'array \verb|getting|
+\color{black}
+\begin{verbatim}
     89	            getting={i:j for i,j in getting}
+\end{verbatim} 
+\color{\mycolor}
+on transforme l'array \verb|getting| en un dictionnaire o\`u
+\verb|getting(ancien label) = nouveau label|
+\color{black}
+\begin{verbatim}
     90	            roots=set(getting.keys()).difference(set(getting.values()))
+\end{verbatim} 
+\color{\mycolor}
+on a les labels de \verb|getting| qui n'ont pas de pr\'ed\'ecesseur
+\color{black}
+\begin{verbatim}
     91	            final_pairing={}
     92	            for r in roots:
     93	                n=r
@@ -2512,6 +2545,11 @@ Appel \`a \verb|apply_cell_fusion()| (cf section \ref{sec:apply:cell:fusion}, pa
     98	                    final=n
     99	                for n in to_change:
    100	                    getting[n]=final
+\end{verbatim} 
+\color{\mycolor}
+pour les labels de \verb|roots|, on les suit pour les avoir tous, et on leur donne le m\^eme label (ici le dernier)
+\color{black}
+\begin{verbatim}
    101	            for give, get in getting.iteritems():
    102	                inv_lin_tree={ v : k for k, values in lin_tree.iteritems() for v in values }
    103	                if give<mapping.shape[0]:
@@ -2522,6 +2560,11 @@ Appel \`a \verb|apply_cell_fusion()| (cf section \ref{sec:apply:cell:fusion}, pa
    108	                lin_tree[10**4*t+get]=tmp
    109	                lin_tree.pop(10**4*t+give, None)
    110	                volumes[10**4*t+get]=volumes[10**4*t+get]+volumes[10**4*t+give]
+\end{verbatim} 
+\color{\mycolor}
+Mise \`a jour du lin\'eage et des volumes
+\color{black}
+\begin{verbatim}
    111	        if mapping!=[]:
    112	            im=SpatialImage(mapping[im], voxelsize=im.voxelsize)
    113	            
@@ -2563,17 +2606,35 @@ Appel \`a \verb|apply_cell_fusion()| (cf section \ref{sec:apply:cell:fusion}, pa
    141	    cell=deepcopy(tree[reverse_tree[c]])
    142	    cell.remove(c)
    143	    cell=cell[0]
+\end{verbatim} 
+\color{\mycolor}
+\verb|reverse_tree[c]| est la cellule parente de \verb|c|, celle o\`u il y a bifurcation.  \verb|tree[reverse_tree[c]]| est donc l'ensemble des cellules filles de celle-ci, filles dont \verb|c| fait partie. Au final, on r\'ecup\`ere la s{\oe}ur de  \verb|c|
+\color{black}
+\begin{verbatim}
    144	    out=[cell]
    145	    while len(tree.get(cell, []))==1:
    146	        cell=tree[cell][0]
    147	        out.append(cell) 
+\end{verbatim} 
+\color{\mycolor}
+\verb|out| est donc la branche s{\oe}ur de la branche dont \verb|c| est la premi\`ere cellule.
+\color{black}
+\begin{verbatim}
    148	    cell=reverse_tree[c]
    149	    out2=[cell]
    150	    while reverse_tree.has_key(cell):
    151	        cell=reverse_tree[cell]
    152	        out2.append(cell)
+\end{verbatim} 
+\color{\mycolor}
+\verb|out2| est la branche qui remonte et qui part de la cellule m\`ere de \verb|c|. Elle devrait s'arr\^eter \`a la premi\`ere bifurcation et non remonter jusqu'au d\'ebut
+\color{black}
+\begin{verbatim}
    153	    return (len(out)<len_min and out[-1]/10**4!=time_end) or (len(out2)<len_min and out2[-1]/10**4!=time_begin)
 \end{verbatim}
+\color{\mycolor}
+Cette fonction renvoir \verb|True| si l'une des  branches, s{\oe}ur ou m\`ere, est trop courte (\`a condition que la branche s{\oe}ur ne soit pas une branche finissant au dernier point de temps, ou que la branche m\`ere ne commence pas au premier point de temps). Comme la branche m\`ere est mal construite, elle commence toujours au premier point de temps ...
+\color{black}
 
 \subsection{\texttt{branches\_to\_delete()}}
 \label{sec:branches:to:delete}
@@ -2591,28 +2652,72 @@ Appel \`a \verb|apply_cell_fusion()| (cf section \ref{sec:apply:cell:fusion}, pa
    169	    leaves=set(nodes)-set(tree.keys())
    170	    last_time=max(leaves)/10**4
    171	    leaves_to_delete=[l for l in leaves if (((l/10**4)<last_time) or (volumes[l]<threshold))]
+\end{verbatim} 
+\color{\mycolor}
+Cellules terminales des branches candidates pour un effacement.
+\begin{itemize}
+\item la cellule n'est pas au dernier instant de la s\'equence
+\item ou elle a un petit volume
+\end{itemize}
+\color{black}
+\begin{verbatim}
    172	    branche_max_val=0
    173	    branche_max=[]
    174	    for l in leaves_to_delete:
+\end{verbatim} 
+\color{\mycolor}
+Pour chaque branche potentielle
+\color{black}
+\begin{verbatim}
    175	        b=[]
    176	        b.append(l)
    177	        while len(tree.get(reverse_tree.get(l, ''), ''))==1:
    178	            l=reverse_tree[l]
    179	            b.append(l)
    180	        b.reverse()
+\end{verbatim} 
+\color{\mycolor}
+La branche est extraite, la division n'est pas incluse.
+\color{black}
+\begin{verbatim}
    181	        if (min(b)>branche_max_val):
+\end{verbatim} 
+\color{\mycolor}
+On consid\`ere la branche si sa division (\verb|min(b)| est la premi\`ere cellule apr\`es la division) est plus tardive. Note: ce test prend aussi en compte le num\'ero de la cellule ...
+\color{black}
+\begin{verbatim}
    182	            if len(b)<ShortLifespan: #Time steps length 
    183	                branche_max=list(b)
    184	                branche_max_val=min(b)
+\end{verbatim} 
+\color{\mycolor}
+On peut effacer la branche si elle est trop courte (m\^eme si elle commence au tout d\'ebut de la s\'equence ...).
+\color{black}
+\begin{verbatim}
    185	            elif reverse_tree.get(min(b), '')!='':
+\end{verbatim} 
+\color{\mycolor}
+Sinon (la branche n'est pas trop courte), et si elle ne commence pas au tout d\'ebut de la s\'equence
+\color{black}
+\begin{verbatim}
    186	                n1, n2=tree[reverse_tree[min(b)]]
    187	                tmp1, tmp2=get_volumes(n1, volumes, tree), get_volumes(n2, volumes, tree)
    188	                common_len=min(len(tmp1), len(tmp2))
    189	                P=pearsonr(tmp1[:common_len-1], tmp2[:common_len-1])
+\end{verbatim} 
+\color{\mycolor}
+\verb|pearsonr()| renvoie une erreur si l'une des s\'equences est constante. On pourrait aussi tester si \verb|common_len| est suffisamment grand
+\color{black}
+\begin{verbatim}
    190	                if P[0]<-PearsonThreshold:# and deriv>4*10**4:
    191	                    branche_max=list(b)
    192	                    branche_max_val=min(b)
    193	                elif soon and soon_to_divide(min(b), tree, reverse_tree,ShortLifespan,time_begin,time_end):
+\end{verbatim} 
+\color{\mycolor}
+si \verb|soon| est vrai, appel \`a \verb|soon_to_divide()|
+\color{black}
+\begin{verbatim}
    194	                    branche_max=list(b)
    195	                    branche_max_val=min(b)
    196	
@@ -2635,6 +2740,11 @@ Appel \`a \verb|apply_cell_fusion()| (cf section \ref{sec:apply:cell:fusion}, pa
    209	    out=[]
    210	    tmp=sisters
    211	    while tmp!=[] and sisters[0]/10**4<=end:
+\end{verbatim} 
+\color{\mycolor}
+ne v\'erifie pas si \verb|sisters| est multiple (s'il y a eu division)
+\color{black}
+\begin{verbatim}
    212	        out.append(sisters)
    213	        tmp=[]
    214	        for s in sisters:
@@ -2669,16 +2779,47 @@ Appel \`a \verb|apply_cell_fusion()| (cf section \ref{sec:apply:cell:fusion}, pa
    242	        mother=reverse_tree.get(last, '')
    243	        if mother!='':
    244	            tmp=get_sisters(lin_tree_out, mother, last, b[0]/10**4)
+\end{verbatim} 
+\color{\mycolor}
+\verb|tmp| est une liste de liste, o\`u chaque liste correspond aux s{\oe}urs \`a fusionner pour chaque instant (comme \verb|get_sisters()| passe \`a travers les divisions, il peut y avoir plusieurs s{\oe}urs pour un seul point de temps). \verb|b| est ordonn\'e \`a partir de la feuille, tandis que \verb|tmp| est ordonn\'e \`a partir de la division.
+\color{black}
+\begin{verbatim}
    245	            for t in tmp:
    246	                time=t[0]/10**4
    247	                cell=[c for c in b if c/10**4==time]
    248	                to_fuse.setdefault(time, []).append((cell[0], t))
+\end{verbatim} 
+\color{\mycolor}
+\verb|to_fuse| est un dictionary o\`u les clefs sont les instants (time point). Les entr\'ees sont des listes, et chaque \'el\'ement de la liste est un tuple (cellule \`a enlever, [cellule(s) avec qui fusionner]) o\`u le premier \'el\'ement est une cellule de la branche \`a enlever (la cellule de cet instant) et le second \'el\'ement la liste de ses s{\oe}urs avec laquelle il faut la fusionner. \verb|to_fuse| sera utilis\'e par la fonction \verb|apply_cell_fusion()| (section \ref{sec:apply:cell:fusion}) pour effectivement faire la fusion dans les images.
+\color{black}
+\begin{verbatim}
    249	                if len(t)==1 and new_volumes.has_key(t[0]) and new_volumes.has_key(cell[0]):
    250	                    new_volumes[t[0]]=new_volumes[cell[0]]+new_volumes[t[0]]
+\end{verbatim} 
+\color{\mycolor}
+La mise \`a jour des volumes ne se fait que pour les cellules \`a fusionner qui n'ont qu'une seule s{\oe}ur. Il aurait fallu supprimer \verb|cell[0]| du dictionnaire des volumes ...
+\color{black}
+\begin{verbatim}
    251	            i=1
    252	            while (i<=len(b)) and (b[-i]/10**4 in [time_cell[0]/10**4 for time_cell in tmp]):
    253	                n=b[-i]
+\end{verbatim} 
+\color{\mycolor}
+On parcourt \verb|b| dans l'inverse (de la fin vers la d\'ebut), \verb|b| \'etant construit depuis la feuille
+\color{black}
+\begin{verbatim}
    254	                sis=tmp[np.argwhere(np.array([time_cell[0]/10**4 for time_cell in tmp])==n/10**4)[0, 0]][0]
+\end{verbatim} 
+\color{\mycolor}
+\begin{itemize}
+\item \verb|time_cell[0]/10**4 for time_cell in tmp| est la liste des time point du sous-arbre s{\oe}ur
+\item \verb|np.array([time_cell[0]/10**4 for time_cell in tmp])==n/10**4| est une liste de bool\'een indiquant les s{\oe}urs du m\^eme time point que le point de la branche
+\item \verb|np.argwhere()| donne le tableau d'indice o\`u les bool\'eens sont vrais
+\item \verb|tmp[np.argwhere(np.array([time_cell[0]/10**4 for time_cell in tmp])==n/10**4)[0, 0]]| est la liste des s{\oe}urs du point \`a fusionner
+\item \verb|sis| est la premi\`ere de ces soeurs 
+\end{itemize}
+\color{black}
+\begin{verbatim}
    255	                lin_tree_out[reverse_tree[n]].remove(n)
    256	                lin_tree_out.pop(n, None)
    257	                if i+1<=len(b):
@@ -2689,11 +2830,21 @@ Appel \`a \verb|apply_cell_fusion()| (cf section \ref{sec:apply:cell:fusion}, pa
    262	            for n in b:
    263	                lin_tree_out.pop(n, None)
    264	                reverse_tree.pop(n, None)
+\end{verbatim} 
+\color{\mycolor}
+on traite ici les branches dont la m\`ere n'existe pas, donc commen\c{c}ant ex nihilo ou au d\'ebut de la s\'equence. Il manque le traitement des volumes, et la fusion (avec le fond ?) des cellules effac\'ees.
+\color{black}
+\begin{verbatim}
    265	        branches=branches_to_delete(lin_tree_out, new_volumes, threshold, reverse_tree, soon=soon,ShortLifespan=ShortLifespan,PearsonThreshold=PearsonThreshold,time_begin=time_begin,time_end=time_end)
    266	
    267	    #### FUSE TOO EARLY DIVISIONS
    268	    from scipy.stats.stats import pearsonr
    269	    cells_list=[(i[0],i[1]) for i in lin_tree_out.values() if len(i)==2]
+\end{verbatim} 
+\color{\mycolor}
+extrait les premi\`eres cellules apr\`es une bifurcation, revient donc \`a regarder l'ensemble des bifurcations.
+\color{black}
+\begin{verbatim}
    270	    P={}
    271	    deriv={}
    272	    for n1, n2 in cells_list:
@@ -2701,7 +2852,17 @@ Appel \`a \verb|apply_cell_fusion()| (cf section \ref{sec:apply:cell:fusion}, pa
    274	        common_len=min(len(tmp1), len(tmp2))
    275	        if len(tmp1)>8 and len(tmp2)>8: 
    276	            P[(n1, n2)]=pearsonr(tmp1[:common_len-1], tmp2[:common_len-1])
+\end{verbatim} 
+\color{\mycolor}
+Si la longueur des branches est suffisamment longue (>8), on calcule le coefficient de Pearson entre les volumes des 2 branches 
+\color{black}
+\begin{verbatim}
    277	    to_check=[k for k, v in P.iteritems() if v[0]<-.80] #.80 WHAT ? 
+\end{verbatim} 
+\color{\mycolor}
+On examine donc les branches qui ont un coefficient de corr\'elation de Pearson plus petite que -0.8 (c'\'etait -0.9 pour la premi\`ere \'etape)
+\color{black}
+\begin{verbatim}
    278	    scores_window={}
    279	    for c1, c2 in to_check:
    280	        tmp1, tmp2=get_volumes(c1, volumes, lin_tree_out), get_volumes(c2, volumes, lin_tree_out)
@@ -2710,6 +2871,11 @@ Appel \`a \verb|apply_cell_fusion()| (cf section \ref{sec:apply:cell:fusion}, pa
    283	        for i in range(0, common_len-4):
    284	            scores.append(pearsonr(tmp1[i:i+5], tmp2[i:i+5])[0])
    285	        scores_window[(c1, c2)]=np.array(scores)
+\end{verbatim} 
+\color{\mycolor}
+On calcule le coefficient de corr\'elation de Pearson sur une fen\^etre glissante de longueur 5 le long de la branche.
+\color{black}
+\begin{verbatim}
    286	
    287	    been_fused={}
    288	    for c, scores in scores_window.iteritems():
@@ -2717,9 +2883,29 @@ Appel \`a \verb|apply_cell_fusion()| (cf section \ref{sec:apply:cell:fusion}, pa
    290	            first_size=len(scores)-1
    291	        else:
    292	            out=scores[1:]-scores[:-1]
+\end{verbatim} 
+\color{\mycolor}
+\verb|out[i] = score[i+1] - score[i]| c'est donc la diff\'erence (d\'eriv\'ee) du score
+\color{black}
+\begin{verbatim}
    293	            sizes=np.argsort(out)[::-1]
+\end{verbatim} 
+\color{\mycolor}
+\verb|sizes| donne les indices de \verb|out| pour un tri d\'ecroissant (de la plus grande d\'eriv\'ee \`a la plus petite)
+\color{black}
+\begin{verbatim}
    294	            sizes=np.array([s for s in sizes if scores[s]<-.8])
+\end{verbatim} 
+\color{\mycolor}
+\verb|sizes| donne les indices de \verb|out[i] = score[i+1] - score[i]| pour un tri d\'ecroissant, avec \verb|score[i] < -0.8|
+\color{black}
+\begin{verbatim}
    295	            first_size=sizes[sizes<len(scores)/2]
+\end{verbatim} 
+\color{\mycolor}
+On ne r\'ecup\`ere que les indices qui sont dans la premi\`ere moiti\'e, donc les plus proches de la bifurcation
+\color{black}
+\begin{verbatim}
    296	            if first_size!=[]:
    297	                first_size=first_size[0]
    298	            else:
