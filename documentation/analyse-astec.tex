@@ -737,7 +737,6 @@ Compte les $h$-minima strictement inclus dans la cellule pour un ensemble de val
    174	def get_seeds(seg, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min, bounding_boxes, nb_proc=26, verbose=False):
 \end{verbatim} 
 \color{\mycolor}
-Appel \`a \texttt{get\_seeds()}, cf section \ref{sec:get:seeds}, page \pageref{sec:get:seeds}.
 \begin{itemize}
 \itemsep -0.5ex
 \item \verb|seg| : image de segmentation $\tilde{S}_{t+1}$. S'appelait \verb|segmentation| lors de l'appel
@@ -745,7 +744,7 @@ Appel \`a \texttt{get\_seeds()}, cf section \ref{sec:get:seeds}, page \pageref{s
 \item \verb|h_min_max| : plus grande valeur de $h$ pour le calcul des $h$-minima
 \item \verb|sigma| : $\sigma$ pour le lissage gaussien avant le calcul des $h$-minima
 \item \verb|cells| : liste des cellules
-\item \verb|fused_file| : image originale $I_{t+1}$
+\item \verb|fused_file| : image originale $I_{t+1}$, les graines sont donc calcul\'ees sur l'image originale en 2 octets, et non sur une image transform\'ee (eg par GLACE)
 \item \verb|path_h_min| : nom g\'en\'erique pour les images de $h$-minima
 \item \verb|bounding_boxes| : boites englobantes des cellules
 \end{itemize}
@@ -1932,7 +1931,7 @@ Calcul des bounding boxes pour les cellules
    743	    nb_cells, parameters=get_seeds(segmentation, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min.replace('$SIGMA',str(sigma)), bounding_boxes, nb_proc=nb_proc, verbose=verbose)
 \end{verbatim} 
 \color{\mycolor}
-Appel \`a \texttt{get\_seeds()}, cf section \ref{sec:get:seeds}, page \pageref{sec:get:seeds}.
+Appel \`a \texttt{get\_seeds()}, cf section \ref{sec:get:seeds}, page \pageref{sec:get:seeds}. Attention, les graines (minima locaux) sont calcul\'ees sur les image originales, encod\'ees sur 2 octets, et non sur des images transform\'ees (par \verb|to_u8()|, ...)
 \begin{itemize}
 \itemsep -0.5ex
 \item \verb|segmentation| : image de segmentation $\tilde{S}_{t+1}$ 

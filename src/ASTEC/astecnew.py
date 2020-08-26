@@ -582,7 +582,7 @@ def _extract_seeds_in_cell(parameters):
     return nb, labels, c
 
 
-def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, membrane_image, experiment, parameters,
+def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, image_for_seeds, image_for_membrane, experiment, parameters,
                          nprocessors=26):
     """
     Computes the seeds (h-minima) for a range of h values
@@ -593,7 +593,8 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, membrane_ima
         eroded and then deformed
     :param cells:
     :param bounding_boxes:
-    :param membrane_image:
+    :param image_for_seeds:
+    :param image_for_membrane:
     :param experiment:
     :param parameters:
     :param nprocessors:
@@ -625,11 +626,14 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, membrane_ima
     wparam.watershed_seed_hmin = h_max
     h_min = h_max
 
-    input_image = membrane_image
-    seed_image = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
+    input_image = image_for_seeds
+    unmasked_seed_image = common.add_suffix(image_for_membrane, "_unmasked_seed_h" + str('{:03d}'.format(h_min)),
+                                            new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                            new_extension=experiment.default_image_suffix)
+    seed_image = common.add_suffix(image_for_membrane, "_seed_h" + str('{:03d}'.format(h_min)),
                                    new_dirname=experiment.astec_dir.get_tmp_directory(),
                                    new_extension=experiment.default_image_suffix)
-    difference_image = common.add_suffix(membrane_image, "_seed_diff_h" + str('{:03d}'.format(h_min)),
+    difference_image = common.add_suffix(image_for_membrane, "_seed_diff_h" + str('{:03d}'.format(h_min)),
                                          new_dirname=experiment.astec_dir.get_tmp_directory(),
                                          new_extension=experiment.default_image_suffix)
 
@@ -640,11 +644,11 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, membrane_ima
         # -> keeping the 'difference' image allows to speed up the further computation
         #    for smaller values of h
         #
-        mars.build_seeds(input_image, difference_image, seed_image, experiment, wparam)
+        mars.build_seeds(input_image, difference_image, unmasked_seed_image, experiment, wparam)
         #
         # select only the 'seeds' that are totally included in cells
         #
-        cpp_wrapping.mc_mask_seeds(seed_image, first_segmentation, seed_image)
+        cpp_wrapping.mc_mask_seeds(unmasked_seed_image, first_segmentation, seed_image)
 
     #
     # collect the number of seeds found for each cell
@@ -728,17 +732,20 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, membrane_ima
             wparam.watershed_seed_sigma = 0.0
 
             input_image = difference_image
-            seed_image = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
+            unmasked_seed_image = common.add_suffix(image_for_membrane, "_unmasked_seed_h" + str('{:03d}'.format(h_min)),
+                                                    new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                                    new_extension=experiment.default_image_suffix)
+            seed_image = common.add_suffix(image_for_membrane, "_seed_h" + str('{:03d}'.format(h_min)),
                                            new_dirname=experiment.astec_dir.get_tmp_directory(),
                                            new_extension=experiment.default_image_suffix)
-            difference_image = common.add_suffix(membrane_image, "_seed_diff_h" + str('{:03d}'.format(h_min)),
+            difference_image = common.add_suffix(image_for_membrane, "_seed_diff_h" + str('{:03d}'.format(h_min)),
                                                  new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                  new_extension=experiment.default_image_suffix)
 
             if not os.path.isfile(seed_image) or not os.path.isfile(difference_image) \
                     or monitoring.forceResultsToBeBuilt is True:
-                mars.build_seeds(input_image, difference_image, seed_image, experiment, wparam, operation_type='max')
-                cpp_wrapping.mc_mask_seeds(seed_image, first_segmentation, seed_image)
+                mars.build_seeds(input_image, difference_image, unmasked_seed_image, experiment, wparam, operation_type='max')
+                cpp_wrapping.mc_mask_seeds(unmasked_seed_image, first_segmentation, seed_image)
 
             if not os.path.isfile(seed_image) or not os.path.isfile(difference_image):
                 monitoring.to_log_and_console("       " + proc + ": computation failed at h = " + str(h_min), 2)
@@ -905,7 +912,7 @@ def _extract_seeds(c, cell_segmentation, cell_seeds=None, bb=None, individual_se
 
 def _build_seeds_from_selected_parameters(selected_parameter_seeds,
                                           segmentation_from_previous, seeds_from_previous, selected_seeds,
-                                          cells, unseeded_cells, bounding_boxes, membrane_image,
+                                          cells, unseeded_cells, bounding_boxes, image_for_membrane,
                                           experiment, parameters):
     """
 
@@ -916,7 +923,7 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
     :param cells:
     :param unseeded_cells:
     :param bounding_boxes:
-    :param membrane_image:
+    :param image_for_membrane:
     :param experiment:
     :param parameters:
     :return:
@@ -992,7 +999,7 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
         #
 
         if h_min not in seed_image_list:
-            seed_image = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
+            seed_image = common.add_suffix(image_for_membrane, "_seed_h" + str('{:03d}'.format(h_min)),
                                            new_dirname=experiment.astec_dir.get_tmp_directory(),
                                            new_extension=experiment.default_image_suffix)
             if not os.path.isfile(seed_image):
@@ -1122,7 +1129,13 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
     #
     del new_seed_image
 
-    for i in seed_image_list:
+    #
+    # "for i in seed_image_list:" can be used if the dictionary is not changed
+    # else use
+    # - either "for i in seed_image_list.keys():"
+    # - or "for i in list(seed_image_list):"
+    #
+    for i in seed_image_list.keys():
         del seed_image_list[i]
 
     del first_segmentation
@@ -1326,7 +1339,7 @@ def _volume_diagnosis(prev_volumes, curr_volumes, correspondences, parameters):
 
 
 def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_from_selection, deformed_seeds,
-                                selected_seeds, membrane_image, correspondences, selected_parameter_seeds, n_seeds,
+                                selected_seeds, image_for_membrane, correspondences, selected_parameter_seeds, n_seeds,
                                 parameter_seeds, bounding_boxes, experiment, parameters):
     """
     :param astec_name: generic name for image file name construction
@@ -1334,7 +1347,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
     :param segmentation_from_selection:
     :param deformed_seeds: seeds obtained from the segmentation at a previous time and deformed into the current time
     :param selected_seeds:
-    :param membrane_image:
+    :param image_for_membrane:
     :param correspondences: is a dictionary that gives, for each 'parent' cell (in the segmentation built from previous
     time segmentation) (ie the key), the list of 'children' cells (in the segmentation built from selected seeds)
     :param selected_parameter_seeds:
@@ -1508,7 +1521,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
                 # the seeds as in the following case (nb_final == 1 or nb_final == 2) and (np.array(s) > 2).any())?
                 #
                 h_min, sigma = parameter_seeds[mother_c][s.index(2)]
-                seed_image_name = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
+                seed_image_name = common.add_suffix(image_for_membrane, "_seed_h" + str('{:03d}'.format(h_min)),
                                                     new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                     new_extension=experiment.default_image_suffix)
                 #
@@ -1545,7 +1558,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
                 # get the smallest h
                 #
                 h_min, sigma = parameter_seeds[mother_c][-1]
-                seed_image_name = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
+                seed_image_name = common.add_suffix(image_for_membrane, "_seed_h" + str('{:03d}'.format(h_min)),
                                                     new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                     new_extension=experiment.default_image_suffix)
                 #
@@ -1615,7 +1628,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
             # get the three seeds, and keep them for further fusion
             #
             h_min, sigma = parameter_seeds[mother_c][s.index(3)]
-            seed_image_name = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
+            seed_image_name = common.add_suffix(image_for_membrane, "_seed_h" + str('{:03d}'.format(h_min)),
                                                 new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                 new_extension=experiment.default_image_suffix)
             #
@@ -1731,7 +1744,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
     segmentation_from_corr_selection = common.add_suffix(astec_name, '_watershed_from_corrected_selection',
                                                          new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                          new_extension=experiment.default_image_suffix)
-    mars.watershed(corr_selected_seeds, membrane_image, segmentation_from_corr_selection, experiment, parameters)
+    mars.watershed(corr_selected_seeds, image_for_membrane, segmentation_from_corr_selection, experiment, parameters)
 
     #
     # there are labels to be fused if there is a case where 3 seeds have been generated for a mother cell
@@ -1853,13 +1866,13 @@ def _slices_dilation(slices, maximum, iterations=1):
     return slices
 
 
-def _outer_volume_decrease_correction(astec_name, previous_segmentation, segmentation_from_selection, membrane_image,
+def _outer_volume_decrease_correction(astec_name, previous_segmentation, segmentation_from_selection, image_for_membrane,
                                       correspondences, bounding_boxes, experiment, parameters):
     """
     :param astec_name: generic name for image file name construction
     :param previous_segmentation: watershed segmentation obtained with segmentation image at previous timepoint
     :param segmentation_from_selection:
-    :param membrane_image:
+    :param image_for_membrane:
     :param correspondences: is a dictionary that gives, for each 'parent' cell (in the segmentation built from previous
     time segmentation) (ie the key), the list of 'children' cells (in the segmentation built from selected seeds)
     :param bounding_boxes: bounding boxes defined on previous_segmentation
@@ -1988,7 +2001,7 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
     #
     # parameters for morphosnake
     #
-    greylevel_image = imread(membrane_image)
+    greylevel_image = imread(image_for_membrane)
 
     mapping = []
     for mother_c in exterior_correction:
@@ -2229,13 +2242,14 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
 
     #
     # build or read the membrane image to be segmented
+    # this is the intensity (elevation) image used for the watershed
     #
 
     reconstruction.monitoring.copy(monitoring)
 
-    membrane_image = reconstruction.build_membrane_image(current_time, experiment, parameters,
+    image_for_membrane = reconstruction.build_membrane_image(current_time, experiment, parameters,
                                                          previous_time=previous_time)
-    if membrane_image is None:
+    if image_for_membrane is None:
         monitoring.to_log_and_console("    .. " + proc + ": no membrane image was found/built for time "
                                       + str(current_time), 2)
         return False
@@ -2284,7 +2298,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
                                                        new_extension=experiment.default_image_suffix)
 
     if not os.path.isfile(segmentation_from_previous) or monitoring.forceResultsToBeBuilt is True:
-        mars.watershed(deformed_seeds, membrane_image, segmentation_from_previous, experiment, parameters)
+        mars.watershed(deformed_seeds, image_for_membrane, segmentation_from_previous, experiment, parameters)
 
     #
     # if the propagation strategy is only to get seeds from the erosion of the previous cells
@@ -2335,11 +2349,24 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     # parameter_seeds[mother_c] is an array (of same length) that gives the parameters ([h, sigma]) used for the
     #   computation, h being decreasing
     #
+
+    #
+    # In the original astec version, seeds are computed from the original fusion image
+    #
+    image_for_seeds = experiment.fusion_dir.get_image_name(current_time)
+    image_for_seeds = common.find_file(experiment.fusion_dir.get_directory(), image_for_seeds, file_type='image',
+                                       callfrom=proc, local_monitoring=None, verbose=False)
+    if image_for_seeds is None:
+        monitoring.to_log_and_console("    .. " + proc + " no fused image was found for time " + str(current_time), 2)
+        return None
+    image_for_seeds = os.path.join(experiment.fusion_dir.get_directory(), image_for_seeds)
+
+
     monitoring.to_log_and_console('    estimation of h-minima for h in ['
                                   + str(parameters.watershed_seed_hmin_min_value) + ','
                                   + str(parameters.watershed_seed_hmin_max_value) + ']', 2)
-    n_seeds, parameter_seeds = _cell_based_h_minima(segmentation_from_previous, cells, bounding_boxes, membrane_image,
-                                                    experiment, parameters)
+    n_seeds, parameter_seeds = _cell_based_h_minima(segmentation_from_previous, cells, bounding_boxes, image_for_seeds,
+                                                    image_for_membrane, experiment, parameters)
 
     #
     # First selection of seeds
@@ -2352,7 +2379,6 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     # selected_parameter_seeds is a dictionary indexed by mother cell index
     # selected_parameter_seeds[mother_c] is an array [selected_h, sigma, n_seeds]
     # unseeded_cells is a list
-    # is a list
     #
     monitoring.to_log_and_console('    parameter selection', 2)
     selected_parameter_seeds, unseeded_cells = _select_seed_parameters(n_seeds, parameter_seeds,
@@ -2392,7 +2418,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
 
     output = _build_seeds_from_selected_parameters(selected_parameter_seeds, segmentation_from_previous, deformed_seeds,
                                                    selected_seeds, cells, unseeded_cells, bounding_boxes,
-                                                   membrane_image, experiment, parameters)
+                                                   image_for_membrane, experiment, parameters)
 
     label_max, correspondences, divided_cells = output
 
@@ -2401,11 +2427,35 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     #
 
     monitoring.to_log_and_console('    watershed from selection of seeds', 2)
-    segmentation_from_selection = common.add_suffix(astec_name, '_watershed_from_selection',
-                                                    new_dirname=experiment.astec_dir.get_tmp_directory(),
-                                                    new_extension=experiment.default_image_suffix)
+
+    if parameters.propagation_strategy is 'seeds_selection_without_correction':
+        segmentation_from_selection = astec_image
+    else:
+        segmentation_from_selection = common.add_suffix(astec_name, '_watershed_from_selection',
+                                                        new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                                        new_extension=experiment.default_image_suffix)
+
     if not os.path.isfile(segmentation_from_selection) or monitoring.forceResultsToBeBuilt is True:
-        mars.watershed(selected_seeds, membrane_image, segmentation_from_selection, experiment, parameters)
+        mars.watershed(selected_seeds, image_for_membrane, segmentation_from_selection, experiment, parameters)
+
+    #
+    # if the propagation strategy is to get this segmentation without corrections
+    # we're done. Update the properties
+    #
+
+    if parameters.propagation_strategy is 'seeds_selection_without_correction':
+        #
+        # update volumes and lineage
+        #
+        lineage_tree_information = _update_volume_properties(lineage_tree_information, astec_image, current_time,
+                                                             experiment)
+
+        #
+        # update lineage.
+        #
+        lineage_tree_information = _update_lineage_properties(lineage_tree_information, correspondences, previous_time,
+                                                              current_time, experiment)
+        return lineage_tree_information
 
     #
     # Here, we have a first segmentation
@@ -2419,7 +2469,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
 
     monitoring.to_log_and_console('    volume decrease correction', 2)
     output = _volume_decrease_correction(astec_name, segmentation_from_previous, segmentation_from_selection,
-                                         deformed_seeds, selected_seeds, membrane_image, correspondences,
+                                         deformed_seeds, selected_seeds, image_for_membrane, correspondences,
                                          selected_parameter_seeds, n_seeds, parameter_seeds, bounding_boxes, experiment,
                                          parameters)
     segmentation_from_selection, selected_seeds, correspondences = output
@@ -2439,7 +2489,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
         monitoring.to_log_and_console('    outer volume decrease correction (morphosnakes)', 2)
 
         output = _outer_volume_decrease_correction(astec_name, segmentation_from_previous, input_segmentation,
-                                                   membrane_image, correspondences, bounding_boxes, experiment,
+                                                   image_for_membrane, correspondences, bounding_boxes, experiment,
                                                    parameters)
         output_segmentation, correspondences, effective_exterior_correction = output
         input_segmentation = output_segmentation
@@ -2466,7 +2516,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
                                                 new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                 new_extension=experiment.default_image_suffix)
         if not os.path.isfile(segmentation_from_selection):
-            mars.watershed(selected_seeds, membrane_image, segmentation_from_selection, experiment, parameters)
+            mars.watershed(selected_seeds, image_for_membrane, segmentation_from_selection, experiment, parameters)
 
         correspondences = _multiple_label_fusion(input_segmentation, output_segmentation, correspondences,
                                                  labels_to_be_fused)
@@ -2759,7 +2809,6 @@ def astec_control(experiment, parameters):
     #
 
     monitoring.to_log_and_console("    .. test lineage", 1)
-    properties.check_lineage(lineage_tree_information, first_time, last_time,
-                             time_digits_for_cell_id=time_digits_for_cell_id)
+    properties.check_volume_lineage(lineage_tree_information, time_digits_for_cell_id=time_digits_for_cell_id)
 
     return
