@@ -57,7 +57,8 @@ monitoring = common.Monitoring()
 #
 ########################################################################################
 
-class AceParameters(object):
+
+class AceParameters(common.PrefixedParameter):
 
     ############################################################
     #
@@ -65,7 +66,9 @@ class AceParameters(object):
     #
     ############################################################
 
-    def __init__(self):
+    def __init__(self, prefix=None):
+
+        common.PrefixedParameter.__init__(self, prefix=prefix)
 
         #
         # parameters for filtering and membrane extrema extraction
@@ -107,54 +110,62 @@ class AceParameters(object):
     #
     ############################################################
 
-    def print_parameters(self):
+    def print_parameters(self, spaces=0):
         print("")
-        print('AceParameters')
+        print(spaces * ' ' + 'AceParameters')
+        
+        common.PrefixedParameter.print_parameters(self, spaces=spaces)
 
-        print('- sigma_membrane = ' + str(self.sigma_membrane))
+        self.logprint('sigma_membrane', self.sigma_membrane, spaces=spaces)
 
-        print('- hard_thresholding = ' + str(self.hard_thresholding))
-        print('- hard_threshold = ' + str(self.hard_threshold))
+        self.logprint('hard_thresholding', self.hard_thresholding, spaces=spaces)
+        self.logprint('hard_threshold', self.hard_threshold, spaces=spaces)
 
-        print('- manual = ' + str(self.manual))
-        print('- manual_sigma = ' + str(self.manual_sigma))
-        print('- sensitivity = ' + str(self.sensitivity))
+        self.logprint('manual', self.manual, spaces=spaces)
+        self.logprint('manual_sigma', self.manual_sigma, spaces=spaces)
+        self.logprint('sensitivity', self.sensitivity, spaces=spaces)
 
-        print('- sigma_TV = ' + str(self.sigma_TV))
-        print('- sigma_LF = ' + str(self.sigma_LF))
-        print('- sample = ' + str(self.sample))
-        print('- sample_random_seed = ' + str(self.sample_random_seed))
+        self.logprint('sigma_TV', self.sigma_TV, spaces=spaces)
+        self.logprint('sigma_LF', self.sigma_LF, spaces=spaces)
+        self.logprint('sample', self.sample, spaces=spaces)
+        self.logprint('sample_random_seed', self.sample_random_seed, spaces=spaces)
 
-        print('- bounding_box_dilation = ' + str(self.bounding_box_dilation))
+        self.logprint('bounding_box_dilation', self.bounding_box_dilation, spaces=spaces)
 
-        print('- default_image_suffix = ' + str(self.default_image_suffix))
+        self.logprint('default_image_suffix', self.default_image_suffix, spaces=spaces)
 
         print("")
+        return
 
-    def write_parameters(self, log_file_name):
+    def write_parameters_in_file(self, logfile, spaces=0):
+        logfile.write("\n")
+        logfile.write(spaces * ' ' + 'AceParameters\n')
+
+        common.PrefixedParameter.write_parameters_in_file(self, logfile, spaces=spaces)
+
+        self.logwrite(logfile, 'sigma_membrane', self.sigma_membrane, spaces=spaces)
+
+        self.logwrite(logfile, 'hard_thresholding', self.hard_thresholding, spaces=spaces)
+        self.logwrite(logfile, 'hard_threshold', self.hard_threshold, spaces=spaces)
+
+        self.logwrite(logfile, 'manual', self.manual, spaces=spaces)
+        self.logwrite(logfile, 'manual_sigma', self.manual_sigma, spaces=spaces)
+        self.logwrite(logfile, 'sensitivity', self.sensitivity, spaces=spaces)
+
+        self.logwrite(logfile, 'sigma_TV', self.sigma_TV, spaces=spaces)
+        self.logwrite(logfile, 'sigma_LF', self.sigma_LF, spaces=spaces)
+        self.logwrite(logfile, 'sample', self.sample, spaces=spaces)
+        self.logwrite(logfile, 'sample_random_seed', self.sample_random_seed, spaces=spaces)
+
+        self.logwrite(logfile, 'bounding_box_dilation', self.bounding_box_dilation, spaces=spaces)
+        self.logwrite(logfile, 'default_image_suffix', self.default_image_suffix, spaces=spaces)
+
+        logfile.write("\n")
+        return
+
+    def write_parameters(self, log_file_name, spaces=0):
         with open(log_file_name, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('AceParameters\n')
-
-            logfile.write('- sigma_membrane = ' + str(self.sigma_membrane) + '\n')
-
-            logfile.write('- hard_thresholding = ' + str(self.hard_thresholding) + '\n')
-            logfile.write('- hard_threshold = ' + str(self.hard_threshold) + '\n')
-
-            logfile.write('- manual = ' + str(self.manual) + '\n')
-            logfile.write('- manual_sigma = ' + str(self.manual_sigma) + '\n')
-            logfile.write('- sensitivity = ' + str(self.sensitivity) + '\n')
-
-            logfile.write('- sigma_TV = ' + str(self.sigma_TV) + '\n')
-            logfile.write('- sigma_LF = ' + str(self.sigma_LF) + '\n')
-            logfile.write('- sample = ' + str(self.sample) + '\n')
-            logfile.write('- sample_random_seed = ' + str(self.sample_random_seed) + '\n')
-
-            logfile.write('- bounding_box_dilation = ' + str(self.bounding_box_dilation) + '\n')
-
-            logfile.write('- default_image_suffix = ' + str(self.default_image_suffix) + '\n')
-
-            logfile.write("\n")
+            self.write_parameters_in_file(logfile, spaces=spaces)
         return
 
     ############################################################
@@ -172,80 +183,60 @@ class AceParameters(object):
 
         parameters = imp.load_source('*', parameter_file)
 
-        if hasattr(parameters, 'mars_sigma_membrane'):
-            if parameters.mars_sigma_membrane is not None:
-                self.sigma_membrane = parameters.mars_sigma_membrane
-        if hasattr(parameters, 'astec_sigma_membrane'):
-            if parameters.astec_sigma_membrane is not None:
-                self.sigma_membrane = parameters.astec_sigma_membrane
+        self.sigma_membrane = self.read_parameter(parameters, 'sigma_membrane', self.sigma_membrane)
 
-        if hasattr(parameters, 'mars_hard_thresholding'):
-            if parameters.mars_hard_thresholding is not None:
-                self.hard_thresholding = parameters.mars_hard_thresholding
-        if hasattr(parameters, 'astec_hard_thresholding'):
-            if parameters.astec_hard_thresholding is not None:
-                self.hard_thresholding = parameters.astec_hard_thresholding
+        self.hard_thresholding = self.read_parameter(parameters, 'hard_thresholding', self.hard_thresholding)
+        self.hard_threshold = self.read_parameter(parameters, 'hard_threshold', self.hard_threshold)
 
-        if hasattr(parameters, 'mars_hard_threshold'):
-            if parameters.mars_hard_threshold is not None:
-                self.hard_threshold = parameters.mars_hard_threshold
-        if hasattr(parameters, 'astec_hard_threshold'):
-            if parameters.astec_hard_threshold is not None:
-                self.hard_threshold = parameters.astec_hard_threshold
+        self.manual = self.read_parameter(parameters, 'manual', self.manual)
+        self.manual_sigma = self.read_parameter(parameters, 'manual_sigma', self.manual_sigma)
+        self.sensitivity = self.read_parameter(parameters, 'sensitivity', self.sensitivity)
 
-        if hasattr(parameters, 'mars_manual'):
-            if parameters.mars_manual is not None:
-                self.manual = parameters.mars_manual
-        if hasattr(parameters, 'astec_manual'):
-            if parameters.astec_manual is not None:
-                self.manual = parameters.astec_manual
+        self.sigma_TV = self.read_parameter(parameters, 'sigma_TV', self.sigma_TV)
+        self.sigma_LF = self.read_parameter(parameters, 'sigma_LF', self.sigma_LF)
+        self.sample = self.read_parameter(parameters, 'sample', self.sample)
+        self.sample_random_seed = self.read_parameter(parameters, 'sample_random_seed', self.sample_random_seed)
 
-        if hasattr(parameters, 'mars_manual_sigma'):
-            if parameters.mars_manual_sigma is not None:
-                self.manual_sigma = parameters.mars_manual_sigma
-        if hasattr(parameters, 'astec_manual_sigma'):
-            if parameters.astec_manual_sigma is not None:
-                self.manual_sigma = parameters.astec_manual_sigma
+        self.bounding_box_dilation = self.read_parameter(parameters, 'bounding_box_dilation',
+                                                         self.bounding_box_dilation)
 
-        if hasattr(parameters, 'mars_sensitivity'):
-            if parameters.mars_sensitivity is not None:
-                self.sensitivity = parameters.mars_sensitivity
-        if hasattr(parameters, 'astec_sensitivity'):
-            if parameters.astec_sensitivity is not None:
-                self.sensitivity = parameters.astec_sensitivity
+        self.default_image_suffix = self.read_parameter(parameters, 'default_image_suffix', self.default_image_suffix)
 
-        if hasattr(parameters, 'mars_sigma_TV'):
-            if parameters.mars_sigma_TV is not None:
-                self.sigma_TV = parameters.mars_sigma_TV
-        if hasattr(parameters, 'astec_sigma_TV'):
-            if parameters.astec_sigma_TV is not None:
-                self.sigma_TV = parameters.astec_sigma_TV
+    ############################################################
+    #
+    #
+    #
+    ############################################################
 
-        if hasattr(parameters, 'mars_sigma_LF'):
-            if parameters.mars_sigma_LF is not None:
-                self.sigma_LF = parameters.mars_sigma_LF
-        if hasattr(parameters, 'astec_sigma_LF'):
-            if parameters.astec_sigma_LF is not None:
-                self.sigma_LF = parameters.astec_sigma_LF
+    def is_equal(self, p):
+        if self.sigma_membrane != p.sigma_membrane:
+            return False
 
-        if hasattr(parameters, 'mars_sample'):
-            if parameters.mars_sample is not None:
-                self.sample = parameters.mars_sample
-        if hasattr(parameters, 'astec_sample'):
-            if parameters.astec_sample is not None:
-                self.sample = parameters.astec_sample
+        if self.hard_thresholding != p.hard_thresholding:
+            return False
+        if self.hard_threshold != p.hard_threshold:
+            return False
 
-        if hasattr(parameters, 'mars_sample_random_seed'):
-            if parameters.mars_sample_random_seed is not None:
-                self.sample_random_seed = parameters.mars_sample_random_seed
-        if hasattr(parameters, 'astec_sample_random_seed'):
-            if parameters.astec_sample_random_seed is not None:
-                self.sample_random_seed = parameters.astec_sample_random_seed
+        if self.manual != p.manual:
+            return False
+        if self.manual_sigma != p.manual_sigma:
+            return False
+        if self.sensitivity != p.sensitivity:
+            return False
 
-        if hasattr(parameters, 'default_image_suffix'):
-            if parameters.default_image_suffix is not None:
-                self.default_image_suffix = parameters.default_image_suffix
+        if self.sigma_TV != p.sigma_TV:
+            return False
+        if self.sigma_LF != p.sigma_LF:
+            return False
+        if self.sample != p.sample:
+            return False
+        if self.sample_random_seed != p.sample_random_seed:
+            return False
 
+        if self.bounding_box_dilation != p.bounding_box_dilation:
+            return False
+
+        return True
 
 ########################################################################################
 #

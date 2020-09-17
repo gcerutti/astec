@@ -100,21 +100,17 @@ class FusionParameters(object):
         #
         self.acquisition_registration = []
 
-        self.acquisition_registration.append(common.RegistrationParameters())
-        self.acquisition_registration[0].prefix = 'fusion_preregistration_'
+        self.acquisition_registration.append(common.RegistrationParameters(prefix=['fusion_preregistration_']))
         self.acquisition_registration[0].compute_registration = False
         self.acquisition_registration[0].transformation_type = 'translation'
 
-        self.acquisition_registration.append(common.RegistrationParameters())
-        self.acquisition_registration[1].prefix = 'fusion_registration_'
+        self.acquisition_registration.append(common.RegistrationParameters(prefix=['fusion_registration_']))
 
         self.stack_registration = []
 
-        self.stack_registration.append(common.RegistrationParameters())
-        self.stack_registration[0].prefix = 'fusion_stack_preregistration_'
+        self.stack_registration.append(common.RegistrationParameters(prefix=['fusion_stack_preregistration_']))
 
-        self.stack_registration.append(common.RegistrationParameters())
-        self.stack_registration[1].prefix = 'fusion_stack_registration_'
+        self.stack_registration.append(common.RegistrationParameters(prefix=['fusion_stack_registration_']))
         self.stack_registration[1].transformation_type = 'vectorfield'
         self.stack_registration[1].lts_fraction = 1.0
 
@@ -164,9 +160,9 @@ class FusionParameters(object):
         print('- acquisition_cropping_margin_y_1 = ' + str(self.acquisition_cropping_margin_y_1))
 
         for p in self.acquisition_registration:
-            p.print_parameters()
+            p.print_parameters(spaces=2)
         for p in self.stack_registration:
-            p.print_parameters()
+            p.print_parameters(spaces=2)
 
         print('- xzsection_extraction = ' + str(self.xzsection_extraction))
 
@@ -205,9 +201,9 @@ class FusionParameters(object):
             logfile.write('- acquisition_cropping_margin_y_1 = ' + str(self.acquisition_cropping_margin_y_1)+'\n')
 
             for p in self.acquisition_registration:
-                p.write_parameters(log_file_name)
+                p.write_parameters_in_file(logfile, spaces=2)
             for p in self.stack_registration:
-                p.write_parameters(log_file_name)
+                p.write_parameters_in_file(logfile, spaces=2)
 
             logfile.write('- xzsection_extraction = ' + str(self.xzsection_extraction) + '\n')
 

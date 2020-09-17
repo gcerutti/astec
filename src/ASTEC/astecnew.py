@@ -39,7 +39,7 @@ monitoring = common.Monitoring()
 #
 #
 #
-class MorphoSnakeParameters(object):
+class MorphoSnakeParameters(common.PrefixedParameter):
 
     ############################################################
     #
@@ -47,7 +47,10 @@ class MorphoSnakeParameters(object):
     #
     ############################################################
 
-    def __init__(self):
+    def __init__(self, prefix=None):
+
+        common.PrefixedParameter.__init__(self, prefix=prefix)
+
         #
         # number of dilation iterations to get the initialization from 'previous' cell
         #
@@ -74,32 +77,39 @@ class MorphoSnakeParameters(object):
     #
     ############################################################
 
-    def print_parameters(self):
+    def print_parameters(self, spaces=0):
         print("")
-        print('MorphoSnakes parameters')
-        print('- ms_dilation_iterations is ' + str(self.ms_dilation_iterations))
-        print('- ms_iterations is ' + str(self.ms_iterations))
-        print('- ms_delta_voxel is ' + str(self.ms_delta_voxel))
-        print('- ms_energy is ' + str(self.ms_energy))
-        print('- ms_smoothing is ' + str(self.ms_smoothing))
-        print('- ms_threshold is ' + str(self.ms_threshold))
-        print('- ms_balloon is ' + str(self.ms_balloon))
-        print('- ms_processors is ' + str(self.ms_processors))
+        print(spaces * ' ' + 'MorphoSnakeParameters')
+        common.PrefixedParameter.print_parameters(self, spaces=spaces)
+        self.logprint('ms_dilation_iterations', self.ms_dilation_iterations, spaces=spaces)
+        self.logprint('ms_iterations', self.ms_iterations, spaces=spaces)
+        self.logprint('ms_delta_voxel', self.ms_delta_voxel, spaces=spaces)
+        self.logprint('ms_energy', self.ms_energy, spaces=spaces)
+        self.logprint('ms_smoothing', self.ms_smoothing, spaces=spaces)
+        self.logprint('ms_threshold', self.ms_threshold, spaces=spaces)
+        self.logprint('ms_balloon', self.ms_balloon, spaces=spaces)
+        self.logprint('ms_processors', self.ms_processors, spaces=spaces)
         print("")
+        return
 
-    def write_parameters(self, log_file_name):
+    def write_parameters_in_file(self, logfile, spaces=0):
+        logfile.write("\n")
+        logfile.write(spaces * ' ' + 'MorphoSnakeParameters\n')
+        common.PrefixedParameter.write_parameters_in_file(self, logfile, spaces=spaces)
+        self.logwrite(logfile, 'ms_dilation_iterations', self.ms_dilation_iterations, spaces=spaces)
+        self.logwrite(logfile, 'ms_iterations', self.ms_iterations, spaces=spaces)
+        self.logwrite(logfile, 'ms_delta_voxel', self.ms_delta_voxel, spaces=spaces)
+        self.logwrite(logfile, 'ms_energy', self.ms_energy, spaces=spaces)
+        self.logwrite(logfile, 'ms_smoothing', self.ms_smoothing, spaces=spaces)
+        self.logwrite(logfile, 'ms_threshold', self.ms_threshold, spaces=spaces)
+        self.logwrite(logfile, 'ms_balloon', self.ms_balloon, spaces=spaces)
+        self.logwrite(logfile, 'ms_processors', self.ms_processors, spaces=spaces)
+        logfile.write("\n")
+        return
+
+    def write_parameters(self, log_file_name, spaces=0):
         with open(log_file_name, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('MorphoSnakes parameters\n')
-            logfile.write('- ms_dilation_iterations is ' + str(self.ms_dilation_iterations)+'\n')
-            logfile.write('- ms_iterations is ' + str(self.ms_iterations)+'\n')
-            logfile.write('- ms_delta_voxel is ' + str(self.ms_delta_voxel)+'\n')
-            logfile.write('- ms_energy is ' + str(self.ms_energy) + '\n')
-            logfile.write('- ms_smoothing is ' + str(self.ms_smoothing) + '\n')
-            logfile.write('- ms_threshold is ' + str(self.ms_threshold) + '\n')
-            logfile.write('- ms_balloon is ' + str(self.ms_balloon) + '\n')
-            logfile.write('- ms_processors is ' + str(self.ms_processors) + '\n')
-            logfile.write("\n")
+            self.write_parameters_in_file(logfile, spaces=spaces)
         return
 
     ############################################################
@@ -152,7 +162,7 @@ class MorphoSnakeParameters(object):
 #
 #
 
-class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionParameters, MorphoSnakeParameters):
+class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
 
     ############################################################
     #
@@ -160,18 +170,17 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
     #
     ############################################################
 
-    def __init__(self):
+    def __init__(self, prefix="astec_"):
 
         ############################################################
         #
         # initialisation
         #
         ############################################################
-        mars.WatershedParameters.__init__(self)
-        reconstruction.ReconstructionParameters.__init__(self)
-        MorphoSnakeParameters.__init__(self)
-
-        self.intensity_transformation = 'Normalization_to_u8'
+        mars.WatershedParameters.__init__(self, prefix=prefix)
+        self.seed_reconstruction = reconstruction.ReconstructionParameters(prefix=[self._prefix, "seed_"])
+        self.membrane_reconstruction = reconstruction.ReconstructionParameters(prefix=[self._prefix, "membrane_"])
+        MorphoSnakeParameters.__init__(self, prefix=prefix)
 
         #
         #
@@ -200,8 +209,8 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
         #
         #
         #
-        self.astec_background_seed_from_hmin = False
-        self.astec_background_seed_from_previous = True
+        self.background_seed_from_hmin = False
+        self.background_seed_from_previous = True
 
         #
         # to decide whether there will be division
@@ -235,74 +244,80 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
     #
     ############################################################
 
-    def print_parameters(self):
+    def print_parameters(self, spaces=0):
         print("")
-        print('AstecParameters')
+        print(spaces * ' ' + 'AstecParameters')
 
-        print('- propagation_strategy = ' + str(self.propagation_strategy))
+        mars.WatershedParameters.print_parameters(self, spaces=spaces + 2)
+        self.seed_reconstruction.print_parameters(spaces=spaces + 2)
+        self.membrane_reconstruction.print_parameters(spaces=spaces + 2)
+        MorphoSnakeParameters.print_parameters(self, spaces=spaces + 2)
 
-        print('- previous_seg_erosion_cell_iterations = ' + str(self.previous_seg_erosion_cell_iterations))
-        print('- previous_seg_erosion_background_iterations = ' + str(self.previous_seg_erosion_background_iterations))
-        print('- previous_seg_erosion_cell_min_size = ' + str(self.previous_seg_erosion_cell_min_size))
+        self.logprint('propagation_strategy', self.propagation_strategy, spaces=spaces)
 
-        print('- watershed_seed_hmin_min_value = ' + str(self.watershed_seed_hmin_min_value))
-        print('- watershed_seed_hmin_max_value = ' + str(self.watershed_seed_hmin_max_value))
-        print('- watershed_seed_hmin_delta_value = ' + str(self.watershed_seed_hmin_delta_value))
+        self.logprint('previous_seg_erosion_cell_iterations', self.previous_seg_erosion_cell_iterations, spaces=spaces)
+        self.logprint('previous_seg_erosion_background_iterations', self.previous_seg_erosion_background_iterations,
+                      spaces=spaces)
+        self.logprint('previous_seg_erosion_cell_min_size', self.previous_seg_erosion_cell_min_size, spaces=spaces)
 
-        print('- astec_background_seed_from_hmin = ' + str(self.astec_background_seed_from_hmin))
-        print('- astec_background_seed_from_previous = ' + str(self.astec_background_seed_from_previous))
+        self.logprint('watershed_seed_hmin_min_value', self.watershed_seed_hmin_min_value, spaces=spaces)
+        self.logprint('watershed_seed_hmin_max_value', self.watershed_seed_hmin_max_value, spaces=spaces)
+        self.logprint('watershed_seed_hmin_delta_value', self.watershed_seed_hmin_delta_value, spaces=spaces)
 
-        print('- seed_selection_tau = ' + str(self.seed_selection_tau))
+        self.logprint('background_seed_from_hmin', self.background_seed_from_hmin, spaces=spaces)
+        self.logprint('background_seed_from_previous', self.background_seed_from_previous, spaces=spaces)
 
-        print('- minimum_volume_unseeded_cell = ' + str(self.minimum_volume_unseeded_cell))
+        self.logprint('seed_selection_tau', self.seed_selection_tau, spaces=spaces)
 
-        print('- volume_ratio_tolerance = ' + str(self.volume_ratio_tolerance))
-        print('- volume_ratio_threshold = ' + str(self.volume_ratio_threshold))
-        print('- volume_minimal_value = ' + str(self.volume_minimal_value))
+        self.logprint('minimum_volume_unseeded_cell', self.minimum_volume_unseeded_cell, spaces=spaces)
 
-        print('- outer_correction_radius_opening = ' + str(self.outer_correction_radius_opening))
+        self.logprint('volume_ratio_tolerance', self.volume_ratio_tolerance, spaces=spaces)
+        self.logprint('volume_ratio_threshold', self.volume_ratio_threshold, spaces=spaces)
+        self.logprint('volume_minimal_value', self.volume_minimal_value, spaces=spaces)
 
-        mars.WatershedParameters.print_parameters(self)
-        reconstruction.ReconstructionParameters.print_parameters(self)
-        MorphoSnakeParameters.print_parameters(self)
+        self.logprint('outer_correction_radius_opening', self.outer_correction_radius_opening, spaces=spaces)
         print("")
 
-    def write_parameters(self, log_file_name):
+    def write_parameters(self, logfile, spaces=0):
+        logfile.write("\n")
+        logfile.write(spaces * ' ' + 'AstecParameters\n')
+
+        common.PrefixedParameter.write_parameters_in_file(self, logfile, spaces=spaces)
+        mars.WatershedParameters.write_parameters_in_file(self, logfile, spaces=spaces + 2)
+        self.seed_reconstruction.write_parameters_in_file(logfile, spaces=spaces + 2)
+        self.membrane_reconstruction.write_parameters_in_file(logfile, spaces=spaces + 2)
+        MorphoSnakeParameters.write_parameters_in_file(logfile, spaces=spaces + 2)
+
+        self.logwrite(logfile, 'propagation_strategy', self.propagation_strategy, spaces=spaces)
+
+        self.logwrite(logfile, 'previous_seg_erosion_cell_iterations', self.previous_seg_erosion_cell_iterations,
+                      spaces=spaces)
+        self.logwrite(logfile, 'previous_seg_erosion_background_iterations',
+                      self.previous_seg_erosion_background_iterations, spaces=spaces)
+        self.logwrite(logfile, 'previous_seg_erosion_cell_min_size', self.previous_seg_erosion_cell_min_size,
+                      spaces=spaces)
+
+        self.logwrite(logfile, 'watershed_seed_hmin_min_value', self.watershed_seed_hmin_min_value, spaces=spaces)
+        self.logwrite(logfile, 'watershed_seed_hmin_max_value', self.watershed_seed_hmin_max_value, spaces=spaces)
+        self.logwrite(logfile, 'watershed_seed_hmin_delta_value', self.watershed_seed_hmin_delta_value, spaces=spaces)
+
+        self.logwrite(logfile, 'background_seed_from_hmin', self.background_seed_from_hmin, spaces=spaces)
+        self.logwrite(logfile, 'background_seed_from_previous', self.background_seed_from_previous, spaces=spaces)
+
+        self.logwrite(logfile, 'seed_selection_tau', self.seed_selection_tau, spaces=spaces)
+
+        self.logwrite(logfile, 'minimum_volume_unseeded_cell', self.minimum_volume_unseeded_cell, spaces=spaces)
+
+        self.logwrite(logfile, 'volume_ratio_tolerance', self.volume_ratio_tolerance, spaces=spaces)
+        self.logwrite(logfile, 'volume_ratio_threshold', self.volume_ratio_threshold, spaces=spaces)
+        self.logwrite(logfile, 'volume_minimal_value', self.volume_minimal_value, spaces=spaces)
+
+        self.logwrite(logfile, 'outer_correction_radius_opening', self.outer_correction_radius_opening, spaces=spaces)
+        return
+
+    def write_parameters(self, log_file_name, spaces=0):
         with open(log_file_name, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('AstecParameters\n')
-
-            logfile.write('- propagation_strategy = ' + str(self.propagation_strategy) + '\n')
-
-            logfile.write('- previous_seg_erosion_cell_iterations = ' + str(self.previous_seg_erosion_cell_iterations)
-                          + '\n')
-            logfile.write('- previous_seg_erosion_background_iterations = '
-                          + str(self.previous_seg_erosion_background_iterations) + '\n')
-            logfile.write('- previous_seg_erosion_cell_min_size = ' + str(self.previous_seg_erosion_cell_min_size)
-                          + '\n')
-
-            logfile.write('- watershed_seed_hmin_min_value = ' + str(self.watershed_seed_hmin_min_value) + '\n')
-            logfile.write('- watershed_seed_hmin_max_value = ' + str(self.watershed_seed_hmin_max_value) + '\n')
-            logfile.write('- watershed_seed_hmin_delta_value = ' + str(self.watershed_seed_hmin_delta_value) + '\n')
-
-            logfile.write('- astec_background_seed_from_hmin = ' + str(self.astec_background_seed_from_hmin) + '\n')
-            logfile.write('- astec_background_seed_from_previous = ' + str(self.astec_background_seed_from_previous)
-                          + '\n')
-
-            logfile.write('- seed_selection_tau = ' + str(self.seed_selection_tau) + '\n')
-
-            logfile.write('- minimum_volume_unseeded_cell = ' + str(self.minimum_volume_unseeded_cell) + '\n')
-
-            logfile.write('- volume_ratio_tolerance = ' + str(self.volume_ratio_tolerance) + '\n')
-            logfile.write('- volume_ratio_threshold = ' + str(self.volume_ratio_threshold) + '\n')
-            logfile.write('- volume_minimal_value = ' + str(self.volume_minimal_value) + '\n')
-
-            logfile.write('- outer_correction_radius_opening = ' + str(self.outer_correction_radius_opening) + '\n')
-
-            mars.WatershedParameters.write_parameters(self, log_file_name)
-            reconstruction.ReconstructionParameters.write_parameters(self, log_file_name)
-            MorphoSnakeParameters.write_parameters(self, log_file_name)
-            print("")
+            self.write_parameters_in_file(logfile, spaces=spaces)
         return
 
     ############################################################
@@ -320,109 +335,78 @@ class AstecParameters(mars.WatershedParameters, reconstruction.ReconstructionPar
 
         parameters = imp.load_source('*', parameter_file)
 
-        if hasattr(parameters, 'propagation_strategy'):
-            if parameters.propagation_strategy is not None:
-                self.propagation_strategy = parameters.propagation_strategy
-        if hasattr(parameters, 'astec_propagation_strategy'):
-            if parameters.astec_propagation_strategy is not None:
-                self.propagation_strategy = parameters.astec_propagation_strategy
+        mars.WatershedParameters.update_from_parameters(self, parameter_file)
+        self.seed_reconstruction.update_from_parameters(parameter_file)
+        self.membrane_reconstruction.update_from_parameters(parameter_file)
+        MorphoSnakeParameters.update_from_parameters(self, parameter_file)
+
+        self.propagation_strategy = self.read_parameter(parameters, 'propagation_strategy', self.propagation_strategy)
 
         #
         #
         #
 
-        if hasattr(parameters, 'previous_seg_erosion_cell_iterations'):
-            if parameters.previous_seg_erosion_cell_iterations is not None:
-                self.previous_seg_erosion_cell_iterations = parameters.previous_seg_erosion_cell_iterations
-        if hasattr(parameters, 'previous_seg_erosion_background_iterations'):
-            if parameters.previous_seg_erosion_background_iterations is not None:
-                self.previous_seg_erosion_background_iterations = parameters.previous_seg_erosion_background_iterations
-        if hasattr(parameters, 'previous_seg_erosion_cell_min_size'):
-            if parameters.previous_seg_erosion_cell_min_size is not None:
-                self.previous_seg_erosion_cell_min_size = parameters.previous_seg_erosion_cell_min_size
+        self.previous_seg_erosion_cell_iterations = self.read_parameter(parameters,
+                                                                        'previous_seg_erosion_cell_iterations',
+                                                                        self.previous_seg_erosion_cell_iterations)
+        self.previous_seg_erosion_background_iterations = self.read_parameter(parameters,
+                                                                              'previous_seg_erosion_background_iterations',
+                                                                              self.previous_seg_erosion_background_iterations)
+        self.previous_seg_erosion_cell_min_size = self.read_parameter(parameters, 'previous_seg_erosion_cell_min_size',
+                                                                      self.previous_seg_erosion_cell_min_size)
+
 
         #
         # watershed
         #
 
-        if hasattr(parameters, 'watershed_seed_hmin_min_value'):
-            if parameters.watershed_seed_hmin_min_value is not None:
-                self.watershed_seed_hmin_min_value = parameters.watershed_seed_hmin_min_value
-        if hasattr(parameters, 'astec_h_min_min'):
-            if parameters.astec_h_min_min is not None:
-                self.watershed_seed_hmin_min_value = parameters.astec_h_min_min
+        self.watershed_seed_hmin_min_value = self.read_parameter(parameters, 'watershed_seed_hmin_min_value',
+                                                                 self.watershed_seed_hmin_min_value)
+        self.watershed_seed_hmin_min_value = self.read_parameter(parameters, 'h_min_min',
+                                                                 self.watershed_seed_hmin_min_value)
 
-        if hasattr(parameters, 'watershed_seed_hmin_max_value'):
-            if parameters.watershed_seed_hmin_max_value is not None:
-                self.watershed_seed_hmin_max_value = parameters.watershed_seed_hmin_max_value
-        if hasattr(parameters, 'astec_h_min_max'):
-            if parameters.astec_h_min_max is not None:
-                self.watershed_seed_hmin_max_value = parameters.astec_h_min_max
+        self.watershed_seed_hmin_max_value = self.read_parameter(parameters, 'watershed_seed_hmin_max_value',
+                                                                 self.watershed_seed_hmin_max_value)
+        self.watershed_seed_hmin_max_value = self.read_parameter(parameters, 'h_min_max',
+                                                                 self.watershed_seed_hmin_max_value)
 
-        if hasattr(parameters, 'watershed_seed_hmin_delta_value'):
-            if parameters.watershed_seed_hmin_delta_value is not None:
-                self.watershed_seed_hmin_delta_value = parameters.watershed_seed_hmin_delta_value
+        self.watershed_seed_hmin_delta_value = self.read_parameter(parameters, 'watershed_seed_hmin_delta_value',
+                                                                   self.watershed_seed_hmin_delta_value)
 
         #
         #
         #
-
-        if hasattr(parameters, 'astec_background_seed_from_hmin'):
-            if parameters.astec_background_seed_from_hmin is not None:
-                self.astec_background_seed_from_hmin = parameters.astec_background_seed_from_hmin
-        if hasattr(parameters, 'astec_background_seed_from_previous'):
-            if parameters.astec_background_seed_from_previous is not None:
-                self.astec_background_seed_from_previous = parameters.astec_background_seed_from_previous
+        self.background_seed_from_hmin = self.read_parameter(parameters, 'background_seed_from_hmin',
+                                                             self.background_seed_from_hmin)
+        self.background_seed_from_previous = self.read_parameter(parameters, 'background_seed_from_previous',
+                                                                 self.background_seed_from_previous)
 
         #
         # seed selection
         #
 
-        if hasattr(parameters, 'seed_selection_tau'):
-            if parameters.seed_selection_tau is not None:
-                self.seed_selection_tau = parameters.seed_selection_tau
-        if hasattr(parameters, 'astec_Thau'):
-            if parameters.astec_Thau is not None:
-                self.seed_selection_tau = parameters.astec_Thau
+        self.seed_selection_tau = self.read_parameter(parameters, 'seed_selection_tau', self.seed_selection_tau)
+        self.seed_selection_tau = self.read_parameter(parameters, 'Thau', self.seed_selection_tau)
 
-        if hasattr(parameters, 'minimum_volume_unseeded_cell'):
-            if parameters.minimum_volume_unseeded_cell is not None:
-                self.minimum_volume_unseeded_cell = parameters.minimum_volume_unseeded_cell
+        self.minimum_volume_unseeded_cell = self.read_parameter(parameters, 'minimum_volume_unseeded_cell',
+                                                                self.minimum_volume_unseeded_cell)
 
-        if hasattr(parameters, 'volume_ratio_tolerance'):
-            if parameters.volume_ratio_tolerance is not None:
-                self.volume_ratio_tolerance = parameters.volume_ratio_tolerance
-        if hasattr(parameters, 'astec_VolumeRatioSmaller'):
-            if parameters.astec_VolumeRatioSmaller is not None:
-                self.volume_ratio_tolerance = parameters.astec_VolumeRatioSmaller
+        self.volume_ratio_tolerance = self.read_parameter(parameters, 'volume_ratio_tolerance',
+                                                          self.volume_ratio_tolerance)
+        self.volume_ratio_tolerance = self.read_parameter(parameters, 'VolumeRatioSmaller',
+                                                          self.volume_ratio_tolerance)
 
-        if hasattr(parameters, 'volume_ratio_threshold'):
-            if parameters.volume_ratio_threshold is not None:
-                self.volume_ratio_threshold = parameters.volume_ratio_threshold
-        if hasattr(parameters, 'astec_VolumeRatioBigger'):
-            if parameters.astec_VolumeRatioBigger is not None:
-                self.volume_ratio_threshold = parameters.astec_VolumeRatioBigger
+        self.volume_ratio_threshold = self.read_parameter(parameters, 'volume_ratio_threshold',
+                                                          self.volume_ratio_threshold)
+        self.volume_ratio_threshold = self.read_parameter(parameters, 'VolumeRatioBigger', self.volume_ratio_threshold)
 
-        if hasattr(parameters, 'volume_minimal_value'):
-            if parameters.volume_minimal_value is not None:
-                self.volume_minimal_value = parameters.volume_minimal_value
-        if hasattr(parameters, 'astec_volume_minimal_value'):
-            if parameters.astec_volume_minimal_value is not None:
-                self.volume_minimal_value = parameters.astec_volume_minimal_value
-        if hasattr(parameters, 'astec_MinVolume'):
-            if parameters.astec_MinVolume is not None:
-                self.volume_minimal_value = parameters.astec_MinVolume
+        self.volume_minimal_value = self.read_parameter(parameters, 'volume_minimal_value', self.volume_minimal_value)
+        self.volume_minimal_value = self.read_parameter(parameters, 'MinVolume', self.volume_minimal_value)
 
-        if hasattr(parameters, 'outer_correction_radius_opening'):
-            if parameters.outer_correction_radius_opening is not None:
-                self.outer_correction_radius_opening = parameters.outer_correction_radius_opening
-        if hasattr(parameters, 'astec_RadiusOpening'):
-            if parameters.astec_RadiusOpening is not None:
-                self.outer_correction_radius_opening = parameters.astec_RadiusOpening
-
-        mars.WatershedParameters.update_from_parameters(self, parameter_file)
-        reconstruction.ReconstructionParameters.update_from_parameters(self, parameter_file)
-        MorphoSnakeParameters.update_from_parameters(self, parameter_file)
+        self.outer_correction_radius_opening = self.read_parameter(parameters, 'outer_correction_radius_opening',
+                                                                   self.outer_correction_radius_opening)
+        self.outer_correction_radius_opening = self.read_parameter(parameters, 'RadiusOpening',
+                                                                   self.outer_correction_radius_opening)
 
 
 ########################################################################################
@@ -582,7 +566,7 @@ def _extract_seeds_in_cell(parameters):
     return nb, labels, c
 
 
-def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, image_for_seeds, image_for_membrane, experiment, parameters,
+def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, image_for_seed, experiment, parameters,
                          nprocessors=26):
     """
     Computes the seeds (h-minima) for a range of h values
@@ -593,8 +577,7 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, image_for_se
         eroded and then deformed
     :param cells:
     :param bounding_boxes:
-    :param image_for_seeds:
-    :param image_for_membrane:
+    :param image_for_seed:
     :param experiment:
     :param parameters:
     :param nprocessors:
@@ -622,18 +605,18 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, image_for_se
     # the difference image is kept for further computation
     #
     h_max = parameters.watershed_seed_hmin_max_value
-    wparam = mars.WatershedParameters(parameters)
+    wparam = mars.WatershedParameters(obj=parameters)
     wparam.watershed_seed_hmin = h_max
     h_min = h_max
 
-    input_image = image_for_seeds
-    unmasked_seed_image = common.add_suffix(image_for_membrane, "_unmasked_seed_h" + str('{:03d}'.format(h_min)),
+    input_image = image_for_seed
+    unmasked_seed_image = common.add_suffix(image_for_seed, "_unmasked_seed_h" + str('{:03d}'.format(h_min)),
                                             new_dirname=experiment.astec_dir.get_tmp_directory(),
                                             new_extension=experiment.default_image_suffix)
-    seed_image = common.add_suffix(image_for_membrane, "_seed_h" + str('{:03d}'.format(h_min)),
+    seed_image = common.add_suffix(image_for_seed, "_seed_h" + str('{:03d}'.format(h_min)),
                                    new_dirname=experiment.astec_dir.get_tmp_directory(),
                                    new_extension=experiment.default_image_suffix)
-    difference_image = common.add_suffix(image_for_membrane, "_seed_diff_h" + str('{:03d}'.format(h_min)),
+    difference_image = common.add_suffix(image_for_seed, "_seed_diff_h" + str('{:03d}'.format(h_min)),
                                          new_dirname=experiment.astec_dir.get_tmp_directory(),
                                          new_extension=experiment.default_image_suffix)
 
@@ -732,13 +715,13 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, image_for_se
             wparam.watershed_seed_sigma = 0.0
 
             input_image = difference_image
-            unmasked_seed_image = common.add_suffix(image_for_membrane, "_unmasked_seed_h" + str('{:03d}'.format(h_min)),
+            unmasked_seed_image = common.add_suffix(image_for_seed, "_unmasked_seed_h" + str('{:03d}'.format(h_min)),
                                                     new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                     new_extension=experiment.default_image_suffix)
-            seed_image = common.add_suffix(image_for_membrane, "_seed_h" + str('{:03d}'.format(h_min)),
+            seed_image = common.add_suffix(image_for_seed, "_seed_h" + str('{:03d}'.format(h_min)),
                                            new_dirname=experiment.astec_dir.get_tmp_directory(),
                                            new_extension=experiment.default_image_suffix)
-            difference_image = common.add_suffix(image_for_membrane, "_seed_diff_h" + str('{:03d}'.format(h_min)),
+            difference_image = common.add_suffix(image_for_seed, "_seed_diff_h" + str('{:03d}'.format(h_min)),
                                                  new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                  new_extension=experiment.default_image_suffix)
 
@@ -912,7 +895,7 @@ def _extract_seeds(c, cell_segmentation, cell_seeds=None, bb=None, individual_se
 
 def _build_seeds_from_selected_parameters(selected_parameter_seeds,
                                           segmentation_from_previous, seeds_from_previous, selected_seeds,
-                                          cells, unseeded_cells, bounding_boxes, image_for_membrane,
+                                          cells, unseeded_cells, bounding_boxes, image_for_seed,
                                           experiment, parameters):
     """
 
@@ -923,7 +906,7 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
     :param cells:
     :param unseeded_cells:
     :param bounding_boxes:
-    :param image_for_membrane:
+    :param image_for_seed:
     :param experiment:
     :param parameters:
     :return:
@@ -999,7 +982,7 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
         #
 
         if h_min not in seed_image_list:
-            seed_image = common.add_suffix(image_for_membrane, "_seed_h" + str('{:03d}'.format(h_min)),
+            seed_image = common.add_suffix(image_for_seed, "_seed_h" + str('{:03d}'.format(h_min)),
                                            new_dirname=experiment.astec_dir.get_tmp_directory(),
                                            new_extension=experiment.default_image_suffix)
             if not os.path.isfile(seed_image):
@@ -1078,7 +1061,7 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
 
     monitoring.to_log_and_console('      process background', 3)
 
-    if parameters.astec_background_seed_from_hmin or not parameters.astec_background_seed_from_previous:
+    if parameters.background_seed_from_hmin or not parameters.background_seed_from_previous:
         background_cell = np.zeros_like(first_segmentation)
         background_cell[first_segmentation == 1] = 1
 
@@ -1096,10 +1079,10 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
     # create seeds for cell with no seed found
     #
 
-    if len(unseeded_cells) > 0 or parameters.astec_background_seed_from_previous:
+    if len(unseeded_cells) > 0 or parameters.background_seed_from_previous:
         first_seeds = imread(seeds_from_previous)
 
-        if parameters.astec_background_seed_from_previous:
+        if parameters.background_seed_from_previous:
             new_seed_image[first_seeds == 1] = 1
 
         if len(unseeded_cells) > 0:
@@ -1339,7 +1322,7 @@ def _volume_diagnosis(prev_volumes, curr_volumes, correspondences, parameters):
 
 
 def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_from_selection, deformed_seeds,
-                                selected_seeds, image_for_membrane, correspondences, selected_parameter_seeds, n_seeds,
+                                selected_seeds, membrane_image, correspondences, selected_parameter_seeds, n_seeds,
                                 parameter_seeds, bounding_boxes, experiment, parameters):
     """
     :param astec_name: generic name for image file name construction
@@ -1347,7 +1330,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
     :param segmentation_from_selection:
     :param deformed_seeds: seeds obtained from the segmentation at a previous time and deformed into the current time
     :param selected_seeds:
-    :param image_for_membrane:
+    :param membrane_image:
     :param correspondences: is a dictionary that gives, for each 'parent' cell (in the segmentation built from previous
     time segmentation) (ie the key), the list of 'children' cells (in the segmentation built from selected seeds)
     :param selected_parameter_seeds:
@@ -1521,7 +1504,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
                 # the seeds as in the following case (nb_final == 1 or nb_final == 2) and (np.array(s) > 2).any())?
                 #
                 h_min, sigma = parameter_seeds[mother_c][s.index(2)]
-                seed_image_name = common.add_suffix(image_for_membrane, "_seed_h" + str('{:03d}'.format(h_min)),
+                seed_image_name = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
                                                     new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                     new_extension=experiment.default_image_suffix)
                 #
@@ -1558,7 +1541,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
                 # get the smallest h
                 #
                 h_min, sigma = parameter_seeds[mother_c][-1]
-                seed_image_name = common.add_suffix(image_for_membrane, "_seed_h" + str('{:03d}'.format(h_min)),
+                seed_image_name = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
                                                     new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                     new_extension=experiment.default_image_suffix)
                 #
@@ -1628,7 +1611,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
             # get the three seeds, and keep them for further fusion
             #
             h_min, sigma = parameter_seeds[mother_c][s.index(3)]
-            seed_image_name = common.add_suffix(image_for_membrane, "_seed_h" + str('{:03d}'.format(h_min)),
+            seed_image_name = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
                                                 new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                 new_extension=experiment.default_image_suffix)
             #
@@ -1744,7 +1727,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
     segmentation_from_corr_selection = common.add_suffix(astec_name, '_watershed_from_corrected_selection',
                                                          new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                          new_extension=experiment.default_image_suffix)
-    mars.watershed(corr_selected_seeds, image_for_membrane, segmentation_from_corr_selection, experiment, parameters)
+    mars.watershed(corr_selected_seeds, membrane_image, segmentation_from_corr_selection, experiment, parameters)
 
     #
     # there are labels to be fused if there is a case where 3 seeds have been generated for a mother cell
@@ -1866,13 +1849,13 @@ def _slices_dilation(slices, maximum, iterations=1):
     return slices
 
 
-def _outer_volume_decrease_correction(astec_name, previous_segmentation, segmentation_from_selection, image_for_membrane,
+def _outer_volume_decrease_correction(astec_name, previous_segmentation, segmentation_from_selection, membrane_image,
                                       correspondences, bounding_boxes, experiment, parameters):
     """
     :param astec_name: generic name for image file name construction
     :param previous_segmentation: watershed segmentation obtained with segmentation image at previous timepoint
     :param segmentation_from_selection:
-    :param image_for_membrane:
+    :param membrane_image:
     :param correspondences: is a dictionary that gives, for each 'parent' cell (in the segmentation built from previous
     time segmentation) (ie the key), the list of 'children' cells (in the segmentation built from selected seeds)
     :param bounding_boxes: bounding boxes defined on previous_segmentation
@@ -2001,7 +1984,7 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
     #
     # parameters for morphosnake
     #
-    greylevel_image = imread(image_for_membrane)
+    greylevel_image = imread(membrane_image)
 
     mapping = []
     for mother_c in exterior_correction:
@@ -2247,9 +2230,10 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
 
     reconstruction.monitoring.copy(monitoring)
 
-    image_for_membrane = reconstruction.build_membrane_image(current_time, experiment, parameters,
-                                                         previous_time=previous_time)
-    if image_for_membrane is None:
+    membrane_image = reconstruction.build_reconstructed_image(current_time, experiment,
+                                                              parameters.membrane_reconstruction,
+                                                              suffix="_membrane", previous_time=previous_time)
+    if membrane_image is None:
         monitoring.to_log_and_console("    .. " + proc + ": no membrane image was found/built for time "
                                       + str(current_time), 2)
         return False
@@ -2274,7 +2258,8 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
 
     if not os.path.isfile(deformed_segmentation) or monitoring.forceResultsToBeBuilt is True:
         deformation = reconstruction.get_deformation_from_current_to_previous(current_time, experiment,
-                                                                              parameters, previous_time)
+                                                                              parameters.membrane_reconstruction,
+                                                                              previous_time)
         cpp_wrapping.apply_transformation(previous_segmentation, deformed_segmentation, deformation,
                                           interpolation_mode='nearest', monitoring=monitoring)
 
@@ -2298,7 +2283,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
                                                        new_extension=experiment.default_image_suffix)
 
     if not os.path.isfile(segmentation_from_previous) or monitoring.forceResultsToBeBuilt is True:
-        mars.watershed(deformed_seeds, image_for_membrane, segmentation_from_previous, experiment, parameters)
+        mars.watershed(deformed_seeds, membrane_image, segmentation_from_previous, experiment, parameters)
 
     #
     # if the propagation strategy is only to get seeds from the erosion of the previous cells
@@ -2353,20 +2338,25 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     #
     # In the original astec version, seeds are computed from the original fusion image
     #
-    image_for_seeds = experiment.fusion_dir.get_image_name(current_time)
-    image_for_seeds = common.find_file(experiment.fusion_dir.get_directory(), image_for_seeds, file_type='image',
-                                       callfrom=proc, local_monitoring=None, verbose=False)
-    if image_for_seeds is None:
+    if parameters.seed_reconstruction.is_equal(parameters.membrane_reconstruction):
+        monitoring.to_log_and_console("    .. seed image is identical to membrane image", 2)
+        image_for_seed = membrane_image
+    else:
+        image_for_seed = reconstruction.build_reconstructed_image(current_time, experiment, parameters.seed_reconstruction,
+                                                              suffix="_seed")
+    #seed_image = experiment.fusion_dir.get_image_name(current_time)
+    #seed_image = common.find_file(experiment.fusion_dir.get_directory(), seed_image, file_type='image',
+                                       #callfrom=proc, local_monitoring=None, verbose=False)
+    if image_for_seed is None:
         monitoring.to_log_and_console("    .. " + proc + " no fused image was found for time " + str(current_time), 2)
         return None
-    image_for_seeds = os.path.join(experiment.fusion_dir.get_directory(), image_for_seeds)
 
 
     monitoring.to_log_and_console('    estimation of h-minima for h in ['
                                   + str(parameters.watershed_seed_hmin_min_value) + ','
                                   + str(parameters.watershed_seed_hmin_max_value) + ']', 2)
-    n_seeds, parameter_seeds = _cell_based_h_minima(segmentation_from_previous, cells, bounding_boxes, image_for_seeds,
-                                                    image_for_membrane, experiment, parameters)
+    n_seeds, parameter_seeds = _cell_based_h_minima(segmentation_from_previous, cells, bounding_boxes, image_for_seed,
+                                                    experiment, parameters)
 
     #
     # First selection of seeds
@@ -2418,7 +2408,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
 
     output = _build_seeds_from_selected_parameters(selected_parameter_seeds, segmentation_from_previous, deformed_seeds,
                                                    selected_seeds, cells, unseeded_cells, bounding_boxes,
-                                                   image_for_membrane, experiment, parameters)
+                                                   image_for_seed, experiment, parameters)
 
     label_max, correspondences, divided_cells = output
 
@@ -2436,7 +2426,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
                                                         new_extension=experiment.default_image_suffix)
 
     if not os.path.isfile(segmentation_from_selection) or monitoring.forceResultsToBeBuilt is True:
-        mars.watershed(selected_seeds, image_for_membrane, segmentation_from_selection, experiment, parameters)
+        mars.watershed(selected_seeds, membrane_image, segmentation_from_selection, experiment, parameters)
 
     #
     # if the propagation strategy is to get this segmentation without corrections
@@ -2469,7 +2459,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
 
     monitoring.to_log_and_console('    volume decrease correction', 2)
     output = _volume_decrease_correction(astec_name, segmentation_from_previous, segmentation_from_selection,
-                                         deformed_seeds, selected_seeds, image_for_membrane, correspondences,
+                                         deformed_seeds, selected_seeds, membrane_image, correspondences,
                                          selected_parameter_seeds, n_seeds, parameter_seeds, bounding_boxes, experiment,
                                          parameters)
     segmentation_from_selection, selected_seeds, correspondences = output
@@ -2489,7 +2479,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
         monitoring.to_log_and_console('    outer volume decrease correction (morphosnakes)', 2)
 
         output = _outer_volume_decrease_correction(astec_name, segmentation_from_previous, input_segmentation,
-                                                   image_for_membrane, correspondences, bounding_boxes, experiment,
+                                                   membrane_image, correspondences, bounding_boxes, experiment,
                                                    parameters)
         output_segmentation, correspondences, effective_exterior_correction = output
         input_segmentation = output_segmentation
@@ -2516,7 +2506,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
                                                 new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                 new_extension=experiment.default_image_suffix)
         if not os.path.isfile(segmentation_from_selection):
-            mars.watershed(selected_seeds, image_for_membrane, segmentation_from_selection, experiment, parameters)
+            mars.watershed(selected_seeds, membrane_image, segmentation_from_selection, experiment, parameters)
 
         correspondences = _multiple_label_fusion(input_segmentation, output_segmentation, correspondences,
                                                  labels_to_be_fused)
@@ -2768,7 +2758,8 @@ def astec_control(experiment, parameters):
         experiment.astec_dir.set_tmp_directory(current_time)
         experiment.astec_dir.make_tmp_directory()
 
-        if parameters.keep_reconstruction is False:
+        if parameters.seed_reconstruction.keep_reconstruction is False \
+                and parameters.membrane_reconstruction.keep_reconstruction is False:
             experiment.astec_dir.set_rec_directory_to_tmp()
 
         #

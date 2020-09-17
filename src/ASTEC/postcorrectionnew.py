@@ -34,7 +34,7 @@ monitoring = common.Monitoring()
 #
 #
 
-class PostCorrectionParameters(object):
+class PostCorrectionParameters(common.PrefixedParameter):
 
     ############################################################
     #
@@ -43,6 +43,8 @@ class PostCorrectionParameters(object):
     ############################################################
 
     def __init__(self):
+
+        common.PrefixedParameter.__init__(self, prefix=['postcor_', 'postcorrection_'])
 
         ############################################################
         #
@@ -67,38 +69,33 @@ class PostCorrectionParameters(object):
     #
     ############################################################
 
-    def print_parameters(self):
+    def print_parameters(self, spaces=0):
         print("")
-        print('PostCorrectionParameters')
-
-        print('- volume_minimal_value = ' + str(self.volume_minimal_value))
-        print('- lifespan_minimal_value = ' + str(self.lifespan_minimal_value))
-
-        print('- test_early_division = ' + str(self.test_early_division))
-
-        print('- test_volume_correlation = ' + str(self.test_volume_correlation))
-        print('- correlation_threshold = ' + str(self.correlation_threshold))
-
-        print('- lineage_diagnosis = ' + str(self.lineage_diagnosis))
-
+        print(spaces * ' ' + 'PostCorrectionParameters')
+        common.PrefixedParameter.print_parameters(self, spaces=spaces)
+        self.logprint('volume_minimal_value', self.volume_minimal_value, spaces=spaces)
+        self.logprint('lifespan_minimal_value', self.lifespan_minimal_value, spaces=spaces)
+        self.logprint('test_early_division', self.test_early_division, spaces=spaces)
+        self.logprint('test_volume_correlation', self.test_volume_correlation, spaces=spaces)
+        self.logprint('correlation_threshold', self.correlation_threshold, spaces=spaces)
+        self.logprint('lineage_diagnosis', self.lineage_diagnosis, spaces=spaces)
         print("")
 
-    def write_parameters(self, log_file_name):
+    def write_parameters_in_file(self, logfile, spaces=0):
+        logfile.write("\n")
+        logfile.write(spaces * ' ' + 'PostCorrectionParameters\n')
+        common.PrefixedParameter.write_parameters_in_file(self, logfile, spaces=spaces)
+        self.logwrite(logfile, 'volume_minimal_value', self.volume_minimal_value, spaces=spaces)
+        self.logwrite(logfile, 'lifespan_minimal_value', self.lifespan_minimal_value, spaces=spaces)
+        self.logwrite(logfile, 'test_early_division', self.test_early_division, spaces=spaces)
+        self.logwrite(logfile, 'test_volume_correlation', self.test_volume_correlation, spaces=spaces)
+        self.logwrite(logfile, 'correlation_threshold', self.correlation_threshold, spaces=spaces)
+        self.logwrite(logfile, 'lineage_diagnosis', self.lineage_diagnosis, spaces=spaces)
+        logfile.write("\n")
+
+    def write_parameters(self, log_file_name, spaces=0):
         with open(log_file_name, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('PostCorrectionParameters\n')
-
-            logfile.write('- volume_minimal_value = ' + str(self.volume_minimal_value) + '\n')
-            logfile.write('- lifespan_minimal_value = ' + str(self.lifespan_minimal_value) + '\n')
-
-            logfile.write('- test_early_division = ' + str(self.test_early_division) + '\n')
-
-            logfile.write('- test_volume_correlation = ' + str(self.test_volume_correlation) + '\n')
-            logfile.write('- correlation_threshold = ' + str(self.correlation_threshold) + '\n')
-
-            logfile.write('- lineage_diagnosis = ' + str(self.lineage_diagnosis) + '\n')
-
-            print("")
+            self.write_parameters_in_file(logfile, spaces=spaces)
         return
 
     ############################################################
@@ -116,74 +113,26 @@ class PostCorrectionParameters(object):
 
         parameters = imp.load_source('*', parameter_file)
 
-        if hasattr(parameters, 'volume_minimal_value'):
-            if parameters.volume_minimal_value is not None:
-                self.volume_minimal_value = parameters.volume_minimal_value
-        if hasattr(parameters, 'postcorrection_volume_minimal_value'):
-            if parameters.postcorrection_volume_minimal_value is not None:
-                self.volume_minimal_value = parameters.postcorrection_volume_minimal_value
+        self.volume_minimal_value = self.read_parameter(parameters, 'volume_minimal_value', self.volume_minimal_value)
         if hasattr(parameters, 'postcor_Volume_Threshold'):
             if parameters.postcor_Volume_Threshold is not None:
                 self.volume_minimal_value = parameters.postcor_Volume_Threshold
 
-        if hasattr(parameters, 'lifespan_minimal_value'):
-            if parameters.lifespan_minimal_value is not None:
-                self.lifespan_minimal_value = parameters.lifespan_minimal_value
-        if hasattr(parameters, 'postcorrection_lifespan_minimal_value'):
-            if parameters.postcorrection_lifespan_minimal_value is not None:
-                self.lifespan_minimal_value = parameters.postcorrection_lifespan_minimal_value
-        if hasattr(parameters, 'postcor_lifespan_minimal_value'):
-            if parameters.postcor_lifespan_minimal_value is not None:
-                self.lifespan_minimal_value = parameters.postcor_lifespan_minimal_value
+        self.lifespan_minimal_value = self.read_parameter(parameters, 'lifespan_minimal_value',
+                                                          self.lifespan_minimal_value)
 
-        if hasattr(parameters, 'test_early_division'):
-            if parameters.test_early_division is not None:
-                self.test_early_division = parameters.test_early_division
-        if hasattr(parameters, 'postcorrection_test_early_division'):
-            if parameters.postcorrection_test_early_division is not None:
-                self.test_early_division = parameters.postcorrection_test_early_division
-        if hasattr(parameters, 'postcorrection_soon'):
-            if parameters.postcorrection_soon is not None:
-                self.test_early_division = parameters.postcorrection_soon
-        if hasattr(parameters, 'postcor_Soon'):
-            if parameters.postcor_Soon is not None:
-                self.test_early_division = parameters.postcor_Soon
+        self.test_early_division = self.read_parameter(parameters, 'test_early_division', self.test_early_division)
+        self.test_early_division = self.read_parameter(parameters, 'soon', self.test_early_division)
+        self.test_early_division = self.read_parameter(parameters, 'Soon', self.test_early_division)
 
-        if hasattr(parameters, 'test_volume_correlation'):
-            if parameters.test_volume_correlation is not None:
-                self.test_volume_correlation = parameters.test_early_division
-        if hasattr(parameters, 'postcorrection_test_volume_correlation'):
-            if parameters.postcorrection_test_volume_correlation is not None:
-                self.test_volume_correlation = parameters.postcorrection_test_volume_correlation
+        self.test_volume_correlation = self.read_parameter(parameters, 'test_volume_correlation',
+                                                           self.test_volume_correlation)
+        self.correlation_threshold = self.read_parameter(parameters, 'correlation_threshold',
+                                                         self.correlation_threshold)
+        self.correlation_threshold = self.read_parameter(parameters, 'pearson_threshold', self.correlation_threshold)
+        self.correlation_threshold = self.read_parameter(parameters, 'PearsonThreshold', self.correlation_threshold)
 
-        if hasattr(parameters, 'correlation_threshold'):
-            if parameters.correlation_threshold is not None:
-                self.correlation_threshold = parameters.correlation_threshold
-        if hasattr(parameters, 'postcorrection_correlation_threshold'):
-            if parameters.postcorrection_correlation_threshold is not None:
-                self.correlation_threshold = parameters.postcorrection_correlation_threshold
-        if hasattr(parameters, 'postcor_correlation_threshold'):
-            if parameters.postcor_correlation_threshold is not None:
-                self.correlation_threshold = parameters.postcor_correlation_threshold
-        if hasattr(parameters, 'postcorrection_pearson_threshold'):
-            if parameters.postcorrection_pearson_threshold is not None:
-                self.correlation_threshold = parameters.postcorrection_pearson_threshold
-        if hasattr(parameters, 'postcor_pearson_threshold'):
-            if parameters.postcor_pearson_threshold is not None:
-                self.correlation_threshold = parameters.postcor_pearson_threshold
-        if hasattr(parameters, 'postcor_PearsonThreshold'):
-            if parameters.postcor_PearsonThreshold is not None:
-                self.correlation_threshold = parameters.postcor_PearsonThreshold
-
-        if hasattr(parameters, 'lineage_diagnosis'):
-            if parameters.lineage_diagnosis is not None:
-                self.lineage_diagnosis = parameters.lineage_diagnosis
-        if hasattr(parameters, 'postcorrection_lineage_diagnosis'):
-            if parameters.postcorrection_lineage_diagnosis is not None:
-                self.lineage_diagnosis = parameters.postcorrection_lineage_diagnosis
-        if hasattr(parameters, 'postcor_lineage_diagnosis'):
-            if parameters.postcor_lineage_diagnosis is not None:
-                self.lineage_diagnosis = parameters.postcor_lineage_diagnosis
+        self.lineage_diagnosis = self.read_parameter(parameters, 'lineage_diagnosis', self.lineage_diagnosis)
 
 
 ########################################################################################

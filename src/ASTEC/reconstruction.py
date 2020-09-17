@@ -16,7 +16,8 @@ monitoring = common.Monitoring()
 #
 ########################################################################################
 
-class ReconstructionParameters(object):
+
+class ReconstructionParameters(ace.AceParameters):
 
     ############################################################
     #
@@ -24,7 +25,10 @@ class ReconstructionParameters(object):
     #
     ############################################################
 
-    def __init__(self):
+    def __init__(self, prefix=None):
+
+        ace.AceParameters.__init__(self, prefix=prefix)
+
         #
         #
         #
@@ -38,17 +42,11 @@ class ReconstructionParameters(object):
         self.cell_normalization_sigma = 5.0
 
         #
-        # membrane enhancement parameters
-        #
-        self.ace = ace.AceParameters()
-
-        #
         # registration parameters
         #
         self.registration = []
 
-        self.registration.append(common.RegistrationParameters())
-        self.registration[0].prefix = 'linear_registration'
+        self.registration.append(common.RegistrationParameters(prefix=[self._prefix, 'linear_registration_']))
         self.registration[0].pyramid_highest_level = 5
         self.registration[0].pyramid_lowest_level = 3
         self.registration[0].gaussian_pyramid = True
@@ -56,8 +54,7 @@ class ReconstructionParameters(object):
         self.registration[0].transformation_estimation_type = 'wlts'
         self.registration[0].lts_fraction = 1.0
 
-        self.registration.append(common.RegistrationParameters())
-        self.registration[1].prefix = 'nonlinear_registration_'
+        self.registration.append(common.RegistrationParameters(prefix=[self._prefix, 'nonlinear_registration_']))
         self.registration[1].pyramid_highest_level = 5
         self.registration[1].pyramid_lowest_level = 3
         self.registration[1].gaussian_pyramid = True
@@ -77,49 +74,64 @@ class ReconstructionParameters(object):
     #
     ############################################################
 
-    def print_parameters(self):
+    def print_parameters(self, spaces=0):
         print("")
-        print('ReconstructionParameters')
+        print(spaces * ' ' + 'ReconstructionParameters')
 
-        print('- intensity_transformation = ' + str(self.intensity_transformation))
-        print('- intensity_enhancement = ' + str(self.intensity_enhancement))
-        print('- cell_normalization_min_method = ' + str(self.cell_normalization_min_method))
-        print('- cell_normalization_max_method = ' + str(self.cell_normalization_max_method))
+        common.PrefixedParameter.print_parameters(self, spaces=spaces)
 
-        print('- normalization_min_percentile = ' + str(self.normalization_min_percentile))
-        print('- normalization_max_percentile = ' + str(self.normalization_max_percentile))
-        print('- cell_normalization_sigma = ' + str(self.cell_normalization_sigma))
+        self.logprint('intensity_transformation', self.intensity_transformation, spaces=spaces)
+        self.logprint('intensity_enhancement', self.intensity_enhancement, spaces=spaces)
+        self.logprint('cell_normalization_min_method', self.cell_normalization_min_method, spaces=spaces)
+        self.logprint('cell_normalization_max_method', self.cell_normalization_max_method, spaces=spaces)
 
-        self.ace.print_parameters()
+        self.logprint('normalization_min_percentile', self.normalization_min_percentile, spaces=spaces)
+        self.logprint('normalization_max_percentile', self.normalization_max_percentile, spaces=spaces)
+        self.logprint('cell_normalization_sigma', self.cell_normalization_sigma, spaces=spaces)
+
+        ace.AceParameters.print_parameters(self, spaces=spaces+2)
 
         for p in self.registration:
-            p.print_parameters()
+            p.print_parameters(spaces=spaces+2)
 
-        print('- keep_reconstruction = ' + str(self.keep_reconstruction))
+        self.logprint('keep_reconstruction', self.keep_reconstruction, spaces=spaces)
         print("")
 
-    def write_parameters(self, log_file_name):
-        with open(log_file_name, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('ReconstructionParameters\n')
+    def write_parameters_in_file(self, logfile, spaces=0):
+        logfile.write("\n")
+        logfile.write(spaces * ' ' + 'ReconstructionParameters\n')
 
-            logfile.write('- intensity_transformation = ' + str(self.intensity_transformation) + '\n')
-            logfile.write('- intensity_enhancement = ' + str(self.intensity_enhancement) + '\n')
-            logfile.write('- cell_normalization_min_method = ' + str(self.cell_normalization_min_method) + '\n')
-            logfile.write('- cell_normalization_max_method = ' + str(self.cell_normalization_max_method) + '\n')
+        common.PrefixedParameter.write_parameters_in_file(self, logfile, spaces=spaces)
 
-            logfile.write('- normalization_min_percentile = ' + str(self.normalization_min_percentile) + '\n')
-            logfile.write('- normalization_max_percentile = ' + str(self.normalization_max_percentile) + '\n')
-            logfile.write('- cell_normalization_sigma = ' + str(self.cell_normalization_sigma) + '\n')
+        self.logwrite(logfile, 'intensity_transformation', self.intensity_transformation, spaces=spaces)
+        self.logwrite(logfile, 'intensity_enhancement', self.intensity_enhancement, spaces=spaces)
+        self.logwrite(logfile, 'cell_normalization_min_method', self.cell_normalization_min_method, spaces=spaces)
+        self.logwrite(logfile, 'cell_normalization_max_method', self.cell_normalization_max_method, spaces=spaces)
 
-            self.ace.write_parameters(log_file_name)
+        self.logwrite(logfile, 'normalization_min_percentile', self.normalization_min_percentile, spaces=spaces)
+        self.logwrite(logfile, 'normalization_max_percentile', self.normalization_max_percentile, spaces=spaces)
+        self.logwrite(logfile, 'cell_normalization_sigma', self.cell_normalization_sigma, spaces=spaces)
 
-            for p in self.registration:
-                p.write_parameters(log_file_name)
+        self.logwrite(logfile, 'intensity_transformation', self.intensity_transformation, spaces=spaces)
 
-            logfile.write('- keep_reconstruction = ' + str(self.keep_reconstruction) + '\n')
+        ace.AceParameters.write_parameters_in_file(self, logfile, spaces=spaces)
 
-            logfile.write("\n")
+        for p in self.registration:
+            p.write_parameters_in_file(logfile, spaces=spaces)
+
+        self.logwrite(logfile, 'keep_reconstruction', self.keep_reconstruction, spaces=spaces)
+
+        logfile.write("\n")
+        return
+
+    def write_parameters(self, log_filename=None):
+        if log_filename is not None:
+            local_log_filename = log_filename
+        else:
+            local_log_filename = monitoring.log_filename
+        if local_log_filename is not None:
+            with open(local_log_filename, 'a') as logfile:
+                self.write_parameters_in_file(self, logfile)
         return
 
     ############################################################
@@ -141,67 +153,57 @@ class ReconstructionParameters(object):
         # reconstruction method
         #
 
-        if hasattr(parameters, 'intensity_transformation'):
-            self.intensity_transformation = parameters.intensity_transformation
-        if hasattr(parameters, 'mars_intensity_transformation'):
-            self.intensity_transformation = parameters.mars_intensity_transformation
-        if hasattr(parameters, 'astec_intensity_transformation'):
-            self.intensity_transformation = parameters.astec_intensity_transformation
-
-        if hasattr(parameters, 'intensity_enhancement'):
-            self.intensity_enhancement = parameters.intensity_enhancement
-        if hasattr(parameters, 'mars_intensity_enhancement'):
-            self.intensity_enhancement = parameters.mars_intensity_enhancement
-        if hasattr(parameters, 'astec_intensity_enhancement'):
-            self.intensity_enhancement = parameters.astec_intensity_enhancement
-
-        if hasattr(parameters, 'cell_normalization_min_method'):
-            self.cell_normalization_min_method = parameters.cell_normalization_min_method
-        if hasattr(parameters, 'astec_cell_normalization_min_method'):
-            self.cell_normalization_min_method = parameters.astec_cell_normalization_min_method
-
-        if hasattr(parameters, 'cell_normalization_max_method'):
-            self.cell_normalization_max_method = parameters.cell_normalization_max_method
-        if hasattr(parameters, 'astec_cell_normalization_max_method'):
-            self.cell_normalization_max_method = parameters.astec_cell_normalization_max_method
-
-        if hasattr(parameters, 'normalization_min_percentile'):
-            self.normalization_min_percentile = parameters.normalization_min_percentile
-        if hasattr(parameters, 'mars_normalization_min_percentile'):
-            self.normalization_min_percentile = parameters.mars_normalization_min_percentile
-        if hasattr(parameters, 'astec_normalization_min_percentile'):
-            self.normalization_min_percentile = parameters.astec_normalization_min_percentile
-
-        if hasattr(parameters, 'normalization_max_percentile'):
-            self.normalization_max_percentile = parameters.normalization_max_percentile
-        if hasattr(parameters, 'mars_normalization_max_percentile'):
-            self.normalization_max_percentile = parameters.mars_normalization_max_percentile
-        if hasattr(parameters, 'astec_normalization_max_percentile'):
-            self.normalization_max_percentile = parameters.astec_normalization_max_percentile
-
-        if hasattr(parameters, 'cell_normalization_sigma'):
-            self.cell_normalization_sigma = parameters.cell_normalization_sigma
-        if hasattr(parameters, 'astec_cell_normalization_sigma'):
-            self.cell_normalization_sigma = parameters.astec_cell_normalization_sigma
+        self.intensity_transformation = self.read_parameter(parameters, 'intensity_transformation',
+                                                            self.intensity_transformation)
+        self.intensity_enhancement = self.read_parameter(parameters, 'intensity_enhancement',
+                                                         self.intensity_enhancement)
+        self.cell_normalization_min_method = self.read_parameter(parameters, 'cell_normalization_min_method',
+                                                                 self.cell_normalization_min_method)
+        self.cell_normalization_max_method = self.read_parameter(parameters, 'cell_normalization_max_method',
+                                                                 self.cell_normalization_max_method)
+        self.normalization_min_percentile = self.read_parameter(parameters, 'normalization_min_percentile',
+                                                                self.normalization_min_percentile)
+        self.normalization_max_percentile = self.read_parameter(parameters, 'normalization_max_percentile',
+                                                                self.normalization_max_percentile)
+        self.cell_normalization_sigma = self.read_parameter(parameters, 'cell_normalization_sigma',
+                                                            self.cell_normalization_sigma)
 
         #
         #
         #
-        self.ace.update_from_parameters(parameter_file)
+        ace.AceParameters.update_from_parameters(self, parameter_file)
 
         #
         #
         #
-        if hasattr(parameters, 'keep_reconstruction'):
-            if parameters.keep_reconstruction is not None:
-                self.keep_reconstruction = parameters.keep_reconstruction
-        if hasattr(parameters, 'mars_keep_reconstruction'):
-            if parameters.mars_keep_reconstruction is not None:
-                self.keep_reconstruction = parameters.mars_keep_reconstruction
-        if hasattr(parameters, 'astec_keep_reconstruction'):
-            if parameters.astec_keep_reconstruction is not None:
-                self.keep_reconstruction = parameters.astec_keep_reconstruction
+        self.keep_reconstruction = self.read_parameter(parameters, 'keep_reconstruction', self.keep_reconstruction)
 
+    ############################################################
+    #
+    #
+    #
+    ############################################################
+
+    def is_equal(self, p):
+        if self.intensity_transformation != p.intensity_transformation:
+            return False
+        if self.intensity_enhancement != p.intensity_enhancement:
+            return False
+        if self.cell_normalization_min_method != p.cell_normalization_min_method:
+            return False
+        if self.cell_normalization_max_method != p.cell_normalization_max_method:
+            return False
+        if self.normalization_min_percentile != p.normalization_min_percentile:
+            return False
+        if self.normalization_max_percentile != p.normalization_max_percentile:
+            return False
+        if self.cell_normalization_sigma != p.cell_normalization_sigma:
+            return False
+
+        if ace.AceParameters.is_equal(self, p) is False:
+            return False
+
+        return True
 
 #
 #
@@ -338,8 +340,9 @@ def get_previous_deformed_segmentation(current_time, experiment, parameters, pre
                                           + str(previous_time), 2)
         return None
 
-    prev_def_segimage = common.add_suffix(prev_segimage, "_deformed", new_dirname=experiment.working_dir.get_tmp_directory(0),
-                                               new_extension=experiment.default_image_suffix)
+    prev_def_segimage = common.add_suffix(prev_segimage, "_deformed",
+                                          new_dirname=experiment.working_dir.get_tmp_directory(0),
+                                          new_extension=experiment.default_image_suffix)
 
     if os.path.isfile(prev_def_segimage):
         return prev_def_segimage
@@ -366,12 +369,13 @@ def get_previous_deformed_segmentation(current_time, experiment, parameters, pre
 ########################################################################################
 
 
-def build_membrane_image(current_time, experiment, parameters, previous_time=None):
+def build_reconstructed_image(current_time, experiment, parameters, suffix=None, previous_time=None):
     """
 
     :param current_time:
     :param experiment:
     :param parameters:
+    :param suffix:
     :param previous_time:
     :return:
     """
@@ -392,7 +396,7 @@ def build_membrane_image(current_time, experiment, parameters, previous_time=Non
     #   is the intensity-transformed image (by normalization)
     #
 
-    proc = "build_membrane_image"
+    proc = "build_reconstructed_image"
 
     #
     # parameter type checking
@@ -407,7 +411,12 @@ def build_membrane_image(current_time, experiment, parameters, previous_time=Non
         monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
                                       + str(type(parameters)))
         sys.exit(1)
-        
+
+    if suffix is None:
+        local_suffix = "reconstructed_"
+    else:
+        local_suffix = suffix
+
     #
     # get fused image
     #
@@ -432,7 +441,7 @@ def build_membrane_image(current_time, experiment, parameters, previous_time=Non
     #
     enhanced_image = None
     intensity_image = None
-    membrane_image = None
+    reconstructed_image = None
 
     if parameters.intensity_enhancement is None or parameters.intensity_enhancement.lower() == 'none':
 
@@ -449,7 +458,7 @@ def build_membrane_image(current_time, experiment, parameters, previous_time=Non
         elif parameters.intensity_transformation.lower() == 'normalization_to_u8' \
                 or parameters.intensity_transformation.lower() == 'global_normalization_to_u8' \
                 or parameters.intensity_transformation.lower() == 'cell_normalization_to_u8':
-            intensity_image = common.add_suffix(input_image, "_membrane",
+            intensity_image = common.add_suffix(input_image, local_suffix,
                                                 new_dirname=experiment.working_dir.get_rec_directory(0),
                                                 new_extension=experiment.default_image_suffix)
             #
@@ -466,29 +475,29 @@ def build_membrane_image(current_time, experiment, parameters, previous_time=Non
         # or set the 3 names: intensity_image, enhanced_image, and membrane_image
         #
         if parameters.intensity_transformation is None or parameters.intensity_transformation.lower() == 'none':
-            enhanced_image = common.add_suffix(input_image, "_membrane",
+            enhanced_image = common.add_suffix(input_image, local_suffix,
                                                new_dirname=experiment.working_dir.get_rec_directory(0),
                                                new_extension=experiment.default_image_suffix)
         elif parameters.intensity_transformation.lower() == 'identity':
             intensity_image = input_image
-            enhanced_image = common.add_suffix(input_image, "_enhanced",
+            enhanced_image = common.add_suffix(input_image, local_suffix + "_enhanced",
                                                new_dirname=experiment.working_dir.get_tmp_directory(0),
                                                new_extension=experiment.default_image_suffix)
-            membrane_image = common.add_suffix(input_image, "_membrane",
-                                               new_dirname=experiment.working_dir.get_rec_directory(0),
-                                               new_extension=experiment.default_image_suffix)
+            reconstructed_image = common.add_suffix(input_image, local_suffix,
+                                                    new_dirname=experiment.working_dir.get_rec_directory(0),
+                                                    new_extension=experiment.default_image_suffix)
         elif parameters.intensity_transformation.lower() == 'normalization_to_u8' \
                 or parameters.intensity_transformation.lower() == 'global_normalization_to_u8' \
                 or parameters.intensity_transformation.lower() == 'cell_normalization_to_u8':
-            intensity_image = common.add_suffix(input_image, "_intensity",
+            intensity_image = common.add_suffix(input_image, local_suffix + "_intensity",
                                                 new_dirname=experiment.working_dir.get_tmp_directory(0),
                                                 new_extension=experiment.default_image_suffix)
-            enhanced_image = common.add_suffix(input_image, "_enhanced",
+            enhanced_image = common.add_suffix(input_image, local_suffix + "_enhanced",
                                                new_dirname=experiment.working_dir.get_tmp_directory(0),
                                                new_extension=experiment.default_image_suffix)
-            membrane_image = common.add_suffix(input_image, "_membrane",
-                                               new_dirname=experiment.working_dir.get_rec_directory(0),
-                                               new_extension=experiment.default_image_suffix)
+            reconstructed_image = common.add_suffix(input_image, local_suffix,
+                                                    new_dirname=experiment.working_dir.get_rec_directory(0),
+                                                    new_extension=experiment.default_image_suffix)
         else:
             monitoring.to_log_and_console("    unknown intensity transformation method: '"
                                           + str(parameters.intensity_transformation) + "'", 2)
@@ -498,7 +507,7 @@ def build_membrane_image(current_time, experiment, parameters, previous_time=Non
         #
         experiment.working_dir.make_rec_directory()
     else:
-        monitoring.to_log_and_console("    unknown membrane enhancement method: '"
+        monitoring.to_log_and_console("    unknown enhancement method: '"
                                       + str(parameters.intensity_enhancement) + "'", 2)
         return None
 
@@ -509,18 +518,20 @@ def build_membrane_image(current_time, experiment, parameters, previous_time=Non
     if parameters.intensity_enhancement is None or parameters.intensity_enhancement.lower() == 'none':
         pass
     elif parameters.intensity_enhancement.lower() == 'gace':
-        if (not os.path.isfile(enhanced_image) and (membrane_image is None or not os.path.isfile(membrane_image))) \
+        if (not os.path.isfile(enhanced_image) and (reconstructed_image is None
+                                                    or not os.path.isfile(reconstructed_image))) \
                 or monitoring.forceResultsToBeBuilt is True:
-            monitoring.to_log_and_console("    .. membrane global enhancement of '"
+            monitoring.to_log_and_console("    .. global enhancement of '"
                                           + str(input_image).split(os.path.sep)[-1] + "'", 2)
             ace.monitoring.copy(monitoring)
             ace.global_membrane_enhancement(input_image, enhanced_image, experiment,
                                             temporary_path=experiment.working_dir.get_tmp_directory(0),
-                                            parameters=parameters.ace)
+                                            parameters=parameters)
     elif parameters.intensity_enhancement.lower() == 'glace':
-        if (not os.path.isfile(enhanced_image) and (membrane_image is None or not os.path.isfile(membrane_image))) \
+        if (not os.path.isfile(enhanced_image) and (reconstructed_image is None
+                                                    or not os.path.isfile(reconstructed_image))) \
                 or monitoring.forceResultsToBeBuilt is True:
-            monitoring.to_log_and_console("    .. membrane cell enhancement of '"
+            monitoring.to_log_and_console("    .. cell enhancement of '"
                                           + str(input_image).split(os.path.sep)[-1] + "'", 2)
             ace.monitoring.copy(monitoring)
             previous_deformed_segmentation = get_previous_deformed_segmentation(current_time, experiment, parameters,
@@ -529,13 +540,13 @@ def build_membrane_image(current_time, experiment, parameters, previous_time=Non
                 monitoring.to_log_and_console("    .. " + proc + ": switch to 'ace' ", 1)
                 ace.global_membrane_enhancement(input_image, enhanced_image, experiment,
                                                 temporary_path=experiment.working_dir.get_tmp_directory(0),
-                                                parameters=parameters.ace)
+                                                parameters=parameters)
             else:
                 ace.cell_membrane_enhancement(input_image, previous_deformed_segmentation, enhanced_image, experiment,
                                               temporary_path=experiment.working_dir.get_tmp_directory(0),
-                                              parameters=parameters.ace)
+                                              parameters=parameters)
     else:
-        monitoring.to_log_and_console("    unknown membrane enhancement method: '"
+        monitoring.to_log_and_console("    unknown enhancement method: '"
                                       + str(parameters.intensity_enhancement) + "'", 2)
         return None
 
@@ -551,7 +562,8 @@ def build_membrane_image(current_time, experiment, parameters, previous_time=Non
         pass
     elif parameters.intensity_transformation.lower() == 'normalization_to_u8' \
             or parameters.intensity_transformation.lower() == 'global_normalization_to_u8':
-        if (not os.path.isfile(intensity_image) and (membrane_image is None or not os.path.isfile(membrane_image))) \
+        if (not os.path.isfile(intensity_image) and (reconstructed_image is None
+                                                     or not os.path.isfile(reconstructed_image))) \
                 or monitoring.forceResultsToBeBuilt is True:
             monitoring.to_log_and_console("    .. intensity global normalization of '"
                                           + str(input_image).split(os.path.sep)[-1] + "'", 2)
@@ -561,7 +573,8 @@ def build_membrane_image(current_time, experiment, parameters, previous_time=Non
                                                     other_options=None, monitoring=monitoring)
         arit_options = "-o 1"
     elif parameters.intensity_transformation.lower() == 'cell_normalization_to_u8':
-        if (not os.path.isfile(intensity_image) and (membrane_image is None or not os.path.isfile(membrane_image))) \
+        if (not os.path.isfile(intensity_image) and (reconstructed_image is None
+                                                     or not os.path.isfile(reconstructed_image))) \
                 or monitoring.forceResultsToBeBuilt is True:
             monitoring.to_log_and_console("    .. intensity cell-based normalization of '"
                                           + str(input_image).split(os.path.sep)[-1] + "'", 2)
@@ -573,8 +586,8 @@ def build_membrane_image(current_time, experiment, parameters, previous_time=Non
                                                         max_percentile=parameters.normalization_max_percentile,
                                                         other_options=None, monitoring=monitoring)
             else:
-                previous_deformed_segmentation = get_previous_deformed_segmentation(current_time, experiment, parameters,
-                                                                                    previous_time)
+                previous_deformed_segmentation = get_previous_deformed_segmentation(current_time, experiment,
+                                                                                    parameters, previous_time)
                 cpp_wrapping.cell_normalization_to_u8(input_image, previous_deformed_segmentation, intensity_image,
                                                       min_percentile=parameters.normalization_min_percentile,
                                                       max_percentile=parameters.normalization_max_percentile,
@@ -602,11 +615,11 @@ def build_membrane_image(current_time, experiment, parameters, previous_time=Non
             # mix images
             #
             arit_options += " -max"
-            if not os.path.isfile(membrane_image) or monitoring.forceResultsToBeBuilt is True:
+            if not os.path.isfile(reconstructed_image) or monitoring.forceResultsToBeBuilt is True:
                 monitoring.to_log_and_console("       fusion of intensity and enhancement", 2)
-                cpp_wrapping.arithmetic_operation(intensity_image, enhanced_image, membrane_image,
+                cpp_wrapping.arithmetic_operation(intensity_image, enhanced_image, reconstructed_image,
                                                   other_options=arit_options)
-            return membrane_image
+            return reconstructed_image
 
     #
     # should not reach this point

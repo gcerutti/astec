@@ -30,13 +30,7 @@ monitoring = common.Monitoring()
 ########################################################################################
 
 
-#
-#
-#
-#
-#
-
-class WatershedParameters(object):
+class WatershedParameters(common.PrefixedParameter):
 
     ############################################################
     #
@@ -44,7 +38,10 @@ class WatershedParameters(object):
     #
     ############################################################
 
-    def __init__(self, obj=None):
+    def __init__(self, prefix=None, obj=None):
+
+        common.PrefixedParameter.__init__(self, prefix=prefix)
+
         #
         #
         # gaussian standard deviation: smoothing input image for seed extraction
@@ -70,28 +67,30 @@ class WatershedParameters(object):
     #
     ############################################################
 
-    def print_parameters(self):
+    def print_parameters(self, spaces=0):
         print("")
-        print('WatershedParameters')
-
-        print('- watershed_seed_sigma = ' + str(self.watershed_seed_sigma))
-        print('- watershed_seed_hmin = ' + str(self.watershed_seed_hmin))
-        print('- watershed_seed_high_threshold = ' + str(self.watershed_seed_high_threshold))
-        print('- watershed_membrane_sigma = ' + str(self.watershed_membrane_sigma))
-
+        print(spaces * ' ' + 'WatershedParameters')
+        common.PrefixedParameter.print_parameters(self, spaces=spaces)
+        self.logprint('watershed_seed_sigma', self.watershed_seed_sigma, spaces=spaces)
+        self.logprint('watershed_seed_hmin', self.watershed_seed_hmin, spaces=spaces)
+        self.logprint('watershed_seed_high_threshold', self.watershed_seed_high_threshold, spaces=spaces)
+        self.logprint('watershed_membrane_sigma', self.watershed_membrane_sigma, spaces=spaces)
         print("")
 
-    def write_parameters(self, log_file_name):
+    def write_parameters_in_file(self, logfile, spaces=0):
+        logfile.write("\n")
+        logfile.write(spaces * ' ' + 'WatershedParameters\n')
+        common.PrefixedParameter.write_parameters_in_file(self, logfile, spaces=spaces)
+        self.logwrite(logfile, 'watershed_seed_sigma', self.watershed_seed_sigma, spaces=spaces)
+        self.logwrite(logfile, 'watershed_seed_hmin', self.watershed_seed_hmin, spaces=spaces)
+        self.logwrite(logfile, 'watershed_seed_high_threshold', self.watershed_seed_high_threshold, spaces=spaces)
+        self.logwrite(logfile, 'watershed_membrane_sigma', self.watershed_membrane_sigma, spaces=spaces)
+        logfile.write("\n")
+        return
+
+    def write_parameters(self, log_file_name, spaces=0):
         with open(log_file_name, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('WatershedParameters\n')
-
-            logfile.write('- watershed_seed_sigma = ' + str(self.watershed_seed_sigma) + '\n')
-            logfile.write('- watershed_seed_hmin = ' + str(self.watershed_seed_hmin) + '\n')
-            logfile.write('- watershed_seed_high_threshold = ' + str(self.watershed_seed_high_threshold) + '\n')
-            logfile.write('- watershed_membrane_sigma = ' + str(self.watershed_membrane_sigma) + '\n')
-
-            logfile.write("\n")
+            self.write_parameters_in_file(logfile, spaces=spaces)
         return
 
     ############################################################
@@ -115,48 +114,19 @@ class WatershedParameters(object):
         if hasattr(parameters, 'mars_sigma1'):
             if parameters.mars_sigma1 is not None:
                 self.watershed_seed_sigma = parameters.mars_sigma1
-        if hasattr(parameters, 'mars_watershed_seed_sigma'):
-            if parameters.mars_watershed_seed_sigma is not None:
-                self.watershed_seed_sigma = parameters.mars_watershed_seed_sigma
-        if hasattr(parameters, 'astec_sigma1'):
-            if parameters.astec_sigma1 is not None:
-                self.watershed_seed_sigma = parameters.astec_sigma1
-        if hasattr(parameters, 'astec_watershed_seed_sigma'):
-            if parameters.astec_watershed_seed_sigma is not None:
-                self.watershed_seed_sigma = parameters.astec_watershed_seed_sigma
-        if hasattr(parameters, 'watershed_seed_sigma'):
-            if parameters.watershed_seed_sigma is not None:
-                self.watershed_seed_sigma = parameters.watershed_seed_sigma
 
-        if hasattr(parameters, 'mars_h_min'):
-            if parameters.mars_h_min is not None:
-                self.watershed_seed_hmin = parameters.mars_h_min
-        if hasattr(parameters, 'mars_watershed_seed_hmin'):
-            if parameters.mars_watershed_seed_hmin is not None:
-                self.watershed_seed_hmin = parameters.mars_watershed_seed_hmin
-        if hasattr(parameters, 'watershed_seed_hmin'):
-            if parameters.watershed_seed_hmin is not None:
-                self.watershed_seed_hmin = parameters.watershed_seed_hmin
+        self.watershed_seed_sigma = self.read_parameter(parameters, 'sigma1', self.watershed_seed_sigma)
+        self.watershed_seed_sigma = self.read_parameter(parameters, 'watershed_seed_sigma', self.watershed_seed_sigma)
 
-        if hasattr(parameters, 'watershed_seed_high_threshold'):
-            if parameters.watershed_seed_high_threshold is not None:
-                self.watershed_seed_high_threshold = parameters.watershed_seed_high_threshold
+        self.watershed_seed_hmin = self.read_parameter(parameters, 'h_min', self.watershed_seed_hmin)
+        self.watershed_seed_hmin = self.read_parameter(parameters, 'watershed_seed_hmin', self.watershed_seed_hmin)
 
-        if hasattr(parameters, 'mars_sigma2'):
-            if parameters.mars_sigma2 is not None:
-                self.watershed_membrane_sigma = parameters.mars_sigma2
-        if hasattr(parameters, 'mars_watershed_membrane_sigma'):
-            if parameters.mars_watershed_membrane_sigma is not None:
-                self.watershed_membrane_sigma = parameters.mars_watershed_membrane_sigma
-        if hasattr(parameters, 'astec_sigma2'):
-            if parameters.astec_sigma2 is not None:
-                self.watershed_membrane_sigma = parameters.astec_sigma2
-        if hasattr(parameters, 'astec_watershed_membrane_sigma'):
-            if parameters.astec_watershed_membrane_sigma is not None:
-                self.watershed_membrane_sigma = parameters.astec_watershed_membrane_sigma
-        if hasattr(parameters, 'watershed_membrane_sigma'):
-            if parameters.watershed_membrane_sigma is not None:
-                self.watershed_membrane_sigma = parameters.watershed_membrane_sigma
+        self.watershed_seed_high_threshold = self.read_parameter(parameters, 'watershed_seed_high_threshold',
+                                                                 self.watershed_seed_high_threshold)
+
+        self.watershed_membrane_sigma = self.read_parameter(parameters, 'sigma2', self.watershed_membrane_sigma)
+        self.watershed_membrane_sigma = self.read_parameter(parameters, 'watershed_membrane_sigma',
+                                                            self.watershed_membrane_sigma)
 
 
 #
@@ -191,24 +161,26 @@ class SeedEditionParameters(object):
     #
     ############################################################
 
-    def print_parameters(self):
+    def print_parameters(self, spaces=0):
+        tab = spaces * ' '
         print("")
-        print('SeedEditionParameters')
-
-        print('- seed_edition_dir = ' + str(self.seed_edition_dir))
-        print('- seed_edition_file = ' + str(self.seed_edition_file))
-
+        print(tab + 'SeedEditionParameters')
+        print(tab + '- seed_edition_dir = ' + str(self.seed_edition_dir))
+        print(tab + '- seed_edition_file = ' + str(self.seed_edition_file))
         print("")
 
-    def write_parameters(self, log_file_name):
+    def write_parameters_in_file(self, logfile, spaces=0):
+        tab = spaces * ' '
+        logfile.write("\n")
+        logfile.write(tab + 'SeedEditionParameters\n')
+        logfile.write(tab + '- seed_edition_dir = ' + str(self.seed_edition_dir) + '\n')
+        logfile.write(tab + '- seed_edition_file = ' + str(self.seed_edition_file) + '\n')
+        logfile.write("\n")
+        return
+
+    def write_parameters(self, log_file_name, spaces=0):
         with open(log_file_name, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('SeedEditionParameters\n')
-
-            logfile.write('- seed_edition_dir = ' + str(self.seed_edition_dir) + '\n')
-            logfile.write('- seed_edition_file = ' + str(self.seed_edition_file) + '\n')
-
-            logfile.write("\n")
+            self.write_parameters_in_file(logfile, spaces=spaces)
         return
 
     ############################################################
@@ -293,25 +265,20 @@ class SeedEditionParameters(object):
 #
 #
 
-class MarsParameters(WatershedParameters, SeedEditionParameters, reconstruction.ReconstructionParameters):
+class MarsParameters(WatershedParameters, SeedEditionParameters):
 
-    def __init__(self):
+    def __init__(self, prefix="mars_"):
 
-        ############################################################
-        #
-        # initialisation
-        #
-        ############################################################
-
-        WatershedParameters.__init__(self)
-        SeedEditionParameters.__init__(self)
-        reconstruction.ReconstructionParameters.__init__(self)
-        #
-        #
-        #
         self.first_time_point = -1
         self.last_time_point = -1
 
+        WatershedParameters.__init__(self, prefix=prefix)
+        SeedEditionParameters.__init__(self)
+        #
+        # reconstruction parameters
+        #
+        self.seed_reconstruction = reconstruction.ReconstructionParameters(prefix=[self._prefix, "seed_"])
+        self.membrane_reconstruction = reconstruction.ReconstructionParameters(prefix=[self._prefix, "membrane_"])
         return
 
     ############################################################
@@ -320,32 +287,32 @@ class MarsParameters(WatershedParameters, SeedEditionParameters, reconstruction.
     #
     ############################################################
 
-    def print_parameters(self):
+    def print_parameters(self, spaces=0):
         print("")
-        print('MarsParameters')
-
-        print('- first_time_point = ' + str(self.first_time_point))
-        print('- last_time_point = ' + str(self.last_time_point))
-
-        print("")
-
-        WatershedParameters.print_parameters(self)
-        SeedEditionParameters.print_parameters(self)
-        reconstruction.ReconstructionParameters.print_parameters(self)
+        print(spaces * ' ' + 'MarsParameters')
+        self.logprint('first_time_point', self.first_time_point, spaces=spaces)
+        self.logprint('last_time_point', self.last_time_point, spaces=spaces)
+        WatershedParameters.print_parameters(self, spaces=spaces+2)
+        SeedEditionParameters.print_parameters(self, spaces=spaces+2)
+        self.seed_reconstruction.print_parameters(spaces=spaces+2)
+        self.membrane_reconstruction.print_parameters(spaces=spaces+2)
         return
 
-    def write_parameters(self, log_file_name):
+    def write_parameters_in_file(self, logfile, spaces=0):
+        logfile.write("\n")
+        logfile.write(spaces * ' ' + 'MarsParameters\n')
+        common.PrefixedParameter.write_parameters_in_file(self, logfile, spaces=spaces)
+        self.logwrite(logfile, 'first_time_point', self.first_time_point, spaces=spaces)
+        self.logwrite(logfile, 'last_time_point', self.last_time_point, spaces=spaces)
+        WatershedParameters.write_parameters_in_file(self, logfile, spaces=spaces+2)
+        SeedEditionParameters.write_parameters_in_file(self, logfile, spaces=spaces+2)
+        self.seed_reconstruction.write_parameters_in_file(logfile, spaces=spaces+2)
+        self.membrane_reconstruction.write_parameters_in_file(logfile, spaces=spaces+2)
+        return
+
+    def write_parameters(self, log_file_name, spaces=0):
         with open(log_file_name, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('MarsParameters\n')
-
-            logfile.write('- first_time_point = ' + str(self.first_time_point) + '\n')
-            logfile.write('- last_time_point = ' + str(self.last_time_point) + '\n')
-
-        WatershedParameters.write_parameters(self, log_file_name)
-        SeedEditionParameters.write_parameters(self, log_file_name)
-        reconstruction.ReconstructionParameters.write_parameters(self, log_file_name)
-
+            self.write_parameters_in_file(logfile, spaces=0)
         return
 
     ############################################################
@@ -378,11 +345,15 @@ class MarsParameters(WatershedParameters, SeedEditionParameters, reconstruction.
 
         if hasattr(parameters, 'mars_method'):
             if parameters.mars_method == 1:
-                self.intensity_transformation = 'Identity'
-                self.intensity_enhancement = None
+                self.seed_reconstruction.intensity_transformation = 'Identity'
+                self.seed_reconstruction.intensity_enhancement = None
+                self.membrane_reconstruction.intensity_transformation = 'Identity'
+                self.membrane_reconstruction.intensity_enhancement = None
             elif parameters.mars_method == 2:
-                self.intensity_transformation = None
-                self.intensity_enhancement = 'GACE'
+                self.seed_reconstruction.intensity_transformation = None
+                self.seed_reconstruction.intensity_enhancement = 'GACE'
+                self.membrane_reconstruction.intensity_transformation = None
+                self.membrane_reconstruction.intensity_enhancement = 'GACE'
 
         #
         # watershed parameters
@@ -391,7 +362,8 @@ class MarsParameters(WatershedParameters, SeedEditionParameters, reconstruction.
         #
         WatershedParameters.update_from_parameters(self, parameter_file)
         SeedEditionParameters.update_from_parameters(self, parameter_file)
-        reconstruction.ReconstructionParameters.update_from_parameters(self, parameter_file)
+        self.seed_reconstruction.update_from_parameters(parameter_file)
+        self.membrane_reconstruction.update_from_parameters(parameter_file)
 
         return
 
@@ -491,8 +463,7 @@ def build_seeds(input_image, difference_image, output_seed_image, experiment, pa
         seed_preimage = input_image
 
     if not os.path.isfile(seed_preimage):
-        monitoring.to_log_and_console("       '" + str(seed_preimage).split(os.path.sep)[-1] + "' does not exist",
-                                      2)
+        monitoring.to_log_and_console(proc + ": '" + str(seed_preimage).split(os.path.sep)[-1] + "' does not exist", 2)
         monitoring.to_log_and_console("\t Exiting.")
         sys.exit(1)
 
@@ -528,7 +499,7 @@ def build_seeds(input_image, difference_image, output_seed_image, experiment, pa
     #
 
     if not os.path.isfile(local_difference_image):
-        monitoring.to_log_and_console("       '" + str(local_difference_image).split(os.path.sep)[-1]
+        monitoring.to_log_and_console(proc + ": '" + str(local_difference_image).split(os.path.sep)[-1]
                                       + "' does not exist", 2)
         monitoring.to_log_and_console("\t Exiting.")
         sys.exit(1)
@@ -675,11 +646,12 @@ def _seed_correction(seed_image, corrected_seed_image, parameters):
     return corrected_seed_image
 
 
-def _mars_watershed(template_image, membrane_image, mars_image, experiment, parameters):
+def _mars_watershed(template_image, input_seed_image, membrane_image, mars_image, experiment, parameters):
     """
 
     :param template_image: fused image name, to name the other images after it
-    :param membrane_image: input image for processing
+    :param input_seed_image: input seed image for processing
+    :param membrane_image: input membrane image for processing
     :param mars_image:
     :param experiment:
     :param parameters:
@@ -709,7 +681,7 @@ def _mars_watershed(template_image, membrane_image, mars_image, experiment, para
                                    new_extension=experiment.default_image_suffix)
 
     if not os.path.isfile(seed_image) or monitoring.forceResultsToBeBuilt is True:
-        build_seeds(membrane_image, None, seed_image, experiment, parameters, check_background_label=True)
+        build_seeds(input_seed_image, None, seed_image, experiment, parameters, check_background_label=True)
 
     #
     # seed correction (if any)
@@ -860,8 +832,10 @@ def mars_process(current_time, experiment, parameters):
     # - membrane extraction
     #
 
+    monitoring.to_log_and_console("    .. reconstruct membrane image", 2)
     reconstruction.monitoring.copy(monitoring)
-    membrane_image = reconstruction.build_membrane_image(current_time, experiment, parameters)
+    membrane_image = reconstruction.build_reconstructed_image(current_time, experiment,
+                                                              parameters.membrane_reconstruction, suffix="_membrane")
 
     if membrane_image is None or not os.path.isfile(membrane_image):
         monitoring.to_log_and_console("       '" + str(membrane_image).split(os.path.sep)[-1]
@@ -869,11 +843,18 @@ def mars_process(current_time, experiment, parameters):
         monitoring.to_log_and_console("\t Exiting.")
         sys.exit(1)
 
+    if parameters.seed_reconstruction.is_equal(parameters.membrane_reconstruction):
+        monitoring.to_log_and_console("    .. seed image is identical to membrane image", 2)
+        seed_image = membrane_image
+    else:
+        seed_image = reconstruction.build_reconstructed_image(current_time, experiment, parameters.seed_reconstruction,
+                                                              suffix="_seed")
+
     #
     # compute the seeded watershed
     #
 
-    _mars_watershed(input_image, membrane_image, mars_image, experiment, parameters)
+    _mars_watershed(input_image, seed_image, membrane_image, mars_image, experiment, parameters)
 
     #
     #
@@ -955,7 +936,8 @@ def mars_control(experiment, parameters):
         experiment.mars_dir.set_tmp_directory(time_value)
         experiment.mars_dir.make_tmp_directory()
 
-        if parameters.keep_reconstruction is False:
+        if parameters.seed_reconstruction.keep_reconstruction is False \
+                and parameters.membrane_reconstruction.keep_reconstruction is False:
             experiment.mars_dir.set_rec_directory_to_tmp()
 
         #

@@ -7,6 +7,7 @@ import time
 import subprocess
 import getpass
 import shutil
+import itertools
 
 import CommunFunctions.cpp_wrapping as cpp_wrapping
 
@@ -15,6 +16,12 @@ import CommunFunctions.cpp_wrapping as cpp_wrapping
 #
 #
 #
+
+##################################################
+#
+#
+#
+##################################################
 
 
 def _timestamp_to_str(timestamp=None):
@@ -27,6 +34,108 @@ def _timestamp_to_str(timestamp=None):
         timestamp = time.localtime()
     d = time.strftime("%Y-%m-%d-%H-%M-%S", timestamp)
     return d
+
+
+##################################################
+#
+#
+#
+##################################################
+
+class PrefixedParameter(object):
+    def __init__(self, prefix=None):
+        if prefix is None:
+            self._prefix = None
+            self._full_prefix = None
+        elif type(prefix) is str:
+            self._prefix = prefix
+            self._full_prefix = ''.join(self._prefix)
+        elif type(prefix) is list:
+            self._prefix = []
+            for p in prefix:
+                if type(p) is str:
+                    self._prefix.append(p)
+                elif type(p) is list:
+                    self._prefix.extend(p)
+                else:
+                    monitoring.to_log_and_console("PrefixedParameter.init: unexpected type for 'p':" + str(type(p)))
+                    monitoring.to_log_and_console("Exiting")
+                    sys.exit(0)
+            self._full_prefix = ''.join(self._prefix)
+        else:
+            monitoring.to_log_and_console("PrefixedParameter.init: unexpected type for 'prefix':" + str(type(prefix)))
+            monitoring.to_log_and_console("Exiting")
+            sys.exit(0)
+        self._set_prefixes()
+        return
+
+    def _set_prefixes(self):
+        prefix = self._prefix
+        if prefix is None:
+            self._prefixes = [""]
+        if type(prefix) is str:
+            self._prefixes = ["", prefix]
+        if type(prefix) is list:
+            prefixes = [""]
+            prefixes.extend(prefix)
+            for length in range(2, len(prefix)+1):
+                for c in itertools.combinations(prefix, length):
+                    prefixes.append(''.join(c))
+            self._prefixes = prefixes
+        return
+
+    def read_parameter(self, parameters, parameter_description, default_value):
+        """
+        get a parameter value from a (already read parameter file)
+        :param self:
+        :param parameters:
+        :param parameter_description:
+        :param default_value:
+        :return:
+        """
+        #
+        # read the parameter
+        #
+        # print("entering read_parameter")
+        # print("\t prefixes = " + str(self._prefixes))
+
+        for p in self._prefixes:
+            desc = p + parameter_description
+            ret = getattr(parameters, desc, None)
+            if ret is not None:
+                return ret
+        return default_value
+
+    def _fulldesc(self, desc):
+        if self._prefix is None or self._prefix == '':
+            return '- ' + desc + ' = '
+        elif type(self._prefix) is str:
+            return '- [' + str(self._prefix) + ']' + desc + ' = '
+        elif type(self._prefix) is list:
+            return '- ' + str(self._prefix) + desc + ' = '
+        else:
+            return '- ' + desc + ' = '
+        # if self._full_prefix is not None:
+        #     name = self._full_prefix + desc
+        # else:
+        #     name = desc
+        # return '- ' + name + ' = '
+
+    def logprint(self, name, value, spaces=0):
+        print(spaces * ' ' + self._fulldesc(name) + str(value))
+
+    def print_parameters(self, spaces=0):
+        print(spaces * ' ' + "- _prefix = " + str(self._prefix))
+        print(spaces * ' ' + "- _full_prefix = " + str(self._full_prefix))
+        print(spaces * ' ' + "- _prefixes = " + str(self._prefixes))
+
+    def logwrite(self, logfile, name, value, spaces=0):
+        logfile.write(spaces * ' ' + self._fulldesc(name) + str(value) + '\n')
+
+    def write_parameters_in_file(self, logfile, spaces=0):
+        logfile.write(spaces * ' ' + "- _prefix = " + str(self._prefix) + '\n')
+        logfile.write(spaces * ' ' + "- _full_prefix = " + str(self._full_prefix) + '\n')
+        logfile.write(spaces * ' ' + "- _prefixes = " + str(self._prefixes) + '\n')
 
 ##################################################
 #
@@ -1785,7 +1894,7 @@ def _fulldesc(prefix, desc):
     return '- ' + _fullname(prefix, desc) + ' = '
 
 
-class RegistrationParameters(object):
+class RegistrationParameters(PrefixedParameter):
 
     ############################################################
     #
@@ -1793,11 +1902,10 @@ class RegistrationParameters(object):
     #
     ############################################################
 
-    def __init__(self):
-        #
-        # prefix is for naming the parameters
-        #
-        self.prefix = None
+    def __init__(self, prefix=None):
+
+        PrefixedParameter.__init__(self, prefix=prefix)
+
         #
         #
         #
@@ -1823,57 +1931,64 @@ class RegistrationParameters(object):
     #
     ############################################################
 
-    def print_parameters(self):
+    def print_parameters(self, spaces=0):
         print("")
-        print('RegistrationParameters')
+        print(spaces * ' ' + 'RegistrationParameters')
 
-        print(_fulldesc(None, 'prefix') + str(self.prefix))
-        print(_fulldesc(self.prefix, 'compute_registration') + str(self.compute_registration))
+        PrefixedParameter.print_parameters(self, spaces=spaces)
 
-        print(_fulldesc(self.prefix, 'pyramid_highest_level') + str(self.pyramid_highest_level))
-        print(_fulldesc(self.prefix, 'pyramid_lowest_level') + str(self.pyramid_lowest_level))
-        print(_fulldesc(self.prefix, 'gaussian_pyramid') + str(self.gaussian_pyramid))
+        self.logprint('compute_registration', self.compute_registration, spaces=spaces)
 
-        print(_fulldesc(self.prefix, 'transformation_type') + str(self.transformation_type))
+        self.logprint('pyramid_highest_level', self.pyramid_highest_level, spaces=spaces)
+        self.logprint('pyramid_lowest_level', self.pyramid_lowest_level, spaces=spaces)
+        self.logprint('gaussian_pyramid', self.gaussian_pyramid, spaces=spaces)
 
-        print(_fulldesc(self.prefix, 'elastic_sigma') + str(self.elastic_sigma))
+        self.logprint('transformation_type', self.transformation_type, spaces=spaces)
 
-        print(_fulldesc(self.prefix, 'transformation_estimation_type') + str(self.transformation_estimation_type))
-        print(_fulldesc(self.prefix, 'lts_fraction') + str(self.lts_fraction))
-        print(_fulldesc(self.prefix, 'fluid_sigma') + str(self.fluid_sigma))
+        self.logprint('elastic_sigma', self.elastic_sigma, spaces=spaces)
 
-        print(_fulldesc(self.prefix, 'normalization') + str(self.normalization))
+        self.logprint('transformation_estimation_type', self.transformation_estimation_type, spaces=spaces)
+        self.logprint('lts_fraction', self.lts_fraction, spaces=spaces)
+        self.logprint('fluid_sigma', self.fluid_sigma, spaces=spaces)
 
+        self.logprint('normalization', self.normalization, spaces=spaces)
         print("")
+        return
 
-    def write_parameters(self, log_filename=None):
+    def write_parameters_in_file(self, logfile, spaces=0):
+        logfile.write("\n")
+        logfile.write(spaces * ' ' + 'RegistrationParameters\n')
+
+        PrefixedParameter.write_parameters_in_file(self, logfile, spaces=spaces)
+
+        self.logwrite(logfile, 'compute_registration', self.compute_registration, spaces=spaces)
+
+        self.logwrite(logfile, 'pyramid_highest_level', self.pyramid_highest_level, spaces=spaces)
+        self.logwrite(logfile, 'pyramid_lowest_level', self.pyramid_lowest_level, spaces=spaces)
+        self.logwrite(logfile, 'gaussian_pyramid', self.gaussian_pyramid, spaces=spaces)
+
+        self.logwrite(logfile, 'transformation_type', self.transformation_type, spaces=spaces)
+
+        self.logwrite(logfile, 'elastic_sigma', self.elastic_sigma, spaces=spaces)
+
+        self.logwrite(logfile, 'transformation_estimation_type', self.transformation_estimation_type,
+                      spaces=spaces)
+        self.logwrite(logfile, 'lts_fraction', self.lts_fraction, spaces=spaces)
+        self.logwrite(logfile, 'fluid_sigma', self.fluid_sigma, spaces=spaces)
+
+        self.logwrite(logfile, 'normalization', self.normalization, spaces=spaces)
+
+        logfile.write("\n")
+        return
+
+    def write_parameters(self, log_filename=None, spaces=0):
         if log_filename is not None:
             local_log_filename = log_filename
         else:
             local_log_filename = monitoring.log_filename
         if local_log_filename is not None:
             with open(local_log_filename, 'a') as logfile:
-                logfile.write("\n")
-                logfile.write('RegistrationParameters\n')
-                logfile.write(_fulldesc(None, 'prefix')+str(self.prefix)+'\n')
-                logfile.write(_fulldesc(self.prefix, 'compute_registration') + str(self.compute_registration) + '\n')
-
-                logfile.write(_fulldesc(self.prefix, 'pyramid_highest_level') + str(self.pyramid_highest_level) + '\n')
-                logfile.write(_fulldesc(self.prefix, 'pyramid_lowest_level') + str(self.pyramid_lowest_level) + '\n')
-                logfile.write(_fulldesc(self.prefix, 'gaussian_pyramid') + str(self.gaussian_pyramid) + '\n')
-
-                logfile.write(_fulldesc(self.prefix, 'transformation_type') + str(self.transformation_type) + '\n')
-
-                logfile.write(_fulldesc(self.prefix, 'elastic_sigma') + str(self.elastic_sigma) + '\n')
-
-                logfile.write(_fulldesc(self.prefix, 'transformation_estimation_type')
-                              + str(self.transformation_estimation_type)+'\n')
-                logfile.write(_fulldesc(self.prefix, 'lts_fraction')+str(self.lts_fraction)+'\n')
-                logfile.write(_fulldesc(self.prefix, 'fluid_sigma') + str(self.fluid_sigma) + '\n')
-
-                logfile.write(_fulldesc(self.prefix, 'normalization')+str(self.normalization)+'\n')
-
-                logfile.write("\n")
+                self.write_parameters_in_file(logfile, spaces=spaces)
         return
 
     ############################################################
@@ -1891,33 +2006,52 @@ class RegistrationParameters(object):
 
         parameters = imp.load_source('*', parameter_file)
 
-        if hasattr(parameters, _fullname(self.prefix, 'compute_registration')):
-            if getattr(parameters, _fullname(self.prefix, 'compute_registration'), 'None') is not None:
-                self.compute_registration = getattr(parameters, _fullname(self.prefix, 'compute_registration'))
+        self.compute_registration = self.read_parameter(parameters, 'compute_registration', self.compute_registration)
 
-        if hasattr(parameters, _fullname(self.prefix, 'transformation_type')):
-            if getattr(parameters, _fullname(self.prefix, 'transformation_type'), 'None') is not None:
-                self.transformation_type = getattr(parameters, _fullname(self.prefix, 'transformation_type'))
+        self.pyramid_highest_level = self.read_parameter(parameters, 'pyramid_highest_level',
+                                                         self.pyramid_highest_level)
+        self.pyramid_lowest_level = self.read_parameter(parameters, 'pyramid_lowest_level', self.pyramid_lowest_level)
+        self.gaussian_pyramid = self.read_parameter(parameters, 'gaussian_pyramid', self.gaussian_pyramid)
 
-        if hasattr(parameters, _fullname(self.prefix, 'transformation_estimation_type')):
-            if getattr(parameters, _fullname(self.prefix, 'transformation_estimation_type'), 'None') is not None:
-                self.transformation_estimation_type = getattr(parameters,
-                                                              _fullname(self.prefix, 'transformation_estimation_type'))
+        self.transformation_type = self.read_parameter(parameters, 'transformation_type', self.transformation_type)
 
-        if hasattr(parameters, _fullname(self.prefix, 'lts_fraction')):
-            if getattr(parameters, _fullname(self.prefix, 'lts_fraction'), 'None') is not None:
-                self.lts_fraction = getattr(parameters, _fullname(self.prefix, 'lts_fraction'))
+        self.elastic_sigma = self.read_parameter(parameters, 'elastic_sigma', self.elastic_sigma)
 
-        if hasattr(parameters, _fullname(self.prefix, 'pyramid_highest_level')):
-            if getattr(parameters, _fullname(self.prefix, 'pyramid_highest_level'), 'None') is not None:
-                self.pyramid_highest_level = getattr(parameters, _fullname(self.prefix, 'pyramid_highest_level'))
-        if hasattr(parameters, _fullname(self.prefix, 'pyramid_lowest_level')):
-            if getattr(parameters, _fullname(self.prefix, 'pyramid_lowest_level'), 'None') is not None:
-                self.pyramid_lowest_level = getattr(parameters, _fullname(self.prefix, 'pyramid_lowest_level'))
+        self.transformation_estimation_type = self.read_parameter(parameters, 'transformation_estimation_type',
+                                                                  self.transformation_estimation_type)
+        self.lts_fraction = self.read_parameter(parameters, 'lts_fraction', self.lts_fraction)
+        self.fluid_sigma = self.read_parameter(parameters, 'fluid_sigma', self.fluid_sigma)
+        self.normalization = self.read_parameter(parameters, 'normalization', self.normalization)
 
-        if hasattr(parameters, _fullname(self.prefix, 'normalization')):
-            if getattr(parameters, _fullname(self.prefix, 'normalization'), 'None') is not None:
-                self.normalization = getattr(parameters, _fullname(self.prefix, 'normalization'))
+    ############################################################
+    #
+    #
+    #
+    ############################################################
+
+    def is_equal(self, p):
+        if self.compute_registration != p.compute_registration:
+            return False
+        if self.pyramid_highest_level != p.pyramid_highest_level:
+            return False
+        if self.pyramid_lowest_level != p.pyramid_lowest_level:
+            return False
+        if self.gaussian_pyramid != p.gaussian_pyramid:
+            return False
+        if self.transformation_type != p.transformation_type:
+            return False
+        if self.elastic_sigma != p.elastic_sigma:
+            return False
+        if self.transformation_estimation_type != p.transformation_estimation_type:
+            return False
+        if self.lts_fraction != p.lts_fraction:
+            return False
+        if self.fluid_sigma != p.fluid_sigma:
+            return False
+        if self.normalization != p.normalization:
+            return False
+
+        return True
 
 
 def blockmatching(image_ref, image_flo, image_output, trsf_output, trsf_init, parameters, other_options=None):

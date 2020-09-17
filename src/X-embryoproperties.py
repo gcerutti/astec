@@ -141,7 +141,7 @@ if __name__ == '__main__':
     # reading command line arguments
     # and update from command line arguments
     #
-    parser = ArgumentParser(description='propertieserties')
+    parser = ArgumentParser(description='X-embryoproperties.py')
     _set_options(parser)
     args = parser.parse_args()
 

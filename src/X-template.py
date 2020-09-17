@@ -2,6 +2,7 @@
 
 import time
 from argparse import ArgumentParser
+import sys
 
 #
 # local imports
@@ -69,6 +70,11 @@ def _set_options(my_parser):
     my_parser.add_argument('-nd', '--no-debug',
                            action='store_const', dest='debug', const=0,
                            help='no debug information')
+
+    my_parser.add_argument('-pp', '--print-param',
+                           action='store_const', dest='printParameters',
+                           default=False, const=True,
+                           help='print parameters in console and exit')
 
     return
 
@@ -159,6 +165,14 @@ def main():
     # 2. update parameters
     # 3. write parameters into the logfile
     #
+
+    #
+    # print parameters before processing
+    #
+    if args.printParameters:
+        pass
+        # parameters.print_parameters()
+        sys.exit(0)
 
     #
     # processing

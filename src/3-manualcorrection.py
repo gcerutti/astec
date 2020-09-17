@@ -71,6 +71,11 @@ def _set_options(my_parser):
                            action='store_const', dest='debug', const=0,
                            help='no debug information')
 
+    my_parser.add_argument('-pp', '--print-param',
+                           action='store_const', dest='printParameters',
+                           default=False, const=True,
+                           help='print parameters in console and exit')
+
     #
     # specific args
     #
@@ -197,6 +202,13 @@ def main():
             monitoring.to_log_and_console("\t Exiting")
             sys.exit(1)
         experiment.copy_stamped_file(start_time, parameters.mapping_file)
+
+    #
+    # print parameters before processing
+    #
+    if args.printParameters:
+        parameters.print_parameters()
+        sys.exit(0)
 
     #
     # processing
