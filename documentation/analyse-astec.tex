@@ -1327,6 +1327,7 @@ $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$. S'appelait \verb|path_seg_tr
 \item \verb|volumes| : volumes des cellules de la segmentation \verb|segmentation_file_ref| \`a $t$ 
 (a priori provient de la lecture du lin\'eage lors de l'appel : \verb|volumes_t_1|).
 \end{itemize}
+La variation de volume se calcule donc par rapport \`a la segmentation de l'instant d'avant.
 \color{black}
 \begin{verbatim} 
    451	
@@ -1365,7 +1366,12 @@ Notes:
 \begin{itemize}
 \itemsep -0.5ex
 \item Les m\`eres dans  \verb|to_look_at| sont aussi dans \verb|lower|
-\item Le cas $vol(mother) / \sum vol(daughter) \leq 1 + VRB$ n'est pas consid\'er\'e
+\item Le cas $vol(mother) / \sum vol(daughter) \leq 1 + VRB$ n'est pas consid\'er\'e. 
+\begin{itemize}
+\item Pour les cellules dans \verb|to_look_at| (variation de volume de plus de 50\%), on va r\'eestimer les graines dans un premier temps
+\item \verb|lower| (variation de volume de plus de 10\%) va \^etre recalcul\'e apr\`es coup, et utilis\'e comme ensemble de cellules potentielles \`a corriger via le morphosnake.
+\end{itemize}
+
 \end{itemize}
 \color{black}
 \begin{verbatim} 
@@ -1423,7 +1429,7 @@ Premier cas : la s\'election optimale donne 1 graine, et il existe des $h$ qui d
 \end{verbatim} 
 \color{\mycolor}
 Comme dans \texttt{get\_seeds\_from\_optimized\_parameters()} (section \ref{sec:get:seeds:from:optimized:parameters}, page \pageref{sec:get:seeds:from:optimized:parameters}), on cr\'ee une sous-image, \verb|seg_c|, o\`u la cellule est \`a $c$ et le reste \`a 1.
-\texttt{extract\_seeds()} renvoie le nombre de graines ainsi qu'une sous-image avec ces graines \'etiquet\'ees. 
+\texttt{extract\_seeds()} (section \ref{sec:extract:seeds}, page \pageref{sec:extract:seeds}) renvoie le nombre de graines ainsi qu'une sous-image avec ces graines \'etiquet\'ees. Ici, \texttt{extract\_seeds()} peut renvoyer 1, 2 ou 3 comme nombre de graines, mais n'en num\'erote que 2 dans le cas de graines (\texttt{accept\_3\_seeds} est \`a \texttt{False} par d\'efaut).
 \color{black}
 \begin{verbatim} 
    496	                if nb==2 and (seg_from_opt_h[bb][seeds_c!=0]==0).any(): #If we can found 2 seeds and one is not in new calculated cell
@@ -1604,6 +1610,8 @@ S'il y a eu des changements dans les graines, on recalcule une image de segmenta
 \end{verbatim} 
 \color{\mycolor}
 On recalcule \verb|lower| (on rappelle que les cellules pr\'esentes dans \verb|to_look_at| \'etaient aussi dans \verb|lower|, il y a donc eu des changements dans la liste (s'il y a eu des changements dans les graines).
+
+\verb|lower| (variation de volume de plus de 10\%) est un sur-ensemble de \verb|to_look_at| (variation de volume de plus de 50\%). La variation de volume se calcule par rapport \`a la segmentation de l'instant d'avant.
 
 A priori, cela est inutile s'il n'y a pas eu de changements.
 
@@ -1909,6 +1917,8 @@ $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
 \end{verbatim} 
 \color{\mycolor}
 Calcule la segmentation $\tilde{S}_{t+1}$ par ligne de partage des eaux de $I_{t+1}$ avec les graines $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$. \verb|segmentation| est une \texttt{SpatialImage}
+
+Attention, c'est un appel direct \`a la fonction \texttt{watershed}, il n'y a donc pas de lissage de l'image de membrane.
 \color{black}
 \begin{verbatim}  
    731	    seeds=imread(seeds_file)

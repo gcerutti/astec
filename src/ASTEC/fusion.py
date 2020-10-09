@@ -222,15 +222,7 @@ class FusionParameters(object):
     #
     ############################################################
 
-    def update_from_parameters(self, parameter_file):
-        if parameter_file is None:
-            return
-        if not os.path.isfile(parameter_file):
-            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
-            sys.exit(1)
-
-        parameters = imp.load_source('*', parameter_file)
-
+    def update_from_parameters(self, parameters):
         #
         # acquisition parameters
         #
@@ -280,13 +272,13 @@ class FusionParameters(object):
                     if len(parameters.raw_resolution) == 3:
                         self.acquisition_resolution = parameters.raw_resolution
                     else:
-                        print("Error in'" + parameter_file + "'")
+                        print("Error in reading parameters")
                         print("\t 'raw_resolution' has length " + str(len(parameters.raw_resolution))
                               + " instead of 3.")
                         print("\t Exiting.")
                         sys.exit(1)
                 else:
-                    print("Error in'" + parameter_file + "'")
+                    print("Error in reading parameters")
                     print("\t type of 'raw_resolution' (" + str(type(parameters.raw_resolution))
                           + ") is not handled")
                     print("\t Exiting.")
@@ -297,13 +289,13 @@ class FusionParameters(object):
                     if len(parameters.acquisition_resolution) == 3:
                         self.acquisition_resolution = parameters.acquisition_resolution
                     else:
-                        print("Error in'" + parameter_file + "'")
+                        print("Error in reading parameters")
                         print("\t 'acquisition_resolution' has length " + str(len(parameters.acquisition_resolution))
                               + " instead of 3.")
                         print("\t Exiting.")
                         sys.exit(1)
                 else:
-                    print("Error in'" + parameter_file + "'")
+                    print("Error in reading parameters")
                     print("\t type of 'acquisition_resolution' (" + str(type(parameters.acquisition_resolution))
                           + ") is not handled")
                     print("\t Exiting.")
@@ -356,9 +348,9 @@ class FusionParameters(object):
         # registration parameters
         #
         for p in self.acquisition_registration:
-            p.update_from_file(parameter_file)
+            p.update_from_parameters(parameters)
         for p in self.stack_registration:
-            p.update_from_file(parameter_file)
+            p.update_from_parameters(parameters)
 
         #
         #
@@ -385,6 +377,17 @@ class FusionParameters(object):
         if hasattr(parameters, 'fusion_margin_y_1'):
             if parameters.fusion_margin_y_1 is not None:
                 self.fusion_cropping_margin_y_1 = parameters.fusion_margin_y_1
+
+    def update_from_parameter_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+        self.update_from_parameters(parameters)
+
 
 
 ########################################################################################

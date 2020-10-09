@@ -120,14 +120,7 @@ class ManualCorrectionParameters(object):
         if int(args.largest_cells) >= 0:
             self.largest_cells = args.largest_cells
 
-    def update_from_parameters(self, parameter_file):
-        if parameter_file is None:
-            return
-        if not os.path.isfile(parameter_file):
-            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
-            sys.exit(1)
-
-        parameters = imp.load_source('*', parameter_file)
+    def update_from_parameters(self, parameters):
 
         #
         #
@@ -166,6 +159,18 @@ class ManualCorrectionParameters(object):
         if hasattr(parameters, 'default_image_suffix'):
             if parameters.default_image_suffix is not None:
                 self.default_image_suffix = parameters.default_image_suffix
+
+
+    def update_from_parameter_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+        self.update_from_parameters(parameters)
+
 
 
 ########################################################################################

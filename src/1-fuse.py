@@ -110,7 +110,7 @@ def main():
     # and updating parameters
     #
     parameter_file = common.get_parameter_file(args.parameterFile)
-    experiment.update_from_parameters(parameter_file)
+    experiment.update_from_parameter_file(parameter_file)
 
     #
     # set
@@ -164,7 +164,7 @@ def main():
 
     parameters.first_time_point = experiment.first_time_point
     parameters.last_time_point = experiment.first_time_point
-    parameters.update_from_parameters(parameter_file)
+    parameters.update_from_parameter_file(parameter_file)
 
     parameters.write_parameters(monitoring.log_filename)
 

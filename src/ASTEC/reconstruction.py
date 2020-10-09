@@ -52,7 +52,7 @@ class ReconstructionParameters(ace.AceParameters):
         self.registration[0].gaussian_pyramid = True
         self.registration[0].transformation_type = 'affine'
         self.registration[0].transformation_estimation_type = 'wlts'
-        self.registration[0].lts_fraction = 1.0
+        self.registration[0].lts_fraction = 0.55
 
         self.registration.append(common.RegistrationParameters(prefix=[self._prefix, 'nonlinear_registration_']))
         self.registration[1].pyramid_highest_level = 5
@@ -80,6 +80,8 @@ class ReconstructionParameters(ace.AceParameters):
 
         common.PrefixedParameter.print_parameters(self, spaces=spaces)
 
+        ace.AceParameters.print_parameters(self, spaces=spaces + 2)
+
         self.logprint('intensity_transformation', self.intensity_transformation, spaces=spaces)
         self.logprint('intensity_enhancement', self.intensity_enhancement, spaces=spaces)
         self.logprint('cell_normalization_min_method', self.cell_normalization_min_method, spaces=spaces)
@@ -88,8 +90,6 @@ class ReconstructionParameters(ace.AceParameters):
         self.logprint('normalization_min_percentile', self.normalization_min_percentile, spaces=spaces)
         self.logprint('normalization_max_percentile', self.normalization_max_percentile, spaces=spaces)
         self.logprint('cell_normalization_sigma', self.cell_normalization_sigma, spaces=spaces)
-
-        ace.AceParameters.print_parameters(self, spaces=spaces+2)
 
         for p in self.registration:
             p.print_parameters(spaces=spaces+2)
@@ -103,6 +103,8 @@ class ReconstructionParameters(ace.AceParameters):
 
         common.PrefixedParameter.write_parameters_in_file(self, logfile, spaces=spaces)
 
+        ace.AceParameters.write_parameters_in_file(self, logfile, spaces=spaces+2)
+
         self.logwrite(logfile, 'intensity_transformation', self.intensity_transformation, spaces=spaces)
         self.logwrite(logfile, 'intensity_enhancement', self.intensity_enhancement, spaces=spaces)
         self.logwrite(logfile, 'cell_normalization_min_method', self.cell_normalization_min_method, spaces=spaces)
@@ -113,8 +115,6 @@ class ReconstructionParameters(ace.AceParameters):
         self.logwrite(logfile, 'cell_normalization_sigma', self.cell_normalization_sigma, spaces=spaces)
 
         self.logwrite(logfile, 'intensity_transformation', self.intensity_transformation, spaces=spaces)
-
-        ace.AceParameters.write_parameters_in_file(self, logfile, spaces=spaces)
 
         for p in self.registration:
             p.write_parameters_in_file(logfile, spaces=spaces)
@@ -140,14 +140,8 @@ class ReconstructionParameters(ace.AceParameters):
     #
     ############################################################
 
-    def update_from_parameters(self, parameter_file):
-        if parameter_file is None:
-            return
-        if not os.path.isfile(parameter_file):
-            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
-            sys.exit(1)
-
-        parameters = imp.load_source('*', parameter_file)
+    def update_from_parameters(self, parameters):
+        ace.AceParameters.update_from_parameters(self, parameters)
 
         #
         # reconstruction method
@@ -171,12 +165,24 @@ class ReconstructionParameters(ace.AceParameters):
         #
         #
         #
-        ace.AceParameters.update_from_parameters(self, parameter_file)
+        self.registration[0].update_from_parameters(parameters)
+        self.registration[1].update_from_parameters(parameters)
 
         #
         #
         #
         self.keep_reconstruction = self.read_parameter(parameters, 'keep_reconstruction', self.keep_reconstruction)
+
+    def update_from_parameter_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+        self.update_from_parameters(parameters)
+
 
     ############################################################
     #
@@ -185,22 +191,40 @@ class ReconstructionParameters(ace.AceParameters):
     ############################################################
 
     def is_equal(self, p):
+        proc = "is_equal"
+        _trace_ = False
         if self.intensity_transformation != p.intensity_transformation:
+            if _trace_:
+                print(proc + "not equal at 'intensity_transformation'")
             return False
         if self.intensity_enhancement != p.intensity_enhancement:
+            if _trace_:
+                print(proc + "not equal at 'intensity_enhancement'")
             return False
         if self.cell_normalization_min_method != p.cell_normalization_min_method:
+            if _trace_:
+                print(proc + "not equal at 'cell_normalization_min_method'")
             return False
         if self.cell_normalization_max_method != p.cell_normalization_max_method:
+            if _trace_:
+                print(proc + "not equal at 'cell_normalization_max_method'")
             return False
         if self.normalization_min_percentile != p.normalization_min_percentile:
+            if _trace_:
+                print(proc + "not equal at 'normalization_min_percentile'")
             return False
         if self.normalization_max_percentile != p.normalization_max_percentile:
+            if _trace_:
+                print(proc + "not equal at 'normalization_max_percentile'")
             return False
         if self.cell_normalization_sigma != p.cell_normalization_sigma:
+            if _trace_:
+                print(proc + "not equal at 'cell_normalization_sigma'")
             return False
 
         if ace.AceParameters.is_equal(self, p) is False:
+            if _trace_:
+                print(proc + "not equal at 'AceParameters'")
             return False
 
         return True
@@ -606,9 +630,11 @@ def build_reconstructed_image(current_time, experiment, parameters, suffix=None,
     #
 
     if enhanced_image is None:
+        monitoring.to_log_and_console("    .. no fusion to be done (enhancement only)", 2)
         return intensity_image
     else:
         if intensity_image is None:
+            monitoring.to_log_and_console("    .. no fusion to be done (intensity only)", 2)
             return enhanced_image
         else:
             #
@@ -616,7 +642,8 @@ def build_reconstructed_image(current_time, experiment, parameters, suffix=None,
             #
             arit_options += " -max"
             if not os.path.isfile(reconstructed_image) or monitoring.forceResultsToBeBuilt is True:
-                monitoring.to_log_and_console("       fusion of intensity and enhancement", 2)
+                monitoring.to_log_and_console("    .. fusion of intensity and enhancement", 2)
+                print(str(intensity_image) + " + " + str(enhanced_image))
                 cpp_wrapping.arithmetic_operation(intensity_image, enhanced_image, reconstructed_image,
                                                   other_options=arit_options)
             return reconstructed_image

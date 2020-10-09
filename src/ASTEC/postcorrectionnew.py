@@ -104,15 +104,7 @@ class PostCorrectionParameters(common.PrefixedParameter):
     #
     ############################################################
 
-    def update_from_parameters(self, parameter_file):
-        if parameter_file is None:
-            return
-        if not os.path.isfile(parameter_file):
-            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
-            sys.exit(1)
-
-        parameters = imp.load_source('*', parameter_file)
-
+    def update_from_parameters(self, parameters):
         self.volume_minimal_value = self.read_parameter(parameters, 'volume_minimal_value', self.volume_minimal_value)
         if hasattr(parameters, 'postcor_Volume_Threshold'):
             if parameters.postcor_Volume_Threshold is not None:
@@ -133,6 +125,17 @@ class PostCorrectionParameters(common.PrefixedParameter):
         self.correlation_threshold = self.read_parameter(parameters, 'PearsonThreshold', self.correlation_threshold)
 
         self.lineage_diagnosis = self.read_parameter(parameters, 'lineage_diagnosis', self.lineage_diagnosis)
+
+    def update_from_parameter_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+        self.update_from_parameters(parameters)
+
 
 
 ########################################################################################

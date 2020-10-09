@@ -9,7 +9,6 @@ import multiprocessing
 import numpy as np
 from scipy import ndimage as nd
 import copy
-import cPickle as pkl
 
 import ace
 import mars
@@ -71,6 +70,8 @@ class MorphoSnakeParameters(common.PrefixedParameter):
 
         self.ms_processors = 7
 
+        self.ms_mimic_historical_astec = False
+
     ############################################################
     #
     # print / write
@@ -89,6 +90,7 @@ class MorphoSnakeParameters(common.PrefixedParameter):
         self.logprint('ms_threshold', self.ms_threshold, spaces=spaces)
         self.logprint('ms_balloon', self.ms_balloon, spaces=spaces)
         self.logprint('ms_processors', self.ms_processors, spaces=spaces)
+        self.logprint('ms_mimic_historical_astec', self.ms_mimic_historical_astec, spaces=spaces)
         print("")
         return
 
@@ -104,6 +106,7 @@ class MorphoSnakeParameters(common.PrefixedParameter):
         self.logwrite(logfile, 'ms_threshold', self.ms_threshold, spaces=spaces)
         self.logwrite(logfile, 'ms_balloon', self.ms_balloon, spaces=spaces)
         self.logwrite(logfile, 'ms_processors', self.ms_processors, spaces=spaces)
+        self.logwrite(logfile, 'ms_mimic_historical_astec', self.ms_mimic_historical_astec, spaces=spaces)
         logfile.write("\n")
         return
 
@@ -118,21 +121,15 @@ class MorphoSnakeParameters(common.PrefixedParameter):
     #
     ############################################################
 
-    def update_from_parameters(self, parameter_file):
-        if parameter_file is None:
-            return
-        if not os.path.isfile(parameter_file):
-            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
-            sys.exit(1)
-
-        parameters = imp.load_source('*', parameter_file)
-
+    def update_from_parameters(self, parameters):
         if hasattr(parameters, 'morphosnake_dilation_iterations'):
             if parameters.morphosnake_dilation_iterations is not None:
                 self.ms_dilation_iterations = parameters.morphosnake_dilation_iterations
         if hasattr(parameters, 'astec_MorphosnakeIterations'):
             if parameters.astec_MorphosnakeIterations is not None:
                 self.ms_dilation_iterations = parameters.astec_MorphosnakeIterations
+        self.ms_dilation_iterations = self.read_parameter(parameters, 'ms_dilation_iterations',
+                                                          self.ms_dilation_iterations)
 
         if hasattr(parameters, 'morphosnake_iterations'):
             if parameters.morphosnake_iterations is not None:
@@ -140,6 +137,7 @@ class MorphoSnakeParameters(common.PrefixedParameter):
         if hasattr(parameters, 'astec_NIterations'):
             if parameters.astec_NIterations is not None:
                 self.ms_iterations = parameters.astec_NIterations
+        self.ms_iterations = self.read_parameter(parameters, 'ms_iterations', self.ms_iterations)
 
         if hasattr(parameters, 'morphosnake_delta_voxel'):
             if parameters.morphosnake_delta_voxel is not None:
@@ -147,6 +145,12 @@ class MorphoSnakeParameters(common.PrefixedParameter):
         if hasattr(parameters, 'astec_DeltaVoxels'):
             if parameters.astec_DeltaVoxels is not None:
                 self.ms_delta_voxel = parameters.astec_DeltaVoxels
+        self.ms_delta_voxel = self.read_parameter(parameters, 'ms_delta_voxel', self.ms_delta_voxel)
+
+        self.ms_energy = self.read_parameter(parameters, 'ms_energy', self.ms_energy)
+        self.ms_smoothing = self.read_parameter(parameters, 'ms_smoothing', self.ms_smoothing)
+        self.ms_threshold = self.read_parameter(parameters, 'ms_threshold', self.ms_threshold)
+        self.ms_balloon = self.read_parameter(parameters, 'ms_balloon', self.ms_balloon)
 
         if hasattr(parameters, 'morphosnake_processors'):
             if parameters.morphosnake_processors is not None:
@@ -154,6 +158,20 @@ class MorphoSnakeParameters(common.PrefixedParameter):
         if hasattr(parameters, 'astec_nb_proc'):
             if parameters.astec_nb_proc is not None:
                 self.ms_processors = parameters.astec_nb_proc
+        self.ms_processors = self.read_parameter(parameters, 'ms_processors', self.ms_processors)
+
+        self.ms_mimic_historical_astec = self.read_parameter(parameters, 'ms_mimic_historical_astec',
+                                                             self.ms_mimic_historical_astec)
+
+    def update_from_parameter_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+        self.update_from_parameters(parameters)
 
 
 #
@@ -178,8 +196,11 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
         #
         ############################################################
         mars.WatershedParameters.__init__(self, prefix=prefix)
+        self.watershed_membrane_sigma = 0.0
         self.seed_reconstruction = reconstruction.ReconstructionParameters(prefix=[self._prefix, "seed_"])
         self.membrane_reconstruction = reconstruction.ReconstructionParameters(prefix=[self._prefix, "membrane_"])
+        self.morphosnake_reconstruction = reconstruction.ReconstructionParameters(prefix=[self._prefix, "ms_"])
+
         MorphoSnakeParameters.__init__(self, prefix=prefix)
 
         #
@@ -195,6 +216,9 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
         # previous_seg_erosion_cell_min_size: minimal size of a cell to perform erosion
         #
 
+        # self.previous_seg_method = "erode_then_deform"
+        self.previous_seg_method = "deform_then_erode"
+
         self.previous_seg_erosion_cell_iterations = 10
         self.previous_seg_erosion_background_iterations = 25
         self.previous_seg_erosion_cell_min_size = 1000
@@ -209,8 +233,8 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
         #
         #
         #
-        self.background_seed_from_hmin = False
-        self.background_seed_from_previous = True
+        self.background_seed_from_hmin = True
+        self.background_seed_from_previous = False
 
         #
         # to decide whether there will be division
@@ -251,10 +275,12 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
         mars.WatershedParameters.print_parameters(self, spaces=spaces + 2)
         self.seed_reconstruction.print_parameters(spaces=spaces + 2)
         self.membrane_reconstruction.print_parameters(spaces=spaces + 2)
+        self.morphosnake_reconstruction.print_parameters(spaces=spaces + 2)
         MorphoSnakeParameters.print_parameters(self, spaces=spaces + 2)
 
         self.logprint('propagation_strategy', self.propagation_strategy, spaces=spaces)
 
+        self.logprint('previous_seg_method', self.previous_seg_method, spaces=spaces)
         self.logprint('previous_seg_erosion_cell_iterations', self.previous_seg_erosion_cell_iterations, spaces=spaces)
         self.logprint('previous_seg_erosion_background_iterations', self.previous_seg_erosion_background_iterations,
                       spaces=spaces)
@@ -278,7 +304,7 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
         self.logprint('outer_correction_radius_opening', self.outer_correction_radius_opening, spaces=spaces)
         print("")
 
-    def write_parameters(self, logfile, spaces=0):
+    def write_parameters_in_file(self, logfile, spaces=0):
         logfile.write("\n")
         logfile.write(spaces * ' ' + 'AstecParameters\n')
 
@@ -286,10 +312,12 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
         mars.WatershedParameters.write_parameters_in_file(self, logfile, spaces=spaces + 2)
         self.seed_reconstruction.write_parameters_in_file(logfile, spaces=spaces + 2)
         self.membrane_reconstruction.write_parameters_in_file(logfile, spaces=spaces + 2)
-        MorphoSnakeParameters.write_parameters_in_file(logfile, spaces=spaces + 2)
+        self.morphosnake_reconstruction.write_parameters_in_file(logfile, spaces=spaces + 2)
+        MorphoSnakeParameters.write_parameters_in_file(self, logfile, spaces=spaces + 2)
 
         self.logwrite(logfile, 'propagation_strategy', self.propagation_strategy, spaces=spaces)
 
+        self.logwrite(logfile, 'previous_seg_method', self.previous_seg_method, spaces=spaces)
         self.logwrite(logfile, 'previous_seg_erosion_cell_iterations', self.previous_seg_erosion_cell_iterations,
                       spaces=spaces)
         self.logwrite(logfile, 'previous_seg_erosion_background_iterations',
@@ -326,26 +354,19 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
     #
     ############################################################
 
-    def update_from_parameters(self, parameter_file):
-        if parameter_file is None:
-            return
-        if not os.path.isfile(parameter_file):
-            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
-            sys.exit(1)
-
-        parameters = imp.load_source('*', parameter_file)
-
-        mars.WatershedParameters.update_from_parameters(self, parameter_file)
-        self.seed_reconstruction.update_from_parameters(parameter_file)
-        self.membrane_reconstruction.update_from_parameters(parameter_file)
-        MorphoSnakeParameters.update_from_parameters(self, parameter_file)
+    def update_from_parameters(self, parameters):
+        mars.WatershedParameters.update_from_parameters(self, parameters)
+        self.seed_reconstruction.update_from_parameters(parameters)
+        self.membrane_reconstruction.update_from_parameters(parameters)
+        self.morphosnake_reconstruction.update_from_parameters(parameters)
+        MorphoSnakeParameters.update_from_parameters(self, parameters)
 
         self.propagation_strategy = self.read_parameter(parameters, 'propagation_strategy', self.propagation_strategy)
 
         #
         #
         #
-
+        self.previous_seg_method = self.read_parameter(parameters, 'previous_seg_method', self.previous_seg_method)
         self.previous_seg_erosion_cell_iterations = self.read_parameter(parameters,
                                                                         'previous_seg_erosion_cell_iterations',
                                                                         self.previous_seg_erosion_cell_iterations)
@@ -354,7 +375,6 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
                                                                               self.previous_seg_erosion_background_iterations)
         self.previous_seg_erosion_cell_min_size = self.read_parameter(parameters, 'previous_seg_erosion_cell_min_size',
                                                                       self.previous_seg_erosion_cell_min_size)
-
 
         #
         # watershed
@@ -392,14 +412,14 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
                                                                 self.minimum_volume_unseeded_cell)
 
         self.volume_ratio_tolerance = self.read_parameter(parameters, 'volume_ratio_tolerance',
+                                                         self.volume_ratio_tolerance)
+
+        self.volume_ratio_tolerance = self.read_parameter(parameters, 'volume_ratio_tolerance',
                                                           self.volume_ratio_tolerance)
         self.volume_ratio_tolerance = self.read_parameter(parameters, 'VolumeRatioSmaller',
                                                           self.volume_ratio_tolerance)
 
-        self.volume_ratio_threshold = self.read_parameter(parameters, 'volume_ratio_threshold',
-                                                          self.volume_ratio_threshold)
         self.volume_ratio_threshold = self.read_parameter(parameters, 'VolumeRatioBigger', self.volume_ratio_threshold)
-
         self.volume_minimal_value = self.read_parameter(parameters, 'volume_minimal_value', self.volume_minimal_value)
         self.volume_minimal_value = self.read_parameter(parameters, 'MinVolume', self.volume_minimal_value)
 
@@ -407,6 +427,16 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
                                                                    self.outer_correction_radius_opening)
         self.outer_correction_radius_opening = self.read_parameter(parameters, 'RadiusOpening',
                                                                    self.outer_correction_radius_opening)
+
+    def update_from_parameter_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+        self.update_from_parameters(parameters)
 
 
 ########################################################################################
@@ -440,8 +470,6 @@ def _erode_cell(parameters):
     # bb : bounding box if tmp in the global image (necessary when computing in parallel)
     # i : label of the cell to erode
     #
-
-    proc = '_erode_cell'
 
     tmp, iterations, bb, i = parameters
 
@@ -496,7 +524,7 @@ def _build_seeds_from_previous_segmentation(label_image, output_image, parameter
         tmp = seg[bboxes[i - 1]] == i
         size_cell = np.sum(tmp)
         if size_cell > parameters.previous_seg_erosion_cell_min_size:
-            if i is 1:
+            if i == 1:
                 mapping.append((tmp, parameters.previous_seg_erosion_background_iterations, bboxes[i - 1], i))
             else:
                 mapping.append((tmp, parameters.previous_seg_erosion_cell_iterations, bboxes[i - 1], i))
@@ -727,7 +755,8 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, image_for_se
 
             if not os.path.isfile(seed_image) or not os.path.isfile(difference_image) \
                     or monitoring.forceResultsToBeBuilt is True:
-                mars.build_seeds(input_image, difference_image, unmasked_seed_image, experiment, wparam, operation_type='max')
+                mars.build_seeds(input_image, difference_image, unmasked_seed_image, experiment, wparam,
+                                 operation_type='max')
                 cpp_wrapping.mc_mask_seeds(unmasked_seed_image, first_segmentation, seed_image)
 
             if not os.path.isfile(seed_image) or not os.path.isfile(difference_image):
@@ -822,7 +851,11 @@ def _select_seed_parameters(n_seeds, parameter_seeds, tau=25):
 
 def _extract_seeds(c, cell_segmentation, cell_seeds=None, bb=None, individual_seeds=True, accept_3_seeds=False):
     """
-    Return the seeds from cell_seeds stricly included in cell c from cell_segmentation
+    Return the seeds:
+    - number of seeds
+    - a sub-image containing the labeled seeds, either 'cell_seeds' itself or 'cell_seeds[bb]' if
+      'bb' is not None
+    from cell_seeds stricly included in cell c from cell_segmentation
     (the labels of the seeds go from 1 to 3)
     :param c: cell label
     :param cell_segmentation: sub-image with 'c' for the cell and '0' for the background
@@ -1090,8 +1123,8 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
             for c in unseeded_cells:
                 vol = np.sum(first_segmentation == c)
                 if vol <= parameters.minimum_volume_unseeded_cell:
-                    monitoring.to_log_and_console('      .. process cell ' + str(c) + ': volume (' + str(vol) + ') <= ' +
-                                                  str(parameters.minimum_volume_unseeded_cell) + ', remove cell', 2)
+                    monitoring.to_log_and_console('      .. process cell ' + str(c) + ': volume (' + str(vol) + ') <= '
+                                                  + str(parameters.minimum_volume_unseeded_cell) + ', remove cell', 2)
                 else:
                     monitoring.to_log_and_console('      .. process cell ' + str(c) + ' -> ' + str(label_max), 3)
                     correspondences[c] = [label_max]
@@ -1162,6 +1195,7 @@ def _update_volume_properties(lineage_tree_information, segmented_image, current
 
     time_digits = experiment.get_time_digits_for_cell_id()
     volumes = _compute_volumes(segmented_image)
+    # TODO: correct next line
     volume_key = properties.keydictionary['volume']['output_key']
     volume_key = 'volumes_information'
     if volume_key not in lineage_tree_information:
@@ -1187,6 +1221,7 @@ def _build_correspondences_from_segmentation(segmented_image):
 def _update_lineage_properties(lineage_tree_information, correspondences, previous_time, current_time, experiment):
 
     time_digits = experiment.get_time_digits_for_cell_id()
+    # TODO: correct next line
     lineage_key = properties.keydictionary['lineage']['output_key']
     lineage_key = 'lin_tree'
     if lineage_key not in lineage_tree_information:
@@ -1234,7 +1269,8 @@ def _volume_diagnosis(prev_volumes, curr_volumes, correspondences, parameters):
     # small_volume_daughter       : volume(children) <  threshold
     #
 
-    large_volume_ratio = []
+    very_large_volume_ratio = []
+    very_small_volume_ratio = []
     small_volume_ratio = []
     small_volume_daughter = []
     small_volume = []
@@ -1298,11 +1334,12 @@ def _volume_diagnosis(prev_volumes, curr_volumes, correspondences, parameters):
             if volume_ratio > 0:
                 # volume_ratio > 0  <=> volume(mother) < SUM volume(childrens)
                 if volume_ratio > parameters.volume_ratio_threshold:
-                    large_volume_ratio.append(mother_c)
+                    very_large_volume_ratio.append(mother_c)
             elif volume_ratio < 0:
                 # volume_ratio < 0  <=> volume(mother) > SUM volume(childrens)
+                small_volume_ratio.append(mother_c)
                 if volume_ratio < -parameters.volume_ratio_threshold:
-                    small_volume_ratio.append(mother_c)
+                    very_small_volume_ratio.append(mother_c)
             else:
                 monitoring.to_log_and_console('    ' + proc + ': should not reach this point', 2)
                 monitoring.to_log_and_console('    mother cell was ' + str(mother_c), 2)
@@ -1311,26 +1348,31 @@ def _volume_diagnosis(prev_volumes, curr_volumes, correspondences, parameters):
     if len(small_volume_ratio) > 0:
         monitoring.to_log_and_console('    .. (mother) cell(s) with large decrease of volume: '
                                       + str(small_volume_ratio), 2)
-    if len(large_volume_ratio) > 0:
-        monitoring.to_log_and_console('    .. (mother) cell(s) with large increase of volume: '
-                                      + str(large_volume_ratio), 2)
+    if len(very_small_volume_ratio) > 0:
+        monitoring.to_log_and_console('    .. (mother) cell(s) with very large decrease of volume: '
+                                      + str(very_small_volume_ratio), 2)
+    if len(very_large_volume_ratio) > 0:
+        monitoring.to_log_and_console('    .. (mother) cell(s) with very large increase of volume: '
+                                      + str(very_large_volume_ratio), 2)
     if len(small_volume) > 0:
         monitoring.to_log_and_console('    .. (mother) cell(s) with small daughter(s) (volume < '
                                       + str(parameters.volume_minimal_value) + '): ' + str(small_volume), 2)
 
-    return large_volume_ratio, small_volume_ratio, small_volume_daughter, all_daughter_label
+    return very_large_volume_ratio, very_small_volume_ratio, small_volume_ratio, small_volume_daughter, all_daughter_label
 
 
 def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_from_selection, deformed_seeds,
-                                selected_seeds, membrane_image, correspondences, selected_parameter_seeds, n_seeds,
-                                parameter_seeds, bounding_boxes, experiment, parameters):
+                                selected_seeds, membrane_image, image_for_seed, correspondences,
+                                selected_parameter_seeds, n_seeds, parameter_seeds, bounding_boxes, experiment,
+                                parameters):
     """
     :param astec_name: generic name for image file name construction
-    :param previous_segmentation: watershed segmentation obtained with segmentation image at previous timepoint
+    :param previous_segmentation: reference segmentation for volume change computation
     :param segmentation_from_selection:
     :param deformed_seeds: seeds obtained from the segmentation at a previous time and deformed into the current time
     :param selected_seeds:
     :param membrane_image:
+    :param image_for_seed: seed images are named after 'image_for_seed'
     :param correspondences: is a dictionary that gives, for each 'parent' cell (in the segmentation built from previous
     time segmentation) (ie the key), the list of 'children' cells (in the segmentation built from selected seeds)
     :param selected_parameter_seeds:
@@ -1402,7 +1444,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
     # - all_daughter_label: all labels of daughter cells
 
     output = _volume_diagnosis(prev_volumes, curr_volumes, correspondences, parameters)
-    large_volume_ratio, small_volume_ratio, small_volume_daughter, all_daughter_label = output
+    very_large_volume_ratio, very_small_volume_ratio, small_volume_ratio, small_volume_daughter, all_daughter_label = output
 
     #
     # get the largest used label
@@ -1429,12 +1471,12 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
     # try to add seeds
     #
     ############################################################
-    if len(small_volume_ratio) > 0:
-        monitoring.to_log_and_console('        process cell(s) with large decrease of volume', 2)
+    if len(very_small_volume_ratio) > 0:
+        monitoring.to_log_and_console('        process cell(s) with very large decrease of volume', 2)
     elif len(small_volume_daughter) == 0:
         monitoring.to_log_and_console('        .. no correction to be done', 2)
 
-    for mother_c in small_volume_ratio:
+    for mother_c in very_small_volume_ratio:
 
         #
         # this is similar to _select_seed_parameters()
@@ -1492,6 +1534,8 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
             # over-segmented cells are then fused.
             #
 
+            change_is_done = False
+
             if nb_final == 1 and s.count(2) != 0:
                 #
                 # if no division was chosen, try to increase the number of seeds
@@ -1504,7 +1548,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
                 # the seeds as in the following case (nb_final == 1 or nb_final == 2) and (np.array(s) > 2).any())?
                 #
                 h_min, sigma = parameter_seeds[mother_c][s.index(2)]
-                seed_image_name = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
+                seed_image_name = common.add_suffix(image_for_seed, "_seed_h" + str('{:03d}'.format(h_min)),
                                                     new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                     new_extension=experiment.default_image_suffix)
                 #
@@ -1516,7 +1560,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
                 submask_mother_c = np.zeros_like(prev_seg[bb])
                 submask_mother_c[prev_seg[bb] == mother_c] = mother_c
                 n_found_seeds, labeled_found_seeds = _extract_seeds(mother_c, submask_mother_c, seed_image_name, bb)
-                if n_found_seeds == 2:
+                if n_found_seeds == 2 and (curr_seg[bb][labeled_found_seeds != 0] == 0).any():
                     new_correspondences = [seed_label_max+1, seed_label_max+2]
                     monitoring.to_log_and_console('          .. (1)  cell ' + str(mother_c) + ': '
                                                   + str(correspondences[mother_c]) + ' -> ' + str(new_correspondences),
@@ -1532,78 +1576,79 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
                     selected_parameter_seeds[mother_c] = [h_min, sigma, n_found_seeds]
                     seed_label_max += 2
                     change_in_seeds += 1
-                else:
-                    monitoring.to_log_and_console('          .. (2)  cell ' + str(mother_c) + ': weird, has found '
-                                                  + str(n_found_seeds) + " instead of 2", 2)
-            elif (nb_final == 1 or nb_final == 2) and (np.array(s) > 2).any():
-                #
-                # there is a h that gives more than 2 seeds
-                # get the smallest h
-                #
-                h_min, sigma = parameter_seeds[mother_c][-1]
-                seed_image_name = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
-                                                    new_dirname=experiment.astec_dir.get_tmp_directory(),
-                                                    new_extension=experiment.default_image_suffix)
-                #
-                # create a sub-image where cells 'daughter_c' has the 'mother_c' value
-                # and a background at '0'
-                # create a sub-image where the cell 'mother_c' has the 'mother_c' value
-                # and a background at '0'
-                #
-                # built a sub-image where seeds 'below' daughters have a '1' value
-                # and seeds 'below' the projection segmentation have a '2' value
-                #
-                # do something if there are seeds 'below' the projection segmentation has a '2' value
-                # - seeds 'below' daughters (that have a '1' value) will be fused into a 'seed_label_max + 1' cell
-                # - seeds 'below' the projection segmentation (that have a '2' value) will be fused into a
-                #   'seed_label_max + 2' cell
-                #
-                bb = bounding_boxes[mother_c]
-                submask_daughter_c = np.zeros_like(curr_seg[bb])
-                for daughter_c in correspondences[mother_c]:
-                    submask_daughter_c[curr_seg[bb] == daughter_c] = mother_c
-                submask_mother_c = np.zeros_like(prev_seg[bb])
-                submask_mother_c[prev_seg[bb] == mother_c] = mother_c
-                aux_seed_image = imread(seed_image_name)
-                seeds_c = np.zeros_like(curr_seg[bb])
-                seeds_c[(aux_seed_image[bb] != 0) & (submask_daughter_c == mother_c)] = 1
-                seeds_c[(aux_seed_image[bb] != 0) & (submask_daughter_c == 0) & (submask_mother_c == mother_c)] = 2
-                del aux_seed_image
-                if 2 in seeds_c:
-                    new_correspondences = [seed_label_max + 1, seed_label_max + 2]
-                    monitoring.to_log_and_console('          .. (3)  cell ' + str(mother_c) + ': '
-                                                  + str(correspondences[mother_c]) + ' -> '
-                                                  + str(new_correspondences), 3)
+                    change_is_done = True
+
+            if change_is_done is False:
+                if (nb_final == 1 or nb_final == 2) and (np.array(s) > 2).any():
                     #
-                    # remove previous seed
-                    # add new seeds, note that they might be several seeds per label '1' or '2'
+                    # there is a h that gives more than 2 seeds
+                    # get the smallest h
                     #
+                    h_min, sigma = parameter_seeds[mother_c][-1]
+                    seed_image_name = common.add_suffix(image_for_seed, "_seed_h" + str('{:03d}'.format(h_min)),
+                                                        new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                                        new_extension=experiment.default_image_suffix)
+                    #
+                    # create a sub-image where cells 'daughter_c' has the 'mother_c' value
+                    # and a background at '0'
+                    # create a sub-image where the cell 'mother_c' has the 'mother_c' value
+                    # and a background at '0'
+                    #
+                    # built a sub-image where seeds 'below' daughters have a '1' value
+                    # and seeds 'below' the projection segmentation have a '2' value
+                    #
+                    # do something if there are seeds 'below' the projection segmentation has a '2' value
+                    # - seeds 'below' daughters (that have a '1' value) will be fused into a 'seed_label_max + 1' cell
+                    # - seeds 'below' the projection segmentation (that have a '2' value) will be fused into a
+                    #   'seed_label_max + 2' cell
+                    #
+                    bb = bounding_boxes[mother_c]
+                    submask_daughter_c = np.zeros_like(curr_seg[bb])
                     for daughter_c in correspondences[mother_c]:
-                        selected_seeds_image[selected_seeds_image == daughter_c] = 0
-                    selected_seeds_image[bb][seeds_c == 1] = seed_label_max + 1
-                    selected_seeds_image[bb][seeds_c == 2] = seed_label_max + 2
-                    correspondences[mother_c] = new_correspondences
-                    selected_parameter_seeds[mother_c] = [h_min, sigma, 2]
-                    seed_label_max += 2
+                        submask_daughter_c[curr_seg[bb] == daughter_c] = mother_c
+                    submask_mother_c = np.zeros_like(prev_seg[bb])
+                    submask_mother_c[prev_seg[bb] == mother_c] = mother_c
+                    print("reading seed_image_name = "+str(seed_image_name))
+                    aux_seed_image = imread(seed_image_name)
+                    seeds_c = np.zeros_like(curr_seg[bb])
+                    seeds_c[(aux_seed_image[bb] != 0) & (submask_daughter_c == mother_c)] = 1
+                    seeds_c[(aux_seed_image[bb] != 0) & (submask_daughter_c == 0) & (submask_mother_c == mother_c)] = 2
+                    del aux_seed_image
+                    if 2 in seeds_c:
+                        new_correspondences = [seed_label_max + 1, seed_label_max + 2]
+                        monitoring.to_log_and_console('          .. (2)  cell ' + str(mother_c) + ': '
+                                                      + str(correspondences[mother_c]) + ' -> '
+                                                      + str(new_correspondences), 3)
+                        #
+                        # remove previous seed
+                        # add new seeds, note that they might be several seeds per label '1' or '2'
+                        #
+                        for daughter_c in correspondences[mother_c]:
+                            selected_seeds_image[selected_seeds_image == daughter_c] = 0
+                        selected_seeds_image[bb][seeds_c == 1] = seed_label_max + 1
+                        selected_seeds_image[bb][seeds_c == 2] = seed_label_max + 2
+                        correspondences[mother_c] = new_correspondences
+                        selected_parameter_seeds[mother_c] = [h_min, sigma, 2]
+                        seed_label_max += 2
+                        change_in_seeds += 1
+                    else:
+                        monitoring.to_log_and_console('          .. (3)  cell ' + str(mother_c) +
+                                                      ': does not know what to do', 3)
+
+                elif nb_final == 1:
+                    #
+                    # here s.count(2) == 0 and np.array(s) > 2).any() is False
+                    # replace the computed seed with the seed from the previous segmentation
+                    #
+                    monitoring.to_log_and_console('          .. (4)  cell ' + str(mother_c) +
+                                                  ': get seed from previous eroded segmentation', 3)
+                    selected_seeds_image[selected_seeds_image == correspondences[mother_c][0]] = 0
+                    selected_seeds_image[deformed_seeds_image == mother_c] = correspondences[mother_c]
+                    selected_parameter_seeds[mother_c] = [-1, -1, 1]
                     change_in_seeds += 1
                 else:
-                    monitoring.to_log_and_console('          .. (4)  cell ' + str(mother_c) +
+                    monitoring.to_log_and_console('          .. (5)  cell ' + str(mother_c) +
                                                   ': does not know what to do', 3)
-
-            elif nb_final == 1:
-                #
-                # here s.count(2) == 0 and np.array(s) > 2).any() is False
-                # replace the computed seed with the seed from the previous segmentation
-                #
-                monitoring.to_log_and_console('          .. (5)  cell ' + str(mother_c) +
-                                              ': get seed from previous eroded segmentation', 3)
-                selected_seeds_image[selected_seeds_image == correspondences[mother_c][0]] = 0
-                selected_seeds_image[deformed_seeds_image == mother_c] = correspondences[mother_c]
-                selected_parameter_seeds[mother_c] = [-1, -1, 1]
-                change_in_seeds += 1
-            else:
-                monitoring.to_log_and_console('          .. (6)  cell ' + str(mother_c) + ': does not know what to do',
-                                              3)
 
         elif s.count(3) != 0:
             #
@@ -1611,7 +1656,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
             # get the three seeds, and keep them for further fusion
             #
             h_min, sigma = parameter_seeds[mother_c][s.index(3)]
-            seed_image_name = common.add_suffix(membrane_image, "_seed_h" + str('{:03d}'.format(h_min)),
+            seed_image_name = common.add_suffix(image_for_seed, "_seed_h" + str('{:03d}'.format(h_min)),
                                                 new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                 new_extension=experiment.default_image_suffix)
             #
@@ -1665,9 +1710,9 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
     #
     ############################################################
 
-    if len(large_volume_ratio) > 0:
-        monitoring.to_log_and_console('        cell(s) with large increase of volume are not processed (yet)', 2)
-        monitoring.to_log_and_console('          .. ' + str(large_volume_ratio), 2)
+    if len(very_large_volume_ratio) > 0:
+        monitoring.to_log_and_console('        cell(s) with very large increase of volume are not processed (yet)', 2)
+        monitoring.to_log_and_console('          .. ' + str(very_large_volume_ratio), 2)
 
     ############################################################
     #
@@ -1775,7 +1820,6 @@ def _morphosnakes(parameters_for_parallelism):
     #
     subsegmentation = imread(subsegmentation_name)
     initialization = nd.binary_dilation(subsegmentation == mother_c, iterations=astec_parameters.ms_dilation_iterations)
-
     if write_images:
         initialization_name = common.add_suffix(subsegmentation_name, '_initialization')
         imsave(initialization_name, SpatialImage(initialization.astype(np.uint8)))
@@ -1828,8 +1872,64 @@ def _morphosnakes(parameters_for_parallelism):
 
     cell_out = macwe.levelset
     cell_out = cell_out.astype(bool)
+    del energy
 
-    cell_out = nd.binary_dilation(cell_out, iterations=2)
+    if write_images:
+        levelset_name = common.add_suffix(subsegmentation_name, '_levelset')
+        imsave(levelset_name, SpatialImage(cell_out.astype(np.uint8)))
+
+    return mother_c, bb, cell_out
+
+
+def _historical_morphosnakes(parameters_for_parallelism):
+
+    mother_c, bb, subimage_name, subsegmentation_name, astec_parameters = parameters_for_parallelism
+    proc = "_historical_morphosnakes"
+    write_images = False
+
+    #
+    # dilation of the mother cell from subsegmentation to get the initial curve
+    #
+    subsegmentation = imread(subsegmentation_name)
+    initialization = nd.binary_erosion(subsegmentation != mother_c, iterations=astec_parameters.ms_dilation_iterations,
+                                        border_value=1)
+    if write_images:
+        initialization_name = common.add_suffix(subsegmentation_name, '_initialization')
+        imsave(initialization_name, SpatialImage(initialization.astype(np.uint8)))
+
+    gradient_name = common.add_suffix(subimage_name, '_gradient')
+    # cpp_wrapping.gradient_norm(subimage_name, gradient_name,  other_options=" -cont 0 ")
+    cpp_wrapping.obsolete_gradient_norm(subimage_name, gradient_name)
+    energy = imread(gradient_name)
+    energy = 1. / np.sqrt(1 + 100 * energy)
+
+    if write_images:
+        energy_name = common.add_suffix(subsegmentation_name, '_energy')
+        imsave(energy_name, SpatialImage(energy.astype(np.float32)))
+
+    macwe = morphsnakes.MorphGAC(energy, smoothing=astec_parameters.ms_smoothing, threshold=1,
+                                 balloon=astec_parameters.ms_balloon)
+    macwe.levelset = initialization
+    before = np.ones_like(initialization)
+
+    step = 1
+    for i in xrange(0, astec_parameters.ms_iterations, step):
+        bbefore = copy.deepcopy(before)
+        before = copy.deepcopy(macwe.levelset)
+        macwe.run(step)
+        # print(str(i) + " condition 1 " + str(np.sum(before != macwe.levelset)))
+        # print(str(i) + " condition 2 " + str(np.sum(bbefore != macwe.levelset)))
+        if write_images:
+            if i > 0 and i % 10 == 0:
+                result_name = common.add_suffix(subsegmentation_name, '_step' + str(i))
+                imsave(result_name, SpatialImage(macwe.levelset.astype(np.uint8)))
+        if np.sum(before != macwe.levelset) < astec_parameters.ms_delta_voxel \
+                or np.sum(bbefore != macwe.levelset) < astec_parameters.ms_delta_voxel:
+            break
+
+    cell_out = macwe.levelset
+    cell_tmp = nd.binary_fill_holes(cell_out)
+    cell_out = (cell_out.astype(np.bool) ^ cell_tmp)
     del energy
 
     if write_images:
@@ -1849,22 +1949,23 @@ def _slices_dilation(slices, maximum, iterations=1):
     return slices
 
 
-def _outer_volume_decrease_correction(astec_name, previous_segmentation, segmentation_from_selection, membrane_image,
-                                      correspondences, bounding_boxes, experiment, parameters):
+def _outer_volume_decrease_correction(astec_name, previous_segmentation, deformed_segmentation,
+                                      segmentation_from_selection, membrane_image, correspondences,
+                                      experiment, parameters):
     """
     :param astec_name: generic name for image file name construction
     :param previous_segmentation: watershed segmentation obtained with segmentation image at previous timepoint
-    :param segmentation_from_selection:
+    :param deformed_segmentation:
     :param membrane_image:
     :param correspondences: is a dictionary that gives, for each 'parent' cell (in the segmentation built from previous
     time segmentation) (ie the key), the list of 'children' cells (in the segmentation built from selected seeds)
-    :param bounding_boxes: bounding boxes defined on previous_segmentation
     :param experiment:
     :param parameters:
     :return:
     """
 
     proc = "_outer_volume_decrease_correction"
+    historical_morphosnake = True
 
     #
     # parameter type checking
@@ -1898,7 +1999,8 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
     # - all_daughter_label: all labels of daughter cells
 
     output = _volume_diagnosis(prev_volumes, curr_volumes, correspondences, parameters)
-    large_volume_ratio, small_volume_ratio, small_volume_daughter, all_daughter_label = output
+    very_large_volume_ratio, very_small_volume_ratio, small_volume_ratio, small_volume_daughter, all_daughter_label = output
+
     #
     # here we look at cells that experiment a large decrease of volume
     # ie vol(mother) >> vol(daughter(s))
@@ -1921,9 +2023,16 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
         monitoring.to_log_and_console('        .. no correction to be done', 2)
         return segmentation_from_selection, correspondences, []
 
+
+
     #
     # find cells with a volume decrease due to the background
+    # volume decrease is checked wrt the segmentation obtained with seeds from previous time point
     #
+    del prev_seg
+    prev_seg = imread(deformed_segmentation)
+    bounding_boxes = nd.find_objects(prev_seg)
+
     exterior_correction = []
     for mother_c in small_volume_ratio:
         #
@@ -1936,8 +2045,7 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
         # 'labels' is no more a nd-array, just an array
         #
 
-        # print("check mother " + str(mother_c) + " and daughters " + str(correspondences[mother_c]))
-        bb = bounding_boxes[mother_c]
+        bb = bounding_boxes[mother_c-1]
         submask_daughter_c = np.zeros_like(curr_seg[bb])
         for daughter_c in correspondences[mother_c]:
             submask_daughter_c[curr_seg[bb] == daughter_c] = mother_c
@@ -1958,9 +2066,6 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
             if max_size < labels_size[v]:
                 max_size = labels_size[v]
                 label_max = v
-
-        #print("label size are " + str(labels_size) + ", max label = " + str(label_max))
-
         #
         # the main label is 1, and was also in the bounding box of the 'mother' cell
         # [we should have check that the background is adjacent to the mother cell]
@@ -1992,7 +2097,7 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
         # cell will be dilated by parameters.ms_dilation_iterations to get the initial curve
         # add a margin of 5 voxels
         #
-        bb = _slices_dilation(bounding_boxes[mother_c], maximum=prev_seg.shape,
+        bb = _slices_dilation(bounding_boxes[mother_c-1], maximum=prev_seg.shape,
                               iterations=parameters.ms_dilation_iterations+5)
         #
         # subimages
@@ -2014,7 +2119,10 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, segment
     #
 
     pool = multiprocessing.Pool(processes=parameters.ms_processors)
-    outputs = pool.map(_morphosnakes, mapping)
+    if parameters.ms_mimic_historical_astec:
+        outputs = pool.map(_historical_morphosnakes, mapping)
+    else:
+        outputs = pool.map(_morphosnakes, mapping)
     pool.close()
     pool.terminate()
 
@@ -2252,6 +2360,18 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
                                       + str(previous_time), 2)
         return False
 
+    #
+    # two ways of getting the seeds from the previous segmentation
+    # 1. transform the previous segmentation image then erode the cells
+    # 2. erode the cells of the previous segmentation image then transform it
+    #    this is the original version
+    #
+    deformed_seeds = common.add_suffix(astec_name, '_deformed_seeds_from_previous',
+                                       new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                       new_extension=experiment.default_image_suffix)
+    #
+    # deformed_segmentation will be needed for morphosnake correction
+    #
     deformed_segmentation = common.add_suffix(astec_name, '_deformed_segmentation_from_previous',
                                               new_dirname=experiment.astec_dir.get_tmp_directory(),
                                               new_extension=experiment.default_image_suffix)
@@ -2263,11 +2383,30 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
         cpp_wrapping.apply_transformation(previous_segmentation, deformed_segmentation, deformation,
                                           interpolation_mode='nearest', monitoring=monitoring)
 
-    deformed_seeds = common.add_suffix(astec_name, '_deformed_seeds_from_previous',
-                                       new_dirname=experiment.astec_dir.get_tmp_directory(),
-                                       new_extension=experiment.default_image_suffix)
-    if not os.path.isfile(deformed_seeds) or monitoring.forceResultsToBeBuilt is True:
-        _build_seeds_from_previous_segmentation(deformed_segmentation, deformed_seeds, parameters)
+    if parameters.previous_seg_method.lower() == "deform_then_erode":
+        monitoring.to_log_and_console('      transform previous segmentation then erode it', 2)
+
+        if not os.path.isfile(deformed_seeds) or monitoring.forceResultsToBeBuilt is True:
+            _build_seeds_from_previous_segmentation(deformed_segmentation, deformed_seeds, parameters)
+
+    elif parameters.previous_seg_method.lower() == "erode_then_deform":
+        monitoring.to_log_and_console('      erode previous segmentation then transform it', 2)
+        eroded_seeds = common.add_suffix(astec_name, '_eroded_seeds_from_previous',
+                                         new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                         new_extension=experiment.default_image_suffix)
+        if not os.path.isfile(eroded_seeds) or monitoring.forceResultsToBeBuilt is True:
+            _build_seeds_from_previous_segmentation(previous_segmentation, eroded_seeds, parameters)
+
+        if not os.path.isfile(deformed_seeds) or monitoring.forceResultsToBeBuilt is True:
+            deformation = reconstruction.get_deformation_from_current_to_previous(current_time, experiment,
+                                                                                  parameters.membrane_reconstruction,
+                                                                                  previous_time)
+            cpp_wrapping.apply_transformation(eroded_seeds, deformed_seeds, deformation,
+                                              interpolation_mode='nearest', monitoring=monitoring)
+    else:
+        monitoring.to_log_and_console("    .. " + proc + ": unknown method '" + str(parameters.previous_seg_method)
+                                      + "' to build seeds from previous segmentation")
+        return False
 
     #
     # watershed segmentation with seeds extracted from previous segmentation
@@ -2337,21 +2476,24 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
 
     #
     # In the original astec version, seeds are computed from the original fusion image
+    # thus a 2-bytes encoded image
     #
     if parameters.seed_reconstruction.is_equal(parameters.membrane_reconstruction):
         monitoring.to_log_and_console("    .. seed image is identical to membrane image", 2)
         image_for_seed = membrane_image
     else:
-        image_for_seed = reconstruction.build_reconstructed_image(current_time, experiment, parameters.seed_reconstruction,
-                                                              suffix="_seed")
-    #seed_image = experiment.fusion_dir.get_image_name(current_time)
-    #seed_image = common.find_file(experiment.fusion_dir.get_directory(), seed_image, file_type='image',
-                                       #callfrom=proc, local_monitoring=None, verbose=False)
+        image_for_seed = reconstruction.build_reconstructed_image(current_time, experiment,
+                                                                  parameters.seed_reconstruction, suffix="_seed")
+    # seed_image = experiment.fusion_dir.get_image_name(current_time)
+    # seed_image = common.find_file(experiment.fusion_dir.get_directory(), seed_image, file_type='image',
+    # callfrom=proc, local_monitoring=None, verbose=False)
     if image_for_seed is None:
         monitoring.to_log_and_console("    .. " + proc + " no fused image was found for time " + str(current_time), 2)
         return None
 
-
+    #
+    # seed images will be named after 'image_for_seed'
+    #
     monitoring.to_log_and_console('    estimation of h-minima for h in ['
                                   + str(parameters.watershed_seed_hmin_min_value) + ','
                                   + str(parameters.watershed_seed_hmin_max_value) + ']', 2)
@@ -2458,10 +2600,14 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     # print("parameter_seeds: " + str(parameter_seeds))
 
     monitoring.to_log_and_console('    volume decrease correction', 2)
-    output = _volume_decrease_correction(astec_name, segmentation_from_previous, segmentation_from_selection,
-                                         deformed_seeds, selected_seeds, membrane_image, correspondences,
-                                         selected_parameter_seeds, n_seeds, parameter_seeds, bounding_boxes, experiment,
-                                         parameters)
+    #
+    # reference segmentation for volume decrease checking is
+    # the segmentation at the previous time point
+    #
+    output = _volume_decrease_correction(astec_name, previous_segmentation, segmentation_from_selection,
+                                         deformed_seeds, selected_seeds, membrane_image, image_for_seed,
+                                         correspondences, selected_parameter_seeds, n_seeds, parameter_seeds,
+                                         bounding_boxes, experiment, parameters)
     segmentation_from_selection, selected_seeds, correspondences = output
 
     #
@@ -2477,10 +2623,25 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     #
     if True:
         monitoring.to_log_and_console('    outer volume decrease correction (morphosnakes)', 2)
+        #
+        # reference segmentation for morphosnakes is
+        # the segmentation computed from previous time point seeds
+        # segmentation_from_previous
+        #
+        if parameters.morphosnake_reconstruction.is_equal(parameters.membrane_reconstruction):
+            monitoring.to_log_and_console("    .. morphosnake image is identical to membrane image", 2)
+            image_for_morphosnake = membrane_image
+        elif parameters.morphosnake_reconstruction.is_equal(parameters.seed_reconstruction):
+            monitoring.to_log_and_console("    .. morphosnake image is identical to seed image", 2)
+            image_for_morphosnake = image_for_seed
+        else:
+            image_for_morphosnake = reconstruction.build_reconstructed_image(current_time, experiment,
+                                                                             parameters.morphosnake_reconstruction,
+                                                                             suffix="_morphosnake")
 
-        output = _outer_volume_decrease_correction(astec_name, segmentation_from_previous, input_segmentation,
-                                                   membrane_image, correspondences, bounding_boxes, experiment,
-                                                   parameters)
+        output = _outer_volume_decrease_correction(astec_name, previous_segmentation, deformed_segmentation,
+                                                   input_segmentation, image_for_morphosnake, correspondences,
+                                                   experiment, parameters)
         output_segmentation, correspondences, effective_exterior_correction = output
         input_segmentation = output_segmentation
     else:

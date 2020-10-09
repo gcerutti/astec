@@ -98,19 +98,7 @@ class WatershedParameters(common.PrefixedParameter):
     # update
     #
     ############################################################
-
-    def update_from_parameters(self, parameter_file):
-        if parameter_file is None:
-            return
-        if not os.path.isfile(parameter_file):
-            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
-            sys.exit(1)
-
-        parameters = imp.load_source('*', parameter_file)
-
-        #
-        # watershed parameters
-        #
+    def update_from_parameters(self, parameters):
         if hasattr(parameters, 'mars_sigma1'):
             if parameters.mars_sigma1 is not None:
                 self.watershed_seed_sigma = parameters.mars_sigma1
@@ -127,6 +115,17 @@ class WatershedParameters(common.PrefixedParameter):
         self.watershed_membrane_sigma = self.read_parameter(parameters, 'sigma2', self.watershed_membrane_sigma)
         self.watershed_membrane_sigma = self.read_parameter(parameters, 'watershed_membrane_sigma',
                                                             self.watershed_membrane_sigma)
+
+    def update_from_parameter_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+        self.update_from_parameters(parameters)
+
 
 
 #
@@ -189,15 +188,7 @@ class SeedEditionParameters(object):
     #
     ############################################################
 
-    def update_from_parameters(self, parameter_file):
-        if parameter_file is None:
-            return
-        if not os.path.isfile(parameter_file):
-            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
-            sys.exit(1)
-
-        parameters = imp.load_source('*', parameter_file)
-
+    def update_from_parameters(self, parameters):
         #
         # seed edition parameters
         #
@@ -211,6 +202,18 @@ class SeedEditionParameters(object):
         if hasattr(parameters, 'seed_edition_files'):
             if parameters.seed_edition_files is not None:
                 self.seed_edition_file = parameters.seed_edition_files
+
+    def update_from_parameter_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+        self.update_from_parameters(parameters)
+
+
 
     ############################################################
     #
@@ -321,15 +324,7 @@ class MarsParameters(WatershedParameters, SeedEditionParameters):
     #
     ############################################################
 
-    def update_from_parameters(self, parameter_file):
-        if parameter_file is None:
-            return
-        if not os.path.isfile(parameter_file):
-            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
-            sys.exit(1)
-
-        parameters = imp.load_source('*', parameter_file)
-
+    def update_from_parameters(self, parameters):
         #
         #
         #
@@ -360,12 +355,20 @@ class MarsParameters(WatershedParameters, SeedEditionParameters):
         # seed edition parameters
         # reconstruction parameters
         #
-        WatershedParameters.update_from_parameters(self, parameter_file)
-        SeedEditionParameters.update_from_parameters(self, parameter_file)
-        self.seed_reconstruction.update_from_parameters(parameter_file)
-        self.membrane_reconstruction.update_from_parameters(parameter_file)
+        WatershedParameters.update_from_parameters(self, parameters)
+        SeedEditionParameters.update_from_parameters(self, parameters)
+        self.seed_reconstruction.update_from_parameters(parameters)
+        self.membrane_reconstruction.update_from_parameters(parameters)
 
-        return
+    def update_from_parameter_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+        self.update_from_parameters(parameters)
 
 
 ########################################################################################

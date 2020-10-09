@@ -99,12 +99,12 @@ class PrefixedParameter(object):
         # print("entering read_parameter")
         # print("\t prefixes = " + str(self._prefixes))
 
+        returned_attr = default_value
         for p in self._prefixes:
             desc = p + parameter_description
-            ret = getattr(parameters, desc, None)
-            if ret is not None:
-                return ret
-        return default_value
+            if hasattr(parameters, desc):
+                returned_attr = getattr(parameters, desc)
+        return returned_attr
 
     def _fulldesc(self, desc):
         if self._prefix is None or self._prefix == '':
@@ -1263,7 +1263,7 @@ class MarsSubdirectory(GenericSubdirectory):
         logfile.write("  - subpath/to/mars is \n")
         GenericSubdirectory.write_parameters_in_file(self, logfile)
 
-    def update_from_parameters(self, parameters):
+    def  update_from_parameters(self, parameters):
         if hasattr(parameters, 'EXP_SEG'):
             if parameters.EXP_SEG is not None:
                 self._sub_directory_suffix = parameters.EXP_SEG
@@ -1591,13 +1591,13 @@ class Experiment(object):
             self._embryo_name_from_embryo_path()
         return
 
-    def update_from_parameters(self, parameter_file):
+    def update_from_parameter_file(self, parameter_file):
         """
 
         :param parameter_file:
         :return:
         """
-        proc = "Experiment.update_from_parameters"
+        proc = "Experiment.update_from_parameter_file"
 
         if parameter_file is None:
             return
@@ -1997,15 +1997,7 @@ class RegistrationParameters(PrefixedParameter):
     #
     ############################################################
 
-    def update_from_file(self, parameter_file):
-        if parameter_file is None:
-            return
-        if not os.path.isfile(parameter_file):
-            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
-            sys.exit(1)
-
-        parameters = imp.load_source('*', parameter_file)
-
+    def update_from_parameters(self, parameters):
         self.compute_registration = self.read_parameter(parameters, 'compute_registration', self.compute_registration)
 
         self.pyramid_highest_level = self.read_parameter(parameters, 'pyramid_highest_level',
@@ -2022,6 +2014,18 @@ class RegistrationParameters(PrefixedParameter):
         self.lts_fraction = self.read_parameter(parameters, 'lts_fraction', self.lts_fraction)
         self.fluid_sigma = self.read_parameter(parameters, 'fluid_sigma', self.fluid_sigma)
         self.normalization = self.read_parameter(parameters, 'normalization', self.normalization)
+
+    def update_from_parameter_file(self, parameter_file):
+
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+        self.update_from_parameters(parameters)
+
 
     ############################################################
     #

@@ -245,21 +245,15 @@ class IntraRegParameters(object):
         self.reference_transformation_file = args.reference_transformation_file
         self.reference_transformation_angles = args.reference_transformation_angles
 
-    def update_from_parameters(self, parameter_file):
-        if parameter_file is None:
-            return
-        if not os.path.isfile(parameter_file):
-            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
-            sys.exit(1)
+    def update_from_parameters(self, parameters):
 
         margin_is_updated = False
-        parameters = imp.load_source('*', parameter_file)
 
         #
         # co-registration parameters
         #
 
-        self.registration.update_from_file(parameter_file)
+        self.registration.update_from_parameters(parameters)
 
         #
         # intra-sequence transformation parameters
@@ -375,6 +369,18 @@ class IntraRegParameters(object):
                     or parameters.intra_registration_template_type.lower() == 'post':
                 if margin_is_updated is False:
                     parameters.intra_registration_margin = 10
+
+
+    def update_from_parameter_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+        self.update_from_parameters(parameters)
+
 
 
 ########################################################################################

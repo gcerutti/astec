@@ -162,7 +162,7 @@ if __name__ == '__main__':
         # and updating parameters
         #
         parameter_file = common.get_parameter_file(args.parameterFile)
-        experiment.update_from_parameters(parameter_file)
+        experiment.update_from_parameter_file(parameter_file)
 
         #
         # set
@@ -215,7 +215,7 @@ if __name__ == '__main__':
         #
 
         parameters = properties.CellPropertiesParameters()
-        parameters.update_from_file(parameter_file)
+        parameters.update_from_parameter_file(parameter_file)
 
         parameters.write_parameters(monitoring.log_filename)
         diagnosis.write_parameters(monitoring.log_filename)

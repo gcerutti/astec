@@ -859,6 +859,16 @@ def gradient_norm(path_input, path_output, filter_value=1.0, real_scale=False, f
     return
 
 
+def obsolete_gradient_norm(image_input,gradient_output):
+    ''' Perform the gradient norm of an intensity image
+    im_input : input image (SpatialImage)
+    path_input : path to the input image
+    path_output : path to the output image
+    '''
+    path_gradient_norm = _find_exec('norme_gradient')
+    os.system(path_gradient_norm + ' ' + image_input + ' ' + gradient_output + ' -sigma 1')
+
+
 def regional_maxima(path_input, path_output, h=1, other_options=None, monitoring=None):
     """
 
@@ -1809,10 +1819,10 @@ def obsolete_watershed(path_seeds, path_int, path_output=None, lazy=True, tempor
     if not lazy:
         out=imread(path_output)
         if cmd:
-            cmd='rm '+cmd
-            if verbose:
-                print cmd
-            os.system(cmd)
+           cmd='rm '+cmd
+           if verbose:
+               print cmd
+           os.system(cmd)
         return out
 
 
@@ -2087,15 +2097,6 @@ def outer_detection(im_ref_tmp, radius, seg_ref_tmp):
     imsave('tmp.inr', SpatialImage(im_refB))
     os.system(path_filters + " tmp.inr out_bounds.inr -x 0 -y 0 -z 0 -sigma 1 -o 2")
     return imread('out_bounds.inr'), bounds.astype(np.bool)
-
-def obsolete_gradient_norm(image_input,gradient_output):
-    ''' Perform the gradient norm of an intensity image
-    im_input : input image (SpatialImage)
-    path_input : path to the input image
-    path_output : path to the output image
-    '''
-    path_gradient_norm = _find_exec('norme_gradient')
-    os.system(path_gradient_norm + ' ' + image_input + ' ' + gradient_output + ' -sigma 1')
 
 def readMatrixFile(file,t=int,comments='#'):
     '''

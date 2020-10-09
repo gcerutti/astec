@@ -174,15 +174,7 @@ class AceParameters(common.PrefixedParameter):
     #
     ############################################################
 
-    def update_from_parameters(self, parameter_file):
-        if parameter_file is None:
-            return
-        if not os.path.isfile(parameter_file):
-            print ("Error: '" + parameter_file + "' is not a valid file. Exiting.")
-            sys.exit(1)
-
-        parameters = imp.load_source('*', parameter_file)
-
+    def update_from_parameters(self, parameters):
         self.sigma_membrane = self.read_parameter(parameters, 'sigma_membrane', self.sigma_membrane)
 
         self.hard_thresholding = self.read_parameter(parameters, 'hard_thresholding', self.hard_thresholding)
@@ -201,6 +193,16 @@ class AceParameters(common.PrefixedParameter):
                                                          self.bounding_box_dilation)
 
         self.default_image_suffix = self.read_parameter(parameters, 'default_image_suffix', self.default_image_suffix)
+
+    def update_from_parameter_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print ("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+        self.update_from_parameters(parameters)
 
     ############################################################
     #

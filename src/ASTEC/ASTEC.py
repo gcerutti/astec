@@ -597,7 +597,8 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
                 if (volume_ratio<0) and volumes_from_opt_h.get(s, 1)!=1 :
                     lower.append((mother_c, sisters_c))
     
-    exterior_correction=[]
+    morphosnake_correction=[]
+    exterior_correction = []
     if lower!=[]:
         from copy import deepcopy
         #tmp=apply_trsf(segmentation_file_ref, vf_file, nearest=True, lazy=False)
@@ -613,16 +614,22 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
             share_lab=0
             size={}
             for v in np.unique(lost):
+                #
+                # add this test, cells in sisters_c should not be tested
+                # it seems that the XOR (cell_after^cell_before) does not wok properly
+                #
+                if v in sisters_c:
+                    continue
                 size[v]=np.sum(lost==v)
                 if np.sum(lost==v)>max_share:
                     max_share=np.sum(lost==v)
                     share_lab=v
             if share_lab==1 and 1 in tmp[old_bb[mother_c-1]]:
-                exterior_correction.append((mother_c, sisters_c))
+                morphosnake_correction.append((mother_c, sisters_c))
         from multiprocessing import Pool
         pool=Pool(processes=nb_proc)
         mapping=[]
-        for m, daughters in exterior_correction:
+        for m, daughters in morphosnake_correction:
             bb=slices_dilation(old_bb[m-1], maximum=im_ref.shape, iterations=15)
             im_ref_tmp=deepcopy(im_ref16[bb])
             seg_ref_tmp=deepcopy(tmp[bb])
@@ -630,13 +637,17 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
         outputs=pool.map(perform_ac, mapping)
         pool.close()
         pool.terminate()
+
         for m, daughters, bb, cell_out in outputs:
-            seg_from_opt_h[bb][seg_from_opt_h[bb]==1 & cell_out]=daughters[0]
-            if len(daughters)==2:
-                seg_from_opt_h[bb][seg_from_opt_h[bb]==daughters[1]]=daughters[0]
-                if tuple(daughters) in divided_cells:
-                    divided_cells.remove(tuple(daughters))
-            corres[m]=[daughters[0]]
+            if np.sum(seg_from_opt_h[bb] == 1 & cell_out) > 0:
+                seg_from_opt_h[bb][seg_from_opt_h[bb]==1 & cell_out]=daughters[0]
+                if len(daughters)==2:
+                    seg_from_opt_h[bb][seg_from_opt_h[bb]==daughters[1]]=daughters[0]
+                    if tuple(daughters) in divided_cells:
+                        divided_cells.remove(tuple(daughters))
+                corres[m]=[daughters[0]]
+                exterior_correction.append((m, corres[m]))
+
     for c, tf in to_fuse_3:
         bb=slices_dilation(bounding_boxes[c], maximum=seg.shape, iterations=2)
         seg_c=np.ones_like(seg_from_opt_h[bb])
