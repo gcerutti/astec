@@ -643,6 +643,12 @@ def _seed_correction(seed_image, corrected_seed_image, parameters):
         fusion, seeds = parameters.seed_edition(i)
         monitoring.to_log_and_console("       correction ['" + str(fusion).split(os.path.sep)[-1] + "', '"
                                       + str(seeds).split(os.path.sep)[-1] + "']", 2)
+        if not os.path.isfile(fusion):
+            monitoring.to_log_and_console("       ... '" + str(fusion) + "' is not a valid file, skip it.")
+            fusion = None
+        if not os.path.isfile(seeds):
+            monitoring.to_log_and_console("       ... '" + str(seeds) + "' is not a valid file, skip it.")
+            seeds = None
         cpp_wrapping.mc_seed_edit(ifile, ofile, fusion, seeds, monitoring=monitoring)
         ifile = ofile
 

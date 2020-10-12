@@ -2068,10 +2068,10 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, deforme
                 label_max = v
         #
         # the main label is 1, and was also in the bounding box of the 'mother' cell
+        # in the deformed segmentation from previous time (historical behavior)
         # [we should have check that the background is adjacent to the mother cell]
         #
-        #
-        if label_max == 1 and 1 in curr_seg[bb]:
+        if label_max == 1 and 1 in prev_seg[bb]:
             exterior_correction.append(mother_c)
 
     if len(exterior_correction) == 0:

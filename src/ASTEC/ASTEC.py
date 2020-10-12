@@ -351,9 +351,13 @@ def get_seeds_from_optimized_parameters(t, seg, cells, cells_with_no_seed, right
     exterior_corres=[]
     for l in labels:
         seeds_from_opt_h=seeds_from_opt_h.astype(np.uint16)
-        exterior_corres.append(label_max)
-        seeds_from_opt_h[seeds_not_prop==l]=label_max
-        label_max+=1
+        #
+        # plutot que d'utiliser de nouveaux labels pour le fond, on peut prendre 1
+        #
+        # exterior_corres.append(label_max)
+        # seeds_from_opt_h[seeds_not_prop==l]=label_max
+        # label_max+=1
+        seeds_from_opt_h[seeds_not_prop == l] = 1
 
     print 'Cells with not Seed'
     for c in cells_with_no_seed:
@@ -365,8 +369,8 @@ def get_seeds_from_optimized_parameters(t, seg, cells, cells_with_no_seed, right
 
     print 'Watershed '
     seg_from_opt_h=obsolete_watershed(SpatialImage(seeds_from_opt_h, voxelsize=seeds_from_opt_h.voxelsize), im_ref, temporary_folder=os.path.dirname(path_h_min), verbose=verbose)
-    for l in exterior_corres:
-        seg_from_opt_h[seg_from_opt_h==l]=1
+#    for l in exterior_corres:
+#       seg_from_opt_h[seg_from_opt_h==l]=1
     corres[1]=[1]
 
     return seeds_from_opt_h, seg_from_opt_h, corres, exterior_corres, h_min_information, sigma_information, divided_cells, label_max    
