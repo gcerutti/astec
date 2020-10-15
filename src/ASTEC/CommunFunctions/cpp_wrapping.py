@@ -1077,6 +1077,39 @@ def cell_normalization_to_u8(path_input, path_segmentation, path_output, min_per
     return
 
 
+def outer_contour(path_input, path_output, connectivity=6, sigma=2.0, other_options=None, monitoring=None):
+    """
+
+    :param path_input:
+    :param path_output:
+    :param connectivity:
+    :param sigma:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('cellfilter')
+
+    #
+    #
+    #
+    command_line = path_to_exec + " " + path_input + " " + path_output
+    command_line += " -contour "
+    command_line += " -con " + str(connectivity)
+    command_line += " -sigma " + str(sigma)
+    command_line += " -o 1 "
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
 ############################################################
 #
 # functions for the membrane detection and/or enhancement
