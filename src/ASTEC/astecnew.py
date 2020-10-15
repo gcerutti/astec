@@ -68,7 +68,7 @@ class MorphoSnakeParameters(common.PrefixedParameter):
         self.ms_threshold = 1
         self.ms_balloon = 1
 
-        self.ms_processors = 7
+        self.ms_processors = 10
 
         self.ms_mimic_historical_astec = False
 
@@ -1361,13 +1361,14 @@ def _volume_diagnosis(prev_volumes, curr_volumes, correspondences, parameters):
     return very_large_volume_ratio, very_small_volume_ratio, small_volume_ratio, small_volume_daughter, all_daughter_label
 
 
-def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_from_selection, deformed_seeds,
-                                selected_seeds, membrane_image, image_for_seed, correspondences,
-                                selected_parameter_seeds, n_seeds, parameter_seeds, bounding_boxes, experiment,
-                                parameters):
+def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_from_previous,
+                                segmentation_from_selection, deformed_seeds, selected_seeds, membrane_image,
+                                image_for_seed, correspondences, selected_parameter_seeds, n_seeds, parameter_seeds,
+                                bounding_boxes, experiment, parameters):
     """
     :param astec_name: generic name for image file name construction
     :param previous_segmentation: reference segmentation for volume change computation
+    :param segmentation_from_previous:
     :param segmentation_from_selection:
     :param deformed_seeds: seeds obtained from the segmentation at a previous time and deformed into the current time
     :param selected_seeds:
@@ -1379,7 +1380,8 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
     :param n_seeds: dictionary, gives, for each parent cell, give the number of seeds for each couple of
     parameters [h-min, sigma]
     :param parameter_seeds: dictionary, for each parent cell, give the list of used parameters [h-min, sigma]
-    :param bounding_boxes: bounding boxes defined on previous_segmentation
+    :param bounding_boxes: bounding boxes defined on segmentation_from_previous (the segmentation obtained with the
+        seeds from the previous time point segmentation image)
     :param experiment:
     :param parameters:
     :return:
@@ -1403,6 +1405,10 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
 
     #
     # compute volumes
+    # 1. segmentation at previous time point
+    # 2. segmentation obtained at current time point with seed selection
+    # volume checking is done by comparing volume of cell at t-1
+    # with volume(s) of corresponfind cell(s) at t
     #
     prev_seg = imread(previous_segmentation)
     curr_seg = imread(segmentation_from_selection)
@@ -1417,6 +1423,12 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
     curr_embryo_volume = curr_seg.size - curr_volumes[1]
 
     volume_ratio = 1.0 - prev_embryo_volume / curr_embryo_volume
+
+    #
+    # h-minima have been extracted with respect to segmentation_from_previous
+    # image is re-read to get revised seeds if required
+    #
+    prev_seg = imread(segmentation_from_previous)
 
     #
     # kept from Leo, very weird formula
@@ -1556,7 +1568,9 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
                 # and a background at '0'
                 # extract the corresponding seeds from 'seed_image_name'
                 #
-                bb = bounding_boxes[mother_c]
+                # dilate the bounding box as in original astec
+                #
+                bb = _slices_dilation(bounding_boxes[mother_c], maximum=curr_seg.shape, iterations=2)
                 submask_mother_c = np.zeros_like(prev_seg[bb])
                 submask_mother_c[prev_seg[bb] == mother_c] = mother_c
                 n_found_seeds, labeled_found_seeds = _extract_seeds(mother_c, submask_mother_c, seed_image_name, bb)
@@ -1602,7 +1616,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
                     # - seeds 'below' the projection segmentation (that have a '2' value) will be fused into a
                     #   'seed_label_max + 2' cell
                     #
-                    bb = bounding_boxes[mother_c]
+                    bb = _slices_dilation(bounding_boxes[mother_c], maximum=curr_seg.shape, iterations=2)
                     submask_daughter_c = np.zeros_like(curr_seg[bb])
                     for daughter_c in correspondences[mother_c]:
                         submask_daughter_c[curr_seg[bb] == daughter_c] = mother_c
@@ -1664,7 +1678,7 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
             # and a background at '0'
             # extract the corresponding seeds from 'seed_image_name'
             #
-            bb = bounding_boxes[mother_c]
+            bb = _slices_dilation(bounding_boxes[mother_c], maximum=curr_seg.shape, iterations=2)
             submask_mother_c = np.zeros_like(prev_seg[bb])
             submask_mother_c[prev_seg[bb] == mother_c] = mother_c
             n_found_seeds, labeled_found_seeds = _extract_seeds(mother_c, submask_mother_c, seed_image_name, bb,
@@ -1892,7 +1906,7 @@ def _historical_morphosnakes(parameters_for_parallelism):
     #
     subsegmentation = imread(subsegmentation_name)
     initialization = nd.binary_erosion(subsegmentation != mother_c, iterations=astec_parameters.ms_dilation_iterations,
-                                        border_value=1)
+                                       border_value=1)
     if write_images:
         initialization_name = common.add_suffix(subsegmentation_name, '_initialization')
         imsave(initialization_name, SpatialImage(initialization.astype(np.uint8)))
@@ -1916,7 +1930,7 @@ def _historical_morphosnakes(parameters_for_parallelism):
     for i in xrange(0, astec_parameters.ms_iterations, step):
         bbefore = copy.deepcopy(before)
         before = copy.deepcopy(macwe.levelset)
-        macwe.run(step)
+        macwe.step()
         # print(str(i) + " condition 1 " + str(np.sum(before != macwe.levelset)))
         # print(str(i) + " condition 2 " + str(np.sum(bbefore != macwe.levelset)))
         if write_images:
@@ -1965,7 +1979,6 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, deforme
     """
 
     proc = "_outer_volume_decrease_correction"
-    historical_morphosnake = True
 
     #
     # parameter type checking
@@ -2022,8 +2035,6 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, deforme
         del curr_seg
         monitoring.to_log_and_console('        .. no correction to be done', 2)
         return segmentation_from_selection, correspondences, []
-
-
 
     #
     # find cells with a volume decrease due to the background
@@ -2493,6 +2504,8 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
 
     #
     # seed images will be named after 'image_for_seed'
+    # seeds are masked by 'segmentation_from_previous'
+    # ie the segmentation obtained with the seeds from the previous time point
     #
     monitoring.to_log_and_console('    estimation of h-minima for h in ['
                                   + str(parameters.watershed_seed_hmin_min_value) + ','
@@ -2604,10 +2617,10 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     # reference segmentation for volume decrease checking is
     # the segmentation at the previous time point
     #
-    output = _volume_decrease_correction(astec_name, previous_segmentation, segmentation_from_selection,
-                                         deformed_seeds, selected_seeds, membrane_image, image_for_seed,
-                                         correspondences, selected_parameter_seeds, n_seeds, parameter_seeds,
-                                         bounding_boxes, experiment, parameters)
+    output = _volume_decrease_correction(astec_name, previous_segmentation, segmentation_from_previous,
+                                         segmentation_from_selection, deformed_seeds, selected_seeds, membrane_image,
+                                         image_for_seed, correspondences, selected_parameter_seeds, n_seeds,
+                                         parameter_seeds, bounding_boxes, experiment, parameters)
     segmentation_from_selection, selected_seeds, correspondences = output
 
     #
