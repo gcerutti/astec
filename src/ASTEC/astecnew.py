@@ -2382,6 +2382,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
                                        new_extension=experiment.default_image_suffix)
     #
     # deformed_segmentation will be needed for morphosnake correction
+    # may also be used in reconstruction.py
     #
     deformed_segmentation = common.add_suffix(astec_name, '_deformed_segmentation_from_previous',
                                               new_dirname=experiment.astec_dir.get_tmp_directory(),
