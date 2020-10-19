@@ -557,7 +557,8 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
             for ci in range(len(corres[c])):
                 seeds_from_opt_h[seeds_from_opt_h==corres[c][ci]]=0
             #seeds_from_opt_h[seeds_from_opt_h==corres[c]]=0
-            divided_cells.append((label_max, label_max+1))
+            #divided_cells.append((label_max, label_max+1))
+            corres[c] = [label_max, label_max + 1, label_max + 2]
             seeds_from_opt_h[bb][seeds_c==1]=label_max
             h_min_information[(t+delta_t)*10**4+label_max]=h
             sigma_information[(t+delta_t)*10**4+label_max]=sigma
@@ -601,7 +602,7 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
                 if (volume_ratio<0) and volumes_from_opt_h.get(s, 1)!=1 :
                     lower.append((mother_c, sisters_c))
     
-    morphosnake_correction=[]
+    morphosnake_correction = []
     exterior_correction = []
     if lower!=[]:
         from copy import deepcopy
@@ -649,6 +650,11 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
                     seg_from_opt_h[bb][seg_from_opt_h[bb]==daughters[1]]=daughters[0]
                     if tuple(daughters) in divided_cells:
                         divided_cells.remove(tuple(daughters))
+                elif len(daughters) == 3:
+                    seg_from_opt_h[bb][seg_from_opt_h[bb]==daughters[1]]=daughters[0]
+                    seg_from_opt_h[bb][seg_from_opt_h[bb] == daughters[2]] = daughters[0]
+                    if tuple(daughters) in to_fuse_3:
+                        to_fuse_3.remove(tuple(daughters))
                 corres[m]=[daughters[0]]
                 exterior_correction.append((m, corres[m]))
 

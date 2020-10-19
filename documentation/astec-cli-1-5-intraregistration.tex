@@ -85,6 +85,21 @@ The following options are available:
 \item[\texttt{-nd}] no debug information
 \end{description}
 
+\subsection{Input data}
+\subsubsection{Multichannel acquisition}
+
+The co-registration transformations are computed from one series of fused images, issued from the \texttt{/path/to/experiment/FUSE/FUSE\_<EXP\_FUSE>} directory.
+
+In case of multi-channel acquisition, all fused image directories  listed in the \texttt{EXP\_FUSE} variable will be transformed by the transformations computed on the \textit{first} fused image directory of the list.
+
+As detailed in section \ref{sec:cli:intraregistration:coregistration} Specifying
+\begin{verbatim}
+EXP_FUSE = ['MEMBRANES', 'NUCLEI']
+\end{verbatim}
+in the parameter file implies that co-registrations will be computed on
+the fused images from \texttt{FUSE/FUSE\_MEMBRANES/}, but both fused image series will be transformed.
+
+The same stands for segmentation and post-segmentation series: multiple directories can be specified in either \texttt{EXP\_SEG} or \texttt{EXP\_POST}.
 
 \subsection{Output data}
 
@@ -419,6 +434,7 @@ in the parameter file results in
 \mbox{}
 
 The same behavior stands for \texttt{EXP\_SEG} and  \texttt{EXP\_POST}.
+
 
 
 \subsection{Parameter list}

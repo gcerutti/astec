@@ -1552,6 +1552,14 @@ Appel \`a \texttt{extract\_seeds()} (section \ref{sec:extract:seeds}, page \page
    548	            for ci in range(len(corres[c])):
    549	                seeds_from_opt_h[seeds_from_opt_h==corres[c][ci]]=0
    550	            #seeds_from_opt_h[seeds_from_opt_h==corres[c]]=0
+\end{verbatim} 
+\color{\mycolor}
+\begin{enumerate}
+\item il est bizarre de noter la cellule m\`ere se divisant en 2 dans \verb|divided_cells|, la division en 3 \'etant conserv\'ee dans \verb|to_fuse_3| (ligne 564)
+\item \verb|corres[c]| n'est pas mis \`a jour
+\end{enumerate}
+\color{black}
+\begin{verbatim}
    551	            divided_cells.append((label_max, label_max+1))
    552	            seeds_from_opt_h[bb][seeds_c==1]=label_max
    553	            h_min_information[(t+delta_t)*10**4+label_max]=h
@@ -2863,7 +2871,7 @@ extrait les premi\`eres cellules apr\`es une bifurcation, revient donc \`a regar
    276	            P[(n1, n2)]=pearsonr(tmp1[:common_len-1], tmp2[:common_len-1])
 \end{verbatim} 
 \color{\mycolor}
-Si la longueur des branches est suffisamment longue (>8), on calcule le coefficient de Pearson entre les volumes des 2 branches 
+Si la longueur des branches est suffisamment longue ($>8$), on calcule le coefficient de Pearson entre les volumes des 2 branches 
 \color{black}
 \begin{verbatim}
    277	    to_check=[k for k, v in P.iteritems() if v[0]<-.80] #.80 WHAT ? 

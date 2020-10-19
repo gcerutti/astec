@@ -2140,6 +2140,8 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, deforme
     #
     # do the corrections issued from the morphosnake
     # check whether they are effective
+    # is there is a correction to be done (cell has gained over the background),
+    # then fuse all "daughter" cell
     #
     effective_exterior_correction = []
     for mother_c, bb, cell_out in outputs:
@@ -2147,12 +2149,12 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, deforme
         if np.sum(curr_seg[bb] == 1 & cell_out) > 0:
             effective_exterior_correction.append(daughter_c)
             curr_seg[bb][curr_seg[bb] == 1 & cell_out] = daughter_c
-        if len(correspondences[mother_c]) > 1:
-            monitoring.to_log_and_console('           cell ' + str(mother_c) + 'will no more divide -> '
-                                          + str(daughter_c), 2)
-            for d in correspondences[mother_c]:
-                curr_seg[bb][curr_seg[bb] == d] = daughter_c
-        correspondences[mother_c] = [daughter_c]
+            if len(correspondences[mother_c]) > 1:
+                monitoring.to_log_and_console('           cell ' + str(mother_c) + ' will no more divide -> '
+                                              + str(daughter_c), 2)
+                for d in correspondences[mother_c]:
+                    curr_seg[bb][curr_seg[bb] == d] = daughter_c
+            correspondences[mother_c] = [daughter_c]
 
     #
     #

@@ -6,6 +6,22 @@ The name \texttt{astec} comes from the Phd work of L. Guignard \cite{guignard:te
 This method aims at producing a segmentation of each membrane cell image  (e.g. a fused image) temporal sequence. This is a method of segmentation by propagation: it used the segmentation of the previous timepoint (say $t$) to constraint the segmentation at the aimed timepoint (say $t+1$).
 
 
+\subsection{Astec method overview}
+
+Astec principle is to guide the segmentation of the $t+1$ timepoint image $I_{t+1}$ with the segmentation $S^\star_t$ of the $t$ timepoint image $I_t$.
+
+\begin{enumerate}
+\item \label{it:astec:projected:segmentation} A first segmentation of $I_{t+1}$, $\tilde{S}_{t+1}$, is computed by a seeded watershed, where the seeds are the eroded cells of $S^\star_t$, projected onto $I_{t+1}$. By construction, no cell division can occur.
+\item \label{it:astec:optimal:seeds} $h$-minima (see also section 
+\ref{sec:cli:mars:seed:extraction}) are computed over a range of $h$ values. Studying the numbers of $h$-minima located in each cell of $\tilde{S}_{t+1}$ gives an indication whether there might be a cell division or not. From this study a seed image $Seeds_{t+1}$ is computed, and then a new segmentation image $\hat{S}_{t+1}$.
+\item \label{it:astec:volume:checking} Some potential errors are detected by checking whether there is a significant volume decrease from a cell of $S^\star_t$ and its corresponding cells in $\hat{S}_{t+1}$. For such cells, seeds may be recomputed, as well as the $\hat{S}_{t+1}$ segmentation.
+\item \label{it:astec:outer:volume:checking} Some other potential errors are detected by checking whether there is a significant volume decrease from a cell of $S^\star_t$ and its corresponding cells in $\hat{S}_{t+1}$ due to a background invasion. For such cells, morphosnakes \cite{marquez-neil:pami:2014} are computed to try to recover cell loss.
+\item \label{it:astec:multiple:label:fusion} It may occur, in step \ref{it:astec:volume:checking}, that some cell from $S^\star_t$ correspond to 3 cells in $\hat{S}_{t+1}$. This step aims at correcting this.
+\item \label{it:astec:morphosnake:correction} The morphosnake correction operated in step \ref{it:astec:outer:volume:checking} may invade the background too much. This step aims at correcting this.
+\end{enumerate}
+
+
+
 \subsection{\texttt{4-astec.py} options}
 
 The following options are available:
@@ -52,6 +68,8 @@ default value is '\texttt{RELEASE}').
 }
 
 \subsection{Segmentation parameters}
+
+
 
 
 \subsubsection{Input image for watershed computation}
