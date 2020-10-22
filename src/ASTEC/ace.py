@@ -110,62 +110,63 @@ class AceParameters(common.PrefixedParameter):
     #
     ############################################################
 
-    def print_parameters(self, spaces=0):
+    def print_parameters(self):
         print("")
-        print(spaces * ' ' + 'AceParameters')
+        print('#')
+        print('# AceParameters')
+        print('#')
         
-        common.PrefixedParameter.print_parameters(self, spaces=spaces)
+        common.PrefixedParameter.print_parameters(self)
 
-        self.logprint('sigma_membrane', self.sigma_membrane, spaces=spaces)
+        self.varprint('sigma_membrane', self.sigma_membrane)
 
-        self.logprint('hard_thresholding', self.hard_thresholding, spaces=spaces)
-        self.logprint('hard_threshold', self.hard_threshold, spaces=spaces)
+        self.varprint('hard_thresholding', self.hard_thresholding)
+        self.varprint('hard_threshold', self.hard_threshold)
 
-        self.logprint('manual', self.manual, spaces=spaces)
-        self.logprint('manual_sigma', self.manual_sigma, spaces=spaces)
-        self.logprint('sensitivity', self.sensitivity, spaces=spaces)
+        self.varprint('manual', self.manual)
+        self.varprint('manual_sigma', self.manual_sigma)
+        self.varprint('sensitivity', self.sensitivity)
 
-        self.logprint('sigma_TV', self.sigma_TV, spaces=spaces)
-        self.logprint('sigma_LF', self.sigma_LF, spaces=spaces)
-        self.logprint('sample', self.sample, spaces=spaces)
-        self.logprint('sample_random_seed', self.sample_random_seed, spaces=spaces)
+        self.varprint('sigma_TV', self.sigma_TV)
+        self.varprint('sigma_LF', self.sigma_LF)
+        self.varprint('sample', self.sample)
+        self.varprint('sample_random_seed', self.sample_random_seed)
 
-        self.logprint('bounding_box_dilation', self.bounding_box_dilation, spaces=spaces)
-
-        self.logprint('default_image_suffix', self.default_image_suffix, spaces=spaces)
-
+        self.varprint('bounding_box_dilation', self.bounding_box_dilation)
+        self.varprint('default_image_suffix', self.default_image_suffix)
         print("")
         return
 
-    def write_parameters_in_file(self, logfile, spaces=0):
+    def write_parameters_in_file(self, logfile):
         logfile.write("\n")
-        logfile.write(spaces * ' ' + 'AceParameters\n')
+        logfile.write("# \n")
+        logfile.write("# AceParameters\n")
+        logfile.write("# \n")
 
-        common.PrefixedParameter.write_parameters_in_file(self, logfile, spaces=spaces)
+        common.PrefixedParameter.write_parameters_in_file(self, logfile)
 
-        self.logwrite(logfile, 'sigma_membrane', self.sigma_membrane, spaces=spaces)
+        self.varwrite(logfile, 'sigma_membrane', self.sigma_membrane)
 
-        self.logwrite(logfile, 'hard_thresholding', self.hard_thresholding, spaces=spaces)
-        self.logwrite(logfile, 'hard_threshold', self.hard_threshold, spaces=spaces)
+        self.varwrite(logfile, 'hard_thresholding', self.hard_thresholding)
+        self.varwrite(logfile, 'hard_threshold', self.hard_threshold)
 
-        self.logwrite(logfile, 'manual', self.manual, spaces=spaces)
-        self.logwrite(logfile, 'manual_sigma', self.manual_sigma, spaces=spaces)
-        self.logwrite(logfile, 'sensitivity', self.sensitivity, spaces=spaces)
+        self.varwrite(logfile, 'manual', self.manual)
+        self.varwrite(logfile, 'manual_sigma', self.manual_sigma)
+        self.varwrite(logfile, 'sensitivity', self.sensitivity)
 
-        self.logwrite(logfile, 'sigma_TV', self.sigma_TV, spaces=spaces)
-        self.logwrite(logfile, 'sigma_LF', self.sigma_LF, spaces=spaces)
-        self.logwrite(logfile, 'sample', self.sample, spaces=spaces)
-        self.logwrite(logfile, 'sample_random_seed', self.sample_random_seed, spaces=spaces)
+        self.varwrite(logfile, 'sigma_TV', self.sigma_TV)
+        self.varwrite(logfile, 'sigma_LF', self.sigma_LF)
+        self.varwrite(logfile, 'sample', self.sample)
+        self.varwrite(logfile, 'sample_random_seed', self.sample_random_seed)
 
-        self.logwrite(logfile, 'bounding_box_dilation', self.bounding_box_dilation, spaces=spaces)
-        self.logwrite(logfile, 'default_image_suffix', self.default_image_suffix, spaces=spaces)
-
+        self.varwrite(logfile, 'bounding_box_dilation', self.bounding_box_dilation)
+        self.varwrite(logfile, 'default_image_suffix', self.default_image_suffix)
         logfile.write("\n")
         return
 
-    def write_parameters(self, log_file_name, spaces=0):
+    def write_parameters(self, log_file_name):
         with open(log_file_name, 'a') as logfile:
-            self.write_parameters_in_file(logfile, spaces=spaces)
+            self.write_parameters_in_file(logfile)
         return
 
     ############################################################

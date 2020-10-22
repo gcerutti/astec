@@ -1,7 +1,7 @@
 #!/usr/bin/python2.7
 
-import os
 import time
+import sys
 from argparse import ArgumentParser
 
 #
@@ -70,6 +70,10 @@ def _set_options(my_parser):
                            action='store_const', dest='debug', const=0,
                            help='no debug information')
 
+    my_parser.add_argument('-pp', '--print-param',
+                           action='store_const', dest='printParameters',
+                           default=False, const=True,
+                           help='print parameters in console and exit')
     #
     # specific args
     #
@@ -149,8 +153,10 @@ def main():
     #
     # write generic information into the log file
     #
-    monitoring.write_parameters()
-    experiment.write_parameters()
+    monitoring.write_configuration()
+    experiment.write_configuration()
+
+    experiment.write_parameters(monitoring.log_filename)
 
     ############################################################
     #
@@ -177,6 +183,14 @@ def main():
     parameters.update_from_parameter_file(parameter_file)
 
     parameters.write_parameters(monitoring.log_filename)
+
+    #
+    # print parameters before processing
+    #
+    if args.printParameters:
+        experiment.print_parameters()
+        parameters.print_parameters()
+        sys.exit(0)
 
     #
     # processing

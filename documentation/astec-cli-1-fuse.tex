@@ -389,7 +389,7 @@ raw_ori = 'left'
 raw_mirrors = False
 begin = 1
 end = 1
-EXP_FUSE=TEST-LEFT-FALSE
+EXP_FUSE = 'TEST-LEFT-FALSE'
 \end{verbatim}
 a second parameter file may
 contain
@@ -398,7 +398,7 @@ raw_ori = 'left'
 raw_mirrors = True
 begin = 1
 end = 1
-EXP_FUSE=TEST-LEFT-TRUE
+EXP_FUSE = 'TEST-LEFT-TRUE'
 \end{verbatim}
 etc. The resulting fused images will then be in different directories
 
@@ -428,9 +428,52 @@ index encoded by a 3-digit integer (with 0 padding).
 
 \subsubsection{Multichannel acquisition}
 
-Variables \texttt{EXP\_FUSE\_CHANNEL\_2} and
-\texttt{EXP\_FUSE\_CHANNEL\_3} allows to set the directory names for
-the resulting fused images of the other channels.
+If a single name is given in the variable \texttt{EXP\_FUSE}, this name will be used to build the directory name for
+the resulting fused images of the first channel, and the other directory names are built after this first name by adding a suffix \texttt{\_CHANNEL\_2} for the 2nd channel, \texttt{\_CHANNEL\_3} for the 3rd channel,  etc.
+
+If the parameter file contains
+\begin{verbatim}
+EXP_FUSE = 'MULTI'
+\end{verbatim}
+The resulting fused images will then be the following directories
+
+\mbox{}
+\dirtree{%
+.1 /path/to/experiment/.
+.2 RAWDATA/.
+.3 \ldots.
+.2 FUSE/.
+.3 FUSE\_MULTI/.
+.4 \ldots.
+.3 FUSE\_MULTI\_CHANNEL\_2/.
+.4 \ldots.
+.3 \ldots.
+}
+\mbox{}
+
+Alternatively, a list of names can be specified in the variable \texttt{EXP\_FUSE}, these names will be used to build the directory names for
+the resulting fused images of the corresponding channels (the first name of the list for the first channel, etc.).
+
+
+If the parameter file contains
+\begin{verbatim}
+EXP_FUSE = ['1CHANNEL', '2CHANNEL']
+\end{verbatim}
+The resulting fused images will then be the following directories
+
+\mbox{}
+\dirtree{%
+.1 /path/to/experiment/.
+.2 RAWDATA/.
+.3 \ldots.
+.2 FUSE/.
+.3 FUSE\_1CHANNEL/.
+.4 \ldots.
+.3 FUSE\_2CHANNEL/.
+.4 \ldots.
+.3 \ldots.
+}
+\mbox{}
 
 \subsection{Step \ref{it:fusion:crop:1} parameters: raw data cropping}
 \label{sec:cli:fuse:raw:data:cropping}
@@ -655,94 +698,4 @@ has to be added in the parameter file.
   \end{enumerate}
 \end{itemize}
 
-\subsection{Parameter list}
 
-Please also refer to the file
-\texttt{parameter-file-examples/1-fuse-parameters.py}
-
-\begin{itemize}
-\itemsep -0.5ex
-\item \texttt{DIR\_LEFTCAM\_STACKONE} see section \ref{sec:cli:fuse:input:data}
-\item \texttt{DIR\_LEFTCAM\_STACKONE\_CHANNEL\_2} see section \ref{sec:cli:fuse:input:data}
-\item \texttt{DIR\_LEFTCAM\_STACKONE\_CHANNEL\_3} see section \ref{sec:cli:fuse:input:data}
-\item \texttt{DIR\_LEFTCAM\_STACKZERO} see section \ref{sec:cli:fuse:input:data}
-\item \texttt{DIR\_LEFTCAM\_STACKZERO\_CHANNEL\_2} see section \ref{sec:cli:fuse:input:data}
-\item \texttt{DIR\_LEFTCAM\_STACKZERO\_CHANNEL\_3} see section \ref{sec:cli:fuse:input:data}
-\item \texttt{DIR\_RAWDATA} see section \ref{sec:cli:fuse:input:data}
-\item \texttt{DIR\_RAWDATA\_CHANNEL\_2} see section \ref{sec:cli:fuse:input:data}
-\item \texttt{DIR\_RAWDATA\_CHANNEL\_3} see section \ref{sec:cli:fuse:input:data}
-\item \texttt{DIR\_RIGHTCAM\_STACKONE} see section \ref{sec:cli:fuse:input:data}
-\item \texttt{DIR\_RIGHTCAM\_STACKONE\_CHANNEL\_2} see section \ref{sec:cli:fuse:input:data}
-\item \texttt{DIR\_RIGHTCAM\_STACKONE\_CHANNEL\_3} see section \ref{sec:cli:fuse:input:data}
-\item \texttt{DIR\_RIGHTCAM\_STACKZERO} see section \ref{sec:cli:fuse:input:data}
-\item \texttt{DIR\_RIGHTCAM\_STACKZERO\_CHANNEL\_2} see section \ref{sec:cli:fuse:input:data}
-\item \texttt{DIR\_RIGHTCAM\_STACKZERO\_CHANNEL\_3} see section \ref{sec:cli:fuse:input:data}
-\item \texttt{EN} see section \ref{sec:cli:fuse:output:data}
-\item \texttt{EXP\_FUSE} see section \ref{sec:cli:fuse:output:data}
-\item \texttt{EXP\_FUSE\_CHANNEL\_2} see section \ref{sec:cli:fuse:output:data}
-\item \texttt{EXP\_FUSE\_CHANNEL\_3} see section \ref{sec:cli:fuse:output:data}
-\item \texttt{PATH\_EMBRYO} see section \ref{sec:cli:fuse:input:data}
-\item \texttt{RESULT\_IMAGE\_SUFFIX\_FUSE}
-\item \texttt{acquisition\_leftcam\_image\_prefix}  see section \ref{sec:cli:fuse:input:data}
-\item \texttt{acquisition\_leftcamera\_z\_stacking}
-\item \texttt{acquisition\_mirrors} same as \texttt{raw\_mirrors}
-\item \texttt{acquisition\_orientation} same as \texttt{raw\_ori}
-\item \texttt{acquisition\_resolution} same as \texttt{raw\_resolution}
-\item \texttt{acquisition\_rightcam\_image\_prefix}  see section \ref{sec:cli:fuse:input:data}
-\item \texttt{acquisition\_slit\_line\_correction}
-\item \texttt{begin} see section \ref{sec:cli:fuse:important:parameters}
-\item \texttt{default\_image\_suffix}
-\item \texttt{delta}
-\item \texttt{end} see section \ref{sec:cli:fuse:important:parameters}
-\item \texttt{fusion\_crop} see section \ref{sec:cli:fuse:fused:data:cropping}
-\item \texttt{fusion\_margin\_x\_0}
-\item \texttt{fusion\_margin\_x\_1}
-\item \texttt{fusion\_margin\_y\_0}
-\item \texttt{fusion\_margin\_y\_1}
-\item \texttt{fusion\_strategy}  see section \ref{sec:cli:fuse:image:coregistration}
-\item \texttt{fusion\_preregistration\_compute\_registration} see section \ref{sec:cli:fuse:image:coregistration}
-\item \texttt{fusion\_preregistration\_lts\_fraction}
-\item \texttt{fusion\_preregistration\_normalization}
-\item \texttt{fusion\_preregistration\_pyramid\_highest\_level}
-\item \texttt{fusion\_preregistration\_pyramid\_lowest\_level}
-\item \texttt{fusion\_preregistration\_transformation\_estimation\_type}
-\item \texttt{fusion\_preregistration\_transformation\_type}
-\item \texttt{fusion\_registration\_compute\_registration}
-\item \texttt{fusion\_registration\_lts\_fraction}
-\item \texttt{fusion\_registration\_normalization}
-\item \texttt{fusion\_registration\_pyramid\_highest\_level}
-\item \texttt{fusion\_registration\_pyramid\_lowest\_level}
-\item \texttt{fusion\_registration\_transformation\_estimation\_type}
-\item \texttt{fusion\_registration\_transformation\_type} see section \ref{sec:cli:fuse:image:coregistration}
-\item \texttt{fusion\_stack\_preregistration\_compute\_registration}
-\item \texttt{fusion\_stack\_preregistration\_lts\_fraction}
-\item \texttt{fusion\_stack\_preregistration\_normalization}
-\item \texttt{fusion\_stack\_preregistration\_pyramid\_highest\_level}
-\item \texttt{fusion\_stack\_preregistration\_pyramid\_lowest\_level}
-\item \texttt{fusion\_stack\_preregistration\_transformation\_estimation\_type}
-\item \texttt{fusion\_stack\_preregistration\_transformation\_type}
-\item \texttt{fusion\_stack\_registration\_compute\_registration}
-\item \texttt{fusion\_stack\_registration\_lts\_fraction}
-\item \texttt{fusion\_stack\_registration\_normalization}
-\item \texttt{fusion\_stack\_registration\_pyramid\_highest\_level}
-\item \texttt{fusion\_stack\_registration\_pyramid\_lowest\_level}
-\item \texttt{fusion\_stack\_registration\_transformation\_estimation\_type}
-\item \texttt{fusion\_stack\_registration\_transformation\_type}
-\item \texttt{fusion\_weighting}
-\item \texttt{fusion\_weighting\_channel\_1}
-\item \texttt{fusion\_weighting\_channel\_2}
-\item \texttt{fusion\_weighting\_channel\_3}
-\item \texttt{fusion\_xzsection\_extraction} see section \ref{sec:cli:fuse:stack:fusion}
-\item \texttt{raw\_crop} see section \ref{sec:cli:fuse:raw:data:cropping}
-\item \texttt{raw\_delay}
-\item \texttt{raw\_leftcamera\_z\_stacking}
-\item \texttt{raw\_margin\_x\_0}
-\item \texttt{raw\_margin\_x\_1}
-\item \texttt{raw\_margin\_y\_0}
-\item \texttt{raw\_margin\_y\_1}
-\item \texttt{raw\_mirrors} see section \ref{sec:cli:fuse:important:parameters}
-\item \texttt{raw\_ori} see section \ref{sec:cli:fuse:important:parameters}
-\item \texttt{raw\_resolution} see section \ref{sec:cli:fuse:important:parameters}
-\item \texttt{result\_image\_suffix}
-\item \texttt{target\_resolution} see section \ref{sec:cli:fuse:output:data}
-\end{itemize}

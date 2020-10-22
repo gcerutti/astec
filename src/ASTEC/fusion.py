@@ -136,84 +136,98 @@ class FusionParameters(object):
 
     def print_parameters(self):
         print("")
-        print('FusionParameters')
+        print('#')
+        print('# FusionParameters')
+        print('#')
+        print("")
 
-        print('- acquisition_orientation = ' + str(self.acquisition_orientation))
-        print('- acquisition_mirrors     = ' + str(self.acquisition_mirrors))
-        print('- acquisition_resolution  = ' + str(self.acquisition_resolution))
+        print(common.str_variable('acquisition_orientation', self.acquisition_orientation))
+        print(common.str_variable('acquisition_mirrors', self.acquisition_mirrors))
+        print(common.str_variable('acquisition_resolution', self.acquisition_resolution))
 
-        print('- acquisition_stack0_leftcamera_z_stacking = ' +
-              str(self.acquisition_stack0_leftcamera_z_stacking))
-        print('- acquisition_stack1_leftcamera_z_stacking = ' +
-              str(self.acquisition_stack1_leftcamera_z_stacking))
+        print(common.str_variable('acquisition_stack0_leftcamera_z_stacking',
+                                  self.acquisition_stack0_leftcamera_z_stacking))
+        print(common.str_variable('acquisition_stack1_leftcamera_z_stacking',
+                                  self.acquisition_stack1_leftcamera_z_stacking))
 
-        print('- acquisition_slit_line_correction = ' + str(self.acquisition_slit_line_correction))
+        print(common.str_variable('acquisition_slit_line_correction', self.acquisition_slit_line_correction))
 
-        print('- target_resolution  = ' + str(self.target_resolution))
+        print(common.str_variable('target_resolution', self.target_resolution))
 
-        print('- fusion_strategy  = ' + str(self.fusion_strategy))
+        print(common.str_variable('fusion_strategy', self.fusion_strategy))
 
-        print('- acquisition_cropping = ' + str(self.acquisition_cropping))
-        print('- acquisition_cropping_margin_x_0 = ' + str(self.acquisition_cropping_margin_x_0))
-        print('- acquisition_cropping_margin_x_1 = ' + str(self.acquisition_cropping_margin_x_1))
-        print('- acquisition_cropping_margin_y_0 = ' + str(self.acquisition_cropping_margin_y_0))
-        print('- acquisition_cropping_margin_y_1 = ' + str(self.acquisition_cropping_margin_y_1))
+        print(common.str_variable('acquisition_cropping', self.acquisition_cropping))
+        print(common.str_variable('acquisition_cropping_margin_x_0', self.acquisition_cropping_margin_x_0))
+        print(common.str_variable('acquisition_cropping_margin_x_1', self.acquisition_cropping_margin_x_1))
+        print(common.str_variable('acquisition_cropping_margin_y_0', self.acquisition_cropping_margin_y_0))
+        print(common.str_variable('acquisition_cropping_margin_y_1', self.acquisition_cropping_margin_y_1))
 
         for p in self.acquisition_registration:
-            p.print_parameters(spaces=2)
+            p.print_parameters()
         for p in self.stack_registration:
-            p.print_parameters(spaces=2)
+            p.print_parameters()
 
-        print('- xzsection_extraction = ' + str(self.xzsection_extraction))
+        print(common.str_variable('xzsection_extraction', self.xzsection_extraction))
 
-        print('- fusion_cropping = ' + str(self.fusion_cropping))
-        print('- fusion_cropping_margin_x_0 = ' + str(self.fusion_cropping_margin_x_0))
-        print('- fusion_cropping_margin_x_1 = ' + str(self.fusion_cropping_margin_x_1))
-        print('- fusion_cropping_margin_y_0 = ' + str(self.fusion_cropping_margin_y_0))
-        print('- fusion_cropping_margin_y_1 = ' + str(self.fusion_cropping_margin_y_1))
+        print(common.str_variable('fusion_cropping', self.fusion_cropping))
+        print(common.str_variable('fusion_cropping_margin_x_0', self.fusion_cropping_margin_x_0))
+        print(common.str_variable('fusion_cropping_margin_x_1', self.fusion_cropping_margin_x_1))
+        print(common.str_variable('fusion_cropping_margin_y_0', self.fusion_cropping_margin_y_0))
+        print(common.str_variable('fusion_cropping_margin_y_1', self.fusion_cropping_margin_y_1))
 
         print("")
 
+    def write_parameters_in_file(self, logfile):
+        logfile.write("" + "\n")
+        logfile.write('#' + "\n")
+        logfile.write('# FusionParameters' + "\n")
+        logfile.write('#' + "\n")
+        logfile.write("" + "\n")
+
+        logfile.write(common.str_variable('acquisition_orientation', self.acquisition_orientation) + "\n")
+        logfile.write(common.str_variable('acquisition_mirrors', self.acquisition_mirrors) + "\n")
+        logfile.write(common.str_variable('acquisition_resolution', self.acquisition_resolution) + "\n")
+
+        logfile.write(common.str_variable('acquisition_stack0_leftcamera_z_stacking',
+                                  self.acquisition_stack0_leftcamera_z_stacking) + "\n")
+        logfile.write(common.str_variable('acquisition_stack1_leftcamera_z_stacking',
+                                  self.acquisition_stack1_leftcamera_z_stacking) + "\n")
+
+        logfile.write(common.str_variable('acquisition_slit_line_correction', self.acquisition_slit_line_correction)
+                      + "\n")
+
+        logfile.write(common.str_variable('target_resolution', self.target_resolution) + "\n")
+
+        logfile.write(common.str_variable('fusion_strategy', self.fusion_strategy) + "\n")
+
+        logfile.write(common.str_variable('acquisition_cropping', self.acquisition_cropping) + "\n")
+        logfile.write(common.str_variable('acquisition_cropping_margin_x_0', self.acquisition_cropping_margin_x_0)
+                      + "\n")
+        logfile.write(common.str_variable('acquisition_cropping_margin_x_1', self.acquisition_cropping_margin_x_1)
+                      + "\n")
+        logfile.write(common.str_variable('acquisition_cropping_margin_y_0', self.acquisition_cropping_margin_y_0)
+                      + "\n")
+        logfile.write(common.str_variable('acquisition_cropping_margin_y_1', self.acquisition_cropping_margin_y_1) +
+                      "\n")
+
+        for p in self.acquisition_registration:
+            p.write_parameters_in_file(logfile)
+        for p in self.stack_registration:
+            p.write_parameters_in_file(logfile)
+
+        logfile.write(common.str_variable('xzsection_extraction', self.xzsection_extraction) + "\n")
+
+        logfile.write(common.str_variable('fusion_cropping', self.fusion_cropping) + "\n")
+        logfile.write(common.str_variable('fusion_cropping_margin_x_0', self.fusion_cropping_margin_x_0) + "\n")
+        logfile.write(common.str_variable('fusion_cropping_margin_x_1', self.fusion_cropping_margin_x_1) + "\n")
+        logfile.write(common.str_variable('fusion_cropping_margin_y_0', self.fusion_cropping_margin_y_0) + "\n")
+        logfile.write(common.str_variable('fusion_cropping_margin_y_1', self.fusion_cropping_margin_y_1) + "\n")
+
+        logfile.write("\n")
+
     def write_parameters(self, log_file_name):
         with open(log_file_name, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('FusionParameters\n')
-
-            logfile.write('- acquisition_orientation = ' + str(self.acquisition_orientation)+'\n')
-            logfile.write('- acquisition_mirrors     = ' + str(self.acquisition_mirrors)+'\n')
-            logfile.write('- acquisition_resolution  = ' + str(self.acquisition_resolution)+'\n')
-
-            logfile.write('- acquisition_stack0_leftcamera_z_stacking = '
-                          + str(self.acquisition_stack0_leftcamera_z_stacking)+'\n')
-            logfile.write('- acquisition_stack1_leftcamera_z_stacking = '
-                          + str(self.acquisition_stack1_leftcamera_z_stacking)+'\n')
-
-            logfile.write('- acquisition_slit_line_correction = ' + str(self.acquisition_slit_line_correction)+'\n')
-
-            logfile.write('- target_resolution  = ' + str(self.target_resolution)+'\n')
-
-            logfile.write('- fusion_strategy  = ' + str(self.fusion_strategy) + '\n')
-
-            logfile.write('- acquisition_cropping = ' + str(self.acquisition_cropping)+'\n')
-            logfile.write('- acquisition_cropping_margin_x_0 = ' + str(self.acquisition_cropping_margin_x_0)+'\n')
-            logfile.write('- acquisition_cropping_margin_x_1 = ' + str(self.acquisition_cropping_margin_x_1)+'\n')
-            logfile.write('- acquisition_cropping_margin_y_0 = ' + str(self.acquisition_cropping_margin_y_0)+'\n')
-            logfile.write('- acquisition_cropping_margin_y_1 = ' + str(self.acquisition_cropping_margin_y_1)+'\n')
-
-            for p in self.acquisition_registration:
-                p.write_parameters_in_file(logfile, spaces=2)
-            for p in self.stack_registration:
-                p.write_parameters_in_file(logfile, spaces=2)
-
-            logfile.write('- xzsection_extraction = ' + str(self.xzsection_extraction) + '\n')
-
-            logfile.write('- fusion_cropping = ' + str(self.fusion_cropping)+'\n')
-            logfile.write('- fusion_cropping_margin_x_0 = ' + str(self.fusion_cropping_margin_x_0)+'\n')
-            logfile.write('- fusion_cropping_margin_x_1 = ' + str(self.fusion_cropping_margin_x_1)+'\n')
-            logfile.write('- fusion_cropping_margin_y_0 = ' + str(self.fusion_cropping_margin_y_0)+'\n')
-            logfile.write('- fusion_cropping_margin_y_1 = ' + str(self.fusion_cropping_margin_y_1)+'\n')
-
-            logfile.write("\n")
+            self.write_parameters_in_file(logfile)
         return
 
     ############################################################

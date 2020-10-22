@@ -25,7 +25,7 @@ monitoring = common.Monitoring()
 ########################################################################################
 
 
-class IntraRegParameters(object):
+class IntraRegParameters(common.PrefixedParameter):
 
     ############################################################
     #
@@ -35,13 +35,14 @@ class IntraRegParameters(object):
 
     def __init__(self):
 
+        common.PrefixedParameter.__init__(self, prefix=['intra_registration_'])
+
         #
         # Co-registration parameters
         #
 
-        self.registration = common.RegistrationParameters()
+        self.registration = common.RegistrationParameters(prefix=self._prefix)
         self.registration.transformation_type = 'rigid'
-        self.registration.prefix = 'intra_registration_'
 
         #
         # intra-sequence transformation parameters
@@ -113,7 +114,11 @@ class IntraRegParameters(object):
 
     def print_parameters(self):
         print("")
-        print('IntraRegParameters')
+        print('#')
+        print('# IntraRegParameters')
+        print('#')
+
+        common.PrefixedParameter.print_parameters(self)
 
         #
         # Co-registration parameters
@@ -125,114 +130,128 @@ class IntraRegParameters(object):
         # intra-sequence transformation parameters
         #
 
-        print('- reference_index = ' + str(self.reference_index))
-        print('- reference_transformation_file = ' + str(self.reference_transformation_file))
-        print('- reference_transformation_angles = ' + str(self.reference_transformation_angles))
+        self.varprint('reference_index', self.reference_index)
+        self.varprint('reference_transformation_file', self.reference_transformation_file)
+        self.varprint('reference_transformation_angles', self.reference_transformation_angles)
 
-        print('- template_type = ' + str(self.template_type))
-        print('- template_threshold = ' + str(self.template_threshold))
-        print('- margin = ' + str(self.margin))
+        self.varprint('template_type', self.template_type)
+        self.varprint('template_threshold', self.template_threshold)
+        self.varprint('margin', self.margin)
 
-        print('- resolution = ' + str(self.resolution))
+        self.varprint('resolution', self.resolution)
 
-        print('- rebuild_template = ' + str(self.rebuild_template))
+        self.varprint('rebuild_template', self.rebuild_template)
 
         #
         # resampling parameters
         #
 
-        print('- sigma_segmentation_images = ' + str(self.sigma_segmentation_images))
-        print('- resample_fusion_images = ' + str(self.resample_fusion_images))
-        print('- resample_segmentation_images = ' + str(self.resample_segmentation_images))
-        print('- resample_post_segmentation_images = ' + str(self.resample_post_segmentation_images))
+        self.varprint('sigma_segmentation_images', self.sigma_segmentation_images)
+        self.varprint('resample_fusion_images', self.resample_fusion_images)
+        self.varprint('resample_segmentation_images', self.resample_segmentation_images)
+        self.varprint('resample_post_segmentation_images', self.resample_post_segmentation_images)
 
         #
         # movie parameters
         #
 
-        print('- movie_fusion_images = ' + str(self.movie_fusion_images))
-        print('- movie_segmentation_images = ' + str(self.movie_segmentation_images))
-        print('- movie_post_segmentation_images = ' + str(self.movie_post_segmentation_images))
+        self.varprint('movie_fusion_images', self.movie_fusion_images)
+        self.varprint('movie_segmentation_images', self.movie_segmentation_images)
+        self.varprint('movie_post_segmentation_images', self.movie_post_segmentation_images)
 
-        print('- xy_movie_fusion_images = ' + str(self.xy_movie_fusion_images))
-        print('- xz_movie_fusion_images = ' + str(self.xz_movie_fusion_images))
-        print('- yz_movie_fusion_images = ' + str(self.yz_movie_fusion_images))
+        self.varprint('xy_movie_fusion_images', self.xy_movie_fusion_images)
+        self.varprint('xz_movie_fusion_images', self.xz_movie_fusion_images)
+        self.varprint('yz_movie_fusion_images', self.yz_movie_fusion_images)
 
-        print('- xy_movie_segmentation_images = ' + str(self.xy_movie_segmentation_images))
-        print('- xz_movie_segmentation_images = ' + str(self.xz_movie_segmentation_images))
-        print('- yz_movie_segmentation_images = ' + str(self.yz_movie_segmentation_images))
+        self.varprint('xy_movie_segmentation_images', self.xy_movie_segmentation_images)
+        self.varprint('xz_movie_segmentation_images', self.xz_movie_segmentation_images)
+        self.varprint('yz_movie_segmentation_images', self.yz_movie_segmentation_images)
 
-        print('- xy_movie_post_segmentation_images = ' + str(self.xy_movie_post_segmentation_images))
-        print('- xz_movie_post_segmentation_images = ' + str(self.xz_movie_post_segmentation_images))
-        print('- yz_movie_post_segmentation_images = ' + str(self.yz_movie_post_segmentation_images))
+        self.varprint('xy_movie_post_segmentation_images', self.xy_movie_post_segmentation_images)
+        self.varprint('xz_movie_post_segmentation_images', self.xz_movie_post_segmentation_images)
+        self.varprint('yz_movie_post_segmentation_images', self.yz_movie_post_segmentation_images)
 
-        print('- maximum_fusion_images = ' + str(self.maximum_fusion_images))
-        print('- maximum_segmentation_images = ' + str(self.maximum_segmentation_images))
-        print('- maximum_post_segmentation_images = ' + str(self.maximum_post_segmentation_images))
+        self.varprint('maximum_fusion_images', self.maximum_fusion_images)
+        self.varprint('maximum_segmentation_images', self.maximum_segmentation_images)
+        self.varprint('maximum_post_segmentation_images', self.maximum_post_segmentation_images)
 
         print("")
+        return
 
-    def write_parameters(self, log_file_name):
-        with open(log_file_name, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('IntraRegParameters\n')
+    def write_parameters_in_file(self, logfile):
+        logfile.write("\n")
+        logfile.write('#\n')
+        logfile.write('# IntraRegParameters\n')
+        logfile.write('#\n')
 
-            #
-            # Co-registration parameters
-            #
+        common.PrefixedParameter.write_parameters_in_file(self, logfile)
 
-            self.registration.write_parameters(log_file_name)
+        #
+        # Co-registration parameters
+        #
 
-            #
-            # intra-sequence transformation parameters
-            #
+        self.registration.write_parameters_in_file(logfile)
 
-            logfile.write('- reference_index = ' + str(self.reference_index) + '\n')
-            logfile.write('- reference_transformation_file = ' + str(self.reference_transformation_file) + '\n')
-            logfile.write('- reference_transformation_angles = ' + str(self.reference_transformation_angles) + '\n')
+        #
+        # intra-sequence transformation parameters
+        #
 
-            logfile.write('- template_type = ' + str(self.template_type) + '\n')
-            logfile.write('- template_threshold = ' + str(self.template_threshold) + '\n')
-            logfile.write('- margin = ' + str(self.margin) + '\n')
+        self.varwrite(logfile, 'reference_index', self.reference_index)
+        self.varwrite(logfile, 'reference_transformation_file', self.reference_transformation_file)
+        self.varwrite(logfile, 'reference_transformation_angles', self.reference_transformation_angles)
 
-            logfile.write('- resolution = ' + str(self.resolution) + '\n')
+        self.varwrite(logfile, 'template_type', self.template_type)
+        self.varwrite(logfile, 'template_threshold', self.template_threshold)
+        self.varwrite(logfile, 'margin', self.margin)
 
-            logfile.write('- rebuild_template = ' + str(self.rebuild_template) + '\n')
+        self.varwrite(logfile, 'resolution', self.resolution)
 
-            #
-            # resampling parameters
-            #
+        self.varwrite(logfile, 'rebuild_template', self.rebuild_template)
 
-            logfile.write('- sigma_segmentation_images = ' + str(self.sigma_segmentation_images) + '\n')
-            logfile.write('- resample_fusion_images = ' + str(self.resample_fusion_images) + '\n')
-            logfile.write('- resample_segmentation_images = ' + str(self.resample_segmentation_images) + '\n')
-            logfile.write('- resample_post_segmentation_images = ' + str(self.resample_post_segmentation_images) + '\n')
+        #
+        # resampling parameters
+        #
 
-            #
-            # movie parameters
-            #
+        self.varwrite(logfile, 'sigma_segmentation_images', self.sigma_segmentation_images)
+        self.varwrite(logfile, 'resample_fusion_images', self.resample_fusion_images)
+        self.varwrite(logfile, 'resample_segmentation_images', self.resample_segmentation_images)
+        self.varwrite(logfile, 'resample_post_segmentation_images', self.resample_post_segmentation_images)
 
-            logfile.write('- movie_fusion_images = ' + str(self.movie_fusion_images) + '\n')
-            logfile.write('- movie_segmentation_images = ' + str(self.movie_segmentation_images) + '\n')
-            logfile.write('- movie_post_segmentation_images = ' + str(self.movie_post_segmentation_images) + '\n')
+        #
+        # movie parameters
+        #
 
-            logfile.write('- xy_movie_fusion_images = ' + str(self.xy_movie_fusion_images) + '\n')
-            logfile.write('- xz_movie_fusion_images = ' + str(self.xz_movie_fusion_images) + '\n')
-            logfile.write('- yz_movie_fusion_images = ' + str(self.yz_movie_fusion_images) + '\n')
+        self.varwrite(logfile, 'movie_fusion_images', self.movie_fusion_images)
+        self.varwrite(logfile, 'movie_segmentation_images', self.movie_segmentation_images)
+        self.varwrite(logfile, 'movie_post_segmentation_images', self.movie_post_segmentation_images)
 
-            logfile.write('- xy_movie_segmentation_images = ' + str(self.xy_movie_segmentation_images) + '\n')
-            logfile.write('- xz_movie_segmentation_images = ' + str(self.xz_movie_segmentation_images) + '\n')
-            logfile.write('- yz_movie_segmentation_images = ' + str(self.yz_movie_segmentation_images) + '\n')
+        self.varwrite(logfile, 'xy_movie_fusion_images', self.xy_movie_fusion_images)
+        self.varwrite(logfile, 'xz_movie_fusion_images', self.xz_movie_fusion_images)
+        self.varwrite(logfile, 'yz_movie_fusion_images', self.yz_movie_fusion_images)
 
-            logfile.write('- xy_movie_post_segmentation_images = ' + str(self.xy_movie_post_segmentation_images) + '\n')
-            logfile.write('- xz_movie_post_segmentation_images = ' + str(self.xz_movie_post_segmentation_images) + '\n')
-            logfile.write('- yz_movie_post_segmentation_images = ' + str(self.yz_movie_post_segmentation_images) + '\n')
+        self.varwrite(logfile, 'xy_movie_segmentation_images', self.xy_movie_segmentation_images)
+        self.varwrite(logfile, 'xz_movie_segmentation_images', self.xz_movie_segmentation_images)
+        self.varwrite(logfile, 'yz_movie_segmentation_images', self.yz_movie_segmentation_images)
 
-            logfile.write('- maximum_fusion_images = ' + str(self.maximum_fusion_images) + '\n')
-            logfile.write('- maximum_segmentation_images = ' + str(self.maximum_segmentation_images) + '\n')
-            logfile.write('- maximum_post_segmentation_images = ' + str(self.maximum_post_segmentation_images) + '\n')
+        self.varwrite(logfile, 'xy_movie_post_segmentation_images', self.xy_movie_post_segmentation_images)
+        self.varwrite(logfile, 'xz_movie_post_segmentation_images', self.xz_movie_post_segmentation_images)
+        self.varwrite(logfile, 'yz_movie_post_segmentation_images', self.yz_movie_post_segmentation_images)
 
-            logfile.write("\n")
+        self.varwrite(logfile, 'maximum_fusion_images', self.maximum_fusion_images)
+        self.varwrite(logfile, 'maximum_segmentation_images', self.maximum_segmentation_images)
+        self.varwrite(logfile, 'maximum_post_segmentation_images', self.maximum_post_segmentation_images)
+
+        logfile.write("\n")
+        return
+
+    def write_parameters(self, log_filename=None):
+        if log_filename is not None:
+            local_log_filename = log_filename
+        else:
+            local_log_filename = monitoring.log_filename
+        if local_log_filename is not None:
+            with open(local_log_filename, 'a') as logfile:
+                self.write_parameters_in_file(logfile)
         return
 
     ############################################################
@@ -258,103 +277,51 @@ class IntraRegParameters(object):
         #
         # intra-sequence transformation parameters
         #
+        self.reference_index = self.read_parameter(parameters, 'reference_index', self.reference_index)
+        self.reference_transformation_file = self.read_parameter(parameters, 'reference_transformation_file', self.reference_transformation_file)
+        self.reference_transformation_angles = self.read_parameter(parameters, 'reference_transformation_angles', self.reference_transformation_angles)
 
-        if hasattr(parameters, 'intra_registration_reference_index'):
-            if parameters.intra_registration_reference_index is not None:
-                self.reference_index = parameters.intra_registration_reference_index
-        if hasattr(parameters, 'intra_registration_reference_resampling_transformation_file'):
-            if parameters.intra_registration_reference_resampling_transformation_file is not None:
-                self.reference_transformation_file = parameters.intra_registration_reference_resampling_transformation_file
-        if hasattr(parameters, 'intra_registration_reference_resampling_transformation_angles'):
-            if parameters.intra_registration_reference_resampling_transformation_angles is not None:
-                self.reference_transformation_angles = parameters.intra_registration_reference_resampling_transformation_angles
+        self.template_type = self.read_parameter(parameters, 'template_type', self.template_type)
+        self.template_threshold = self.read_parameter(parameters, 'template_threshold', self.template_threshold)
+        old_margin = self.margin
+        self.margin = self.read_parameter(parameters, 'margin', self.margin)
+        if self.margin != old_margin:
+            margin_is_updated = True
 
-        if hasattr(parameters, 'intra_registration_template_type'):
-            if parameters.intra_registration_template_type is not None:
-                self.template_type = parameters.intra_registration_template_type
-        if hasattr(parameters, 'intra_registration_template_threshold'):
-            if parameters.intra_registration_template_threshold is not None:
-                self.template_threshold = parameters.intra_registration_template_threshold
-        if hasattr(parameters, 'intra_registration_margin'):
-            if parameters.intra_registration_margin is not None:
-                self.margin = parameters.intra_registration_margin
-                margin_is_updated = True
+        self.resolution = self.read_parameter(parameters, 'resolution', self.resolution)
 
-        if hasattr(parameters, 'intra_registration_resolution'):
-            if parameters.intra_registration_resolution is not None:
-                self.resolution = parameters.intra_registration_resolution
-
-        if hasattr(parameters, 'intra_registration_rebuild_template'):
-            if parameters.intra_registration_rebuild_template is not None:
-                self.rebuild_template = parameters.intra_registration_rebuild_template
+        self.rebuild_template = self.read_parameter(parameters, 'rebuild_template', self.rebuild_template)
 
         #
         # resampling parameters
         #
 
-        if hasattr(parameters, 'intra_registration_sigma_segmentation_images'):
-            if parameters.intra_registration_sigma_segmentation_images is not None:
-                self.sigma_segmentation_images = parameters.intra_registration_sigma_segmentation_images
+        self.sigma_segmentation_images = self.read_parameter(parameters, 'sigma_segmentation_images', self.sigma_segmentation_images)
 
-        if hasattr(parameters, 'intra_registration_resample_fusion_images'):
-            if parameters.intra_registration_resample_fusion_images is not None:
-                self.resample_fusion_images = parameters.intra_registration_resample_fusion_images
-        if hasattr(parameters, 'intra_registration_resample_segmentation_images'):
-            if parameters.intra_registration_resample_segmentation_images is not None:
-                self.resample_segmentation_images = parameters.intra_registration_resample_segmentation_images
-        if hasattr(parameters, 'intra_registration_resample_post_segmentation_images'):
-            if parameters.intra_registration_resample_post_segmentation_images is not None:
-                self.resample_post_segmentation_images = parameters.intra_registration_resample_post_segmentation_images
+        self.resample_fusion_images = self.read_parameter(parameters, 'resample_fusion_images', self.resample_fusion_images)
+        self.resample_segmentation_images = self.read_parameter(parameters, 'resample_segmentation_images', self.resample_segmentation_images)
+        self.resample_post_segmentation_images = self.read_parameter(parameters, 'resample_post_segmentation_images', self.resample_post_segmentation_images)
 
-        if hasattr(parameters, 'intra_registration_movie_fusion_images'):
-            if parameters.intra_registration_movie_fusion_images is not None:
-                self.movie_fusion_images = parameters.intra_registration_movie_fusion_images
-        if hasattr(parameters, 'intra_registration_movie_segmentation_images'):
-            if parameters.intra_registration_movie_segmentation_images is not None:
-                self.movie_segmentation_images = parameters.intra_registration_movie_segmentation_images
-        if hasattr(parameters, 'intra_registration_movie_post_segmentation_images'):
-            if parameters.intra_registration_movie_post_segmentation_images is not None:
-                self.movie_post_segmentation_images = parameters.intra_registration_movie_post_segmentation_images
+        self.movie_fusion_images = self.read_parameter(parameters, 'movie_fusion_images', self.movie_fusion_images)
+        self.movie_segmentation_images = self.read_parameter(parameters, 'movie_segmentation_images', self.movie_segmentation_images)
+        self.movie_post_segmentation_images = self.read_parameter(parameters, 'movie_post_segmentation_images', self.movie_post_segmentation_images)
 
-        if hasattr(parameters, 'intra_registration_xy_movie_fusion_images'):
-            if parameters.intra_registration_xy_movie_fusion_images is not None:
-                self.xy_movie_fusion_images = parameters.intra_registration_xy_movie_fusion_images
-        if hasattr(parameters, 'intra_registration_xz_movie_fusion_images'):
-            if parameters.intra_registration_xz_movie_fusion_images is not None:
-                self.xz_movie_fusion_images = parameters.intra_registration_xz_movie_fusion_images
-        if hasattr(parameters, 'intra_registration_yz_movie_fusion_images'):
-            if parameters.intra_registration_yz_movie_fusion_images is not None:
-                self.yz_movie_fusion_images = parameters.intra_registration_yz_movie_fusion_images
+        self.xy_movie_fusion_images = self.read_parameter(parameters, 'xy_movie_fusion_images', self.xy_movie_fusion_images)
+        self.xz_movie_fusion_images = self.read_parameter(parameters, 'xz_movie_fusion_images', self.xz_movie_fusion_images)
+        self.yz_movie_fusion_images = self.read_parameter(parameters, 'yz_movie_fusion_images', self.yz_movie_fusion_images)
 
-        if hasattr(parameters, 'intra_registration_xy_movie_segmentation_images'):
-            if parameters.intra_registration_xy_movie_segmentation_images is not None:
-                self.xy_movie_segmentation_images = parameters.intra_registration_xy_movie_segmentation_images
-        if hasattr(parameters, 'intra_registration_xz_movie_segmentation_images'):
-            if parameters.intra_registration_xz_movie_segmentation_images is not None:
-                self.xz_movie_segmentation_images = parameters.intra_registration_xz_movie_segmentation_images
-        if hasattr(parameters, 'intra_registration_yz_movie_segmentation_images'):
-            if parameters.intra_registration_yz_movie_segmentation_images is not None:
-                self.yz_movie_segmentation_images = parameters.intra_registration_yz_movie_segmentation_images
+        self.xy_movie_segmentation_images = self.read_parameter(parameters, 'xy_movie_segmentation_images', self.xy_movie_segmentation_images)
+        self.xz_movie_segmentation_images = self.read_parameter(parameters, 'xz_movie_segmentation_images', self.xz_movie_segmentation_images)
+        self.yz_movie_segmentation_images = self.read_parameter(parameters, 'yz_movie_segmentation_images', self.yz_movie_segmentation_images)
 
-        if hasattr(parameters, 'intra_registration_xy_movie_post_segmentation_images'):
-            if parameters.intra_registration_xy_movie_post_segmentation_images is not None:
-                self.xy_movie_post_segmentation_images = parameters.intra_registration_xy_movie_post_segmentation_images
-        if hasattr(parameters, 'intra_registration_xz_movie_post_segmentation_images'):
-            if parameters.intra_registration_xz_movie_post_segmentation_images is not None:
-                self.xz_movie_post_segmentation_images = parameters.intra_registration_xz_movie_post_segmentation_images
-        if hasattr(parameters, 'intra_registration_yz_movie_post_segmentation_images'):
-            if parameters.intra_registration_yz_movie_post_segmentation_images is not None:
-                self.yz_movie_post_segmentation_images = parameters.intra_registration_yz_movie_post_segmentation_images
+        self.xy_movie_post_segmentation_images = self.read_parameter(parameters, 'xy_movie_post_segmentation_images', self.xy_movie_post_segmentation_images)
+        self.xz_movie_post_segmentation_images = self.read_parameter(parameters, 'xz_movie_post_segmentation_images', self.xz_movie_post_segmentation_images)
+        self.yz_movie_post_segmentation_images = self.read_parameter(parameters, 'yz_movie_post_segmentation_images', self.yz_movie_post_segmentation_images)
 
-        if hasattr(parameters, 'intra_registration_maximum_fusion_images'):
-            if parameters.intra_registration_maximum_fusion_images is not None:
-                self.maximum_fusion_images = parameters.intra_registration_maximum_fusion_images
-        if hasattr(parameters, 'intra_registration_maximum_segmentation_images'):
-            if parameters.intra_registration_maximum_segmentation_images is not None:
-                self.maximum_segmentation_images = parameters.intra_registration_maximum_segmentation_images
-        if hasattr(parameters, 'intra_registration_maximum_post_segmentation_images'):
-            if parameters.intra_registration_maximum_post_segmentation_images is not None:
-                self.maximum_post_segmentation_images = parameters.intra_registration_maximum_post_segmentation_images
+        self.maximum_fusion_images = self.read_parameter(parameters, 'maximum_fusion_images', self.maximum_fusion_images)
+        self.maximum_segmentation_images = self.read_parameter(parameters, 'maximum_segmentation_images', self.maximum_segmentation_images)
+        self.maximum_post_segmentation_images = self.read_parameter(parameters, 'maximum_post_segmentation_images', self.maximum_post_segmentation_images)
+
         #
         # default for margin is none (ie no margin)
         # which is convenient for fusion images
@@ -367,6 +334,14 @@ class IntraRegParameters(object):
                     or parameters.intra_registration_template_type.lower() == 'post-segmentation' \
                     or parameters.intra_registration_template_type.lower() == 'post_segmentation' \
                     or parameters.intra_registration_template_type.lower() == 'post':
+                if margin_is_updated is False:
+                    parameters.intra_registration_margin = 10
+        if hasattr(parameters, 'template_type'):
+            if parameters.template_type.lower() == 'segmentation' \
+                    or parameters.template_type.lower() == 'seg' \
+                    or parameters.template_type.lower() == 'post-segmentation' \
+                    or parameters.template_type.lower() == 'post_segmentation' \
+                    or parameters.template_type.lower() == 'post':
                 if margin_is_updated is False:
                     parameters.intra_registration_margin = 10
 

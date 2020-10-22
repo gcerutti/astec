@@ -69,33 +69,43 @@ class PostCorrectionParameters(common.PrefixedParameter):
     #
     ############################################################
 
-    def print_parameters(self, spaces=0):
+    def print_parameters(self):
         print("")
-        print(spaces * ' ' + 'PostCorrectionParameters')
-        common.PrefixedParameter.print_parameters(self, spaces=spaces)
-        self.logprint('volume_minimal_value', self.volume_minimal_value, spaces=spaces)
-        self.logprint('lifespan_minimal_value', self.lifespan_minimal_value, spaces=spaces)
-        self.logprint('test_early_division', self.test_early_division, spaces=spaces)
-        self.logprint('test_volume_correlation', self.test_volume_correlation, spaces=spaces)
-        self.logprint('correlation_threshold', self.correlation_threshold, spaces=spaces)
-        self.logprint('lineage_diagnosis', self.lineage_diagnosis, spaces=spaces)
+        print('#')
+        print('# PostCorrectionParameters')
+        print('#')
+        
+        common.PrefixedParameter.print_parameters(self)
+
+        self.varprint('volume_minimal_value', self.volume_minimal_value)
+        self.varprint('lifespan_minimal_value', self.lifespan_minimal_value)
+        self.varprint('test_early_division', self.test_early_division)
+        self.varprint('test_volume_correlation', self.test_volume_correlation)
+        self.varprint('correlation_threshold', self.correlation_threshold)
+        self.varprint('lineage_diagnosis', self.lineage_diagnosis)
         print("")
 
     def write_parameters_in_file(self, logfile, spaces=0):
         logfile.write("\n")
-        logfile.write(spaces * ' ' + 'PostCorrectionParameters\n')
-        common.PrefixedParameter.write_parameters_in_file(self, logfile, spaces=spaces)
-        self.logwrite(logfile, 'volume_minimal_value', self.volume_minimal_value, spaces=spaces)
-        self.logwrite(logfile, 'lifespan_minimal_value', self.lifespan_minimal_value, spaces=spaces)
-        self.logwrite(logfile, 'test_early_division', self.test_early_division, spaces=spaces)
-        self.logwrite(logfile, 'test_volume_correlation', self.test_volume_correlation, spaces=spaces)
-        self.logwrite(logfile, 'correlation_threshold', self.correlation_threshold, spaces=spaces)
-        self.logwrite(logfile, 'lineage_diagnosis', self.lineage_diagnosis, spaces=spaces)
+        logfile.write("# \n")
+        logfile.write("# PostCorrectionParameters\n")
+        logfile.write("# \n")
+
+        common.PrefixedParameter.write_parameters_in_file(self, logfile)
+
+        self.varwrite(logfile, 'volume_minimal_value', self.volume_minimal_value)
+        self.varwrite(logfile, 'lifespan_minimal_value', self.lifespan_minimal_value)
+        self.varwrite(logfile, 'test_early_division', self.test_early_division)
+        self.varwrite(logfile, 'test_volume_correlation', self.test_volume_correlation)
+        self.varwrite(logfile, 'correlation_threshold', self.correlation_threshold)
+        self.varwrite(logfile, 'lineage_diagnosis', self.lineage_diagnosis)
+
         logfile.write("\n")
+        return
 
     def write_parameters(self, log_file_name, spaces=0):
         with open(log_file_name, 'a') as logfile:
-            self.write_parameters_in_file(logfile, spaces=spaces)
+            self.write_parameters_in_file(logfile)
         return
 
     ############################################################
@@ -106,9 +116,7 @@ class PostCorrectionParameters(common.PrefixedParameter):
 
     def update_from_parameters(self, parameters):
         self.volume_minimal_value = self.read_parameter(parameters, 'volume_minimal_value', self.volume_minimal_value)
-        if hasattr(parameters, 'postcor_Volume_Threshold'):
-            if parameters.postcor_Volume_Threshold is not None:
-                self.volume_minimal_value = parameters.postcor_Volume_Threshold
+        self.volume_minimal_value = self.read_parameter(parameters, 'Volume_Threshold', self.volume_minimal_value)
 
         self.lifespan_minimal_value = self.read_parameter(parameters, 'lifespan_minimal_value',
                                                           self.lifespan_minimal_value)

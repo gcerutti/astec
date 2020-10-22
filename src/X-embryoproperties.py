@@ -192,7 +192,7 @@ if __name__ == '__main__':
         #
         # write generic information into the log file
         #
-        monitoring.write_parameters()
+        monitoring.write_configuration()
         experiment.write_parameters()
 
         ############################################################

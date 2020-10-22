@@ -48,29 +48,42 @@ class MorphoSnakeParameters(common.PrefixedParameter):
 
     def __init__(self, prefix=None):
 
+        if False:
+            if prefix is None:
+                prefix = ['ms_']
+            elif type(prefix) == str:
+                if prefix != 'ms_':
+                    prefix = [prefix, 'ms_']
+            elif type(prefix) == list:
+                if 'ms_' not in prefix:
+                    prefix.append('ms_')
+            else:
+                print("Error: unhandled type '" + str(type(prefix)) + "' for prefix. Exiting.")
+                sys.exit(1)
+            
         common.PrefixedParameter.__init__(self, prefix=prefix)
 
         #
         # number of dilation iterations to get the initialization from 'previous' cell
         #
-        self.ms_dilation_iterations = 10
+        self.dilation_iterations = 10
         #
         # maximal number of iterations of the morphosnake
         #
-        self.ms_iterations = 200
+        self.iterations = 200
         #
         # threshold on the voxel number to break
         #
-        self.ms_delta_voxel = 10**3
+        self.delta_voxel = 10**3
 
-        self.ms_energy = 'image'
-        self.ms_smoothing = 3
-        self.ms_threshold = 1
-        self.ms_balloon = 1
+        self.energy = 'image'
+        self.smoothing = 3
+        self.threshold = 1
+        self.balloon = 1
 
-        self.ms_processors = 10
+        self.processors = 10
 
-        self.ms_mimic_historical_astec = False
+        self.mimic_historical_astec = False
 
     ############################################################
     #
@@ -78,41 +91,49 @@ class MorphoSnakeParameters(common.PrefixedParameter):
     #
     ############################################################
 
-    def print_parameters(self, spaces=0):
+    def print_parameters(self):
         print("")
-        print(spaces * ' ' + 'MorphoSnakeParameters')
-        common.PrefixedParameter.print_parameters(self, spaces=spaces)
-        self.logprint('ms_dilation_iterations', self.ms_dilation_iterations, spaces=spaces)
-        self.logprint('ms_iterations', self.ms_iterations, spaces=spaces)
-        self.logprint('ms_delta_voxel', self.ms_delta_voxel, spaces=spaces)
-        self.logprint('ms_energy', self.ms_energy, spaces=spaces)
-        self.logprint('ms_smoothing', self.ms_smoothing, spaces=spaces)
-        self.logprint('ms_threshold', self.ms_threshold, spaces=spaces)
-        self.logprint('ms_balloon', self.ms_balloon, spaces=spaces)
-        self.logprint('ms_processors', self.ms_processors, spaces=spaces)
-        self.logprint('ms_mimic_historical_astec', self.ms_mimic_historical_astec, spaces=spaces)
+        print('#')
+        print('# MorphoSnakeParameters')
+        print('#')
+
+        common.PrefixedParameter.print_parameters(self)
+
+        self.varprint('dilation_iterations', self.dilation_iterations)
+        self.varprint('iterations', self.iterations)
+        self.varprint('delta_voxel', self.delta_voxel)
+        self.varprint('energy', self.energy)
+        self.varprint('smoothing', self.smoothing)
+        self.varprint('threshold', self.threshold)
+        self.varprint('balloon', self.balloon)
+        self.varprint('processors', self.processors)
+        self.varprint('mimic_historical_astec', self.mimic_historical_astec)
         print("")
         return
 
-    def write_parameters_in_file(self, logfile, spaces=0):
+    def write_parameters_in_file(self, logfile):
         logfile.write("\n")
-        logfile.write(spaces * ' ' + 'MorphoSnakeParameters\n')
-        common.PrefixedParameter.write_parameters_in_file(self, logfile, spaces=spaces)
-        self.logwrite(logfile, 'ms_dilation_iterations', self.ms_dilation_iterations, spaces=spaces)
-        self.logwrite(logfile, 'ms_iterations', self.ms_iterations, spaces=spaces)
-        self.logwrite(logfile, 'ms_delta_voxel', self.ms_delta_voxel, spaces=spaces)
-        self.logwrite(logfile, 'ms_energy', self.ms_energy, spaces=spaces)
-        self.logwrite(logfile, 'ms_smoothing', self.ms_smoothing, spaces=spaces)
-        self.logwrite(logfile, 'ms_threshold', self.ms_threshold, spaces=spaces)
-        self.logwrite(logfile, 'ms_balloon', self.ms_balloon, spaces=spaces)
-        self.logwrite(logfile, 'ms_processors', self.ms_processors, spaces=spaces)
-        self.logwrite(logfile, 'ms_mimic_historical_astec', self.ms_mimic_historical_astec, spaces=spaces)
+        logfile.write("# \n")
+        logfile.write("# MorphoSnakeParameters\n")
+        logfile.write("# \n")
+
+        common.PrefixedParameter.write_parameters_in_file(self, logfile)
+
+        self.varwrite(logfile, 'dilation_iterations', self.dilation_iterations)
+        self.varwrite(logfile, 'iterations', self.iterations)
+        self.varwrite(logfile, 'delta_voxel', self.delta_voxel)
+        self.varwrite(logfile, 'energy', self.energy)
+        self.varwrite(logfile, 'smoothing', self.smoothing)
+        self.varwrite(logfile, 'threshold', self.threshold)
+        self.varwrite(logfile, 'balloon', self.balloon)
+        self.varwrite(logfile, 'processors', self.processors)
+        self.varwrite(logfile, 'mimic_historical_astec', self.mimic_historical_astec)
         logfile.write("\n")
         return
 
-    def write_parameters(self, log_file_name, spaces=0):
+    def write_parameters(self, log_file_name):
         with open(log_file_name, 'a') as logfile:
-            self.write_parameters_in_file(logfile, spaces=spaces)
+            self.write_parameters_in_file(logfile)
         return
 
     ############################################################
@@ -122,47 +143,27 @@ class MorphoSnakeParameters(common.PrefixedParameter):
     ############################################################
 
     def update_from_parameters(self, parameters):
-        if hasattr(parameters, 'morphosnake_dilation_iterations'):
-            if parameters.morphosnake_dilation_iterations is not None:
-                self.ms_dilation_iterations = parameters.morphosnake_dilation_iterations
-        if hasattr(parameters, 'astec_MorphosnakeIterations'):
-            if parameters.astec_MorphosnakeIterations is not None:
-                self.ms_dilation_iterations = parameters.astec_MorphosnakeIterations
-        self.ms_dilation_iterations = self.read_parameter(parameters, 'ms_dilation_iterations',
-                                                          self.ms_dilation_iterations)
-
-        if hasattr(parameters, 'morphosnake_iterations'):
-            if parameters.morphosnake_iterations is not None:
-                self.ms_iterations = parameters.morphosnake_iterations
-        if hasattr(parameters, 'astec_NIterations'):
-            if parameters.astec_NIterations is not None:
-                self.ms_iterations = parameters.astec_NIterations
-        self.ms_iterations = self.read_parameter(parameters, 'ms_iterations', self.ms_iterations)
-
-        if hasattr(parameters, 'morphosnake_delta_voxel'):
-            if parameters.morphosnake_delta_voxel is not None:
-                self.ms_delta_voxel = parameters.morphosnake_delta_voxel
-        if hasattr(parameters, 'astec_DeltaVoxels'):
-            if parameters.astec_DeltaVoxels is not None:
-                self.ms_delta_voxel = parameters.astec_DeltaVoxels
-        self.ms_delta_voxel = self.read_parameter(parameters, 'ms_delta_voxel', self.ms_delta_voxel)
-
-        self.ms_energy = self.read_parameter(parameters, 'ms_energy', self.ms_energy)
-        self.ms_smoothing = self.read_parameter(parameters, 'ms_smoothing', self.ms_smoothing)
-        self.ms_threshold = self.read_parameter(parameters, 'ms_threshold', self.ms_threshold)
-        self.ms_balloon = self.read_parameter(parameters, 'ms_balloon', self.ms_balloon)
-
-        if hasattr(parameters, 'morphosnake_processors'):
-            if parameters.morphosnake_processors is not None:
-                self.ms_processors = parameters.morphosnake_processors
-        if hasattr(parameters, 'astec_nb_proc'):
-            if parameters.astec_nb_proc is not None:
-                self.ms_processors = parameters.astec_nb_proc
-        self.ms_processors = self.read_parameter(parameters, 'ms_processors', self.ms_processors)
-
-        self.ms_mimic_historical_astec = self.read_parameter(parameters, 'ms_mimic_historical_astec',
-                                                             self.ms_mimic_historical_astec)
-
+        self.dilation_iterations = self.read_parameter(parameters, 'dilation_iterations', self.dilation_iterations)
+        self.dilation_iterations = self.read_parameter(parameters, 'astec_MorphosnakeIterations', 
+                                                       self.dilation_iterations)
+        
+        self.iterations = self.read_parameter(parameters, 'iterations', self.iterations)
+        self.iterations = self.read_parameter(parameters, 'astec_NIterations', self.iterations)
+        
+        self.delta_voxel = self.read_parameter(parameters, 'delta_voxel', self.delta_voxel)
+        self.delta_voxel = self.read_parameter(parameters, 'astec_DeltaVoxels', self.delta_voxel)
+        
+        self.energy = self.read_parameter(parameters, 'energy', self.energy)
+        self.smoothing = self.read_parameter(parameters, 'smoothing', self.smoothing)
+        self.threshold = self.read_parameter(parameters, 'threshold', self.threshold)
+        self.balloon = self.read_parameter(parameters, 'balloon', self.balloon)
+        
+        self.processors = self.read_parameter(parameters, 'processors', self.processors)
+        self.processors = self.read_parameter(parameters, 'astec_nb_proc', self.processors)
+        
+        self.mimic_historical_astec = self.read_parameter(parameters, 'mimic_historical_astec', 
+                                                          self.mimic_historical_astec)
+        
     def update_from_parameter_file(self, parameter_file):
         if parameter_file is None:
             return
@@ -196,10 +197,10 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
         #
         ############################################################
         mars.WatershedParameters.__init__(self, prefix=prefix)
-        self.watershed_membrane_sigma = 0.0
+        self.membrane_sigma = 0.0
         self.seed_reconstruction = reconstruction.ReconstructionParameters(prefix=[self._prefix, "seed_"])
         self.membrane_reconstruction = reconstruction.ReconstructionParameters(prefix=[self._prefix, "membrane_"])
-        self.morphosnake_reconstruction = reconstruction.ReconstructionParameters(prefix=[self._prefix, "ms_"])
+        self.morphosnake_reconstruction = reconstruction.ReconstructionParameters(prefix=[self._prefix, "morphosnake_"])
 
         MorphoSnakeParameters.__init__(self, prefix=prefix)
 
@@ -268,84 +269,85 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
     #
     ############################################################
 
-    def print_parameters(self, spaces=0):
+    def print_parameters(self):
         print("")
-        print(spaces * ' ' + 'AstecParameters')
+        print('#')
+        print('# AstecParameters')
+        print('#')
 
-        mars.WatershedParameters.print_parameters(self, spaces=spaces + 2)
-        self.seed_reconstruction.print_parameters(spaces=spaces + 2)
-        self.membrane_reconstruction.print_parameters(spaces=spaces + 2)
-        self.morphosnake_reconstruction.print_parameters(spaces=spaces + 2)
-        MorphoSnakeParameters.print_parameters(self, spaces=spaces + 2)
+        mars.WatershedParameters.print_parameters(self)
+        self.seed_reconstruction.print_parameters()
+        self.membrane_reconstruction.print_parameters()
+        self.morphosnake_reconstruction.print_parameters()
+        MorphoSnakeParameters.print_parameters(self)
 
-        self.logprint('propagation_strategy', self.propagation_strategy, spaces=spaces)
+        self.varprint('propagation_strategy', self.propagation_strategy)
 
-        self.logprint('previous_seg_method', self.previous_seg_method, spaces=spaces)
-        self.logprint('previous_seg_erosion_cell_iterations', self.previous_seg_erosion_cell_iterations, spaces=spaces)
-        self.logprint('previous_seg_erosion_background_iterations', self.previous_seg_erosion_background_iterations,
-                      spaces=spaces)
-        self.logprint('previous_seg_erosion_cell_min_size', self.previous_seg_erosion_cell_min_size, spaces=spaces)
+        self.varprint('previous_seg_method', self.previous_seg_method)
+        self.varprint('previous_seg_erosion_cell_iterations', self.previous_seg_erosion_cell_iterations)
+        self.varprint('previous_seg_erosion_background_iterations', self.previous_seg_erosion_background_iterations)
+        self.varprint('previous_seg_erosion_cell_min_size', self.previous_seg_erosion_cell_min_size)
 
-        self.logprint('watershed_seed_hmin_min_value', self.watershed_seed_hmin_min_value, spaces=spaces)
-        self.logprint('watershed_seed_hmin_max_value', self.watershed_seed_hmin_max_value, spaces=spaces)
-        self.logprint('watershed_seed_hmin_delta_value', self.watershed_seed_hmin_delta_value, spaces=spaces)
+        self.varprint('watershed_seed_hmin_min_value', self.watershed_seed_hmin_min_value)
+        self.varprint('watershed_seed_hmin_max_value', self.watershed_seed_hmin_max_value)
+        self.varprint('watershed_seed_hmin_delta_value', self.watershed_seed_hmin_delta_value)
 
-        self.logprint('background_seed_from_hmin', self.background_seed_from_hmin, spaces=spaces)
-        self.logprint('background_seed_from_previous', self.background_seed_from_previous, spaces=spaces)
+        self.varprint('background_seed_from_hmin', self.background_seed_from_hmin)
+        self.varprint('background_seed_from_previous', self.background_seed_from_previous)
 
-        self.logprint('seed_selection_tau', self.seed_selection_tau, spaces=spaces)
+        self.varprint('seed_selection_tau', self.seed_selection_tau)
 
-        self.logprint('minimum_volume_unseeded_cell', self.minimum_volume_unseeded_cell, spaces=spaces)
+        self.varprint('minimum_volume_unseeded_cell', self.minimum_volume_unseeded_cell)
 
-        self.logprint('volume_ratio_tolerance', self.volume_ratio_tolerance, spaces=spaces)
-        self.logprint('volume_ratio_threshold', self.volume_ratio_threshold, spaces=spaces)
-        self.logprint('volume_minimal_value', self.volume_minimal_value, spaces=spaces)
+        self.varprint('volume_ratio_tolerance', self.volume_ratio_tolerance)
+        self.varprint('volume_ratio_threshold', self.volume_ratio_threshold)
+        self.varprint('volume_minimal_value', self.volume_minimal_value)
 
-        self.logprint('outer_correction_radius_opening', self.outer_correction_radius_opening, spaces=spaces)
+        self.varprint('outer_correction_radius_opening', self.outer_correction_radius_opening)
         print("")
 
-    def write_parameters_in_file(self, logfile, spaces=0):
+    def write_parameters_in_file(self, logfile):
         logfile.write("\n")
-        logfile.write(spaces * ' ' + 'AstecParameters\n')
+        logfile.write("# \n")
+        logfile.write("# AstecParameters\n")
+        logfile.write("# \n")
 
-        common.PrefixedParameter.write_parameters_in_file(self, logfile, spaces=spaces)
-        mars.WatershedParameters.write_parameters_in_file(self, logfile, spaces=spaces + 2)
-        self.seed_reconstruction.write_parameters_in_file(logfile, spaces=spaces + 2)
-        self.membrane_reconstruction.write_parameters_in_file(logfile, spaces=spaces + 2)
-        self.morphosnake_reconstruction.write_parameters_in_file(logfile, spaces=spaces + 2)
-        MorphoSnakeParameters.write_parameters_in_file(self, logfile, spaces=spaces + 2)
+        common.PrefixedParameter.write_parameters_in_file(self, logfile)
+        mars.WatershedParameters.write_parameters_in_file(self, logfile)
+        self.seed_reconstruction.write_parameters_in_file(logfile)
+        self.membrane_reconstruction.write_parameters_in_file(logfile)
+        self.morphosnake_reconstruction.write_parameters_in_file(logfile)
+        MorphoSnakeParameters.write_parameters_in_file(self, logfile)
 
-        self.logwrite(logfile, 'propagation_strategy', self.propagation_strategy, spaces=spaces)
+        self.varwrite(logfile, 'propagation_strategy', self.propagation_strategy)
 
-        self.logwrite(logfile, 'previous_seg_method', self.previous_seg_method, spaces=spaces)
-        self.logwrite(logfile, 'previous_seg_erosion_cell_iterations', self.previous_seg_erosion_cell_iterations,
-                      spaces=spaces)
-        self.logwrite(logfile, 'previous_seg_erosion_background_iterations',
-                      self.previous_seg_erosion_background_iterations, spaces=spaces)
-        self.logwrite(logfile, 'previous_seg_erosion_cell_min_size', self.previous_seg_erosion_cell_min_size,
-                      spaces=spaces)
+        self.varwrite(logfile, 'previous_seg_method', self.previous_seg_method)
+        self.varwrite(logfile, 'previous_seg_erosion_cell_iterations', self.previous_seg_erosion_cell_iterations)
+        self.varwrite(logfile, 'previous_seg_erosion_background_iterations',
+                      self.previous_seg_erosion_background_iterations)
+        self.varwrite(logfile, 'previous_seg_erosion_cell_min_size', self.previous_seg_erosion_cell_min_size)
 
-        self.logwrite(logfile, 'watershed_seed_hmin_min_value', self.watershed_seed_hmin_min_value, spaces=spaces)
-        self.logwrite(logfile, 'watershed_seed_hmin_max_value', self.watershed_seed_hmin_max_value, spaces=spaces)
-        self.logwrite(logfile, 'watershed_seed_hmin_delta_value', self.watershed_seed_hmin_delta_value, spaces=spaces)
+        self.varwrite(logfile, 'watershed_seed_hmin_min_value', self.watershed_seed_hmin_min_value)
+        self.varwrite(logfile, 'watershed_seed_hmin_max_value', self.watershed_seed_hmin_max_value)
+        self.varwrite(logfile, 'watershed_seed_hmin_delta_value', self.watershed_seed_hmin_delta_value)
 
-        self.logwrite(logfile, 'background_seed_from_hmin', self.background_seed_from_hmin, spaces=spaces)
-        self.logwrite(logfile, 'background_seed_from_previous', self.background_seed_from_previous, spaces=spaces)
+        self.varwrite(logfile, 'background_seed_from_hmin', self.background_seed_from_hmin)
+        self.varwrite(logfile, 'background_seed_from_previous', self.background_seed_from_previous)
 
-        self.logwrite(logfile, 'seed_selection_tau', self.seed_selection_tau, spaces=spaces)
+        self.varwrite(logfile, 'seed_selection_tau', self.seed_selection_tau)
 
-        self.logwrite(logfile, 'minimum_volume_unseeded_cell', self.minimum_volume_unseeded_cell, spaces=spaces)
+        self.varwrite(logfile, 'minimum_volume_unseeded_cell', self.minimum_volume_unseeded_cell)
 
-        self.logwrite(logfile, 'volume_ratio_tolerance', self.volume_ratio_tolerance, spaces=spaces)
-        self.logwrite(logfile, 'volume_ratio_threshold', self.volume_ratio_threshold, spaces=spaces)
-        self.logwrite(logfile, 'volume_minimal_value', self.volume_minimal_value, spaces=spaces)
+        self.varwrite(logfile, 'volume_ratio_tolerance', self.volume_ratio_tolerance)
+        self.varwrite(logfile, 'volume_ratio_threshold', self.volume_ratio_threshold)
+        self.varwrite(logfile, 'volume_minimal_value', self.volume_minimal_value)
 
-        self.logwrite(logfile, 'outer_correction_radius_opening', self.outer_correction_radius_opening, spaces=spaces)
+        self.varwrite(logfile, 'outer_correction_radius_opening', self.outer_correction_radius_opening)
         return
 
-    def write_parameters(self, log_file_name, spaces=0):
+    def write_parameters(self, log_file_name):
         with open(log_file_name, 'a') as logfile:
-            self.write_parameters_in_file(logfile, spaces=spaces)
+            self.write_parameters_in_file(logfile)
         return
 
     ############################################################
@@ -412,7 +414,7 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
                                                                 self.minimum_volume_unseeded_cell)
 
         self.volume_ratio_tolerance = self.read_parameter(parameters, 'volume_ratio_tolerance',
-                                                         self.volume_ratio_tolerance)
+                                                          self.volume_ratio_tolerance)
 
         self.volume_ratio_tolerance = self.read_parameter(parameters, 'volume_ratio_tolerance',
                                                           self.volume_ratio_tolerance)
@@ -634,7 +636,7 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, image_for_se
     #
     h_max = parameters.watershed_seed_hmin_max_value
     wparam = mars.WatershedParameters(obj=parameters)
-    wparam.watershed_seed_hmin = h_max
+    wparam.seed_hmin = h_max
     h_min = h_max
 
     input_image = image_for_seed
@@ -708,7 +710,7 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, image_for_se
         for nb, labels, c in outputs:
             returned_n_seeds.append(nb)
             n_seeds.setdefault(c, []).append(nb)
-            parameter_seeds.setdefault(c, []).append([h_min, parameters.watershed_seed_sigma])
+            parameter_seeds.setdefault(c, []).append([h_min, parameters.seed_sigma])
 
         #
         # next h value
@@ -739,8 +741,8 @@ def _cell_based_h_minima(first_segmentation, cells, bounding_boxes, image_for_se
             # - smoothing has already been done (to get the first difference image)
             #   and is no more required -> sigma = 0.0
             #
-            wparam.watershed_seed_hmin = h_min
-            wparam.watershed_seed_sigma = 0.0
+            wparam.seed_hmin = h_min
+            wparam.seed_sigma = 0.0
 
             input_image = difference_image
             unmasked_seed_image = common.add_suffix(image_for_seed, "_unmasked_seed_h" + str('{:03d}'.format(h_min)),
@@ -1833,27 +1835,27 @@ def _morphosnakes(parameters_for_parallelism):
     # dilation of the mother cell from subsegmentation to get the initial curve
     #
     subsegmentation = imread(subsegmentation_name)
-    initialization = nd.binary_dilation(subsegmentation == mother_c, iterations=astec_parameters.ms_dilation_iterations)
+    initialization = nd.binary_dilation(subsegmentation == mother_c, iterations=astec_parameters.dilation_iterations)
     if write_images:
         initialization_name = common.add_suffix(subsegmentation_name, '_initialization')
         imsave(initialization_name, SpatialImage(initialization.astype(np.uint8)))
 
-    ms_energy = astec_parameters.ms_energy
-    if ms_energy .lower() == 'gradient':
+    energy = astec_parameters.energy
+    if energy .lower() == 'gradient':
         pass
-    elif ms_energy.lower() == 'image':
+    elif energy.lower() == 'image':
         pass
     else:
         monitoring.to_log_and_console(str(proc) + ": unknown energy function, switch to image-based")
-        ms_energy = 'image'
+        energy = 'image'
 
-    if ms_energy.lower() == 'gradient':
+    if energy.lower() == 'gradient':
         gradient_name = common.add_suffix(subimage_name, '_gradient')
         cpp_wrapping.gradient_norm(subimage_name, gradient_name)
         energy = imread(gradient_name)
         energy = 1. / np.sqrt(1 + 100 * energy)
     else:
-        # ms_energy.lower() == 'image':
+        # energy.lower() == 'image':
         subimage = imread(subimage_name)
         subimage_min = float(subimage.min())
         subimage_max = float(subimage.max())
@@ -1864,13 +1866,13 @@ def _morphosnakes(parameters_for_parallelism):
         energy_name = common.add_suffix(subsegmentation_name, '_energy')
         imsave(energy_name, SpatialImage(energy.astype(np.float32)))
 
-    macwe = morphsnakes.MorphGAC(energy, smoothing=astec_parameters.ms_smoothing, threshold=1,
-                                 balloon=astec_parameters.ms_balloon)
+    macwe = morphsnakes.MorphGAC(energy, smoothing=astec_parameters.smoothing, threshold=1,
+                                 balloon=astec_parameters.balloon)
     macwe.levelset = initialization
     before = np.ones_like(initialization)
 
     step = 1
-    for i in xrange(0, astec_parameters.ms_iterations, step):
+    for i in xrange(0, astec_parameters.iterations, step):
         bbefore = copy.deepcopy(before)
         before = copy.deepcopy(macwe.levelset)
         macwe.run(step)
@@ -1880,8 +1882,8 @@ def _morphosnakes(parameters_for_parallelism):
             if i > 0 and i % 10 == 0:
                 result_name = common.add_suffix(subsegmentation_name, '_step' + str(i))
                 imsave(result_name, SpatialImage(macwe.levelset.astype(np.uint8)))
-        if np.sum(before != macwe.levelset) < astec_parameters.ms_delta_voxel \
-                or np.sum(bbefore != macwe.levelset) < astec_parameters.ms_delta_voxel:
+        if np.sum(before != macwe.levelset) < astec_parameters.delta_voxel \
+                or np.sum(bbefore != macwe.levelset) < astec_parameters.delta_voxel:
             break
 
     cell_out = macwe.levelset
@@ -1905,7 +1907,7 @@ def _historical_morphosnakes(parameters_for_parallelism):
     # dilation of the mother cell from subsegmentation to get the initial curve
     #
     subsegmentation = imread(subsegmentation_name)
-    initialization = nd.binary_erosion(subsegmentation != mother_c, iterations=astec_parameters.ms_dilation_iterations,
+    initialization = nd.binary_erosion(subsegmentation != mother_c, iterations=astec_parameters.dilation_iterations,
                                        border_value=1)
     if write_images:
         initialization_name = common.add_suffix(subsegmentation_name, '_initialization')
@@ -1921,13 +1923,13 @@ def _historical_morphosnakes(parameters_for_parallelism):
         energy_name = common.add_suffix(subsegmentation_name, '_energy')
         imsave(energy_name, SpatialImage(energy.astype(np.float32)))
 
-    macwe = morphsnakes.MorphGAC(energy, smoothing=astec_parameters.ms_smoothing, threshold=1,
-                                 balloon=astec_parameters.ms_balloon)
+    macwe = morphsnakes.MorphGAC(energy, smoothing=astec_parameters.smoothing, threshold=1,
+                                 balloon=astec_parameters.balloon)
     macwe.levelset = initialization
     before = np.ones_like(initialization)
 
     step = 1
-    for i in xrange(0, astec_parameters.ms_iterations, step):
+    for i in xrange(0, astec_parameters.iterations, step):
         bbefore = copy.deepcopy(before)
         before = copy.deepcopy(macwe.levelset)
         macwe.step()
@@ -1937,8 +1939,8 @@ def _historical_morphosnakes(parameters_for_parallelism):
             if i > 0 and i % 10 == 0:
                 result_name = common.add_suffix(subsegmentation_name, '_step' + str(i))
                 imsave(result_name, SpatialImage(macwe.levelset.astype(np.uint8)))
-        if np.sum(before != macwe.levelset) < astec_parameters.ms_delta_voxel \
-                or np.sum(bbefore != macwe.levelset) < astec_parameters.ms_delta_voxel:
+        if np.sum(before != macwe.levelset) < astec_parameters.delta_voxel \
+                or np.sum(bbefore != macwe.levelset) < astec_parameters.delta_voxel:
             break
 
     cell_out = macwe.levelset
@@ -2105,11 +2107,11 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, deforme
     mapping = []
     for mother_c in exterior_correction:
         #
-        # cell will be dilated by parameters.ms_dilation_iterations to get the initial curve
+        # cell will be dilated by parameters.dilation_iterations to get the initial curve
         # add a margin of 5 voxels
         #
         bb = _slices_dilation(bounding_boxes[mother_c-1], maximum=prev_seg.shape,
-                              iterations=parameters.ms_dilation_iterations+5)
+                              iterations=parameters.dilation_iterations+5)
         #
         # subimages
         #
@@ -2129,8 +2131,8 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, deforme
     #
     #
 
-    pool = multiprocessing.Pool(processes=parameters.ms_processors)
-    if parameters.ms_mimic_historical_astec:
+    pool = multiprocessing.Pool(processes=parameters.processors)
+    if parameters.mimic_historical_astec:
         outputs = pool.map(_historical_morphosnakes, mapping)
     else:
         outputs = pool.map(_morphosnakes, mapping)

@@ -62,8 +62,8 @@ class ManualCorrectionParameters(object):
         #
         # images suffixes/formats
         #
-        self.result_image_suffix = 'inr'
-        self.default_image_suffix = 'inr'
+        self.result_image_suffix = 'mha'
+        self.default_image_suffix = 'mha'
 
     ############################################################
     #
@@ -72,37 +72,43 @@ class ManualCorrectionParameters(object):
     ############################################################
 
     def print_parameters(self):
+        print('')
+        print('#')
+        print('# ManualCorrectionParameters ')
+        print('#')
+
+        print(common.str_variable('first_time_point', self.first_time_point))
+        print(common.str_variable('last_time_point', self.last_time_point))
+
+        print(common.str_variable('input_image', self.input_image))
+        print(common.str_variable('output_image', self.output_image))
+        print(common.str_variable('mapping_file', self.mapping_file))
+
+        print(common.str_variable('result_image_suffix', self.result_image_suffix))
+        print(common.str_variable('default_image_suffix', self.default_image_suffix))
         print("")
-        print('ManualCorrectionParameters')
 
-        print('- first_time_point = ' + str(self.first_time_point))
-        print('- last_time_point = ' + str(self.last_time_point))
+    def write_parameters_in_file(self, logfile):
+        logfile.write('\n')
+        logfile.write('#' + '\n')
+        logfile.write('# ManualCorrectionParameters ' + '\n')
+        logfile.write('#' + '\n')
 
-        print('- input_image = ' + str(self.input_image))
-        print('- output_image = ' + str(self.output_image))
-        print('- mapping_file = ' + str(self.mapping_file))
+        logfile.write(common.str_variable('first_time_point', self.first_time_point) + '\n')
+        logfile.write(common.str_variable('last_time_point', self.last_time_point) + '\n')
 
-        print('- result_image_suffix = ' + str(self.result_image_suffix))
-        print('- default_image_suffix = ' + str(self.default_image_suffix))
+        logfile.write(common.str_variable('input_image', self.input_image) + '\n')
+        logfile.write(common.str_variable('output_image', self.output_image) + '\n')
+        logfile.write(common.str_variable('mapping_file', self.mapping_file) + '\n')
 
-        print("")
+        logfile.write(common.str_variable('result_image_suffix', self.result_image_suffix) + '\n')
+        logfile.write(common.str_variable('default_image_suffix', self.default_image_suffix) + '\n')
+        logfile.write("\n")
+        return
 
     def write_parameters(self, log_file_name):
         with open(log_file_name, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('ManualCorrectionParameters\n')
-
-            logfile.write('- first_time_point = ' + str(self.first_time_point) + '\n')
-            logfile.write('- last_time_point = ' + str(self.last_time_point) + '\n')
-
-            logfile.write('- input_image = ' + str(self.input_image) + '\n')
-            logfile.write('- output_image = ' + str(self.output_image) + '\n')
-            logfile.write('- mapping_file = ' + str(self.mapping_file) + '\n')
-
-            logfile.write('- result_image_suffix = ' + str(self.result_image_suffix) + '\n')
-            logfile.write('- default_image_suffix = '+str(self.default_image_suffix) + '\n')
-
-            logfile.write("\n")
+            self.write_parameters_in_file(logfile)
         return
 
     ############################################################

@@ -36,6 +36,38 @@ def _timestamp_to_str(timestamp=None):
     return d
 
 
+def str_variable(name, value):
+    # print("   - value = " + str(value) + " type=" + str(type(value)))
+    s = "# " + name + " = "
+    if value is None:
+        s += str(value)
+    elif type(value) == str:
+        s += "'" + value + "'"
+    elif type(value) == bool:
+        s += str(value)
+    elif type(value) == float:
+        s += str(value)
+    elif type(value) == int:
+        s += str(value)
+    elif type(value) == list:
+        if len(value) > 0:
+            if type(value[0]) == str:
+                for i in range(len(value)):
+                    s += "'" + value[i] + "'"
+                    if i < len(value):
+                        s += ", "
+            else:
+                s += "unhandled type"
+            s += "]"
+        else:
+            s += str(value)
+    elif type(value) == tuple:
+        s += str(value)
+    else:
+        s += "unhandled type"
+    return s
+
+
 ##################################################
 #
 #
@@ -121,21 +153,39 @@ class PrefixedParameter(object):
         #     name = desc
         # return '- ' + name + ' = '
 
-    def logprint(self, name, value, spaces=0):
+    def confprint(self, name, value, spaces=0):
         print(spaces * ' ' + self._fulldesc(name) + str(value))
 
-    def print_parameters(self, spaces=0):
+    def print_configuration(self, spaces=0):
         print(spaces * ' ' + "- _prefix = " + str(self._prefix))
         print(spaces * ' ' + "- _full_prefix = " + str(self._full_prefix))
         print(spaces * ' ' + "- _prefixes = " + str(self._prefixes))
 
-    def logwrite(self, logfile, name, value, spaces=0):
+    def confwrite(self, logfile, name, value, spaces=0):
         logfile.write(spaces * ' ' + self._fulldesc(name) + str(value) + '\n')
 
-    def write_parameters_in_file(self, logfile, spaces=0):
+    def write_configuration_in_file(self, logfile, spaces=0):
         logfile.write(spaces * ' ' + "- _prefix = " + str(self._prefix) + '\n')
         logfile.write(spaces * ' ' + "- _full_prefix = " + str(self._full_prefix) + '\n')
         logfile.write(spaces * ' ' + "- _prefixes = " + str(self._prefixes) + '\n')
+
+    def varprint(self, name, value):
+        print(str_variable(self._full_prefix + name, value))
+
+    def print_parameters(self):
+        print('# _prefix      = ' + str(self._prefix))
+        print('# _full_prefix = ' + str(self._full_prefix))
+        print('# _prefixes    = ' + str(self._prefixes))
+        print('#')
+
+    def varwrite(self, logfile, name, value):
+        logfile.write(str_variable(self._full_prefix + name, value) + '\n')
+
+    def write_parameters_in_file(self, logfile):
+        logfile.write('# _prefix      = ' + str(self._prefix) + '\n')
+        logfile.write('# _full_prefix = ' + str(self._full_prefix) + '\n')
+        logfile.write('# _prefixes    = ' + str(self._prefixes) + '\n')
+        logfile.write('#' + '\n')
 
 ##################################################
 #
@@ -165,9 +215,9 @@ class Monitoring(object):
     #
     ############################################################
 
-    def print_parameters(self):
+    def print_configuration(self):
         print("")
-        print('Monitoring parameters')
+        print('Monitoring configuration')
         print('- verbose is ' + str(self.verbose))
         print('- debug is ' + str(self.debug))
         print('- log_filename is ' + str(self.log_filename))
@@ -175,11 +225,11 @@ class Monitoring(object):
         print('- forceResultsToBeBuilt is ' + str(self.forceResultsToBeBuilt))
         print("")
 
-    def write_parameters(self):
+    def write_configuration(self):
         if self.log_filename is not None:
             with open(self.log_filename, 'a') as logfile:
                 logfile.write("\n")
-                logfile.write('Monitoring parameters\n')
+                logfile.write('Monitoring status\n')
                 logfile.write('- verbose is ' + str(self.verbose)+'\n')
                 logfile.write('- debug is ' + str(self.debug)+'\n')
                 logfile.write('- log_filename is ' + str(self.log_filename)+'\n')
@@ -413,10 +463,11 @@ class RawdataChannel(object):
     #
     ############################################################
 
-    def __init__(self, c=None):
+    def __init__(self, c=0):
 
         self._parent_directory = None
         self._main_directory = 'RAWDATA'
+        self._channel_id = c
 
         #
         # raw data directories
@@ -466,14 +517,12 @@ class RawdataChannel(object):
     #
     ############################################################
 
-    def print_parameters(self, desc=None):
-        if desc is not None:
-            print("  - " + str(desc) + " =")
+    def print_configuration(self):
         if self.is_empty():
-            print('    RawdataChannel empty')
+            print('    RawdataChannel ' + str(self._channel_id) + ' is empty')
             return
         else:
-            print('    RawdataChannel')
+            print('    RawdataChannel ' + str(self._channel_id))
         print("    - _parent_directory = " + str(self._parent_directory))
         print("    - _main_directory = " + str(self._main_directory))
 
@@ -494,12 +543,10 @@ class RawdataChannel(object):
         print('    - _time_digits_for_acquisition = ' + str(self._time_digits_for_acquisition))
         return
 
-    def write_parameters_in_file(self, logfile, desc=None):
-        if desc is not None:
-            logfile.write("  - " + str(desc) + " =\n")
-        logfile.write('    RawdataChannel')
+    def write_configuration_in_file(self, logfile):
+        logfile.write('    RawdataChannel ' + str(self._channel_id))
         if self.is_empty():
-            logfile.write(' empty\n')
+            logfile.write(' is empty\n')
             return
         else:
             logfile.write('\n')
@@ -521,6 +568,48 @@ class RawdataChannel(object):
 
         logfile.write('    - fusion_weighting = ' + str(self.fusion_weighting) + '\n')
         logfile.write('    - _time_digits_for_acquisition = ' + str(self._time_digits_for_acquisition) + '\n')
+        return
+
+    def print_parameters(self):
+        print('')
+        print('#')
+        print('# RawdataChannel ' + str(self._channel_id))
+        print('#')
+        if self._channel_id == 0:
+            ext = ''
+        else:
+            ext = '_CHANNEL' + str(self._channel_id)
+        print(str_variable('DIR_RAWDATA' + ext, self._main_directory))
+        print(str_variable('DIR_LEFTCAM_STACKZERO' + ext, self.angle0_sub_directory))
+        print(str_variable('DIR_RIGHTCAM_STACKZERO' + ext, self.angle1_sub_directory))
+        print(str_variable('DIR_LEFTCAM_STACKONE' + ext, self.angle2_sub_directory))
+        print(str_variable('DIR_RIGHTCAM_STACKONE' + ext, self.angle3_sub_directory))
+        if self._channel_id == 0:
+            ext = ''
+        else:
+            ext = '_channel' + str(self._channel_id)
+        print(str_variable('fusion_weighting' + ext, self.fusion_weighting))
+        return
+
+    def write_parameters_in_file(self, logfile):
+        logfile.write('\n')
+        logfile.write('#' + '\n')
+        logfile.write('# RawdataChannel ' + str(self._channel_id) + '\n')
+        logfile.write('#' + '\n')
+        if self._channel_id == 0:
+            ext = ''
+        else:
+            ext = '_CHANNEL_' + str(self._channel_id)
+        logfile.write(str_variable('DIR_RAWDATA' + ext, self._main_directory) + '\n')
+        logfile.write(str_variable('DIR_LEFTCAM_STACKZERO' + ext, self.angle0_sub_directory) + '\n')
+        logfile.write(str_variable('DIR_RIGHTCAM_STACKZERO' + ext, self.angle1_sub_directory) + '\n')
+        logfile.write(str_variable('DIR_LEFTCAM_STACKONE' + ext, self.angle2_sub_directory) + '\n')
+        logfile.write(str_variable('DIR_RIGHTCAM_STACKONE' + ext, self.angle3_sub_directory) + '\n')
+        if self._channel_id == 0:
+            ext = ''
+        else:
+            ext = '_channel' + str(self._channel_id)
+        logfile.write(str_variable('fusion_weighting' + ext, self.fusion_weighting) + '\n')
         return
 
     ############################################################
@@ -682,16 +771,28 @@ class RawdataSubdirectory(object):
     #
     ############################################################
 
+    def print_configuration(self):
+        for i in range(self._n_max_channels):
+            self.channel[i].print_configuration()
+        print('  - _time_digits_for_acquisition = ' + str(self._time_digits_for_acquisition))
+        return
+
+    def write_configuration_in_file(self, logfile):
+        for i in range(self._n_max_channels):
+            self.channel[i].write_configuration_in_file(logfile)
+        logfile.write('  - _time_digits_for_acquisition = ' + str(self._time_digits_for_acquisition) + '\n')
+        return
+
     def print_parameters(self):
         for i in range(self._n_max_channels):
-            self.channel[i].print_parameters('channel #' + str(i))
-        print('  - _time_digits_for_acquisition = ' + str(self._time_digits_for_acquisition))
+            self.channel[i].print_parameters()
+        print("")
         return
 
     def write_parameters_in_file(self, logfile):
         for i in range(self._n_max_channels):
-            self.channel[i].write_parameters_in_file(logfile, 'channel #' + str(i))
-        logfile.write('  - _time_digits_for_acquisition = ' + str(self._time_digits_for_acquisition) + '\n')
+            self.channel[i].write_parameters_in_file(logfile)
+        logfile.write("\n")
         return
 
     ############################################################
@@ -810,7 +911,7 @@ class GenericSubdirectory(object):
     #
     ############################################################
 
-    def print_parameters(self):
+    def print_configuration(self):
         self._set_directory()
         self._set_log_directory()
         self._set_rec_directory()
@@ -844,7 +945,7 @@ class GenericSubdirectory(object):
                 for i in range(len(self._directory)):
                     logfile.write("      #" + str(i) + ": '" + str(self.get_directory(i)) + "'\n")
 
-    def write_parameters_in_file(self, logfile):
+    def write_configuration_in_file(self, logfile):
         self._set_directory()
         self._set_log_directory()
         self._set_rec_directory()
@@ -1172,16 +1273,24 @@ class FuseSubdirectory(GenericSubdirectory):
 
         self._xzsection_directory = list()
 
-    def print_parameters(self):
+    def print_configuration(self):
         self._set_directory()
         print("  - subpath/to/fusion is")
-        GenericSubdirectory.print_parameters(self)
+        GenericSubdirectory.print_configuration(self)
+        return
+
+    def write_configuration_in_file(self, logfile):
+        self._set_directory()
+        logfile.write("  - subpath/to/fusion is \n")
+        GenericSubdirectory.write_configuration_in_file(self, logfile)
+
+    def print_parameters(self):
+        print(str_variable('EXP_FUSE', self._sub_directory_suffix))
         return
 
     def write_parameters_in_file(self, logfile):
-        self._set_directory()
-        logfile.write("  - subpath/to/fusion is \n")
-        GenericSubdirectory.write_parameters_in_file(self, logfile)
+        logfile.write(str_variable('EXP_FUSE', self._sub_directory_suffix) + '\n')
+        return
 
     def update_from_parameters(self, parameters):
         if hasattr(parameters, 'EXP_FUSE'):
@@ -1219,16 +1328,24 @@ class IntraregSubdirectory(GenericSubdirectory):
         self._sub_directory_suffix = 'RELEASE'
         self._file_suffix = "_intrareg"
 
-    def print_parameters(self):
+    def print_configuration(self):
         self._set_directory()
         print("  - subpath/to/intraregistration is")
-        GenericSubdirectory.print_parameters(self)
+        GenericSubdirectory.print_configuration(self)
+        return
+
+    def write_configuration_in_file(self, logfile):
+        self._set_directory()
+        logfile.write("  - subpath/to/intraregistration is \n")
+        GenericSubdirectory.write_configuration_in_file(self, logfile)
+
+    def print_parameters(self):
+        print(str_variable('EXP_INTRAREG', self._sub_directory_suffix))
         return
 
     def write_parameters_in_file(self, logfile):
-        self._set_directory()
-        logfile.write("  - subpath/to/intraregistration is \n")
-        GenericSubdirectory.write_parameters_in_file(self, logfile)
+        logfile.write(str_variable('EXP_INTRAREG', self._sub_directory_suffix) + '\n')
+        return
 
     def update_from_parameters(self, parameters):
         if hasattr(parameters, 'EXP_INTRAREG'):
@@ -1252,16 +1369,24 @@ class MarsSubdirectory(GenericSubdirectory):
         self._sub_directory_suffix = 'RELEASE'
         self._file_suffix = "_mars"
 
-    def print_parameters(self):
+    def print_configuration(self):
         self._set_directory()
         print("  - subpath/to/mars is")
-        GenericSubdirectory.print_parameters(self)
+        GenericSubdirectory.print_configuration(self)
+        return
+
+    def write_configuration_in_file(self, logfile):
+        self._set_directory()
+        logfile.write("  - subpath/to/mars is \n")
+        GenericSubdirectory.write_configuration_in_file(self, logfile)
+
+    def print_parameters(self):
+        print(str_variable('EXP_MARS', self._sub_directory_suffix))
         return
 
     def write_parameters_in_file(self, logfile):
-        self._set_directory()
-        logfile.write("  - subpath/to/mars is \n")
-        GenericSubdirectory.write_parameters_in_file(self, logfile)
+        logfile.write(str_variable('EXP_MARS', self._sub_directory_suffix) + '\n')
+        return
 
     def  update_from_parameters(self, parameters):
         if hasattr(parameters, 'EXP_SEG'):
@@ -1288,16 +1413,24 @@ class AstecSubdirectory(GenericSubdirectory):
         self._sub_directory_suffix = 'RELEASE'
         self._file_suffix = "_seg"
 
-    def print_parameters(self):
+    def print_configuration(self):
         self._set_directory()
         print("  - subpath/to/seg is")
-        GenericSubdirectory.print_parameters(self)
+        GenericSubdirectory.print_configuration(self)
+        return
+
+    def write_configuration_in_file(self, logfile):
+        self._set_directory()
+        logfile.write("  - subpath/to/seg is \n")
+        GenericSubdirectory.write_configuration_in_file(self, logfile)
+
+    def print_parameters(self):
+        print(str_variable('EXP_SEG', self._sub_directory_suffix))
         return
 
     def write_parameters_in_file(self, logfile):
-        self._set_directory()
-        logfile.write("  - subpath/to/seg is \n")
-        GenericSubdirectory.write_parameters_in_file(self, logfile)
+        logfile.write(str_variable('EXP_SEG', self._sub_directory_suffix) + '\n')
+        return
 
     def update_from_parameters(self, parameters):
         if hasattr(parameters, 'EXP_SEG'):
@@ -1321,16 +1454,24 @@ class PostSubdirectory(GenericSubdirectory):
         self._sub_directory_suffix = 'RELEASE'
         self._file_suffix = "_post"
 
-    def print_parameters(self):
+    def print_configuration(self):
         self._set_directory()
         print("  - subpath/to/postcorrection is")
-        GenericSubdirectory.print_parameters(self)
+        GenericSubdirectory.print_configuration(self)
+        return
+
+    def write_configuration_in_file(self, logfile):
+        self._set_directory()
+        logfile.write("  - subpath/to/postcorrection is \n")
+        GenericSubdirectory.write_configuration_in_file(self, logfile)
+
+    def print_parameters(self):
+        print(str_variable('EXP_POST', self._sub_directory_suffix))
         return
 
     def write_parameters_in_file(self, logfile):
-        self._set_directory()
-        logfile.write("  - subpath/to/postcorrection is \n")
-        GenericSubdirectory.write_parameters_in_file(self, logfile)
+        logfile.write(str_variable('EXP_POST', self._sub_directory_suffix) + '\n')
+        return
 
     def update_from_parameters(self, parameters):
         if hasattr(parameters, 'EXP_POST'):
@@ -1403,9 +1544,9 @@ class Experiment(object):
     #
     ############################################################
 
-    def print_parameters(self):
+    def print_configuration(self):
         print("")
-        print('Experiment parameters')
+        print('Experiment configuration')
 
         print('- _embryo_path is ' + str(self._embryo_path))
         print('- _embryo_name is ' + str(self._embryo_name))
@@ -1420,19 +1561,19 @@ class Experiment(object):
         print('- _time_digits_for_cell_id is ' + str(self._time_digits_for_cell_id))
 
         print('- raw data directory is')
-        self.rawdata_dir.print_parameters()
+        self.rawdata_dir.print_configuration()
         print('- fusion directory is')
-        self.fusion_dir.print_parameters()
+        self.fusion_dir.print_configuration()
         print('- mars directory is')
-        self.mars_dir.print_parameters()
+        self.mars_dir.print_configuration()
         print('- segmentation directory is')
-        self.astec_dir.print_parameters()
+        self.astec_dir.print_configuration()
         print('- post-correction directory is')
-        self.post_dir.print_parameters()
+        self.post_dir.print_configuration()
         print('- intra-registration directory is')
-        self.intrareg_dir.print_parameters()
+        self.intrareg_dir.print_configuration()
         print('- working directory is')
-        self.working_dir.print_parameters()
+        self.working_dir.print_configuration()
 
         print('- result_image_suffix = ' + str(self.result_image_suffix))
         print('- default_image_suffix = ' + str(self.default_image_suffix))
@@ -1441,7 +1582,7 @@ class Experiment(object):
         print("")
         return
 
-    def write_parameters(self, log_filename=None):
+    def write_configuration(self, log_filename=None):
         if log_filename is not None:
             local_log_filename = log_filename
         else:
@@ -1464,19 +1605,19 @@ class Experiment(object):
                 logfile.write('- _time_digits_for_cell_id is ' + str(self._time_digits_for_cell_id) + '\n')
 
                 logfile.write('- raw data directory is \n')
-                self.rawdata_dir.write_parameters_in_file(logfile)
+                self.rawdata_dir.write_configuration_in_file(logfile)
                 logfile.write('- fusion directory is \n')
-                self.fusion_dir.write_parameters_in_file(logfile)
+                self.fusion_dir.write_configuration_in_file(logfile)
                 logfile.write('- mars directory is \n')
-                self.mars_dir.write_parameters_in_file(logfile)
+                self.mars_dir.write_configuration_in_file(logfile)
                 logfile.write('- segmentation directory is \n')
-                self.astec_dir.write_parameters_in_file(logfile)
+                self.astec_dir.write_configuration_in_file(logfile)
                 logfile.write('- post-correction directory is \n')
-                self.post_dir.write_parameters_in_file(logfile)
+                self.post_dir.write_configuration_in_file(logfile)
                 logfile.write('- intra-registration directory is \n')
-                self.intrareg_dir.write_parameters_in_file(logfile)
+                self.intrareg_dir.write_configuration_in_file(logfile)
                 logfile.write('- working directory is \n')
-                self.working_dir.write_parameters_in_file(logfile)
+                self.working_dir.write_configuration_in_file(logfile)
 
                 logfile.write('- result_image_suffix = ' + str(self.result_image_suffix) + '\n')
                 logfile.write('- default_image_suffix = ' + str(self.default_image_suffix) + '\n')
@@ -1484,6 +1625,72 @@ class Experiment(object):
                 logfile.write('- result_lineage_suffix = ' + str(self.result_lineage_suffix) + '\n')
 
                 logfile.write("\n")
+        return
+
+    def print_parameters(self):
+        print('')
+        print('#')
+        print('# Experiment parameters')
+        print('#')
+        print(str_variable('PATH_EMBRYO', self._embryo_path))
+        print(str_variable('EN', self._embryo_name))
+        print(str_variable('begin', self.first_time_point))
+        print(str_variable('end', self.last_time_point))
+        print(str_variable('delta', self.delta_time_point))
+        print(str_variable('raw_delay', self.delay_time_point))
+        print(str_variable('time_digits_for_filename', self._time_digits_for_filename))
+        print(str_variable('time_digits_for_cell_id', self._time_digits_for_cell_id))
+
+        self.rawdata_dir.print_parameters()
+        self.fusion_dir.print_parameters()
+        self.mars_dir.print_parameters()
+        self.astec_dir.print_parameters()
+        self.post_dir.print_parameters()
+        self.intrareg_dir.print_parameters()
+
+        print('')
+        print(str_variable('result_image_suffix', self.result_image_suffix))
+        print(str_variable('default_image_suffix', self.default_image_suffix))
+        print(str_variable('result_lineage_suffix', self.result_lineage_suffix))
+        print('')
+        return
+
+    def write_parameters_in_file(self, logfile):
+        logfile.write('\n')
+        logfile.write('#' + '\n')
+        logfile.write('# Experiment parameters' + '\n')
+        logfile.write('#' + '\n')
+        logfile.write(str_variable('PATH_EMBRYO', self._embryo_path) + '\n')
+        logfile.write(str_variable('EN', self._embryo_name) + '\n')
+        logfile.write(str_variable('begin', self.first_time_point) + '\n')
+        logfile.write(str_variable('end', self.last_time_point) + '\n')
+        logfile.write(str_variable('delta', self.delta_time_point) + '\n')
+        logfile.write(str_variable('raw_delay', self.delay_time_point) + '\n')
+        logfile.write(str_variable('time_digits_for_filename', self._time_digits_for_filename) + '\n')
+        logfile.write(str_variable('time_digits_for_cell_id', self._time_digits_for_cell_id) + '\n')
+
+        self.rawdata_dir.write_parameters_in_file(logfile)
+        self.fusion_dir.write_parameters_in_file(logfile)
+        self.mars_dir.write_parameters_in_file(logfile)
+        self.astec_dir.write_parameters_in_file(logfile)
+        self.post_dir.write_parameters_in_file(logfile)
+        self.intrareg_dir.write_parameters_in_file(logfile)
+
+        logfile.write('\n')
+        logfile.write(str_variable('result_image_suffix', self.result_image_suffix) + '\n')
+        logfile.write(str_variable('default_image_suffix', self.default_image_suffix) + '\n')
+        logfile.write(str_variable('result_lineage_suffix', self.result_lineage_suffix) + '\n')
+        logfile.write('\n')
+        return
+
+    def write_parameters(self, log_filename=None):
+        if log_filename is not None:
+            local_log_filename = log_filename
+        else:
+            local_log_filename = monitoring.log_filename
+        if local_log_filename is not None:
+            with open(local_log_filename, 'a') as logfile:
+                self.write_parameters_in_file(logfile)
         return
 
     def update_history_at_start(self, cli_name=None, start_time=None, parameter_file=None, path_to_vt=None):
@@ -1642,7 +1849,7 @@ class Experiment(object):
         if hasattr(parameters, 'time_digits_for_filename'):
             if parameters.time_digits_for_filename is not None:
                 self.set_time_digits_for_filename(parameters.time_digits_for_filename)
-                
+
         if hasattr(parameters, 'time_digits_for_cell_id'):
             if parameters.time_digits_for_cell_id is not None:
                 self._time_digits_for_cell_id = parameters.time_digits_for_cell_id
@@ -1931,64 +2138,67 @@ class RegistrationParameters(PrefixedParameter):
     #
     ############################################################
 
-    def print_parameters(self, spaces=0):
+    def print_parameters(self):
         print("")
-        print(spaces * ' ' + 'RegistrationParameters')
+        print('#')
+        print('# RegistrationParameters')
+        print('#')
 
-        PrefixedParameter.print_parameters(self, spaces=spaces)
+        PrefixedParameter.print_parameters(self)
 
-        self.logprint('compute_registration', self.compute_registration, spaces=spaces)
+        self.varprint('compute_registration', self.compute_registration)
 
-        self.logprint('pyramid_highest_level', self.pyramid_highest_level, spaces=spaces)
-        self.logprint('pyramid_lowest_level', self.pyramid_lowest_level, spaces=spaces)
-        self.logprint('gaussian_pyramid', self.gaussian_pyramid, spaces=spaces)
+        self.varprint('pyramid_highest_level', self.pyramid_highest_level)
+        self.varprint('pyramid_lowest_level', self.pyramid_lowest_level)
+        self.varprint('gaussian_pyramid', self.gaussian_pyramid)
 
-        self.logprint('transformation_type', self.transformation_type, spaces=spaces)
+        self.varprint('transformation_type', self.transformation_type)
 
-        self.logprint('elastic_sigma', self.elastic_sigma, spaces=spaces)
+        self.varprint('elastic_sigma', self.elastic_sigma)
 
-        self.logprint('transformation_estimation_type', self.transformation_estimation_type, spaces=spaces)
-        self.logprint('lts_fraction', self.lts_fraction, spaces=spaces)
-        self.logprint('fluid_sigma', self.fluid_sigma, spaces=spaces)
+        self.varprint('transformation_estimation_type', self.transformation_estimation_type)
+        self.varprint('lts_fraction', self.lts_fraction)
+        self.varprint('fluid_sigma', self.fluid_sigma)
 
-        self.logprint('normalization', self.normalization, spaces=spaces)
+        self.varprint('normalization', self.normalization)
         print("")
         return
 
-    def write_parameters_in_file(self, logfile, spaces=0):
+    def write_parameters_in_file(self, logfile):
         logfile.write("\n")
-        logfile.write(spaces * ' ' + 'RegistrationParameters\n')
+        logfile.write("# \n")
+        logfile.write("# RegistrationParameters\n")
+        logfile.write("# \n")
 
-        PrefixedParameter.write_parameters_in_file(self, logfile, spaces=spaces)
+        PrefixedParameter.write_parameters_in_file(self, logfile)
 
-        self.logwrite(logfile, 'compute_registration', self.compute_registration, spaces=spaces)
+        self.varwrite(logfile, 'compute_registration', self.compute_registration)
 
-        self.logwrite(logfile, 'pyramid_highest_level', self.pyramid_highest_level, spaces=spaces)
-        self.logwrite(logfile, 'pyramid_lowest_level', self.pyramid_lowest_level, spaces=spaces)
-        self.logwrite(logfile, 'gaussian_pyramid', self.gaussian_pyramid, spaces=spaces)
+        self.varwrite(logfile, 'pyramid_highest_level', self.pyramid_highest_level)
+        self.varwrite(logfile, 'pyramid_lowest_level', self.pyramid_lowest_level)
+        self.varwrite(logfile, 'gaussian_pyramid', self.gaussian_pyramid)
 
-        self.logwrite(logfile, 'transformation_type', self.transformation_type, spaces=spaces)
+        self.varwrite(logfile, 'transformation_type', self.transformation_type)
 
-        self.logwrite(logfile, 'elastic_sigma', self.elastic_sigma, spaces=spaces)
+        self.varwrite(logfile, 'elastic_sigma', self.elastic_sigma)
 
-        self.logwrite(logfile, 'transformation_estimation_type', self.transformation_estimation_type,
-                      spaces=spaces)
-        self.logwrite(logfile, 'lts_fraction', self.lts_fraction, spaces=spaces)
-        self.logwrite(logfile, 'fluid_sigma', self.fluid_sigma, spaces=spaces)
+        self.varwrite(logfile, 'transformation_estimation_type', self.transformation_estimation_type)
+        self.varwrite(logfile, 'lts_fraction', self.lts_fraction)
+        self.varwrite(logfile, 'fluid_sigma', self.fluid_sigma)
 
-        self.logwrite(logfile, 'normalization', self.normalization, spaces=spaces)
+        self.varwrite(logfile, 'normalization', self.normalization)
 
         logfile.write("\n")
         return
 
-    def write_parameters(self, log_filename=None, spaces=0):
+    def write_parameters(self, log_filename=None):
         if log_filename is not None:
             local_log_filename = log_filename
         else:
             local_log_filename = monitoring.log_filename
         if local_log_filename is not None:
             with open(local_log_filename, 'a') as logfile:
-                self.write_parameters_in_file(logfile, spaces=spaces)
+                self.write_parameters_in_file(logfile)
         return
 
     ############################################################

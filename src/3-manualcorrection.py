@@ -165,8 +165,10 @@ def main():
     #
     # write generic information into the log file
     #
-    monitoring.write_parameters()
-    experiment.write_parameters()
+    monitoring.write_configuration()
+    experiment.write_configuration()
+
+    experiment.write_parameters(monitoring.log_filename)
 
     ############################################################
     #
@@ -207,6 +209,7 @@ def main():
     # print parameters before processing
     #
     if args.printParameters:
+        experiment.print_parameters()
         parameters.print_parameters()
         sys.exit(0)
 

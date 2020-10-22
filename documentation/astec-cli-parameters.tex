@@ -1,7 +1,208 @@
 \section{Parameters}
 \label{sec:cli:parameters}
 
+
+
+
+
 \subsection{Data organisation parameters}
+\label{sec:cli:parameters:data}
+
+\begin{figure}
+\mbox{}
+\dirtree{%
+.1 \texttt{<PATH\_EMBRYO>}/.
+.2 \texttt{<DIR\_RAWDATA>}/.
+.3 \texttt{<DIR\_LEFTCAM\_STACKZERO>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>001.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKZERO>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>001.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_LEFTCAM\_STACKONE>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>001.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKONE>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>001.zip}.
+.4 \ldots.
+.2 \ldots.
+}
+\mbox{}
+\caption{\label{fig:data:rawdata:1} Typical organisation of mono-channel data. See also section \protect\ref{sec:cli:fuse:input:data}.}
+\end{figure}
+
+\begin{figure}
+\mbox{}
+\dirtree{%
+.1 \texttt{<PATH\_EMBRYO>}/.
+.2 \texttt{<DIR\_RAWDATA>}/.
+.3 \texttt{<DIR\_LEFTCAM\_STACKZERO>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKZERO>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_LEFTCAM\_STACKONE>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKONE>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_LEFTCAM\_STACKZERO\_CHANNEL\_2>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKZERO\_CHANNEL\_2>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_LEFTCAM\_STACKONE\_CHANNEL\_2>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKONE\_CHANNEL\_2>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.2 \ldots.
+}
+\mbox{}
+\caption{\label{fig:data:rawdata:2} Typical organisation of multi-channel data. See also section \protect\ref{sec:cli:fuse:input:data}.}
+\end{figure}
+
+\begin{figure}
+\mbox{}
+\dirtree{%
+.1 \texttt{<PATH\_EMBRYO>}/.
+.2 \texttt{<DIR\_RAWDATA>}/.
+.3 \texttt{<DIR\_LEFTCAM\_STACKZERO>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKZERO>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_LEFTCAM\_STACKONE>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKONE>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.2 \texttt{<DIR\_RAWDATA\_CHANNEL\_2>}/.
+.3 \texttt{<DIR\_LEFTCAM\_STACKZERO>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKZERO>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_LEFTCAM\_STACKONE>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKONE>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.2 \ldots.
+}
+\mbox{}
+\caption{\label{fig:data:rawdata:3} Alternative organisation of multi-channel data. See also section \protect\ref{sec:cli:fuse:input:data}.}
+\end{figure}
+
+\begin{figure}
+\mbox{}
+\dirtree{%
+.1 \texttt{<PATH\_EMBRYO>}/.
+.2 \texttt{<DIR\_RAWDATA>}/.
+.3 \ldots.
+.2 \texttt{<FUSE>}/.
+.3 \texttt{FUSE\_<EXP\_FUSE>}/.
+.4 \texttt{<EN>\_fuse\_t000.<result\_image\_suffix>}.
+.4 \texttt{<EN>\_fuse\_t001.<result\_image\_suffix>}.
+.4 \ldots.
+.2 \ldots.
+}
+\mbox{}
+\caption{\label{fig:data:fusion} Typical organisation of fused images. See also section \protect\ref{sec:cli:fuse:output:data}.}
+\end{figure}
+
+\begin{itemize}
+\itemsep -0.5ex
+\item \texttt{DIR\_LEFTCAM\_STACKONE} 
+see section \ref{sec:cli:fuse:input:data}, 
+see figures \ref{fig:data:rawdata:1}, 
+\ref{fig:data:rawdata:2}, 
+and \ref{fig:data:rawdata:3}.
+\item \texttt{DIR\_LEFTCAM\_STACKONE\_CHANNEL\_2} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_LEFTCAM\_STACKONE\_CHANNEL\_3} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_LEFTCAM\_STACKZERO} 
+see section \ref{sec:cli:fuse:input:data},
+see figures \ref{fig:data:rawdata:1}, 
+\ref{fig:data:rawdata:2}, 
+and \ref{fig:data:rawdata:3}.
+\item \texttt{DIR\_LEFTCAM\_STACKZERO\_CHANNEL\_2} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_LEFTCAM\_STACKZERO\_CHANNEL\_3} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RAWDATA} 
+see section \ref{sec:cli:fuse:input:data},
+see figures \ref{fig:data:rawdata:1}, 
+\ref{fig:data:rawdata:2}, 
+and \ref{fig:data:rawdata:3}.
+\item \texttt{DIR\_RAWDATA\_CHANNEL\_2} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RAWDATA\_CHANNEL\_3} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RIGHTCAM\_STACKONE} 
+see section \ref{sec:cli:fuse:input:data},
+see figures \ref{fig:data:rawdata:1}, 
+\ref{fig:data:rawdata:2}, 
+and \ref{fig:data:rawdata:3}.
+\item \texttt{DIR\_RIGHTCAM\_STACKONE\_CHANNEL\_2} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RIGHTCAM\_STACKONE\_CHANNEL\_3} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RIGHTCAM\_STACKZERO} 
+see section \ref{sec:cli:fuse:input:data},
+see figures \ref{fig:data:rawdata:1}, 
+\ref{fig:data:rawdata:2}, 
+and \ref{fig:data:rawdata:3}.
+\item \texttt{DIR\_RIGHTCAM\_STACKZERO\_CHANNEL\_2} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RIGHTCAM\_STACKZERO\_CHANNEL\_3} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{EN} 
+see section \ref{sec:cli:fuse:output:data},
+see figure \ref{fig:data:fusion}.
+\item \texttt{EXP\_FUSE} 
+see section \ref{sec:cli:fuse:output:data},
+see figure \ref{fig:data:fusion}.
+\item \texttt{EXP\_FUSE\_CHANNEL\_2} 
+see section \ref{sec:cli:fuse:output:data}
+\item \texttt{EXP\_FUSE\_CHANNEL\_3} 
+see section \ref{sec:cli:fuse:output:data}
+\item \texttt{PATH\_EMBRYO}: path to the \textit{experiment}, 
+see section \ref{sec:cli:fuse:input:data},
+see figures \ref{fig:data:rawdata:1}, 
+\ref{fig:data:rawdata:2}, 
+\ref{fig:data:rawdata:3}, and
+\ref{fig:data:fusion}
+\item \texttt{acquisition\_leftcam\_image\_prefix}  
+see section \ref{sec:cli:fuse:input:data},
+see figures \ref{fig:data:rawdata:1}, 
+\ref{fig:data:rawdata:2}, 
+and \ref{fig:data:rawdata:3}.
+\item \texttt{acquisition\_rightcam\_image\_prefix}  
+see section \ref{sec:cli:fuse:input:data},
+see figures \ref{fig:data:rawdata:1}, 
+\ref{fig:data:rawdata:2}, 
+and \ref{fig:data:rawdata:3}.
+\item \texttt{default\_image\_suffix}
+\item \texttt{result\_image\_suffix}
+\end{itemize}
+
+
+
+
 
 \subsection{Registration parameters}
 \label{sec:cli:parameters:registration}
@@ -19,3 +220,96 @@
 \item \texttt{fluid\_sigma}
 \item \texttt{normalization}
 \end{itemize}
+
+
+
+
+
+\subsection{\texttt{1-fuse.py} parameters}
+\label{sec:cli:parameters:fuse}
+
+
+% Please also refer to the file
+% \texttt{parameter-file-examples/1-fuse-parameters.py}
+
+\begin{itemize}
+\itemsep -0.5ex
+\item \texttt{acquisition\_leftcamera\_z\_stacking}
+\item \texttt{acquisition\_mirrors} same as \texttt{raw\_mirrors}
+\item \texttt{acquisition\_orientation} same as \texttt{raw\_ori}
+\item \texttt{acquisition\_resolution} same as \texttt{raw\_resolution}
+\item \texttt{acquisition\_slit\_line\_correction}
+\item \texttt{begin} see section \ref{sec:cli:fuse:important:parameters}
+
+\item \texttt{delta}
+\item \texttt{end} see section \ref{sec:cli:fuse:important:parameters}
+\item \texttt{fusion\_crop} see section \ref{sec:cli:fuse:fused:data:cropping}
+\item \texttt{fusion\_margin\_x\_0}
+\item \texttt{fusion\_margin\_x\_1}
+\item \texttt{fusion\_margin\_y\_0}
+\item \texttt{fusion\_margin\_y\_1}
+\item \texttt{fusion\_strategy}  see section \ref{sec:cli:fuse:image:coregistration}
+\item Registration parameters 
+(see section \ref{sec:cli:parameters:registration}) prefixed 
+by \texttt{fusion\_preregistration\_}
+see section \ref{sec:cli:fuse:image:coregistration}
+\item Registration parameters 
+(see section \ref{sec:cli:parameters:registration}) prefixed 
+by \texttt{fusion\_registration\_}
+see section \ref{sec:cli:fuse:image:coregistration}
+\item Registration parameters 
+(see section \ref{sec:cli:parameters:registration}) prefixed
+by \texttt{fusion\_stack\_preregistration\_}
+see section \ref{sec:cli:fuse:image:coregistration}
+\item Registration parameters 
+(see section \ref{sec:cli:parameters:registration}) prefixed
+by \texttt{fusion\_stack\_registration\_}
+see section \ref{sec:cli:fuse:image:coregistration}
+\item \texttt{fusion\_weighting}
+\item \texttt{fusion\_weighting\_channel\_1}
+\item \texttt{fusion\_weighting\_channel\_2}
+\item \texttt{fusion\_weighting\_channel\_3}
+\item \texttt{fusion\_xzsection\_extraction} see section \ref{sec:cli:fuse:stack:fusion}
+\item \texttt{raw\_crop} see section \ref{sec:cli:fuse:raw:data:cropping}
+\item \texttt{raw\_delay}
+\item \texttt{raw\_leftcamera\_z\_stacking}
+\item \texttt{raw\_margin\_x\_0}
+\item \texttt{raw\_margin\_x\_1}
+\item \texttt{raw\_margin\_y\_0}
+\item \texttt{raw\_margin\_y\_1}
+\item \texttt{raw\_mirrors} see section \ref{sec:cli:fuse:important:parameters}
+\item \texttt{raw\_ori} see section \ref{sec:cli:fuse:important:parameters}
+\item \texttt{raw\_resolution} see section \ref{sec:cli:fuse:important:parameters}
+
+\item \texttt{target\_resolution} see section \ref{sec:cli:fuse:output:data}
+\end{itemize}
+
+
+
+
+
+\section{\texttt{1.5-intraregistration.py} parameters}
+\label{sec:cli:parameters:intraregistration}
+
+
+\subsection{\texttt{2-mars.py} parameters}
+\label{sec:cli:parameters:mars}
+
+
+\subsection{\texttt{3-manualcorrection.py} parameters}
+\label{sec:cli:parameters:manualcorrection}
+
+
+\subsection{\texttt{4-astec.py} parameters}
+\label{sec:cli:parameters:astec}
+
+
+\subsection{\texttt{5-postcorrection.py} parameters}
+\label{sec:cli:parameters:postcorrection}
+
+
+
+
+
+
+

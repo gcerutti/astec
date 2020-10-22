@@ -78,59 +78,62 @@ class ReconstructionParameters(ace.AceParameters):
     #
     ############################################################
 
-    def print_parameters(self, spaces=0):
+    def print_parameters(self):
         print("")
-        print(spaces * ' ' + 'ReconstructionParameters')
+        print('#')
+        print('# ReconstructionParameters')
+        print('#')
 
-        common.PrefixedParameter.print_parameters(self, spaces=spaces)
+        common.PrefixedParameter.print_parameters(self)
 
-        ace.AceParameters.print_parameters(self, spaces=spaces + 2)
+        ace.AceParameters.print_parameters(self)
 
-        self.logprint('intensity_transformation', self.intensity_transformation, spaces=spaces)
-        self.logprint('intensity_enhancement', self.intensity_enhancement, spaces=spaces)
-        self.logprint('outer_contour_enhancement', self.outer_contour_enhancement, spaces=spaces)
-        self.logprint('reconstruction_images_combination', self.reconstruction_images_combination, spaces=spaces)
+        self.varprint('intensity_transformation', self.intensity_transformation)
+        self.varprint('intensity_enhancement', self.intensity_enhancement)
+        self.varprint('outer_contour_enhancement', self.outer_contour_enhancement)
+        self.varprint('reconstruction_images_combination', self.reconstruction_images_combination)
 
-        self.logprint('cell_normalization_min_method', self.cell_normalization_min_method, spaces=spaces)
-        self.logprint('cell_normalization_max_method', self.cell_normalization_max_method, spaces=spaces)
+        self.varprint('cell_normalization_min_method', self.cell_normalization_min_method)
+        self.varprint('cell_normalization_max_method', self.cell_normalization_max_method)
 
-        self.logprint('normalization_min_percentile', self.normalization_min_percentile, spaces=spaces)
-        self.logprint('normalization_max_percentile', self.normalization_max_percentile, spaces=spaces)
-        self.logprint('cell_normalization_sigma', self.cell_normalization_sigma, spaces=spaces)
+        self.varprint('normalization_min_percentile', self.normalization_min_percentile)
+        self.varprint('normalization_max_percentile', self.normalization_max_percentile)
+        self.varprint('cell_normalization_sigma', self.cell_normalization_sigma)
 
         for p in self.registration:
-            p.print_parameters(spaces=spaces+2)
+            p.print_parameters()
 
-        self.logprint('keep_reconstruction', self.keep_reconstruction, spaces=spaces)
+        self.varprint('keep_reconstruction', self.keep_reconstruction)
         print("")
 
     def write_parameters_in_file(self, logfile, spaces=0):
         logfile.write("\n")
-        logfile.write(spaces * ' ' + 'ReconstructionParameters\n')
+        logfile.write("# \n")
+        logfile.write("# ReconstructionParameters\n")
+        logfile.write("# \n")
 
-        common.PrefixedParameter.write_parameters_in_file(self, logfile, spaces=spaces)
+        common.PrefixedParameter.write_parameters_in_file(self, logfile)
 
-        ace.AceParameters.write_parameters_in_file(self, logfile, spaces=spaces+2)
+        ace.AceParameters.write_parameters_in_file(self, logfile)
 
-        self.logwrite(logfile, 'intensity_transformation', self.intensity_transformation, spaces=spaces)
-        self.logwrite(logfile, 'intensity_enhancement', self.intensity_enhancement, spaces=spaces)
-        self.logwrite(logfile, 'outer_contour_enhancement', self.outer_contour_enhancement, spaces=spaces)
-        self.logwrite(logfile, 'reconstruction_images_combination', self.reconstruction_images_combination,
-                      spaces=spaces)
+        self.varwrite(logfile, 'intensity_transformation', self.intensity_transformation)
+        self.varwrite(logfile, 'intensity_enhancement', self.intensity_enhancement)
+        self.varwrite(logfile, 'outer_contour_enhancement', self.outer_contour_enhancement)
+        self.varwrite(logfile, 'reconstruction_images_combination', self.reconstruction_images_combination)
 
-        self.logwrite(logfile, 'cell_normalization_min_method', self.cell_normalization_min_method, spaces=spaces)
-        self.logwrite(logfile, 'cell_normalization_max_method', self.cell_normalization_max_method, spaces=spaces)
+        self.varwrite(logfile, 'cell_normalization_min_method', self.cell_normalization_min_method)
+        self.varwrite(logfile, 'cell_normalization_max_method', self.cell_normalization_max_method)
 
-        self.logwrite(logfile, 'normalization_min_percentile', self.normalization_min_percentile, spaces=spaces)
-        self.logwrite(logfile, 'normalization_max_percentile', self.normalization_max_percentile, spaces=spaces)
-        self.logwrite(logfile, 'cell_normalization_sigma', self.cell_normalization_sigma, spaces=spaces)
+        self.varwrite(logfile, 'normalization_min_percentile', self.normalization_min_percentile)
+        self.varwrite(logfile, 'normalization_max_percentile', self.normalization_max_percentile)
+        self.varwrite(logfile, 'cell_normalization_sigma', self.cell_normalization_sigma)
 
-        self.logwrite(logfile, 'intensity_transformation', self.intensity_transformation, spaces=spaces)
+        self.varwrite(logfile, 'intensity_transformation', self.intensity_transformation)
 
         for p in self.registration:
-            p.write_parameters_in_file(logfile, spaces=spaces)
+            p.write_parameters_in_file(logfile)
 
-        self.logwrite(logfile, 'keep_reconstruction', self.keep_reconstruction, spaces=spaces)
+        self.varwrite(logfile, 'keep_reconstruction', self.keep_reconstruction)
 
         logfile.write("\n")
         return
@@ -142,7 +145,7 @@ class ReconstructionParameters(ace.AceParameters):
             local_log_filename = monitoring.log_filename
         if local_log_filename is not None:
             with open(local_log_filename, 'a') as logfile:
-                self.write_parameters_in_file(self, logfile)
+                self.write_parameters_in_file(logfile)
         return
 
     ############################################################
