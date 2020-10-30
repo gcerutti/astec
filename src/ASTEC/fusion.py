@@ -236,7 +236,7 @@ class FusionParameters(common.PrefixedParameter):
         # acquisition parameters
         #
         self.acquisition_orientation = self.read_parameter(parameters, 'raw_ori', self.acquisition_orientation)
-        self.acquisition_orientation = self.read_parameter(parameters, 'eneracquisition_orientationgy',
+        self.acquisition_orientation = self.read_parameter(parameters, 'acquisition_orientation',
                                                            self.acquisition_orientation)
 
         self.acquisition_mirrors = self.read_parameter(parameters, 'raw_mirrors', self.acquisition_mirrors)

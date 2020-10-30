@@ -768,7 +768,7 @@ def _volume_diagnosis(mars_image, ncells=10):
     monitoring.to_log_and_console("       mean cell volume = " + str(m) + ", standard deviation = " + str(s), 1)
     for i in range(len(labels)):
         if i <= ncells or list_for_sort[i][0] <= m - 2*s:
-            monitoring.to_log_and_console('       cell #'+'{:3d}'.format(list_for_sort[i][1])+' volume='
+            monitoring.to_log_and_console('       cell #'+'{:3d}'.format(list_for_sort[i][1])+' volume ='
                                           + '{:10.1f}'.format(list_for_sort[i][0]), 1)
 
     del image

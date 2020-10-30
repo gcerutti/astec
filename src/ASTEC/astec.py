@@ -2802,13 +2802,11 @@ def _clean_lineage(lineage_tree_information, first_time_point, time_digits_for_c
             for k in tmp:
                 if int(k) > first_time_point * mul:
                     del lineage_tree_information[properties.keydictionary['lineage']['output_key']][k]
-                    print("- lineage        " + str(k / 10 ** time_digits_for_cell_id))
         elif key == properties.keydictionary['volume']['output_key']:
             tmp = copy.deepcopy(lineage_tree_information[properties.keydictionary['volume']['output_key']])
             for k in tmp:
                 if int(k) > (first_time_point + 1) * mul:
                     del lineage_tree_information[properties.keydictionary['volume']['output_key']][k]
-                    print("-         volume " + str(k / 10 ** time_digits_for_cell_id))
         else:
             monitoring.to_log_and_console(str(proc) + ": unhandled key '" + str(key) + "'")
     return
