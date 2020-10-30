@@ -197,7 +197,6 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
         #
         ############################################################
         mars.WatershedParameters.__init__(self, prefix=prefix)
-        self.membrane_sigma = 0.0
         self.seed_reconstruction = reconstruction.ReconstructionParameters(prefix=[self._prefix, "seed_"])
         self.membrane_reconstruction = reconstruction.ReconstructionParameters(prefix=[self._prefix, "membrane_"])
         self.morphosnake_reconstruction = reconstruction.ReconstructionParameters(prefix=[self._prefix, "morphosnake_"])
@@ -261,7 +260,11 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
         #
         # outer morphosnake correction
         #
+        self.morphosnake_correction = True
         self.outer_correction_radius_opening = 20
+
+        # diagnosis
+        self.lineage_diagnosis = False
 
     ############################################################
     #
@@ -303,7 +306,10 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
         self.varprint('volume_ratio_threshold', self.volume_ratio_threshold)
         self.varprint('volume_minimal_value', self.volume_minimal_value)
 
+        self.varprint('morphosnake_correction', self.morphosnake_correction)
         self.varprint('outer_correction_radius_opening', self.outer_correction_radius_opening)
+
+        self.varprint('lineage_diagnosis', self.lineage_diagnosis)
         print("")
 
     def write_parameters_in_file(self, logfile):
@@ -313,6 +319,7 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
         logfile.write("# \n")
 
         common.PrefixedParameter.write_parameters_in_file(self, logfile)
+
         mars.WatershedParameters.write_parameters_in_file(self, logfile)
         self.seed_reconstruction.write_parameters_in_file(logfile)
         self.membrane_reconstruction.write_parameters_in_file(logfile)
@@ -342,7 +349,12 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
         self.varwrite(logfile, 'volume_ratio_threshold', self.volume_ratio_threshold)
         self.varwrite(logfile, 'volume_minimal_value', self.volume_minimal_value)
 
+        self.varwrite(logfile, 'morphosnake_correction', self.morphosnake_correction)
         self.varwrite(logfile, 'outer_correction_radius_opening', self.outer_correction_radius_opening)
+
+        self.varwrite(logfile, 'lineage_diagnosis', self.lineage_diagnosis)
+
+        logfile.write("\n")
         return
 
     def write_parameters(self, log_file_name):
@@ -425,10 +437,14 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
         self.volume_minimal_value = self.read_parameter(parameters, 'volume_minimal_value', self.volume_minimal_value)
         self.volume_minimal_value = self.read_parameter(parameters, 'MinVolume', self.volume_minimal_value)
 
+        self.morphosnake_correction = self.read_parameter(parameters, 'morphosnake_correction',
+                                                          self.morphosnake_correction)
         self.outer_correction_radius_opening = self.read_parameter(parameters, 'outer_correction_radius_opening',
                                                                    self.outer_correction_radius_opening)
         self.outer_correction_radius_opening = self.read_parameter(parameters, 'RadiusOpening',
                                                                    self.outer_correction_radius_opening)
+
+        self.lineage_diagnosis = self.read_parameter(parameters, 'lineage_diagnosis', self.lineage_diagnosis)
 
     def update_from_parameter_file(self, parameter_file):
         if parameter_file is None:
@@ -1197,9 +1213,9 @@ def _update_volume_properties(lineage_tree_information, segmented_image, current
 
     time_digits = experiment.get_time_digits_for_cell_id()
     volumes = _compute_volumes(segmented_image)
-    # TODO: correct next line
     volume_key = properties.keydictionary['volume']['output_key']
-    volume_key = 'volumes_information'
+    # uncomment next line to have a lineage file readable by old post-correction version
+    # volume_key = 'volumes_information'
     if volume_key not in lineage_tree_information:
         lineage_tree_information[volume_key] = {}
 
@@ -1223,9 +1239,9 @@ def _build_correspondences_from_segmentation(segmented_image):
 def _update_lineage_properties(lineage_tree_information, correspondences, previous_time, current_time, experiment):
 
     time_digits = experiment.get_time_digits_for_cell_id()
-    # TODO: correct next line
     lineage_key = properties.keydictionary['lineage']['output_key']
-    lineage_key = 'lin_tree'
+    # uncomment next line to have a lineage file readable by old post-correction version
+    # lineage_key = 'lin_tree'
     if lineage_key not in lineage_tree_information:
         lineage_tree_information[lineage_key] = {}
 
@@ -2184,8 +2200,8 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, deforme
     return segmentation_after_morphosnakes, correspondences, effective_exterior_correction
 
 
-def _outer_morphosnake_correction(astec_name, input_segmentation, output_segmentation, effective_exterior_correction,
-                                  experiment, parameters):
+def _outer_morphosnake_correction(astec_name, input_segmentation, reference_segmentation, output_segmentation,
+                                  effective_exterior_correction, experiment, parameters):
     if len(effective_exterior_correction) == 0:
         return
 
@@ -2199,14 +2215,16 @@ def _outer_morphosnake_correction(astec_name, input_segmentation, output_segment
     cpp_wrapping.mathematical_morphology(input_segmentation, opening_name, other_options=options, monitoring=monitoring)
 
     #
-    # remove part of cell that are outside the opening
+    # remove part of cell that are outside the opening, but do not remove cell from the reference!
     #
     segmentation = imread(input_segmentation)
+    reference = imread(reference_segmentation)
     opening = imread(opening_name)
     for daughter_c in effective_exterior_correction:
-        segmentation[((segmentation == daughter_c) & (opening == 1))] = 1
+        segmentation[((segmentation == daughter_c) & (reference != daughter_c) & (opening == 1))] = 1
 
     del opening
+    del reference
     imsave(output_segmentation, segmentation)
     del segmentation
     return
@@ -2637,9 +2655,34 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
     input_segmentation = segmentation_from_selection
 
     #
+    # multiple label processing
+    #
+
+    labels_to_be_fused = []
+    for key, value in correspondences.iteritems():
+        if len(value) >= 3:
+            labels_to_be_fused.append([key, value])
+    if len(labels_to_be_fused) > 0:
+        monitoring.to_log_and_console('    3-seeds fusion', 2)
+        monitoring.to_log_and_console('      seeds to be fused: ' + str(labels_to_be_fused), 2)
+        #
+        # bounding boxes have been defined with the watershed obtained with seeds issued
+        # from the previous segmentation
+        # borders may have changed, so recompute the bounding boxes
+        #
+        output_segmentation = common.add_suffix(astec_name, '_watershed_after_seeds_fusion',
+                                                new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                                new_extension=experiment.default_image_suffix)
+        correspondences = _multiple_label_fusion(input_segmentation, output_segmentation, correspondences,
+                                                 labels_to_be_fused)
+        input_segmentation = output_segmentation
+
+    #
     # Morphosnakes
     #
-    if True:
+    reference_segmentation = input_segmentation
+
+    if parameters.morphosnake_correction is True:
         monitoring.to_log_and_console('    outer volume decrease correction (morphosnakes)', 2)
         #
         # reference segmentation for morphosnakes is
@@ -2666,32 +2709,6 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
         effective_exterior_correction = []
 
     #
-    # multiple label processing
-    #
-
-    labels_to_be_fused = []
-    for key, value in correspondences.iteritems():
-        if len(value) >= 3:
-            labels_to_be_fused.append([key, value])
-    if len(labels_to_be_fused) > 0:
-        monitoring.to_log_and_console('    3-seeds fusion', 2)
-        monitoring.to_log_and_console('      seeds to be fused: ' + str(labels_to_be_fused), 2)
-        #
-        # bounding boxes have been defined with the watershed obtained with seeds issued
-        # from the previous segmentation
-        # borders may have changed, so recompute the bounding boxes
-        #
-        output_segmentation = common.add_suffix(astec_name, '_watershed_after_seeds_fusion',
-                                                new_dirname=experiment.astec_dir.get_tmp_directory(),
-                                                new_extension=experiment.default_image_suffix)
-        if not os.path.isfile(segmentation_from_selection):
-            mars.watershed(selected_seeds, membrane_image, segmentation_from_selection, experiment, parameters)
-
-        correspondences = _multiple_label_fusion(input_segmentation, output_segmentation, correspondences,
-                                                 labels_to_be_fused)
-        input_segmentation = output_segmentation
-
-    #
     # Outer correction (to correct morphosnake)
     #
     if len(effective_exterior_correction) > 0:
@@ -2699,7 +2716,7 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
         output_segmentation = common.add_suffix(astec_name, '_morphosnakes_correction',
                                                 new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                 new_extension=experiment.default_image_suffix)
-        _outer_morphosnake_correction(astec_name, input_segmentation, output_segmentation,
+        _outer_morphosnake_correction(astec_name, input_segmentation, reference_segmentation, output_segmentation,
                                       effective_exterior_correction, experiment, parameters)
         input_segmentation = output_segmentation
 
@@ -2730,8 +2747,8 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
 # loops over the time points
 #
 
-def _get_last_first_time_from_lineage(lineage_tree_information, first_time_point, delta_time_point=1,
-                                      time_digits_for_cell_id=4):
+def _get_last_time_from_lineage(lineage_tree_information, first_time_point, delta_time_point=1,
+                                time_digits_for_cell_id=4):
     if lineage_tree_information == {}:
         return first_time_point
     if len(lineage_tree_information) > 0 \
@@ -2739,6 +2756,9 @@ def _get_last_first_time_from_lineage(lineage_tree_information, first_time_point
         monitoring.to_log_and_console("    .. test existing lineage tree", 1)
         cellinlineage = {}
         div = 10**time_digits_for_cell_id
+        #
+        # time points for 'parent cell' are marked into cellinlineage
+        #
         for c in lineage_tree_information[properties.keydictionary['lineage']['output_key']]:
             t = int(c)/div
             if t not in cellinlineage:
@@ -2746,6 +2766,10 @@ def _get_last_first_time_from_lineage(lineage_tree_information, first_time_point
             else:
                 cellinlineage[t] += 1
         first_time = first_time_point
+        #
+        # if a time point is present in cellinlineage, it means that the 'daughter cell' image has been
+        # segmented
+        #
         while True:
             if first_time in cellinlineage:
                 first_time += delta_time_point
@@ -2755,56 +2779,63 @@ def _get_last_first_time_from_lineage(lineage_tree_information, first_time_point
     return first_time_point
 
 
-def _get_last_first_time_from_images(experiment, first_time_point, delta_time_point=1):
-    first_time = first_time_point + delta_time_point
+def _get_last_time_from_images(experiment, first_time_point, delta_time_point=1):
+    current_time = first_time_point + delta_time_point
     while True:
-        segmentation_file = experiment.get_segmentation_image(first_time, verbose=False)
+        segmentation_file = experiment.get_segmentation_image(current_time, verbose=False)
         if segmentation_file is None or not os.path.isfile(segmentation_file):
-            return first_time - delta_time_point
-        first_time += delta_time_point
+            return current_time - delta_time_point
+        current_time += delta_time_point
 
 
 def _clean_lineage(lineage_tree_information, first_time_point, time_digits_for_cell_id=4):
+    #
+    # remove information for time points after the first_time_point
+    #
     proc = "_clean_lineage"
     if lineage_tree_information == {}:
         return
     mul = 10 ** time_digits_for_cell_id
     for key in lineage_tree_information:
         if key == properties.keydictionary['lineage']['output_key']:
-            tmp = lineage_tree_information[properties.keydictionary['lineage']['output_key']]
+            tmp = copy.deepcopy(lineage_tree_information[properties.keydictionary['lineage']['output_key']])
             for k in tmp:
                 if int(k) > first_time_point * mul:
                     del lineage_tree_information[properties.keydictionary['lineage']['output_key']][k]
+                    print("- lineage        " + str(k / 10 ** time_digits_for_cell_id))
         elif key == properties.keydictionary['volume']['output_key']:
-            tmp = lineage_tree_information[properties.keydictionary['volume']['output_key']]
+            tmp = copy.deepcopy(lineage_tree_information[properties.keydictionary['volume']['output_key']])
             for k in tmp:
                 if int(k) > (first_time_point + 1) * mul:
                     del lineage_tree_information[properties.keydictionary['volume']['output_key']][k]
+                    print("-         volume " + str(k / 10 ** time_digits_for_cell_id))
         else:
             monitoring.to_log_and_console(str(proc) + ": unhandled key '" + str(key) + "'")
     return
 
 
-def _clean_images(experiment, first_time_point, delta_time_point=1):
-    current_time = first_time_point + delta_time_point
-    while True:
+def _clean_images(experiment, first_time_point, last_time_point, delta_time_point=1):
+    #
+    # rename images after the first_time_point
+    #
+    for current_time in range(first_time_point, last_time_point + 1, experiment.delta_time_point):
         segmentation_file = experiment.get_segmentation_image(current_time, verbose=False)
         if segmentation_file is not None and os.path.isfile(segmentation_file):
             print("rename " + str(segmentation_file) + " into " + segmentation_file + ".bak")
             shutil.move(segmentation_file, segmentation_file + ".bak")
             current_time += delta_time_point
-        else:
-            return
+    return
 
 
 def _fill_volumes(lineage_tree_information, first_time_point, experiment):
-    proc = "_clean_lineage"
+    proc = "_fill_volumes"
     mul = 10 ** experiment.get_time_digits_for_cell_id()
     if lineage_tree_information != {}:
         if properties.keydictionary['volume']['output_key'] in lineage_tree_information:
             tmp = lineage_tree_information[properties.keydictionary['volume']['output_key']]
             for k in tmp:
-                if int(k) >= first_time_point * mul:
+                if k / mul == first_time_point:
+                    monitoring.to_log_and_console("    .. cell volumes found for time #" + str(first_time_point), 1)
                     return lineage_tree_information
     #
     # no key found for first time point
@@ -2828,6 +2859,7 @@ def astec_control(experiment, parameters):
     """
 
     proc = "astec_control"
+    _trace_ = True
 
     #
     # parameter type checking
@@ -2851,8 +2883,8 @@ def astec_control(experiment, parameters):
     ace.monitoring.copy(monitoring)
     common.monitoring.copy(monitoring)
     mars.monitoring.copy(monitoring)
+    properties.monitoring.copy(monitoring)
     reconstruction.monitoring.copy(monitoring)
-    ace.monitoring.copy(monitoring)
 
     #
     # make sure that the result directory exists
@@ -2882,44 +2914,52 @@ def astec_control(experiment, parameters):
     # print(str(lineage_tree_information))
 
     #
-    # check whether image at first_time_point exists ...
+    # check what is the last time point in lineage and in images
     #
     first_time_point = experiment.first_time_point + experiment.delay_time_point
     last_time_point = experiment.last_time_point + experiment.delay_time_point
     time_digits_for_cell_id = experiment.get_time_digits_for_cell_id()
 
-    first_time_lineage = _get_last_first_time_from_lineage(lineage_tree_information, first_time_point,
-                                                           delta_time_point=experiment.delta_time_point,
-                                                           time_digits_for_cell_id=time_digits_for_cell_id)
-    first_time_images = _get_last_first_time_from_images(experiment, first_time_point,
-                                                         delta_time_point=experiment.delta_time_point)
+    last_time_lineage = _get_last_time_from_lineage(lineage_tree_information, first_time_point,
+                                                    delta_time_point=experiment.delta_time_point,
+                                                    time_digits_for_cell_id=time_digits_for_cell_id)
+    last_time_images = _get_last_time_from_images(experiment, first_time_point,
+                                                  delta_time_point=experiment.delta_time_point)
 
-    restart = min(first_time_lineage, first_time_images)
-    if experiment.restart_time_point >= 0:
-        restart = min(restart, experiment.restart_time_point)
-    monitoring.to_log_and_console(".. " + proc + ": start computation at time #" + str(restart), 1)
-
+    #
+    # restart is the next time point to be computed
+    #
+    restart = min(last_time_lineage, last_time_images) + experiment.delta_time_point
+    if type(experiment.restart_time_point) == int:
+        if experiment.restart_time_point > first_time_point:
+            restart = min(restart, experiment.restart_time_point)
+    if restart <= last_time_point:
+        monitoring.to_log_and_console(".. " + proc + ": start computation at time #" + str(restart), 1)
+    else:
+        monitoring.to_log_and_console(".. " + proc + ": nothing to do", 1)
     #
     # do some cleaning
-    # - the lineage tree
-    # - the segmentation image
+    # - the lineage tree: remove lineage information for time points from restart - delta_time_point
+    # - the segmentation images
     #
-    monitoring.to_log_and_console("    .. clean lineage and segmentation directory", 1)
-    _clean_lineage(lineage_tree_information, restart, time_digits_for_cell_id=time_digits_for_cell_id)
-    _clean_images(experiment, restart, delta_time_point=experiment.delta_time_point)
+    delta_time_point = experiment.delta_time_point
+    if restart <= last_time_point:
+        monitoring.to_log_and_console("    .. clean lineage and segmentation directory", 1)
+        _clean_lineage(lineage_tree_information, restart - delta_time_point,
+                       time_digits_for_cell_id=time_digits_for_cell_id)
+        _clean_images(experiment, restart, last_time_point, delta_time_point=delta_time_point)
 
     #
-    # compute volumes for the first time point if required
+    # compute volumes for the previous time if required
     # (well, it may exist, if we just restart the segmentation)
     #
-    lineage_tree_information = _fill_volumes(lineage_tree_information, restart, experiment)
+    if restart <= last_time_point:
+        lineage_tree_information = _fill_volumes(lineage_tree_information, restart - delta_time_point, experiment)
 
     #
     #
     #
-    first_time = restart + experiment.delta_time_point
-    last_time = last_time_point
-    for current_time in range(first_time, last_time + 1, experiment.delta_time_point):
+    for current_time in range(restart, last_time_point + 1, experiment.delta_time_point):
 
         acquisition_time = experiment.get_time_index(current_time)
         previous_time = current_time - experiment.delta_time_point
@@ -2938,7 +2978,8 @@ def astec_control(experiment, parameters):
         experiment.astec_dir.make_tmp_directory()
 
         if parameters.seed_reconstruction.keep_reconstruction is False \
-                and parameters.membrane_reconstruction.keep_reconstruction is False:
+                and parameters.membrane_reconstruction.keep_reconstruction is False \
+                and parameters.morphosnake_reconstruction.keep_reconstruction is False:
             experiment.astec_dir.set_rec_directory_to_tmp()
 
         #
@@ -2974,11 +3015,8 @@ def astec_control(experiment, parameters):
         monitoring.to_log_and_console('    computation time = ' + str(end_time - start_time) + ' s', 1)
         monitoring.to_log_and_console('', 1)
 
-    #
-    # TODO: test sur le lineage
-    #
-
-    monitoring.to_log_and_console("    .. test lineage", 1)
-    properties.check_volume_lineage(lineage_tree_information, time_digits_for_cell_id=time_digits_for_cell_id)
+    if parameters.lineage_diagnosis:
+        monitoring.to_log_and_console("    .. test lineage", 1)
+        properties.check_volume_lineage(lineage_tree_information, time_digits_for_cell_id=time_digits_for_cell_id)
 
     return

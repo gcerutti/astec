@@ -7,11 +7,13 @@ import cPickle as pkl
 import xml.etree.ElementTree as ElementTree
 import numpy as np
 import math
+from scipy import ndimage as nd
 
 from operator import itemgetter
 
 import common
 import CommunFunctions.cpp_wrapping as cpp_wrapping
+from CommunFunctions.ImageHandling import imread
 
 #
 #
@@ -49,7 +51,7 @@ class CellPropertiesParameters(object):
         print("")
         return
 
-    def update_from_file(self, parameter_file):
+    def update_from_parameter_file(self, parameter_file):
         if parameter_file is None:
             return
         if not os.path.isfile(parameter_file):
@@ -1561,8 +1563,8 @@ def _diagnosis_lineage(direct_lineage, description, time_digits_for_cell_id=4):
                                       + " divisions yielding more than 2 branches", 1)
         _print_list(multiple_daughters, time_digits_for_cell_id=time_digits_for_cell_id)
 
-    monitoring.to_log_and_console("  - terminal branch lengths: ", 1)
-    monitoring.to_log_and_console("    " + str(branch_lengths), 1)
+    monitoring.to_log("  - terminal branch lengths: ")
+    monitoring.to_log("    " + str(branch_lengths))
     # lengths = branch_length_histogram.keys()
     # lengths.sort()
     # for le in lengths:
@@ -1781,7 +1783,7 @@ def diagnosis(d, features, diagnosis_parameters):
 def _cell_id(c, time_digits_for_cell_id=4):
     t = c // 10 ** time_digits_for_cell_id
     c -= t * 10 ** time_digits_for_cell_id
-    return(c)
+    return c
 
 
 def _print_list(tab, time_digits_for_cell_id=4):
@@ -1792,6 +1794,12 @@ def _print_list(tab, time_digits_for_cell_id=4):
 
 
 def check_volume_lineage(d, time_digits_for_cell_id=4):
+    """
+    Compare cells found in the volume dictionary with cells found in the lineage dictionary
+    :param d:
+    :param time_digits_for_cell_id:
+    :return:
+    """
 
     proc = "check_volume_lineage"
 
@@ -1806,7 +1814,9 @@ def check_volume_lineage(d, time_digits_for_cell_id=4):
     # check whether cells in volume dictionary are in lineage and vice-versa
     #
     if dict_volume is not {}:
-        nodes = list(set(direct_lineage.keys()).union(set([v for values in direct_lineage.values() for v in values])))
+        all_nodes = list(set(direct_lineage.keys()).union(set([v for values in direct_lineage.values()
+                                                               for v in values])))
+        nodes = [c for c in all_nodes if _cell_id(c, time_digits_for_cell_id) != 1]
         #
         all_cell_with_volume = set(dict_volume.keys())
         cell_with_volume = [c for c in all_cell_with_volume if _cell_id(c, time_digits_for_cell_id) != 1]
@@ -1815,6 +1825,7 @@ def check_volume_lineage(d, time_digits_for_cell_id=4):
         cell_in_volume_not_in_lineage = list(set(cell_with_volume).difference(set(nodes)))
         cell_in_lineage_not_in_volume = list(set(nodes).difference(set(cell_with_volume)))
 
+        monitoring.to_log_and_console("", 1)
         monitoring.to_log_and_console("  === volume/lineage cross-checking === ", 1)
 
         monitoring.to_log_and_console("    ... found " + str(len(background_with_volume))
@@ -1839,6 +1850,58 @@ def check_volume_lineage(d, time_digits_for_cell_id=4):
 
     _diagnosis_lineage(direct_lineage, keydictionary['lineage']['output_key'],
                        time_digits_for_cell_id=time_digits_for_cell_id)
+    monitoring.to_log_and_console("", 1)
+
+    return
+
+
+def check_volume_image(volume_from_lineage, image_name, current_time, time_digits_for_cell_id=4):
+    """
+    Compare cells found in the volume dictionary with cells found in one image
+    :param volume_from_lineage:
+    :param image_name:
+    :param current_time:
+    :param time_digits_for_cell_id:
+    :return:
+    """
+
+    #
+    # read volumes from image
+    #
+    readim = imread(image_name)
+    labels_from_image = np.unique(readim)
+    volume = nd.sum(np.ones_like(readim), readim, index=np.int16(labels_from_image))
+    del readim
+
+    labels_from_image = [current_time * 10 ** time_digits_for_cell_id + int(label) for label in labels_from_image]
+    volume_from_image = dict(zip(labels_from_image, volume))
+
+    labels_from_lineage = [label for label in volume_from_lineage.keys()
+                           if label/10 ** time_digits_for_cell_id == current_time]
+
+    labels_in_lineage_not_in_image = list(set(labels_from_lineage).difference(set(labels_from_image)))
+    labels_in_image_not_in_lineage = list(set(labels_from_image).difference(set(labels_from_lineage)))
+    labels_in_both = list(set(labels_from_image).intersection(set(labels_from_lineage)))
+
+    volume_error = [label for label in labels_in_both if volume_from_image[label] != volume_from_lineage[label]]
+
+    if len(labels_in_lineage_not_in_image) > 0:
+        labels_in_lineage_not_in_image.sort()
+        monitoring.to_log_and_console("  - " + str(len(labels_in_lineage_not_in_image))
+                                      + " cells present in volume dictionary not in image: ", 1)
+        _print_list(labels_in_lineage_not_in_image, time_digits_for_cell_id=time_digits_for_cell_id)
+
+    if len(labels_in_image_not_in_lineage) > 0:
+        labels_in_image_not_in_lineage.sort()
+        monitoring.to_log_and_console("  - " + str(len(labels_in_image_not_in_lineage))
+                                      + " cells present in image not in volume dictionary: ", 1)
+        _print_list(labels_in_image_not_in_lineage, time_digits_for_cell_id=time_digits_for_cell_id)
+
+    if len(volume_error) > 0:
+        volume_error.sort()
+        monitoring.to_log_and_console("  - " + str(len(volume_error))
+                                      + " cells with different volume in image and volume dictionary: ", 1)
+        _print_list(volume_error, time_digits_for_cell_id=time_digits_for_cell_id)
     return
 
 

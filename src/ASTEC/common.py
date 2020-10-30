@@ -68,6 +68,26 @@ def str_variable(name, value):
     return s
 
 
+def _read_parameter(parameters, parameter_description, default_value):
+    """
+    get a parameter value from a (already read parameter file)
+    :param self:
+    :param parameters:
+    :param parameter_description:
+    :param default_value:
+    :return:
+    """
+    #
+    # read the parameter
+    #
+    # print("entering read_parameter")
+    # print("\t prefixes = " + str(self._prefixes))
+
+    returned_attr = default_value
+    if hasattr(parameters, parameter_description):
+        returned_attr = getattr(parameters, parameter_description)
+    return returned_attr
+
 ##################################################
 #
 #
@@ -77,8 +97,8 @@ def str_variable(name, value):
 class PrefixedParameter(object):
     def __init__(self, prefix=None):
         if prefix is None:
-            self._prefix = None
-            self._full_prefix = None
+            self._prefix = ""
+            self._full_prefix = ""
         elif type(prefix) is str:
             self._prefix = prefix
             self._full_prefix = ''.join(self._prefix)
@@ -103,9 +123,9 @@ class PrefixedParameter(object):
 
     def _set_prefixes(self):
         prefix = self._prefix
-        if prefix is None:
+        if prefix is None or prefix == "":
             self._prefixes = [""]
-        if type(prefix) is str:
+        if type(prefix) is str and prefix != "":
             self._prefixes = ["", prefix]
         if type(prefix) is list:
             prefixes = [""]
@@ -1500,9 +1520,9 @@ class Experiment(object):
         self._embryo_path = None
         self._embryo_name = None
 
-        self.first_time_point = -1
-        self.last_time_point = -1
-        self.restart_time_point = -1
+        self.first_time_point = None
+        self.last_time_point = None
+        self.restart_time_point = None
         self.delta_time_point = 1
         self.delay_time_point = 0
 
@@ -1818,41 +1838,33 @@ class Experiment(object):
         self._update_embryo_path_from_parameters(parameters)
         self._update_embryo_name_from_parameters(parameters)
 
-        if hasattr(parameters, 'begin'):
-            if parameters.begin is not None:
-                self.first_time_point = parameters.begin
-            else:
-                print(proc + ": it is mandatory to specify the first time point")
-                print("\t Exiting.")
-                sys.exit(1)
+        self.first_time_point = _read_parameter(parameters, 'first_time_point', self.first_time_point)
+        self.first_time_point = _read_parameter(parameters, 'begin', self.first_time_point)
+        if self.first_time_point is None:
+            print(proc + ": it is mandatory to specify the first time point")
+            print("\t Exiting.")
+            sys.exit(1)
 
-        if hasattr(parameters, 'end'):
-            if parameters.end is not None:
-                self.last_time_point = parameters.end
-            else:
-                print(proc + ": it is mandatory to specify the last time point")
-                print("\t Exiting.")
-                sys.exit(1)
+        self.last_time_point = _read_parameter(parameters, 'last_time_point', self.last_time_point)
+        self.last_time_point = _read_parameter(parameters, 'end', self.last_time_point)
+        # if self.last_time_point is None:
+        #    print(proc + ": it is mandatory to specify the last time point")
+        #    print("\t Exiting.")
+        #    sys.exit(1)
 
-        if hasattr(parameters, 'restart'):
-            if parameters.restart is not None:
-                self.restart_time_point = parameters.restart
+        self.restart_time_point = _read_parameter(parameters, 'restart_time_point', self.restart_time_point)
+        self.restart_time_point = _read_parameter(parameters, 'restart', self.restart_time_point)
 
-        if hasattr(parameters, 'delta'):
-            if parameters.delta is not None:
-                self.delta_time_point = parameters.delta
+        self.delta_time_point = _read_parameter(parameters, 'delta_time_point', self.delta_time_point)
+        self.delta_time_point = _read_parameter(parameters, 'delta', self.delta_time_point)
 
-        if hasattr(parameters, 'raw_delay'):
-            if parameters.raw_delay is not None:
-                self.delay_time_point = parameters.raw_delay
+        self.delay_time_point = _read_parameter(parameters, 'delay_time_point', self.delay_time_point)
+        self.delay_time_point = _read_parameter(parameters, 'raw_delay', self.delay_time_point)
 
-        if hasattr(parameters, 'time_digits_for_filename'):
-            if parameters.time_digits_for_filename is not None:
-                self.set_time_digits_for_filename(parameters.time_digits_for_filename)
-
-        if hasattr(parameters, 'time_digits_for_cell_id'):
-            if parameters.time_digits_for_cell_id is not None:
-                self._time_digits_for_cell_id = parameters.time_digits_for_cell_id
+        self._time_digits_for_filename = _read_parameter(parameters, 'time_digits_for_filename',
+                                                         self._time_digits_for_filename)
+        self._time_digits_for_cell_id = _read_parameter(parameters, 'time_digits_for_cell_id',
+                                                        self._time_digits_for_cell_id)
 
         self.rawdata_dir.update_from_parameters(parameters)
         self.fusion_dir.update_from_parameters(parameters)
@@ -1866,12 +1878,8 @@ class Experiment(object):
         #
         # set result_image_suffix
         #
-        if hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
-            if parameters.result_image_suffix is not None:
-                self.result_image_suffix = parameters.RESULT_IMAGE_SUFFIX_FUSE
-        if hasattr(parameters, 'result_image_suffix'):
-            if parameters.result_image_suffix is not None:
-                self.result_image_suffix = parameters.result_image_suffix
+        self.result_image_suffix = _read_parameter(parameters, 'result_image_suffix', self.result_image_suffix)
+        self.result_image_suffix = _read_parameter(parameters, 'RESULT_IMAGE_SUFFIX_FUSE', self.result_image_suffix)
 
         #
         # set result_image_suffix to default_image_suffix
@@ -1887,9 +1895,7 @@ class Experiment(object):
         #
         # set result_lineage_suffix
         #
-        if hasattr(parameters, 'result_lineage_suffix'):
-            if parameters.result_lineage_suffix is not None:
-                self.result_lineage_suffix = parameters.result_lineage_suffix
+        self.result_lineage_suffix = _read_parameter(parameters, 'result_lineage_suffix', self.result_lineage_suffix)
 
         return
 

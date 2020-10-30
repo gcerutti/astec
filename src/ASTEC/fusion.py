@@ -31,7 +31,7 @@ monitoring = common.Monitoring()
 ########################################################################################
 
 
-class FusionParameters(object):
+class FusionParameters(common.PrefixedParameter):
 
     ############################################################
     #
@@ -39,7 +39,9 @@ class FusionParameters(object):
     #
     ############################################################
 
-    def __init__(self):
+    def __init__(self, prefix=None):
+        common.PrefixedParameter.__init__(self, prefix=prefix)
+
         #
         # acquisition parameters
         #
@@ -141,40 +143,39 @@ class FusionParameters(object):
         print('#')
         print("")
 
-        print(common.str_variable('acquisition_orientation', self.acquisition_orientation))
-        print(common.str_variable('acquisition_mirrors', self.acquisition_mirrors))
-        print(common.str_variable('acquisition_resolution', self.acquisition_resolution))
+        common.PrefixedParameter.print_parameters(self)
 
-        print(common.str_variable('acquisition_stack0_leftcamera_z_stacking',
-                                  self.acquisition_stack0_leftcamera_z_stacking))
-        print(common.str_variable('acquisition_stack1_leftcamera_z_stacking',
-                                  self.acquisition_stack1_leftcamera_z_stacking))
+        self.varprint('acquisition_orientation', self.acquisition_orientation)
+        self.varprint('acquisition_mirrors', self.acquisition_mirrors)
+        self.varprint('acquisition_resolution', self.acquisition_resolution)
 
-        print(common.str_variable('acquisition_slit_line_correction', self.acquisition_slit_line_correction))
+        self.varprint('acquisition_stack0_leftcamera_z_stacking', self.acquisition_stack0_leftcamera_z_stacking)
+        self.varprint('acquisition_stack1_leftcamera_z_stacking', self.acquisition_stack1_leftcamera_z_stacking)
 
-        print(common.str_variable('target_resolution', self.target_resolution))
+        self.varprint('acquisition_slit_line_correction', self.acquisition_slit_line_correction)
 
-        print(common.str_variable('fusion_strategy', self.fusion_strategy))
+        self.varprint('target_resolution', self.target_resolution)
 
-        print(common.str_variable('acquisition_cropping', self.acquisition_cropping))
-        print(common.str_variable('acquisition_cropping_margin_x_0', self.acquisition_cropping_margin_x_0))
-        print(common.str_variable('acquisition_cropping_margin_x_1', self.acquisition_cropping_margin_x_1))
-        print(common.str_variable('acquisition_cropping_margin_y_0', self.acquisition_cropping_margin_y_0))
-        print(common.str_variable('acquisition_cropping_margin_y_1', self.acquisition_cropping_margin_y_1))
+        self.varprint('fusion_strategy', self.fusion_strategy)
+
+        self.varprint('acquisition_cropping', self.acquisition_cropping)
+        self.varprint('acquisition_cropping_margin_x_0', self.acquisition_cropping_margin_x_0)
+        self.varprint('acquisition_cropping_margin_x_1', self.acquisition_cropping_margin_x_1)
+        self.varprint('acquisition_cropping_margin_y_0', self.acquisition_cropping_margin_y_0)
+        self.varprint('acquisition_cropping_margin_y_1', self.acquisition_cropping_margin_y_1)
 
         for p in self.acquisition_registration:
             p.print_parameters()
         for p in self.stack_registration:
             p.print_parameters()
 
-        print(common.str_variable('xzsection_extraction', self.xzsection_extraction))
+        self.varprint('xzsection_extraction', self.xzsection_extraction)
 
-        print(common.str_variable('fusion_cropping', self.fusion_cropping))
-        print(common.str_variable('fusion_cropping_margin_x_0', self.fusion_cropping_margin_x_0))
-        print(common.str_variable('fusion_cropping_margin_x_1', self.fusion_cropping_margin_x_1))
-        print(common.str_variable('fusion_cropping_margin_y_0', self.fusion_cropping_margin_y_0))
-        print(common.str_variable('fusion_cropping_margin_y_1', self.fusion_cropping_margin_y_1))
-
+        self.varprint('fusion_cropping', self.fusion_cropping)
+        self.varprint('fusion_cropping_margin_x_0', self.fusion_cropping_margin_x_0)
+        self.varprint('fusion_cropping_margin_x_1', self.fusion_cropping_margin_x_1)
+        self.varprint('fusion_cropping_margin_y_0', self.fusion_cropping_margin_y_0)
+        self.varprint('fusion_cropping_margin_y_1', self.fusion_cropping_margin_y_1)
         print("")
 
     def write_parameters_in_file(self, logfile):
@@ -184,46 +185,40 @@ class FusionParameters(object):
         logfile.write('#' + "\n")
         logfile.write("" + "\n")
 
-        logfile.write(common.str_variable('acquisition_orientation', self.acquisition_orientation) + "\n")
-        logfile.write(common.str_variable('acquisition_mirrors', self.acquisition_mirrors) + "\n")
-        logfile.write(common.str_variable('acquisition_resolution', self.acquisition_resolution) + "\n")
+        common.PrefixedParameter.write_parameters_in_file(self, logfile)
 
-        logfile.write(common.str_variable('acquisition_stack0_leftcamera_z_stacking',
-                                  self.acquisition_stack0_leftcamera_z_stacking) + "\n")
-        logfile.write(common.str_variable('acquisition_stack1_leftcamera_z_stacking',
-                                  self.acquisition_stack1_leftcamera_z_stacking) + "\n")
+        self.varwrite(logfile, 'acquisition_orientation', self.acquisition_orientation)
+        self.varwrite(logfile, 'acquisition_mirrors', self.acquisition_mirrors)
+        self.varwrite(logfile, 'acquisition_resolution', self.acquisition_resolution)
 
-        logfile.write(common.str_variable('acquisition_slit_line_correction', self.acquisition_slit_line_correction)
-                      + "\n")
+        self.varwrite(logfile, 'acquisition_stack0_leftcamera_z_stacking', self.acquisition_stack0_leftcamera_z_stacking)
+        self.varwrite(logfile, 'acquisition_stack1_leftcamera_z_stacking', self.acquisition_stack1_leftcamera_z_stacking)
 
-        logfile.write(common.str_variable('target_resolution', self.target_resolution) + "\n")
+        self.varwrite(logfile, 'acquisition_slit_line_correction', self.acquisition_slit_line_correction)
 
-        logfile.write(common.str_variable('fusion_strategy', self.fusion_strategy) + "\n")
+        self.varwrite(logfile, 'target_resolution', self.target_resolution)
 
-        logfile.write(common.str_variable('acquisition_cropping', self.acquisition_cropping) + "\n")
-        logfile.write(common.str_variable('acquisition_cropping_margin_x_0', self.acquisition_cropping_margin_x_0)
-                      + "\n")
-        logfile.write(common.str_variable('acquisition_cropping_margin_x_1', self.acquisition_cropping_margin_x_1)
-                      + "\n")
-        logfile.write(common.str_variable('acquisition_cropping_margin_y_0', self.acquisition_cropping_margin_y_0)
-                      + "\n")
-        logfile.write(common.str_variable('acquisition_cropping_margin_y_1', self.acquisition_cropping_margin_y_1) +
-                      "\n")
+        self.varwrite(logfile, 'fusion_strategy', self.fusion_strategy)
+
+        self.varwrite(logfile, 'acquisition_cropping', self.acquisition_cropping)
+        self.varwrite(logfile, 'acquisition_cropping_margin_x_0', self.acquisition_cropping_margin_x_0)
+        self.varwrite(logfile, 'acquisition_cropping_margin_x_1', self.acquisition_cropping_margin_x_1)
+        self.varwrite(logfile, 'acquisition_cropping_margin_y_0', self.acquisition_cropping_margin_y_0)
+        self.varwrite(logfile, 'acquisition_cropping_margin_y_1', self.acquisition_cropping_margin_y_1)
 
         for p in self.acquisition_registration:
             p.write_parameters_in_file(logfile)
         for p in self.stack_registration:
             p.write_parameters_in_file(logfile)
 
-        logfile.write(common.str_variable('xzsection_extraction', self.xzsection_extraction) + "\n")
+        self.varwrite(logfile, 'xzsection_extraction', self.xzsection_extraction)
 
-        logfile.write(common.str_variable('fusion_cropping', self.fusion_cropping) + "\n")
-        logfile.write(common.str_variable('fusion_cropping_margin_x_0', self.fusion_cropping_margin_x_0) + "\n")
-        logfile.write(common.str_variable('fusion_cropping_margin_x_1', self.fusion_cropping_margin_x_1) + "\n")
-        logfile.write(common.str_variable('fusion_cropping_margin_y_0', self.fusion_cropping_margin_y_0) + "\n")
-        logfile.write(common.str_variable('fusion_cropping_margin_y_1', self.fusion_cropping_margin_y_1) + "\n")
-
-        logfile.write("\n")
+        self.varwrite(logfile, 'fusion_cropping', self.fusion_cropping)
+        self.varwrite(logfile, 'fusion_cropping_margin_x_0', self.fusion_cropping_margin_x_0)
+        self.varwrite(logfile, 'fusion_cropping_margin_x_1', self.fusion_cropping_margin_x_1)
+        self.varwrite(logfile, 'fusion_cropping_margin_y_0', self.fusion_cropping_margin_y_0)
+        self.varwrite(logfile, 'fusion_cropping_margin_y_1', self.fusion_cropping_margin_y_1)
+        return
 
     def write_parameters(self, log_file_name):
         with open(log_file_name, 'a') as logfile:
@@ -240,45 +235,38 @@ class FusionParameters(object):
         #
         # acquisition parameters
         #
-        if hasattr(parameters, 'raw_ori'):
-            if parameters.raw_ori is not None:
-                self.acquisition_orientation = parameters.raw_ori
-        elif hasattr(parameters, 'raw_orientation'):
-            if parameters.raw_orientation is not None:
-                self.acquisition_orientation = parameters.raw_orientation
-        elif hasattr(parameters, 'acquisition_orientation'):
-            if parameters.acquisition_orientation is not None:
-                self.acquisition_orientation = parameters.acquisition_orientation
+        self.acquisition_orientation = self.read_parameter(parameters, 'raw_ori', self.acquisition_orientation)
+        self.acquisition_orientation = self.read_parameter(parameters, 'eneracquisition_orientationgy',
+                                                           self.acquisition_orientation)
 
-        if hasattr(parameters, 'raw_mirrors'):
-            if parameters.raw_mirrors is not None:
-                self.acquisition_mirrors = parameters.raw_mirrors
-        elif hasattr(parameters, 'acquisition_mirrors'):
-            if parameters.acquisition_mirrors is not None:
-                self.acquisition_mirrors = parameters.acquisition_mirrors
+        self.acquisition_mirrors = self.read_parameter(parameters, 'raw_mirrors', self.acquisition_mirrors)
+        self.acquisition_mirrors = self.read_parameter(parameters, 'acquisition_mirrors', self.acquisition_mirrors)
 
-        if hasattr(parameters, 'raw_leftcamera_z_stacking'):
-            if parameters.raw_leftcamera_z_stacking is not None:
-                self.acquisition_stack0_leftcamera_z_stacking = parameters.raw_leftcamera_z_stacking
-                self.acquisition_stack1_leftcamera_z_stacking = parameters.raw_leftcamera_z_stacking
-        elif hasattr(parameters, 'acquisition_leftcamera_z_stacking'):
-            if parameters.acquisition_leftcamera_z_stacking is not None:
-                self.acquisition_stack0_leftcamera_z_stacking = parameters.acquisition_leftcamera_z_stacking
-                self.acquisition_stack1_leftcamera_z_stacking = parameters.acquisition_leftcamera_z_stacking
+        self.acquisition_stack0_leftcamera_z_stacking = self.read_parameter(parameters,
+                                                                            'raw_leftcamera_z_stacking',
+                                                                            self.acquisition_stack0_leftcamera_z_stacking)
+        self.acquisition_stack0_leftcamera_z_stacking = self.read_parameter(parameters,
+                                                                            'acquisition_leftcamera_z_stacking',
+                                                                            self.acquisition_stack0_leftcamera_z_stacking)
+        self.acquisition_stack1_leftcamera_z_stacking = self.read_parameter(parameters,
+                                                                            'raw_leftcamera_z_stacking',
+                                                                            self.acquisition_stack0_leftcamera_z_stacking)
+        self.acquisition_stack1_leftcamera_z_stacking = self.read_parameter(parameters,
+                                                                            'acquisition_leftcamera_z_stacking',
+                                                                            self.acquisition_stack0_leftcamera_z_stacking)
 
-        if hasattr(parameters, 'raw_stack0_leftcamera_z_stacking'):
-            if parameters.raw_stack0_leftcamera_z_stacking is not None:
-                self.acquisition_stack0_leftcamera_z_stacking = parameters.raw_stack0_leftcamera_z_stacking
-        elif hasattr(parameters, 'acquisition_stack0_leftcamera_z_stacking'):
-            if parameters.acquisition_stack0_leftcamera_z_stacking is not None:
-                self.acquisition_stack0_leftcamera_z_stacking = parameters.acquisition_stack0_leftcamera_z_stacking
-
-        if hasattr(parameters, 'raw_stack1_leftcamera_z_stacking'):
-            if parameters.raw_stack1_leftcamera_z_stacking is not None:
-                self.acquisition_stack1_leftcamera_z_stacking = parameters.raw_stack1_leftcamera_z_stacking
-        elif hasattr(parameters, 'acquisition_stack1_leftcamera_z_stacking'):
-            if parameters.acquisition_stack1_leftcamera_z_stacking is not None:
-                self.acquisition_stack1_leftcamera_z_stacking = parameters.acquisition_stack1_leftcamera_z_stacking
+        self.acquisition_stack0_leftcamera_z_stacking = self.read_parameter(parameters,
+                                                                            'raw_stack0_leftcamera_z_stacking',
+                                                                            self.acquisition_stack0_leftcamera_z_stacking)
+        self.acquisition_stack0_leftcamera_z_stacking = self.read_parameter(parameters,
+                                                                            'acquisition_stack0_leftcamera_z_stacking',
+                                                                            self.acquisition_stack0_leftcamera_z_stacking)
+        self.acquisition_stack1_leftcamera_z_stacking = self.read_parameter(parameters,
+                                                                            'raw_stack1_leftcamera_z_stacking',
+                                                                            self.acquisition_stack0_leftcamera_z_stacking)
+        self.acquisition_stack1_leftcamera_z_stacking = self.read_parameter(parameters,
+                                                                            'acquisition_stack1_leftcamera_z_stacking',
+                                                                            self.acquisition_stack0_leftcamera_z_stacking)
 
         if hasattr(parameters, 'raw_resolution'):
             if parameters.raw_resolution is not None:
@@ -318,45 +306,41 @@ class FusionParameters(object):
         #
         # correction of slit lines
         #
-        if hasattr(parameters, 'acquisition_slit_line_correction'):
-            if parameters.acquisition_slit_line_correction is not None:
-                self.acquisition_slit_line_correction = parameters.acquisition_slit_line_correction
+        self.acquisition_slit_line_correction = self.read_parameter(parameters, 'acquisition_slit_line_correction',
+                                                                    self.acquisition_slit_line_correction)
 
         #
         # fused image parameters
         #
-        if hasattr(parameters, 'target_resolution'):
-            if parameters.target_resolution is not None:
-                self.target_resolution = parameters.target_resolution
+        self.target_resolution = self.read_parameter(parameters, 'target_resolution', self.target_resolution)
 
         #
         # fusion method
         #
-        if hasattr(parameters, 'fusion_strategy'):
-            if parameters.fusion_strategy is not None:
-                self.fusion_strategy = parameters.fusion_strategy
-        elif hasattr(parameters, 'fusion_method'):
-            if parameters.fusion_method is not None:
-                self.fusion_strategy = parameters.fusion_method
+        self.fusion_strategy = self.read_parameter(parameters, 'fusion_strategy', self.fusion_strategy)
+        self.fusion_strategy = self.read_parameter(parameters, 'fusion_method', self.fusion_strategy)
 
         #
         # Cropping of acquisition images (before fusion)
         #
-        if hasattr(parameters, 'raw_crop'):
-            if parameters.raw_crop is not None:
-                self.acquisition_cropping = parameters.raw_crop
-        if hasattr(parameters, 'raw_margin_x_0'):
-            if parameters.raw_margin_x_0 is not None:
-                self.acquisition_cropping_margin_x_0 = parameters.raw_margin_x_0
-        if hasattr(parameters, 'raw_margin_x_1'):
-            if parameters.raw_margin_x_1 is not None:
-                self.acquisition_cropping_margin_x_1 = parameters.raw_margin_x_1
-        if hasattr(parameters, 'raw_margin_y_0'):
-            if parameters.raw_margin_y_0 is not None:
-                self.acquisition_cropping_margin_y_0 = parameters.raw_margin_y_0
-        if hasattr(parameters, 'raw_margin_y_1'):
-            if parameters.raw_margin_y_1 is not None:
-                self.acquisition_cropping_margin_y_1 = parameters.raw_margin_y_1
+        self.acquisition_cropping = self.read_parameter(parameters, 'acquisition_cropping', self.acquisition_cropping)
+        self.acquisition_cropping = self.read_parameter(parameters, 'raw_crop', self.acquisition_cropping)
+        self.acquisition_cropping_margin_x_0 = self.read_parameter(parameters, 'acquisition_cropping_margin_x_0',
+                                                                   self.acquisition_cropping_margin_x_0)
+        self.acquisition_cropping_margin_x_0 = self.read_parameter(parameters, 'raw_margin_x_0',
+                                                                   self.acquisition_cropping_margin_x_0)
+        self.acquisition_cropping_margin_x_1 = self.read_parameter(parameters, 'acquisition_cropping_margin_x_1',
+                                                                   self.acquisition_cropping_margin_x_1)
+        self.acquisition_cropping_margin_x_1 = self.read_parameter(parameters, 'raw_margin_x_1',
+                                                                   self.acquisition_cropping_margin_x_1)
+        self.acquisition_cropping_margin_y_0 = self.read_parameter(parameters, 'acquisition_cropping_margin_y_0',
+                                                                   self.acquisition_cropping_margin_y_0)
+        self.acquisition_cropping_margin_y_0 = self.read_parameter(parameters, 'raw_margin_y_0',
+                                                                   self.acquisition_cropping_margin_y_0)
+        self.acquisition_cropping_margin_y_1 = self.read_parameter(parameters, 'acquisition_cropping_margin_y_1',
+                                                                   self.acquisition_cropping_margin_y_1)
+        self.acquisition_cropping_margin_y_1 = self.read_parameter(parameters, 'raw_margin_y_1',
+                                                                   self.acquisition_cropping_margin_y_1)
 
         #
         # registration parameters
@@ -369,28 +353,31 @@ class FusionParameters(object):
         #
         #
         #
-        if hasattr(parameters, 'fusion_xzsection_extraction'):
-            if parameters.fusion_xzsection_extraction is not None:
-                self.xzsection_extraction = parameters.fusion_xzsection_extraction
+        self.xzsection_extraction = self.read_parameter(parameters, 'xzsection_extraction', self.xzsection_extraction)
+        self.xzsection_extraction = self.read_parameter(parameters, 'fusion_xzsection_extraction',
+                                                        self.xzsection_extraction)
 
         #
         # Cropping of fused image (after fusion)
         #
-        if hasattr(parameters, 'fusion_crop'):
-            if parameters.fusion_crop is not None:
-                self.fusion_cropping = parameters.fusion_crop
-        if hasattr(parameters, 'fusion_margin_x_0'):
-            if parameters.fusion_margin_x_0 is not None:
-                self.fusion_cropping_margin_x_0 = parameters.fusion_margin_x_0
-        if hasattr(parameters, 'fusion_margin_x_1'):
-            if parameters.fusion_margin_x_1 is not None:
-                self.fusion_cropping_margin_x_1 = parameters.fusion_margin_x_1
-        if hasattr(parameters, 'fusion_margin_y_0'):
-            if parameters.fusion_margin_y_0 is not None:
-                self.fusion_cropping_margin_y_0 = parameters.fusion_margin_y_0
-        if hasattr(parameters, 'fusion_margin_y_1'):
-            if parameters.fusion_margin_y_1 is not None:
-                self.fusion_cropping_margin_y_1 = parameters.fusion_margin_y_1
+        self.fusion_cropping = self.read_parameter(parameters, 'fusion_cropping', self.fusion_cropping)
+        self.fusion_cropping = self.read_parameter(parameters, 'fusion_crop', self.fusion_cropping)
+        self.fusion_cropping_margin_x_0 = self.read_parameter(parameters, 'fusion_cropping_margin_x_0',
+                                                              self.fusion_cropping_margin_x_0)
+        self.fusion_cropping_margin_x_0 = self.read_parameter(parameters, 'fusion_margin_x_0',
+                                                              self.fusion_cropping_margin_x_0)
+        self.fusion_cropping_margin_x_1 = self.read_parameter(parameters, 'fusion_cropping_margin_x_1',
+                                                              self.fusion_cropping_margin_x_1)
+        self.fusion_cropping_margin_x_1 = self.read_parameter(parameters, 'fusion_margin_x_1',
+                                                              self.fusion_cropping_margin_x_1)
+        self.fusion_cropping_margin_y_0 = self.read_parameter(parameters, 'fusion_cropping_margin_y_0',
+                                                              self.fusion_cropping_margin_y_0)
+        self.fusion_cropping_margin_y_0 = self.read_parameter(parameters, 'fusion_margin_y_0',
+                                                              self.fusion_cropping_margin_y_0)
+        self.fusion_cropping_margin_y_1 = self.read_parameter(parameters, 'fusion_cropping_margin_y_1',
+                                                              self.fusion_cropping_margin_y_1)
+        self.fusion_cropping_margin_y_1 = self.read_parameter(parameters, 'fusion_margin_y_1',
+                                                              self.fusion_cropping_margin_y_1)
 
     def update_from_parameter_file(self, parameter_file):
         if parameter_file is None:

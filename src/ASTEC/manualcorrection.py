@@ -59,12 +59,6 @@ class ManualCorrectionParameters(object):
         self.smallest_cells = 8
         self.largest_cells = 8
 
-        #
-        # images suffixes/formats
-        #
-        self.result_image_suffix = 'mha'
-        self.default_image_suffix = 'mha'
-
     ############################################################
     #
     # print / write
@@ -84,8 +78,6 @@ class ManualCorrectionParameters(object):
         print(common.str_variable('output_image', self.output_image))
         print(common.str_variable('mapping_file', self.mapping_file))
 
-        print(common.str_variable('result_image_suffix', self.result_image_suffix))
-        print(common.str_variable('default_image_suffix', self.default_image_suffix))
         print("")
 
     def write_parameters_in_file(self, logfile):
@@ -101,8 +93,6 @@ class ManualCorrectionParameters(object):
         logfile.write(common.str_variable('output_image', self.output_image) + '\n')
         logfile.write(common.str_variable('mapping_file', self.mapping_file) + '\n')
 
-        logfile.write(common.str_variable('result_image_suffix', self.result_image_suffix) + '\n')
-        logfile.write(common.str_variable('default_image_suffix', self.default_image_suffix) + '\n')
         logfile.write("\n")
         return
 
@@ -156,17 +146,6 @@ class ManualCorrectionParameters(object):
             if parameters.mancor_mapping_file is not None and len(str(parameters.mancor_mapping_file)) > 0:
                 self.mapping_file = parameters.mancor_mapping_file
 
-        #
-        # images suffixes/formats
-        #
-        if hasattr(parameters, 'result_image_suffix'):
-            if parameters.result_image_suffix is not None:
-                self.result_image_suffix = parameters.result_image_suffix
-        if hasattr(parameters, 'default_image_suffix'):
-            if parameters.default_image_suffix is not None:
-                self.default_image_suffix = parameters.default_image_suffix
-
-
     def update_from_parameter_file(self, parameter_file):
         if parameter_file is None:
             return
@@ -176,7 +155,6 @@ class ManualCorrectionParameters(object):
 
         parameters = imp.load_source('*', parameter_file)
         self.update_from_parameters(parameters)
-
 
 
 ########################################################################################
@@ -231,7 +209,7 @@ def correction_process(input_image, output_image, parameters):
     #
     #
     if parameters.mapping_file is not None and len(str(parameters.mapping_file)) > 0 \
-        and os.path.isfile(parameters.mapping_file):
+            and os.path.isfile(parameters.mapping_file):
 
         #
         # corrections to be done
@@ -330,7 +308,7 @@ def correction_control(experiment, parameters):
     #
 
     if (parameters.input_image is not None and len(str(parameters.input_image)) > 0) \
-        or (parameters.output_image is not None and len(str(parameters.output_image)) > 0):
+            or (parameters.output_image is not None and len(str(parameters.output_image)) > 0):
 
         #
         # input image
@@ -402,7 +380,8 @@ def correction_control(experiment, parameters):
                                           + ", 'end' = " + str(parameters.last_time_point))
 
         for time_value in range(parameters.first_time_point + experiment.delay_time_point,
-                                parameters.last_time_point + experiment.delay_time_point + 1, experiment.delta_time_point):
+                                parameters.last_time_point + experiment.delay_time_point + 1,
+                                experiment.delta_time_point):
 
             mars_dir = experiment.mars_dir.get_directory(0)
             mars_name = experiment.mars_dir.get_image_name(time_value)

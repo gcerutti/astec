@@ -42,15 +42,15 @@ class WatershedParameters(common.PrefixedParameter):
 
         if prefix is None:
             prefix = ['watershed_']
-        elif type(prefix) == str:
-            if prefix != 'watershed_':
-                prefix = [prefix, 'watershed_']
-        elif type(prefix) == list:
-            if 'watershed_' not in prefix:
-                prefix.append('watershed_')
-        else:
-            print("Error: unhandled type '" + str(type(prefix)) + "' for prefix. Exiting.")
-            sys.exit(1)
+        # elif type(prefix) == str:
+        #     if prefix != 'watershed_':
+        #         prefix = [prefix, 'watershed_']
+        # elif type(prefix) == list:
+        #     if 'watershed_' not in prefix:
+        #         prefix.append('watershed_')
+        # else:
+        #     print("Error: unhandled type '" + str(type(prefix)) + "' for prefix. Exiting.")
+        #     sys.exit(1)
 
         common.PrefixedParameter.__init__(self, prefix=prefix)
 

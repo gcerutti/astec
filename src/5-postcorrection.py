@@ -23,9 +23,8 @@ assert os.path.isdir(os.path.join(os.path.dirname(__file__),"ASTEC", \
 from optparse import OptionParser
 
 from nomenclature import *
-from lineage import write_tlp_from_lin_tree,read_lineage_tree,\
-					write_lineage_tree,timeNamed,timesNamed
-from post_correction import apply_cell_fusion,remove_too_little_branches, check_labels
+from lineage import write_tlp_from_lin_tree, read_lineage_tree, write_lineage_tree
+from post_correction import apply_cell_fusion, remove_too_little_branches
 from lineage_test import pkl_lineage_test, imageDict
 
 
@@ -161,8 +160,6 @@ lin_tree_cor, new_volumes, to_fuse, been_fused=\
 	remove_too_little_branches(lin_tree_information['lin_tree'], \
 		lin_tree_information['volumes_information'], \
 		p.postcor_Volume_Threshold, soon=p.postcor_Soon)
-
-check_labels(lin_tree_cor, "lineage corrige")
 
 ### APPLYING THE CORRECTION ON THE IMAGES
 apply_cell_fusion(lin_tree_information['lin_tree'], \

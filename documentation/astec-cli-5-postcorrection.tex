@@ -1,6 +1,22 @@
 \section{\texttt{5-postcorrection.py}}
 \label{sec:cli:post:correction}
 
+\subsection{Post-correction overview}
+
+The Astec segmentation procedure yields a series of segmented images $\{S^{\star}_t\}_t$, where each segmented image $S^{\star}_{t+1}$ takes advantage of the knowledge of the previously segmented image $S^{\star}_t$ to decide, at the cell level, whether a cell division may occur. However, there are still segmentation errors, that can be detected from the study of the overall lineage (see \cite[section 2.3.3.7, page 74]{guignard:tel-01278725} and \cite[supp. mat.]{guignard:hal-02903409}).
+
+As suggested by its name, the post-correction will try to a posteriori correct the segmentation resulting from the  \verb|4-astec.py| stage (see section \ref{sec:cli:astec}). 
+
+The post-correction is made of the following steps.
+\begin{enumerate}
+\item \label{it:post:pruning} Lineage pruning: 
+it goes through the end branches (a branch does not have any cell division; an end branch finishes either at the end of the sequence or the cell vanishes between two time points) of the lineage tree.
+Some lineage end branches are deleted (see section \ref{sec:cli:post:correction:pruning} for details), meaning that the corresponding cells are fused with other cells of the embryo.
+\item \label{it:post:division} Division postponing: some divisions are postponed.
+\end{enumerate}
+
+
+
 \subsection{\texttt{5-postcorrection.py} options}
 
 The following options are available:
@@ -21,6 +37,24 @@ The following options are available:
   log file)
 \item[\texttt{-nd}] no debug information
 \end{description}
+
+\subsection{Input data}
+\label{sec:cli:post:correction:input:data}
+Input data are the result of the \verb|4-astec.py| stage (see section \ref{sec:cli:astec}) and will be searched in the directory \verb|SEG/SEG\_<EXP\_SEG>/| (see section \ref{sec:cli:astec:output:data}).
+
+\dirtree{%
+.1 /path/to/experiment/.
+.2 \ldots.
+.2 SEG/.
+.3 SEG\_<EXP\_SEG>/.
+.4 <EN>\_seg\_lineage.xml.
+.4 <EN>\_seg\_t<begin>.mha.
+.4 <EN>\_seg\_t<..>.mha.
+.4 <EN>\_seg\_t<end>.mha.
+.4 \ldots.
+.2 \ldots.
+}
+
 
 \subsection{Output data}
 
@@ -44,86 +78,49 @@ default value is '\texttt{RELEASE}').
 
 The image format to be used (here \verb|mha|) is given by the variable \texttt{result\_image\_suffix}, while the lineage format to be used (here \verb|xml|) is given by the variable \texttt{result\_lineage\_suffix}.
 
-\subsection{Post-correction parameters}
 
-As suggested by its name, the post-correction will try to a posteriori correct the segmentation resulting from the  \verb|4-astec.py| stage (see section \ref{sec:cli:astec}). It will goes through the end branches (a branch does not have any cell division; an end branch finishes either at the end of the sequence or the cell vanishes between two time points) of the lineage tree.
 
-\subsubsection{Input data}
-\label{sec:cli:post:correction:input:data}
-Input data are the result of the \verb|4-astec.py| stage (see section \ref{sec:cli:astec}) and will be searched in the directory \verb|SEG/SEG\_<EXP\_SEG>/| (see section \ref{sec:cli:astec:output:data}).
 
-\subsubsection{En branches}
-\label{sec:cli:post:correction:end:branches}
 
-An end branch is candidate for deletion (ie fusion with its sister branch) if
+\subsection{Step \ref{it:post:pruning}: lineage pruning}
+\label{sec:cli:post:correction:pruning}
+
+Bifurcations of the lineage tree correspond to cell division, while branches (between two bifurcations or between a bifurcation and a leaf) corresponds to the lifespan of a cell.
+The purpose of this step is to detect suspicious end branches (terminating by a leaf) that may correspond to an over-segmentation error. 
+
+An end branch is candidate for deletion if
 \begin{itemize}
 \itemsep -0.5ex
-\item it finishes before the end of the sequence, or
-\item the volume of the leaf cell is less than the value of the variable \texttt{volume\_minimal\_value}
+\item either it terminates before the last time point (it corresponds then to a cell without daughter cell in the next time point), 
+\item or the volume of its last cell is too small (threshold given by the variable \texttt{postcorrection\_volume\_minimal\_value}).
 \end{itemize}
 
-An end branch will be deleted (ie fused with its sister branch) if
+An end branch candidate for deletion is deleted if
 \begin{itemize}
 \itemsep -0.5ex
-\item its length is (strictly) less than the value of the variable \texttt{lifespan\_minimal\_value}, or
-\item \textbf{to be fixed} if the variable  \texttt{test\_early\_division} is set to \texttt{True}, if the length if its sister branch (until a leaf or a division) is less than \texttt{lifespan\_minimal\_value}, meaning that there is two too close cell divisions, or
-\item if the variable \texttt{test\_volume\_correlation} is set to \texttt{True}, if the Pearson correlation coefficient between the volumes of the candidate end branch and its sister branch is less than 
--\texttt{correlation\_threshold}, meaning that the volumes are anti-correlated (typically the volumes of the candidate end branch are decreasing while the ones of the sister branch are increasing, indicating a fake division detection).
+\item either it is too short (threshold given by the variable \texttt{postcorrection\_lifespan\_minimal\_value}),
+\item or either its sister branch (which may not be an end branch) or its mother branch is too short, meaning that there are two divisions too close, (thresholds still given by the variable \texttt{postcorrection\_lifespan\_minimal\_value}),
+\item or (if the variable \texttt{postcorrection\_test\_early\_division} is set to \texttt{True}) if the Pearson correlation coefficient between the volumes of the candidate end branch and its sister branch is less than 
+-\texttt{postcorrection\_correlation\_threshold}, meaning that the volumes are anti-correlated (typically the volumes of the candidate end branch are decreasing while the ones of the sister branch are increasing, indicating a fake division detection).
 \end{itemize}
 
+\subsection{Step \ref{it:post:division}: division postponing}
 
-
-\subsection{Parameter list}
-
-Please also refer to the file
-\texttt{parameter-file-examples/5-postcorrection-parameters.py}
-
+      
 \begin{itemize}
 \itemsep -0.5ex
-\item \texttt{EN}
-\item \texttt{EXP\_POST}
-\item \texttt{EXP\_SEG}
-      defines the segmentation directory where to find the input data (see section \ref{sec:cli:post:correction:input:data}).
-\item \texttt{PATH\_EMBRYO}
-\item \texttt{begin}
-\item \texttt{correlation\_threshold}
-\item \texttt{end}
-\item \texttt{lifespan\_minimal\_value}
-\item \texttt{lineage\_diagnosis}
-      performs a kind of diagnosis on the lineage before and after the post-correction.
-\item \texttt{postcor\_PearsonThreshold} 
-      same as \texttt{correlation\_threshold}
-\item \texttt{postcor\_Soon}
-      same as \texttt{test\_early\_division}
-\item \texttt{postcor\_Volume\_Threshold} 
-      same as \texttt{volume\_minimal\_value}
-\item \texttt{postcor\_correlation\_threshold}
-\item \texttt{postcor\_lifespan\_minimal\_value}
-      same as \texttt{lifespan\_minimal\_value}
-\item \texttt{postcor\_lineage\_diagnosis}
-      same as \texttt{ineage\_diagnosis}
-\item \texttt{postcor\_pearson\_threshold} 
-      same as \texttt{correlation\_threshold}
-\item \texttt{postcorrection\_correlation\_threshold}
-       same as \texttt{correlation\_threshold}
-\item \texttt{postcorrection\_lifespan\_minimal\_value}
-      same as \texttt{lifespan\_minimal\_value}
-\item \texttt{postcorrection\_lineage\_diagnosis}
-      same as \texttt{ineage\_diagnosis}
-\item \texttt{postcorrection\_pearson\_threshold}
-      same as \texttt{correlation\_threshold}
-\item \texttt{postcorrection\_soon}
-      same as \texttt{test\_early\_division}
-\item \texttt{postcorrection\_test\_early\_division}
-      same as \texttt{test\_early\_division}
-\item \texttt{postcorrection\_test\_volume\_correlation}
-     same as \texttt{test\_volume\_correlation}
 \item \texttt{postcorrection\_volume\_minimal\_value}
-      same as \texttt{volume\_minimal\_value}
-\item \texttt{result\_image\_suffix}
-\item \texttt{result\_lineage\_suffix}
-\item \texttt{test\_early\_division}
-\item \texttt{test\_volume\_correlation}
-\item \texttt{volume\_minimal\_value}
-      branch ending with leaf cell below this value are candidate for deletion. Expressed in voxel unit.
+  branch ending with leaf cell below this value are candidate for deletion. Expressed in voxel unit.
+\item \texttt{postcorrection\_lifespan\_minimal\_value}
+\item \texttt{postcorrection\_test\_early\_division}
+\item \texttt{postcorrection\_test\_volume\_correlation}
+\item \texttt{postcorrection\_correlation\_threshold}
+\item \texttt{postcorrection\_lineage\_diagnosis}
+  performs a kind of diagnosis on the lineage before and after the post-correction.
 \end{itemize}
+
+
+
+
+
+
