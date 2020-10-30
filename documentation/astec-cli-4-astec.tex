@@ -2,3 +2,85 @@
 \label{sec:cli:astec}
 
 The name \texttt{astec} comes from the Phd work of L. Guignard \cite{guignard:tel-01278725} where \texttt{ASTEC} is the acronym of \textit{adaptive segmentation and tracking of embryonic cells}.
+
+This method aims at producing a segmentation of each membrane cell image  (e.g. a fused image) temporal sequence. This is a method of segmentation by propagation: it used the segmentation of the previous timepoint (say $t$) to constraint the segmentation at the aimed timepoint (say $t+1$).
+
+
+\subsection{Astec method overview}
+
+Astec principle is to guide the segmentation of the $t+1$ timepoint image $I_{t+1}$ with the segmentation $S^\star_t$ of the $t$ timepoint image $I_t$.
+
+\begin{enumerate}
+\item \label{it:astec:projected:segmentation} A first segmentation of $I_{t+1}$, $\tilde{S}_{t+1}$, is computed by a seeded watershed, where the seeds are the eroded cells of $S^\star_t$, projected onto $I_{t+1}$. By construction, no cell division can occur.
+\item \label{it:astec:optimal:seeds} $h$-minima (see also section 
+\ref{sec:cli:mars:seed:extraction}) are computed over a range of $h$ values. Studying the numbers of $h$-minima located in each cell of $\tilde{S}_{t+1}$ gives an indication whether there might be a cell division or not. From this study a seed image $Seeds_{t+1}$ is computed, and then a new segmentation image $\hat{S}_{t+1}$.
+\item \label{it:astec:volume:checking} Some potential errors are detected by checking whether there is a significant volume decrease from a cell of $S^\star_t$ and its corresponding cells in $\hat{S}_{t+1}$. For such cells, seeds may be recomputed, as well as the $\hat{S}_{t+1}$ segmentation.
+\item \label{it:astec:outer:volume:checking} Some other potential errors are detected by checking whether there is a significant volume decrease from a cell of $S^\star_t$ and its corresponding cells in $\hat{S}_{t+1}$ due to a background invasion. For such cells, morphosnakes \cite{marquez-neil:pami:2014} are computed to try to recover cell loss.
+\item \label{it:astec:multiple:label:fusion} It may occur, in step \ref{it:astec:volume:checking}, that some cell from $S^\star_t$ correspond to 3 cells in $\hat{S}_{t+1}$. This step aims at correcting this.
+\item \label{it:astec:morphosnake:correction} The morphosnake correction operated in step \ref{it:astec:outer:volume:checking} may invade the background too much. This step aims at correcting this.
+\end{enumerate}
+
+
+
+\subsection{\texttt{4-astec.py} options}
+
+The following options are available:
+\begin{description}
+  \itemsep -0.5ex
+\item[\texttt{-h}] prints a help message
+\item[\texttt{-p \underline{file}}] set the parameter file to be parsed
+\item[\texttt{-e \underline{path}}] set the
+  \texttt{\underline{path}} to the directory where the
+  \texttt{RAWDATA/} directory is located
+\item[\texttt{-k}] allows to keep the temporary files
+\item[\texttt{-f}] forces execution, even if (temporary) result files
+  are already existing
+\item[\texttt{-v}] increases verboseness (both at console and in the
+  log file)
+\item[\texttt{-nv}] no verboseness
+\item[\texttt{-d}]  increases debug information (in the
+  log file)
+\item[\texttt{-nd}] no debug information
+\end{description}
+
+
+
+\subsection{Output data}
+\label{sec:cli:astec:output:data}
+
+The results are stored in sub-directories
+\texttt{SEG/SEG\_<EXP\_SEG>} under the
+\texttt{/path/to/experiment/} directory where where \texttt{<EXP\_SEG>} is the value of the variable \texttt{EXP\_SEG} (its
+default value is '\texttt{RELEASE}'). 
+
+\dirtree{%
+.1 /path/to/experiment/.
+.2 \ldots.
+.2 SEG/.
+.3 SEG\_<EXP\_SEG>/.
+.4 <EN>\_seg\_lineage.pkl.
+.4 <EN>\_seg\_t<begin>.inr.
+.4 <EN>\_seg\_t<$\ldots$>.inr.
+.4 <EN>\_seg\_t<end>.inr.
+.4 LOGS/.
+.4 RECONSTRUCTION/.
+.2 \ldots.
+}
+
+\subsection{Segmentation parameters}
+
+
+
+
+\subsubsection{Input image for watershed computation}
+\label{sec:cli:astec:input:watershed}
+
+Before the watershed segmentation, the input image may be pre-processed. Details about the pre-processing can be found in section\ref{sec:cli:input:segmentation}.
+
+Default settings are
+\begin{verbatim}
+astec_intensity_transformation = 'Normalization_to_u8'
+astec_intensity_enhancement = None
+\end{verbatim}
+
+If the input image is transformed before segmented, the transformed image is named \texttt{<EN>\_fuse\_t<begin>\_membrane.inr} and stored in the directory \texttt{SEG/SEG\_<EXP\_SEG>/RECONSTRUCTION/} if the value of the variable \texttt{astec\_keep\_reconstruction} is set to \texttt{True}.

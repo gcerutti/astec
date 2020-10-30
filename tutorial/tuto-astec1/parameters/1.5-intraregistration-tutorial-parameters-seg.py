@@ -7,7 +7,7 @@ end = 20
 
 EXP_INTRAREG = 'SEG'
 
-intra_registration_template_type = "SEGMENTATION"
+intra_registration_template_type = 'SEGMENTATION'
 intra_registration_template_threshold = 2
 intra_registration_margin = 20
 

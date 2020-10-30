@@ -1813,7 +1813,7 @@ def generate_registered_sequences(lin_ref, lin_flo, correspondences, func_tempor
         f.close()
         # Composition de la transformation avec la transformation de la reference vers le template
         if path_trsf_at_time:
-            compose_trsf(path_trsf_tmp, path_trsf_at_time, path_trsf_tmp, verbose=verbose)
+            obsolete_compose_trsf(path_trsf_tmp, path_trsf_at_time, path_trsf_tmp, verbose=verbose)
 
         segmentationRelabellingAtTime(path_flo_in_at_time, path_flo_out, lin_flo, time_flo, reverse_lut=correspondences,
                                       trsf=path_trsf_tmp, template=path_ref_out,
@@ -2301,7 +2301,7 @@ def compose_transformation_stack_with_a_transformation(format_input_trsfs, file_
         path_trsf = timeNamed(format_input_trsfs, t)
         assert os.path.exists(path_trsf), "Input transformation file '%s' not found." % path_trsf
         path_out = timeNamed(format_output_trsfs, t)
-        compose_trsf(path_trsf, file_trsf, path_output=path_out, lazy=True, verbose=verbose)
+        obsolete_compose_trsf(path_trsf, file_trsf, path_output=path_out, lazy=True, verbose=verbose)
 
 
 def intra_sequence_realignment(format_images, format_outputs, format_trsfs, template_image=None, begin=None, end=None,

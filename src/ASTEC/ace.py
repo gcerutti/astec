@@ -5,8 +5,9 @@ import imp
 import operator
 import multiprocessing
 
-import commonTools
-from CommunFunctions.ImageHandling import SpatialImage, imread, imsave
+import common
+
+from CommunFunctions.ImageHandling import imread
 import CommunFunctions.cpp_wrapping as cpp_wrapping
 
 
@@ -17,7 +18,7 @@ import CommunFunctions.cpp_wrapping as cpp_wrapping
 #
 
 
-monitoring = commonTools.Monitoring()
+monitoring = common.Monitoring()
 
 
 ########################################################################################
@@ -56,9 +57,18 @@ monitoring = commonTools.Monitoring()
 #
 ########################################################################################
 
-class AceParameters(object):
 
-    def __init__(self):
+class AceParameters(common.PrefixedParameter):
+
+    ############################################################
+    #
+    # initialisation
+    #
+    ############################################################
+
+    def __init__(self, prefix=None):
+
+        common.PrefixedParameter.__init__(self, prefix=prefix)
 
         #
         # parameters for filtering and membrane extrema extraction
@@ -72,7 +82,7 @@ class AceParameters(object):
         self.hard_threshold = 1.0
 
         self.manual = False
-        self.manual_sigma = 7
+        self.manual_sigma = 15
         self.sensitivity = 0.99
 
         #
@@ -81,6 +91,7 @@ class AceParameters(object):
         self.sigma_TV = 3.6
         self.sigma_LF = 0.9
         self.sample = 0.2
+        self.sample_random_seed = None
 
         #
         # for cell-based enhancement
@@ -91,57 +102,100 @@ class AceParameters(object):
         #
         #
         #
-        self.default_image_suffix = 'inr'
+        self.default_image_suffix = 'mha'
 
-    def write_parameters(self, log_file_name):
-        with open(log_file_name, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('AceParameters\n')
-
-            logfile.write('- sigma_membrane = ' + str(self.sigma_membrane) + '\n')
-
-            logfile.write('- hard_thresholding = ' + str(self.hard_thresholding) + '\n')
-            logfile.write('- hard_threshold = ' + str(self.hard_threshold) + '\n')
-
-            logfile.write('- manual = ' + str(self.manual) + '\n')
-            logfile.write('- manual_sigma = ' + str(self.manual_sigma) + '\n')
-            logfile.write('- sensitivity = ' + str(self.sensitivity) + '\n')
-
-            logfile.write('- sigma_TV = ' + str(self.sigma_TV) + '\n')
-            logfile.write('- sigma_LF = ' + str(self.sigma_LF) + '\n')
-            logfile.write('- sample = ' + str(self.sample) + '\n')
-
-            logfile.write('- bounding_box_dilation = ' + str(self.bounding_box_dilation) + '\n')
-
-            logfile.write('- default_image_suffix = ' + str(self.default_image_suffix) + '\n')
-
-            logfile.write("\n")
-        return
+    ############################################################
+    #
+    # print / write
+    #
+    ############################################################
 
     def print_parameters(self):
         print("")
-        print('AceParameters')
+        print('#')
+        print('# AceParameters')
+        print('#')
+        
+        common.PrefixedParameter.print_parameters(self)
 
-        print('- sigma_membrane = ' + str(self.sigma_membrane))
+        self.varprint('sigma_membrane', self.sigma_membrane)
 
-        print('- hard_thresholding = ' + str(self.hard_thresholding))
-        print('- hard_threshold = ' + str(self.hard_threshold))
+        self.varprint('hard_thresholding', self.hard_thresholding)
+        self.varprint('hard_threshold', self.hard_threshold)
 
-        print('- manual = ' + str(self.manual))
-        print('- manual_sigma = ' + str(self.manual_sigma))
-        print('- sensitivity = ' + str(self.sensitivity))
+        self.varprint('manual', self.manual)
+        self.varprint('manual_sigma', self.manual_sigma)
+        self.varprint('sensitivity', self.sensitivity)
 
-        print('- sigma_TV = ' + str(self.sigma_TV))
-        print('- sigma_LF = ' + str(self.sigma_LF))
-        print('- sample = ' + str(self.sample))
+        self.varprint('sigma_TV', self.sigma_TV)
+        self.varprint('sigma_LF', self.sigma_LF)
+        self.varprint('sample', self.sample)
+        self.varprint('sample_random_seed', self.sample_random_seed)
 
-        print('- bounding_box_dilation = ' + str(self.bounding_box_dilation))
-
-        print('- default_image_suffix = ' + str(self.default_image_suffix))
-
+        self.varprint('bounding_box_dilation', self.bounding_box_dilation)
+        self.varprint('default_image_suffix', self.default_image_suffix)
         print("")
+        return
 
-    def update_from_file(self, parameter_file):
+    def write_parameters_in_file(self, logfile):
+        logfile.write("\n")
+        logfile.write("# \n")
+        logfile.write("# AceParameters\n")
+        logfile.write("# \n")
+
+        common.PrefixedParameter.write_parameters_in_file(self, logfile)
+
+        self.varwrite(logfile, 'sigma_membrane', self.sigma_membrane)
+
+        self.varwrite(logfile, 'hard_thresholding', self.hard_thresholding)
+        self.varwrite(logfile, 'hard_threshold', self.hard_threshold)
+
+        self.varwrite(logfile, 'manual', self.manual)
+        self.varwrite(logfile, 'manual_sigma', self.manual_sigma)
+        self.varwrite(logfile, 'sensitivity', self.sensitivity)
+
+        self.varwrite(logfile, 'sigma_TV', self.sigma_TV)
+        self.varwrite(logfile, 'sigma_LF', self.sigma_LF)
+        self.varwrite(logfile, 'sample', self.sample)
+        self.varwrite(logfile, 'sample_random_seed', self.sample_random_seed)
+
+        self.varwrite(logfile, 'bounding_box_dilation', self.bounding_box_dilation)
+        self.varwrite(logfile, 'default_image_suffix', self.default_image_suffix)
+        logfile.write("\n")
+        return
+
+    def write_parameters(self, log_file_name):
+        with open(log_file_name, 'a') as logfile:
+            self.write_parameters_in_file(logfile)
+        return
+
+    ############################################################
+    #
+    # update
+    #
+    ############################################################
+
+    def update_from_parameters(self, parameters):
+        self.sigma_membrane = self.read_parameter(parameters, 'sigma_membrane', self.sigma_membrane)
+
+        self.hard_thresholding = self.read_parameter(parameters, 'hard_thresholding', self.hard_thresholding)
+        self.hard_threshold = self.read_parameter(parameters, 'hard_threshold', self.hard_threshold)
+
+        self.manual = self.read_parameter(parameters, 'manual', self.manual)
+        self.manual_sigma = self.read_parameter(parameters, 'manual_sigma', self.manual_sigma)
+        self.sensitivity = self.read_parameter(parameters, 'sensitivity', self.sensitivity)
+
+        self.sigma_TV = self.read_parameter(parameters, 'sigma_TV', self.sigma_TV)
+        self.sigma_LF = self.read_parameter(parameters, 'sigma_LF', self.sigma_LF)
+        self.sample = self.read_parameter(parameters, 'sample', self.sample)
+        self.sample_random_seed = self.read_parameter(parameters, 'sample_random_seed', self.sample_random_seed)
+
+        self.bounding_box_dilation = self.read_parameter(parameters, 'bounding_box_dilation',
+                                                         self.bounding_box_dilation)
+
+        self.default_image_suffix = self.read_parameter(parameters, 'default_image_suffix', self.default_image_suffix)
+
+    def update_from_parameter_file(self, parameter_file):
         if parameter_file is None:
             return
         if not os.path.isfile(parameter_file):
@@ -149,42 +203,43 @@ class AceParameters(object):
             sys.exit(1)
 
         parameters = imp.load_source('*', parameter_file)
+        self.update_from_parameters(parameters)
 
-        if hasattr(parameters, 'mars_sigma_membrane'):
-            if parameters.mars_sigma_membrane is not None:
-                self.sigma_membrane = parameters.mars_sigma_membrane
+    ############################################################
+    #
+    #
+    #
+    ############################################################
 
-        if hasattr(parameters, 'mars_hard_thresholding'):
-            if parameters.mars_hard_thresholding is not None:
-                self.hard_thresholding = parameters.mars_hard_thresholding
-        if hasattr(parameters, 'mars_hard_threshold'):
-            if parameters.mars_hard_threshold is not None:
-                self.hard_threshold = parameters.mars_hard_threshold
+    def is_equal(self, p):
+        if self.sigma_membrane != p.sigma_membrane:
+            return False
 
-        if hasattr(parameters, 'mars_manual'):
-            if parameters.mars_manual is not None:
-                self.manual = parameters.mars_manual
-        if hasattr(parameters, 'mars_manual_sigma'):
-            if parameters.mars_manual_sigma is not None:
-                self.manual_sigma = parameters.mars_manual_sigma
-        if hasattr(parameters, 'mars_sensitivity'):
-            if parameters.mars_sensitivity is not None:
-                self.sensitivity = parameters.mars_sensitivity
+        if self.hard_thresholding != p.hard_thresholding:
+            return False
+        if self.hard_threshold != p.hard_threshold:
+            return False
 
-        if hasattr(parameters, 'mars_sigma_TV'):
-            if parameters.mars_sigma_TV is not None:
-                self.sigma_TV = parameters.mars_sigma_TV
-        if hasattr(parameters, 'mars_sigma_LF'):
-            if parameters.mars_sigma_LF is not None:
-                self.sigma_LF = parameters.mars_sigma_LF
-        if hasattr(parameters, 'mars_sample'):
-            if parameters.mars_sample is not None:
-                self.sample = parameters.mars_sample
+        if self.manual != p.manual:
+            return False
+        if self.manual_sigma != p.manual_sigma:
+            return False
+        if self.sensitivity != p.sensitivity:
+            return False
 
-        if hasattr(parameters, 'default_image_suffix'):
-            if parameters.default_image_suffix is not None:
-                self.default_image_suffix = parameters.default_image_suffix
+        if self.sigma_TV != p.sigma_TV:
+            return False
+        if self.sigma_LF != p.sigma_LF:
+            return False
+        if self.sample != p.sample:
+            return False
+        if self.sample_random_seed != p.sample_random_seed:
+            return False
 
+        if self.bounding_box_dilation != p.bounding_box_dilation:
+            return False
+
+        return True
 
 ########################################################################################
 #
@@ -201,12 +256,13 @@ class AceParameters(object):
 #
 
 
-def global_membrane_enhancement(path_input, path_output, binary_input=False,
+def global_membrane_enhancement(path_input, path_output, experiment, binary_input=False,
                                 temporary_path=None, parameters=None):
     """
     GACE for Global Automated Cell Extractor
     :param path_input:
     :param path_output:
+    :param experiment:
     :param binary_input:
     :param temporary_path: 
     :param parameters: 
@@ -216,8 +272,19 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
     proc = 'global_membrane_enhancement'
 
     #
-    # test for input image
+    # parameter checking
     #
+
+    if not isinstance(experiment, common.Experiment):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'experiment' variable: "
+                                      + str(type(experiment)))
+        sys.exit(1)
+
+    if not isinstance(parameters, AceParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
+        sys.exit(1)
+
     if not os.path.isfile(path_input):
         monitoring.to_log_and_console(proc + ": input image does not exist", 0)
         monitoring.to_log_and_console("\t input image was '" + str(path_input) + "'", 0)
@@ -226,13 +293,15 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
 
     #
     # set names
-    #
+    # path_input is the full input image name
+    # - e is the extension, including the '.' (e.g. '.inr')
+    # - prefix_name is the basename without extension
 
-    e = commonTools.get_extension(path_input)
+    e = common.get_image_extension(path_input)
     b = os.path.basename(path_input)
     prefix_name = b[0:len(b) - len(e)]
 
-    tmp_prefix_name = temporary_path + os.path.sep + prefix_name
+    # tmp_prefix_name = temporary_path + os.path.sep + prefix_name
 
     #
     # if the output is already binary, there is no membrane extraction
@@ -253,16 +322,23 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
         #    - 'tmp_prefix_name'.phi
         #      the two angle images that give the direction of the vector orthogonal to the membrane
         #
-        if (not os.path.isfile(tmp_prefix_name + ".ext.inr") or not os.path.exists(tmp_prefix_name + ".theta.inr")
-                or not os.path.exists(tmp_prefix_name + ".phi.inr")) or monitoring.forceResultsToBeBuilt is True:
+        ext_image = common.find_file(temporary_path, prefix_name + ".ext", file_type='image', callfrom=proc,
+                                     local_monitoring=None, verbose=False)
+        phi_image = common.find_file(temporary_path, prefix_name + ".phi", file_type='image', callfrom=proc,
+                                     local_monitoring=None, verbose=False)
+        theta_image = common.find_file(temporary_path, prefix_name + ".theta", file_type='image', callfrom=proc,
+                                       local_monitoring=None, verbose=False)
+        if ext_image is None or phi_image is None or theta_image is None or monitoring.forceResultsToBeBuilt is True:
             monitoring.to_log_and_console("       membrane extraction of '"
                                           + str(path_input).split(os.path.sep)[-1] + "'", 2)
             #
             # Local enhancement of membranes from 'path_input' image and extraction of the directional maxima
             # (generates the tmp_prefix_name+'.[ext|theta|phi].inr') images
             #
-            cpp_wrapping.membrane_extraction(path_input, tmp_prefix_name,
-                                             scale=parameters.sigma_membrane, monitoring=monitoring)
+            tmp_prefix_name = os.path.join(temporary_path, prefix_name)
+            cpp_wrapping.membrane_extraction(path_input, tmp_prefix_name, scale=parameters.sigma_membrane,
+                                             other_options = "-extension " + str(experiment.default_image_suffix),
+                                             monitoring=monitoring)
 
         #
         # Membranes binarization
@@ -274,35 +350,50 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
         #    - 'tmp_prefix_name'.hist.txt
         #      a text file describing the image histogram
         #
-        if not os.path.isfile(tmp_prefix_name + ".ext.inr"):
-            monitoring.to_log_and_console("       '" + str(tmp_prefix_name + ".ext.inr").split(os.path.sep)[-1]
-                                          + "' does not exist", 2)
+        ext_image = common.find_file(temporary_path, prefix_name + ".ext", file_type='image', callfrom=proc,
+                                     local_monitoring=monitoring)
+        if ext_image is None:
+            monitoring.to_log_and_console("       image '" + str(prefix_name + ".ext") + "' not found in '"
+                                          + str(temporary_path) + "'", 2)
             monitoring.to_log_and_console("\t Exiting.")
             sys.exit(1)
+        ext_image = os.path.join(temporary_path, ext_image)
+        hist_file = os.path.join(temporary_path, prefix_name + ".histogram.txt")
 
-        if not os.path.isfile(tmp_prefix_name + ".bin.inr") or monitoring.forceResultsToBeBuilt is True:
+        bin_image = common.find_file(temporary_path, prefix_name + ".bin", file_type='image', callfrom=proc,
+                                     local_monitoring=None,
+                                     verbose=False)
+        if bin_image is None or monitoring.forceResultsToBeBuilt is True:
+            if bin_image is None:
+                bin_image = os.path.join(temporary_path, prefix_name + ".bin." + experiment.default_image_suffix)
             if parameters.hard_thresholding is True:
                 #
                 # hard threshold
                 #
-                monitoring.to_log_and_console("       membrane hard thresholding of '"
-                                              + str(tmp_prefix_name + ".ext.inr").split(os.path.sep)[-1] + "'", 2)
-                cpp_wrapping.seuillage(path_input=tmp_prefix_name + ".ext.inr",
-                                       path_output=tmp_prefix_name + ".bin.inr",
+                monitoring.to_log_and_console("       membrane hard thresholding of '" +
+                                              str(ext_image).split(os.path.sep)[-1] + "'", 2)
+                cpp_wrapping.seuillage(path_input=ext_image, path_output=bin_image,
                                        low_threshold=parameters.hard_threshold, monitoring=monitoring)
             else:
                 #
                 # Anisotropic threshold of membranes (the choice of the sensitivity parameter may be critical)
+                # Pay attention, the input name is the prefix name (without '.ext.inr')
                 #
-                monitoring.to_log_and_console("       membrane anisotropic thresholding of '"
-                                              + str(tmp_prefix_name + ".ext.inr").split(os.path.sep)[-1] + "'", 2)
-                cpp_wrapping.anisotropic_histogram(path_input_prefix=tmp_prefix_name,
-                                                   path_output=tmp_prefix_name + ".bin.inr",
-                                                   manual=parameters.manual, manual_sigma=parameters.manual_sigma,
+                monitoring.to_log_and_console("       membrane anisotropic thresholding of '" +
+                                              str(ext_image).split(os.path.sep)[-1] + "'", 2)
+                cpp_wrapping.anisotropic_histogram(path_input_extrema=ext_image, path_output_histogram=hist_file,
+                                                   path_output=bin_image, manual=parameters.manual,
+                                                   manual_sigma=parameters.manual_sigma,
                                                    sensitivity=parameters.sensitivity, monitoring=monitoring)
-                os.remove(tmp_prefix_name + '.hist.txt')
 
-        path_tv_input = tmp_prefix_name + ".bin.inr"
+                if monitoring.keepTemporaryFiles is False:
+                    os.remove(hist_file)
+        else:
+            bin_image = os.path.join(temporary_path, bin_image)
+        #
+        #
+        #
+        path_tv_input = bin_image
 
     #
     # Tensor voting on the image of binarized membranes
@@ -320,29 +411,33 @@ def global_membrane_enhancement(path_input, path_output, binary_input=False,
     monitoring.to_log_and_console("       tensor voting from '"
                                   + str(path_tv_input).split(os.path.sep)[-1] + "'", 2)
 
-    e = commonTools.get_extension(path_tv_input)
+    e = common.get_image_extension(path_tv_input)
     b = os.path.basename(path_tv_input)
-    prefix_name = b[0:len(b) - len(e)]
+    bin_name = b[0:len(b) - len(e)]
 
-    bin_prefix_name = temporary_path + os.path.sep + prefix_name
+    bin_prefix_name = os.path.join(temporary_path, bin_name)
 
     if not os.path.isfile(path_output) or monitoring.forceResultsToBeBuilt is True:
         cpp_wrapping.tensor_voting_membrane(path_tv_input, bin_prefix_name, path_output,
                                             scale_tensor_voting=parameters.sigma_TV,
-                                            sample=parameters.sample, sigma_smoothing=parameters.sigma_LF,
-                                            monitoring=monitoring)
+                                            sample=parameters.sample, random_seed=parameters.sample_random_seed,
+                                            sigma_smoothing=parameters.sigma_LF, monitoring=monitoring)
 
+    #
+    # remove images
+    #
     if binary_input is False:
-        os.remove(tmp_prefix_name + '.ext.inr')
-        os.remove(tmp_prefix_name + '.phi.inr')
-        os.remove(tmp_prefix_name + '.theta.inr')
-        os.remove(tmp_prefix_name + '.bin.inr')
+        for suffix in ['.ext', '.phi', '.theta', '.bin']:
+            tmp_image = common.find_file(temporary_path, prefix_name + suffix, file_type='image', callfrom=proc,
+                                         local_monitoring=None, verbose=False)
+            if tmp_image is not None and monitoring.keepTemporaryFiles is False:
+                os.remove(os.path.join(temporary_path, tmp_image))
 
-    os.remove(bin_prefix_name + '.imvp1.inr')
-    os.remove(bin_prefix_name + '.imvp2.inr')
-    os.remove(bin_prefix_name + '.imvp3.inr')
-    os.remove(bin_prefix_name + '.tv.inr')
-    os.remove(bin_prefix_name + '.lf.inr')
+    for suffix in ['.imvp1', '.imvp2', '.imvp3', '.tv', '.lf']:
+        tmp_image = common.find_file(temporary_path, bin_name + suffix, file_type='image', callfrom=proc,
+                                     local_monitoring=None, verbose=False)
+        if tmp_image is not None and monitoring.keepTemporaryFiles is False:
+            os.remove(os.path.join(temporary_path, tmp_image))
 
     return
 
@@ -403,8 +498,9 @@ def cell_binarization(parameters_for_parallelism):
     # threshold extrema
     #
 
-    full_ext = tmp_prefix_name + ".ext.inr"
-    cell_ext = cell_prefix_name + ".ext" + ".inr"
+    full_ext = tmp_prefix_name + ".ext" "." + parameters.default_image_suffix
+    cell_ext = cell_prefix_name + ".ext" + "." + parameters.default_image_suffix
+    cell_hist = cell_prefix_name + ".hist" + ".txt"
     cell_bin = cell_prefix_name + ".bin" + "." + parameters.default_image_suffix
 
     cpp_wrapping.crop_image(full_ext, cell_ext, bbox, monitoring=monitoring)
@@ -416,21 +512,22 @@ def cell_binarization(parameters_for_parallelism):
         cpp_wrapping.seuillage(path_input=cell_ext, path_output=cell_bin,
                                low_threshold=parameters.hard_threshold, monitoring=monitoring)
     else:
-        full_theta = tmp_prefix_name + ".theta.inr"
-        full_phi = tmp_prefix_name + ".phi.inr"
-        cell_theta = cell_prefix_name + ".theta" + ".inr"
-        cell_phi = cell_prefix_name + ".phi" + ".inr"
+        full_theta = tmp_prefix_name + ".theta" + "." + parameters.default_image_suffix
+        full_phi = tmp_prefix_name + ".phi" + "." + parameters.default_image_suffix
+        cell_theta = cell_prefix_name + ".theta" + "." + parameters.default_image_suffix
+        cell_phi = cell_prefix_name + ".phi" + "." + parameters.default_image_suffix
 
         cpp_wrapping.crop_image(full_theta, cell_theta, bbox, monitoring=monitoring)
         cpp_wrapping.crop_image(full_phi, cell_phi, bbox, monitoring=monitoring)
 
-        cpp_wrapping.anisotropic_histogram(path_input_prefix=cell_prefix_name, path_output=cell_bin,
-                                           manual=parameters.manual, manual_sigma=parameters.manual_sigma,
+        cpp_wrapping.anisotropic_histogram(path_input_extrema=cell_ext, path_output_histogram=cell_hist,
+                                           path_output=cell_bin, manual=parameters.manual,
+                                           manual_sigma=parameters.manual_sigma,
                                            sensitivity=parameters.sensitivity, monitoring=monitoring)
 
         os.remove(cell_theta)
         os.remove(cell_phi)
-        os.remove(cell_prefix_name + ".hist.txt")
+        os.remove(cell_hist)
 
     os.remove(cell_ext)
 
@@ -446,24 +543,41 @@ def cell_binarization(parameters_for_parallelism):
 #
 
 
-def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_output,
+def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_output, experiment,
                               temporary_path=None, parameters=None, n_processor=7):
     """
 
     :param path_input:
     :param previous_deformed_segmentation:
     :param path_output:
+    :param experiment:
     :param temporary_path:
     :param parameters:
     :param n_processor:
     :return:
     """
 
+    proc = "cell_membrane_enhancement"
+
+    #
+    # parameter type checking
+    #
+
+    if not isinstance(experiment, common.Experiment):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'experiment' variable: "
+                                      + str(type(experiment)))
+        sys.exit(1)
+
+    if not isinstance(parameters, AceParameters):
+        monitoring.to_log_and_console(str(proc) + ": unexpected type for 'parameters' variable: "
+                                      + str(type(parameters)))
+        sys.exit(1)
+
     #
     # set names
     #
 
-    e = commonTools.get_extension(path_input)
+    e = common.get_image_extension(path_input)
     b = os.path.basename(path_input)
     prefix_name = b[0:len(b) - len(e)]
 
@@ -500,8 +614,8 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
     # bounding boxes of all labels
     # bboxes is a list of tuples [volume, xmin, ymin, zmin, xmax, ymax, zmax]
     #
-    path_bboxes = commonTools.add_suffix(previous_deformed_segmentation, '_bounding_boxes',
-                                         new_dirname=temporary_path, new_extension='txt')
+    path_bboxes = common.add_suffix(previous_deformed_segmentation, '_bounding_boxes',
+                                    new_dirname=temporary_path, new_extension='txt')
     bboxes = cpp_wrapping.bounding_boxes(previous_deformed_segmentation, path_bboxes=path_bboxes)
 
     #
@@ -563,7 +677,7 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
     #     labels_of_interest=[x for x in bboxes.keys() if not background.count(x)]
     #
 
-    labels_of_interest = [x for x in bboxes.keys() if x != 0 and x != 1]
+    labels_of_interest = [x for x in bboxes if x != 0 and x != 1]
 
     #
     # parallel cell-based binarization
@@ -573,7 +687,7 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
     monitoring.to_log_and_console(" ", 3)
     monitoring.to_log_and_console("       ----- start: cell-based parallel binarization -----", 3)
 
-    pool = multiprocessing.Pool(processes = n_processor)
+    pool = multiprocessing.Pool(processes=n_processor)
     mapping = []
 
     for label_of_interest in labels_of_interest:
@@ -596,7 +710,8 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
     #
 
     bin_image = tmp_prefix_name + ".bin." + parameters.default_image_suffix
-    cpp_wrapping.create_image(bin_image, tmp_prefix_name + ".ext.inr", "-o 1", monitoring=monitoring)
+    cpp_wrapping.create_image(bin_image, tmp_prefix_name + ".ext." + parameters.default_image_suffix, "-o 1",
+                              monitoring=monitoring)
 
     for binary_output_cell in outputs:
         cell_label = binary_output_cell[0]
@@ -609,12 +724,12 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
     # tensor voting
     #
 
-    global_membrane_enhancement(bin_image, path_output, binary_input=True,
+    global_membrane_enhancement(bin_image, path_output, experiment, binary_input=True,
                                 temporary_path=temporary_path, parameters=parameters)
 
-    os.remove(tmp_prefix_name + '.ext.inr')
-    os.remove(tmp_prefix_name + '.phi.inr')
-    os.remove(tmp_prefix_name + '.theta.inr')
+    os.remove(tmp_prefix_name + '.ext.' + parameters.default_image_suffix)
+    os.remove(tmp_prefix_name + '.phi.' + parameters.default_image_suffix)
+    os.remove(tmp_prefix_name + '.theta.' + parameters.default_image_suffix)
     os.remove(tmp_prefix_name + ".bin." + parameters.default_image_suffix)
 
     return
@@ -725,7 +840,6 @@ def light_LACE(parameters):
 
     # Mask application on the binary image
     cpp_wrapping.obsolete_Logic(path_mask_dil, path_bin, path_bin, Mode='mask', verbose=verbose)
-
 
     if os.path.exists(path_mask_dil):
         cmd='rm ' + str(path_mask_dil)
@@ -1499,7 +1613,7 @@ def GLACE_from_resampled_segmentation(path_fused_1, path_seg_trsf, labels_of_int
             bboxes[x]=tuple(b)
 
     if type(labels_of_interest)==str and labels_of_interest=='all':
-        labels_of_interest=[x for x in bboxes.keys() if not background.count(x)]
+        labels_of_interest=[x for x in bboxes if not background.count(x)]
 
     pool=Pool(processes=nb_proc)
     mapping=[]

@@ -1,0 +1,552 @@
+\section{Parameters}
+\label{sec:cli:parameters}
+
+
+
+
+
+\subsection{Data organisation parameters}
+\label{sec:cli:parameters:data}
+
+\begin{figure}
+\mbox{}
+\dirtree{%
+.1 \texttt{<PATH\_EMBRYO>}/.
+.2 \texttt{<DIR\_RAWDATA>}/.
+.3 \texttt{<DIR\_LEFTCAM\_STACKZERO>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>001.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKZERO>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>001.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_LEFTCAM\_STACKONE>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>001.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKONE>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>001.zip}.
+.4 \ldots.
+.2 \ldots.
+}
+\mbox{}
+\caption{\label{fig:data:rawdata:1} Typical organisation of mono-channel data. See also section \protect\ref{sec:cli:fuse:input:data}.}
+\end{figure}
+
+\begin{figure}
+\mbox{}
+\dirtree{%
+.1 \texttt{<PATH\_EMBRYO>}/.
+.2 \texttt{<DIR\_RAWDATA>}/.
+.3 \texttt{<DIR\_LEFTCAM\_STACKZERO>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKZERO>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_LEFTCAM\_STACKONE>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKONE>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_LEFTCAM\_STACKZERO\_CHANNEL\_2>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKZERO\_CHANNEL\_2>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_LEFTCAM\_STACKONE\_CHANNEL\_2>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKONE\_CHANNEL\_2>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.2 \ldots.
+}
+\mbox{}
+\caption{\label{fig:data:rawdata:2} Typical organisation of multi-channel data. See also section \protect\ref{sec:cli:fuse:input:data}.}
+\end{figure}
+
+\begin{figure}
+\mbox{}
+\dirtree{%
+.1 \texttt{<PATH\_EMBRYO>}/.
+.2 \texttt{<DIR\_RAWDATA>}/.
+.3 \texttt{<DIR\_LEFTCAM\_STACKZERO>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKZERO>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_LEFTCAM\_STACKONE>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKONE>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.2 \texttt{<DIR\_RAWDATA\_CHANNEL\_2>}/.
+.3 \texttt{<DIR\_LEFTCAM\_STACKZERO>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKZERO>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_LEFTCAM\_STACKONE>}/.
+.4 \texttt{<acquisition\_leftcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.3 \texttt{<DIR\_RIGHTCAM\_STACKONE>}/.
+.4 \texttt{<acquisition\_rightcam\_image\_prefix>000.zip}.
+.4 \ldots.
+.2 \ldots.
+}
+\mbox{}
+\caption{\label{fig:data:rawdata:3} Alternative organisation of multi-channel data. See also section \protect\ref{sec:cli:fuse:input:data}.}
+\end{figure}
+
+\begin{figure}
+\mbox{}
+\dirtree{%
+.1 \texttt{<PATH\_EMBRYO>}/.
+.2 \texttt{<DIR\_RAWDATA>}/.
+.3 \ldots.
+.2 \texttt{<FUSE>}/.
+.3 \texttt{FUSE\_<EXP\_FUSE>}/.
+.4 \texttt{<EN>\_fuse\_t000.<result\_image\_suffix>}.
+.4 \texttt{<EN>\_fuse\_t001.<result\_image\_suffix>}.
+.4 \ldots.
+.2 \ldots.
+}
+\mbox{}
+\caption{\label{fig:data:fusion} Typical organisation of fused images. See also section \protect\ref{sec:cli:fuse:output:data}.}
+\end{figure}
+
+\begin{itemize}
+\itemsep -0.5ex
+\item \texttt{DIR\_LEFTCAM\_STACKONE} 
+see section \ref{sec:cli:fuse:input:data}, 
+see figures \ref{fig:data:rawdata:1}, 
+\ref{fig:data:rawdata:2}, 
+and \ref{fig:data:rawdata:3}.
+\item \texttt{DIR\_LEFTCAM\_STACKONE\_CHANNEL\_2} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_LEFTCAM\_STACKONE\_CHANNEL\_3} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_LEFTCAM\_STACKZERO} 
+see section \ref{sec:cli:fuse:input:data},
+see figures \ref{fig:data:rawdata:1}, 
+\ref{fig:data:rawdata:2}, 
+and \ref{fig:data:rawdata:3}.
+\item \texttt{DIR\_LEFTCAM\_STACKZERO\_CHANNEL\_2} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_LEFTCAM\_STACKZERO\_CHANNEL\_3} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RAWDATA} 
+see section \ref{sec:cli:fuse:input:data},
+see figures \ref{fig:data:rawdata:1}, 
+\ref{fig:data:rawdata:2}, 
+and \ref{fig:data:rawdata:3}.
+\item \texttt{DIR\_RAWDATA\_CHANNEL\_2} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RAWDATA\_CHANNEL\_3} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RIGHTCAM\_STACKONE} 
+see section \ref{sec:cli:fuse:input:data},
+see figures \ref{fig:data:rawdata:1}, 
+\ref{fig:data:rawdata:2}, 
+and \ref{fig:data:rawdata:3}.
+\item \texttt{DIR\_RIGHTCAM\_STACKONE\_CHANNEL\_2} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RIGHTCAM\_STACKONE\_CHANNEL\_3} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RIGHTCAM\_STACKZERO} 
+see section \ref{sec:cli:fuse:input:data},
+see figures \ref{fig:data:rawdata:1}, 
+\ref{fig:data:rawdata:2}, 
+and \ref{fig:data:rawdata:3}.
+\item \texttt{DIR\_RIGHTCAM\_STACKZERO\_CHANNEL\_2} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RIGHTCAM\_STACKZERO\_CHANNEL\_3} 
+see section \ref{sec:cli:fuse:input:data}
+\item \texttt{EN} 
+see section \ref{sec:cli:fuse:output:data},
+see figure \ref{fig:data:fusion}.
+\item \texttt{EXP\_FUSE} 
+see section \ref{sec:cli:fuse:output:data},
+see figure \ref{fig:data:fusion}.
+\item \texttt{EXP\_FUSE\_CHANNEL\_2} 
+see section \ref{sec:cli:fuse:output:data}
+\item \texttt{EXP\_FUSE\_CHANNEL\_3} 
+see section \ref{sec:cli:fuse:output:data}
+\item \texttt{PATH\_EMBRYO}: path to the \textit{experiment}, 
+see section \ref{sec:cli:fuse:input:data},
+see figures \ref{fig:data:rawdata:1}, 
+\ref{fig:data:rawdata:2}, 
+\ref{fig:data:rawdata:3}, and
+\ref{fig:data:fusion}
+\item \texttt{acquisition\_leftcam\_image\_prefix}  
+see section \ref{sec:cli:fuse:input:data},
+see figures \ref{fig:data:rawdata:1}, 
+\ref{fig:data:rawdata:2}, 
+and \ref{fig:data:rawdata:3}.
+\item \texttt{acquisition\_rightcam\_image\_prefix}  
+see section \ref{sec:cli:fuse:input:data},
+see figures \ref{fig:data:rawdata:1}, 
+\ref{fig:data:rawdata:2}, 
+and \ref{fig:data:rawdata:3}.
+\item \texttt{default\_image\_suffix}
+\item \texttt{result\_image\_suffix}
+\end{itemize}
+
+
+\subsection{Ace parameters}
+\label{sec:cli:parameters:ace}
+
+\begin{itemize}
+\itemsep -0.5ex
+\item \texttt{sigma\_membrane}
+\item \texttt{hard\_thresholding}
+\item \texttt{hard\_threshold}
+\item \texttt{manual}
+\item \texttt{manual\_sigma}
+\item \texttt{sensitivity}
+\item \texttt{sigma\_TV}
+\item \texttt{sigma\_LF}
+\item \texttt{sample}
+\item \texttt{sample\_random\_seed}
+\item \texttt{bounding\_box\_dilation}
+\item \texttt{default\_image\_suffix}
+\end{itemize}
+
+
+\subsection{Morphosnake parameters}
+\label{sec:cli:parameters:morphosnake}
+
+\begin{itemize}
+\itemsep -0.5ex
+\item \texttt{dilation\_iterations}
+\item \texttt{iterations}
+\item \texttt{delta\_voxel}
+\item \texttt{energy}
+\item \texttt{smoothing}
+\item \texttt{threshold}
+\item \texttt{balloon}
+\item \texttt{processors}
+\item \texttt{mimic\_historical\_astec}
+\end{itemize}
+
+
+\subsection{Reconstruction parameters}
+\label{sec:cli:parameters:reconstruction}
+
+\begin{itemize}
+\itemsep -0.5ex
+\item Ace parameters
+  (see section \ref{sec:cli:parameters:ace})
+\item \texttt{intensity\_transformation}
+\item \texttt{intensity\_enhancement}
+\item \texttt{outer\_contour\_enhancement}
+\item \texttt{reconstruction\_images\_combination}
+\item \texttt{cell\_normalization\_min\_method}
+\item \texttt{cell\_normalization\_max\_method}
+\item \texttt{normalization\_min\_percentile}
+\item \texttt{normalization\_max\_percentile}
+\item \texttt{cell\_normalization\_sigma}
+\item \texttt{intensity\_transformation}
+\item Registration parameters 
+  (see section \ref{sec:cli:parameters:registration}) prefixed 
+  by \texttt{linear\_registration\_}
+\item Registration parameters 
+  (see section \ref{sec:cli:parameters:registration}) prefixed 
+  by \texttt{nonlinear\_registration\_}
+\item \texttt{keep\_reconstruction}
+\end{itemize}
+
+
+\subsection{Registration parameters}
+\label{sec:cli:parameters:registration}
+
+\begin{itemize}
+\itemsep -0.5ex
+\item \texttt{compute\_registration}
+\item \texttt{pyramid\_highest\_level}
+\item \texttt{pyramid\_lowest\_level}
+\item \texttt{gaussian\_pyramid}
+\item \texttt{transformation\_type}
+\item \texttt{elastic\_sigma}
+\item \texttt{transformation\_estimation\_type}
+\item \texttt{lts\_fraction}
+\item \texttt{fluid\_sigma}
+\item \texttt{normalization}
+\end{itemize}
+
+
+\subsection{Seed edition parameters}
+\label{sec:cli:parameters:seed:edition}
+
+\begin{itemize}
+\itemsep -0.5ex
+\item \texttt{seed\_edition\_dir}
+\item \texttt{seed\_edition\_file}
+\end{itemize}
+
+
+\subsection{Watershed parameters}
+\label{sec:cli:parameters:watershed}
+
+\begin{itemize}
+\itemsep -0.5ex
+\item \texttt{seed\_sigma}
+\item \texttt{seed\_hmin}
+\item \texttt{seed\_high\_threshold}
+\item \texttt{membrane\_sigma}
+\end{itemize}
+
+
+
+
+
+
+
+
+
+
+
+\subsection{\texttt{1-fuse.py} parameters}
+\label{sec:cli:parameters:fuse}
+
+
+% Please also refer to the file
+% \texttt{parameter-file-examples/1-fuse-parameters.py}
+
+\begin{itemize}
+\itemsep -0.5ex
+\item \texttt{acquisition\_orientation}
+  see section \ref{sec:cli:fuse:important:parameters}
+\item \texttt{acquisition\_mirrors}
+  see section \ref{sec:cli:fuse:important:parameters}
+\item \texttt{acquisition\_resolution}
+  see section \ref{sec:cli:fuse:important:parameters}
+\item \texttt{acquisition\_stack0\_leftcamera\_z\_stacking}
+\item \texttt{acquisition\_stack1\_leftcamera\_z\_stacking}
+\item \texttt{acquisition\_slit\_line\_correction}
+\item \texttt{target\_resolution}
+  see section \ref{sec:cli:fuse:output:data}
+\item \texttt{fusion\_strategy}
+  see section \ref{sec:cli:fuse:image:coregistration}
+\item \texttt{acquisition\_cropping}
+  see section \ref{sec:cli:fuse:raw:data:cropping}
+\item \texttt{acquisition\_cropping\_margin\_x\_0}
+\item \texttt{acquisition\_cropping\_margin\_x\_1}
+\item \texttt{acquisition\_cropping\_margin\_y\_0}
+\item \texttt{acquisition\_cropping\_margin\_y\_1}
+\item Registration parameters 
+  (see section \ref{sec:cli:parameters:registration}) prefixed 
+  by \texttt{fusion\_preregistration\_}
+\item Registration parameters 
+  (see section \ref{sec:cli:parameters:registration}) prefixed 
+  by \texttt{fusion\_registration\_}
+\item Registration parameters 
+  (see section \ref{sec:cli:parameters:registration}) prefixed 
+  by \texttt{fusion\_stack\_preregistration\_}
+\item Registration parameters 
+  (see section \ref{sec:cli:parameters:registration}) prefixed 
+  by \texttt{fusion\_stack\_registration\_}
+\item \texttt{xzsection\_extraction}
+  see section \ref{sec:cli:fuse:stack:fusion}
+\item \texttt{fusion\_cropping}
+  see section \ref{sec:cli:fuse:fused:data:cropping}
+\item \texttt{fusion\_cropping\_margin\_x\_0}
+\item \texttt{fusion\_cropping\_margin\_x\_1}
+\item \texttt{fusion\_cropping\_margin\_y\_0}
+\item \texttt{fusion\_cropping\_margin\_y\_1}
+
+\item \texttt{acquisition\_leftcamera\_z\_stacking}
+  allows to set both \texttt{acquisition\_stack0\_leftcamera\_z\_stacking} and \texttt{acquisition\_stack1\_leftcamera\_z\_stacking}
+\item \texttt{fusion\_crop} 
+  same as \texttt{fusion\_cropping}
+\item \texttt{fusion\_margin\_x\_0}
+  same as \texttt{fusion\_cropping\_margin\_x\_0}
+\item \texttt{fusion\_margin\_x\_1}
+  same as \texttt{fusion\_cropping\_margin\_x\_1}
+\item \texttt{fusion\_margin\_y\_0}
+  same as \texttt{fusion\_cropping\_margin\_y\_0}
+\item \texttt{fusion\_margin\_y\_1}
+  same as \texttt{fusion\_cropping\_margin\_y\_1}
+\item \texttt{fusion\_xzsection\_extraction} 
+  same as \texttt{xzsection\_extraction}
+\item \texttt{raw\_crop} 
+  same as \texttt{acquisition\_cropping}
+\item \texttt{raw\_margin\_x\_0}
+  same as \texttt{acquisition\_cropping\_margin\_x\_0}
+\item \texttt{raw\_margin\_x\_1}
+  same as \texttt{acquisition\_cropping\_margin\_x\_1}
+\item \texttt{raw\_margin\_y\_0}
+  same as \texttt{acquisition\_cropping\_margin\_y\_0}
+\item \texttt{raw\_margin\_y\_1}
+  same as \texttt{acquisition\_cropping\_margin\_y\_1}
+\item \texttt{raw\_mirrors} 
+  same as \texttt{acquisition\_mirrors}
+\item \texttt{raw\_ori} 
+  same as \texttt{acquisition\_orientation}
+\item \texttt{raw\_resolution} 
+  same as \texttt{acquisition\_resolution}
+\end{itemize}
+
+\begin{itemize}
+\itemsep -0.5ex
+
+\item \texttt{begin} 
+  see section \ref{sec:cli:fuse:important:parameters}
+\item \texttt{delta}
+\item \texttt{end} 
+  see section \ref{sec:cli:fuse:important:parameters}
+\item \texttt{fusion\_weighting}
+\item \texttt{fusion\_weighting\_channel\_1}
+\item \texttt{fusion\_weighting\_channel\_2}
+\item \texttt{fusion\_weighting\_channel\_3}
+\item \texttt{raw\_delay}
+\end{itemize}
+
+
+
+
+
+\subsection{\texttt{1.5-intraregistration.py} parameters}
+\label{sec:cli:parameters:intraregistration}
+
+These parameters are prefixed by \texttt{intra\_registration\_}.
+\begin{itemize}
+\itemsep -0.5ex
+\item Registration parameters 
+(see section \ref{sec:cli:parameters:registration}) 
+\item \texttt{reference\_index}
+\item \texttt{reference\_transformation\_file}
+\item \texttt{reference\_transformation\_angles}
+\item \texttt{template\_type}
+\item \texttt{template\_threshold}
+\item \texttt{margin}
+\item \texttt{resolution}
+\item \texttt{rebuild\_template}
+\item \texttt{sigma\_segmentation\_images}
+\item \texttt{resample\_fusion\_images}
+\item \texttt{resample\_segmentation\_images}
+\item \texttt{resample\_post\_segmentation\_images}
+\item \texttt{movie\_fusion\_images}
+\item \texttt{movie\_segmentation\_images}
+\item \texttt{movie\_post\_segmentation\_images}
+\item \texttt{xy\_movie\_fusion\_images}
+\item \texttt{xz\_movie\_fusion\_images}
+\item \texttt{yz\_movie\_fusion\_images}
+\item \texttt{xy\_movie\_segmentation\_images}
+\item \texttt{xz\_movie\_segmentation\_images}
+\item \texttt{yz\_movie\_segmentation\_images}
+\item \texttt{xy\_movie\_post\_segmentation\_images}
+\item \texttt{xz\_movie\_post\_segmentation\_images}
+\item \texttt{yz\_movie\_post\_segmentation\_images}
+\item \texttt{maximum\_fusion\_images}
+\item \texttt{maximum\_segmentation\_images}
+\item \texttt{maximum\_post\_segmentation\_images}
+\end{itemize}
+
+\subsection{\texttt{2-mars.py} parameters}
+\label{sec:cli:parameters:mars}
+
+These parameters are prefixed by \texttt{mars\_}.
+ 
+\begin{itemize}
+\itemsep -0.5ex
+\item \texttt{first\_time\_point}
+\item \texttt{last\_time\_point}
+\item Watershed parameters 
+  (see section \ref{sec:cli:parameters:watershed})
+\item Seed edition parameters
+  (see section \ref{sec:cli:parameters:seed:edition})
+\item Reconstruction parameters
+  (see section \ref{sec:cli:parameters:reconstruction})
+  prefixed by \texttt{seed\_}
+\item Reconstruction parameters
+  (see section \ref{sec:cli:parameters:reconstruction})
+  prefixed by \texttt{membrane\_}
+\end{itemize}
+
+
+\subsection{\texttt{3-manualcorrection.py} parameters}
+\label{sec:cli:parameters:manualcorrection}
+
+\begin{itemize}
+\itemsep -0.5ex
+\item \texttt{first\_time\_point}
+\item \texttt{last\_time\_point}
+\item \texttt{input\_image}
+\item \texttt{output\_image}
+\item \texttt{mapping\_file}
+\end{itemize}
+
+\subsection{\texttt{4-astec.py} parameters}
+\label{sec:cli:parameters:astec}
+
+
+These parameters are prefixed by \texttt{astec\_}.
+ 
+\begin{itemize}
+\itemsep -0.5ex
+\item Watershed parameters 
+  (see section \ref{sec:cli:parameters:watershed})
+\item Reconstruction parameters
+  (see section \ref{sec:cli:parameters:reconstruction})
+  prefixed by \texttt{seed\_}
+\item Reconstruction parameters
+  (see section \ref{sec:cli:parameters:reconstruction})
+  prefixed by \texttt{membrane\_}
+\item Reconstruction parameters
+  (see section \ref{sec:cli:parameters:reconstruction})
+  prefixed by \texttt{morphosnake\_}
+\item Morphosnake parameters
+  (see section \ref{sec:cli:parameters:morphosnake})
+\item \texttt{propagation\_strategy}
+\item \texttt{previous\_seg\_method}
+\item \texttt{previous\_seg\_erosion\_cell\_iterations}
+\item \texttt{previous\_seg\_erosion\_background\_iterations}
+\item \texttt{previous\_seg\_erosion\_cell\_min\_size}
+\item \texttt{watershed\_seed\_hmin\_min\_value}
+\item \texttt{watershed\_seed\_hmin\_max\_value}
+\item \texttt{watershed\_seed\_hmin\_delta\_value}
+\item \texttt{background\_seed\_from\_hmin}
+\item \texttt{background\_seed\_from\_previous}
+\item \texttt{seed\_selection\_tau}
+\item \texttt{minimum\_volume\_unseeded\_cell}
+\item \texttt{volume\_ratio\_tolerance}
+\item \texttt{volume\_ratio\_threshold}
+\item \texttt{volume\_minimal\_value}
+\item \texttt{morphosnake\_correction}
+\item \texttt{outer\_correction\_radius\_opening}
+\end{itemize}
+
+\subsection{\texttt{5-postcorrection.py} parameters}
+\label{sec:cli:parameters:postcorrection}
+
+These parameters are prefixed by \texttt{postcorrection\_}.
+
+\begin{itemize}
+\itemsep -0.5ex
+\item \texttt{volume\_minimal\_value}
+  branch ending with leaf cell below this value are candidate for deletion. Expressed in voxel unit.
+\item \texttt{lifespan\_minimal\_value}
+\item \texttt{test\_early\_division}
+\item \texttt{test\_volume\_correlation}
+\item \texttt{correlation\_threshold}
+\item \texttt{test\_postponing\_division}
+\item \texttt{postponing\_correlation\_threshold}
+\item \texttt{postponing\_minimal\_length}
+\item \texttt{postponing\_window\_length}
+\item \texttt{lineage\_diagnosis}
+  performs a kind of diagnosis on the lineage before and after the post-correction.
+\end{itemize}
+
+
+
+
+

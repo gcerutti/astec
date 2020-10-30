@@ -1,8 +1,8 @@
 #!/usr/bin/python2.7
 
-import os
 import time
 from argparse import ArgumentParser
+import sys
 
 #
 # local imports
@@ -10,9 +10,9 @@ from argparse import ArgumentParser
 #
 
 
-import ASTEC.commonTools as commonTools
-import ASTEC.MARS as MARS
-import ASTEC.nomenclature as nomenclature
+import ASTEC.common as common
+import ASTEC.mars as mars
+import ASTEC.ace as ace
 from ASTEC.CommunFunctions.cpp_wrapping import path_to_vt
 
 
@@ -71,6 +71,10 @@ def _set_options(my_parser):
                            action='store_const', dest='debug', const=0,
                            help='no debug information')
 
+    my_parser.add_argument('-pp', '--print-param',
+                           action='store_const', dest='printParameters',
+                           default=False, const=True,
+                           help='print parameters in console and exit')
     return
 
 
@@ -83,17 +87,22 @@ def _set_options(my_parser):
 
 def main():
 
+    ############################################################
+    #
+    # generic part
+    #
+    ############################################################
+
     #
     # initialization
     #
     start_time = time.localtime()
-    monitoring = commonTools.Monitoring()
-    experiment = commonTools.Experiment()
-    parameters = MARS.MarsParameters()
-    environment = MARS.MarsEnvironment()
+    monitoring = common.Monitoring()
+    experiment = common.Experiment()
 
     #
     # reading command line arguments
+    # and update from command line arguments
     #
     parser = ArgumentParser(description='Mars')
     _set_options(parser)
@@ -102,81 +111,92 @@ def main():
     monitoring.update_from_args(args)
     experiment.update_from_args(args)
 
-
     #
     # reading parameter files
     # and updating parameters
     #
-    parameterFile = commonTools.get_parameter_file(args.parameterFile)
-    environment.update_from_file(parameterFile, start_time)
-    environment.path_history_file = nomenclature.replaceEXECUTABLE(environment.path_history_file, __file__)
-    environment.path_log_file = nomenclature.replaceEXECUTABLE(environment.path_log_file, __file__)
+    parameter_file = common.get_parameter_file(args.parameterFile)
+    experiment.update_from_parameter_file(parameter_file)
 
-    if not os.path.isdir(environment.path_seg_exp):
-        os.makedirs(environment.path_seg_exp)
+    #
+    # set
+    # 1. the working directory
+    #    that's where the logfile will be written
+    # 2. the log file name
+    #    it creates the logfile dir, if necessary
+    #
+    experiment.working_dir = experiment.mars_dir
+    monitoring.set_log_filename(experiment, __file__, start_time)
 
-    if not os.path.isdir(environment.path_logdir):
-        os.makedirs(environment.path_logdir)
+    #
+    # keep history of command line executions
+    # and copy parameter file
+    #
+    experiment.update_history_at_start(__file__, start_time, parameter_file, path_to_vt())
+    experiment.copy_stamped_file(start_time, parameter_file)
 
-    experiment.update_from_file(parameterFile)
+    #
+    # copy monitoring information into other "files"
+    # so the log filename is known
+    #
+    common.monitoring.copy(monitoring)
+
+    #
+    # write generic information into the log file
+    #
+    monitoring.write_configuration()
+    experiment.write_configuration()
+
+    experiment.write_parameters(monitoring.log_filename)
+
+    ############################################################
+    #
+    # specific part
+    #
+    ############################################################
+
+    #
+    # copy monitoring information into other "files"
+    # so the log filename is known
+    #
+    mars.monitoring.copy(monitoring)
+    ace.monitoring.copy(monitoring)
+
+    #
+    # manage parameters
+    # 1. initialize
+    # 2. update parameters
+    # 3. write parameters into the logfile
+    #
+
+    parameters = mars.MarsParameters()
+
     parameters.first_time_point = experiment.first_time_point
     parameters.last_time_point = experiment.first_time_point
-    parameters.update_from_file(parameterFile)
+    parameters.update_from_parameter_file(parameter_file)
+
+    parameters.write_parameters(monitoring.log_filename)
 
     #
-    # make fusion directory and subdirectory if required
-    # => allows to write log and history files
-    #    and to copy parameter file
+    # print parameters before processing
     #
-    # for i in range(0, len(environment.channel)):
-    #    if not os.path.isdir(environment.channel[i].path_fuse_exp):
-    #        os.makedirs(environment.channel[i].path_fuse_exp)
-
-    #
-    # write history information in history file
-    #
-    commonTools.write_history_information(environment.path_history_file,
-                                          experiment,
-                                          parameterFile,
-                                          start_time,
-                                          os.path.dirname(__file__),
-                                          path_to_vt())
-
-    #
-    # define log file
-    # and write some information
-    #
-    monitoring.logfile = environment.path_log_file
-    MARS.monitoring.copy(monitoring)
-
-    monitoring.write_parameters(monitoring.logfile)
-    experiment.write_parameters(monitoring.logfile)
-    environment.write_parameters(monitoring.logfile)
-    parameters.write_parameters(monitoring.logfile)
-
-    #
-    # copy parameter file
-    #
-    commonTools.copy_date_stamped_file(parameterFile, environment.path_logdir, start_time)
+    if args.printParameters:
+        experiment.print_parameters()
+        parameters.print_parameters()
+        sys.exit(0)
 
     #
     # processing
     #
-    MARS.mars_control(experiment, environment, parameters)
+    mars.mars_control(experiment, parameters)
 
     #
     # end of execution
     # write execution time in both log and history file
     #
-    endtime = time.localtime()
-    with open(environment.path_log_file, 'a') as logfile:
-        logfile.write("\n")
-        logfile.write('Total execution time = '+str(time.mktime(endtime)-time.mktime(start_time))+' sec\n')
-        logfile.write("\n")
-
-    with open(environment.path_history_file, 'a') as logfile:
-        logfile.write('# Total execution time = '+str(time.mktime(endtime)-time.mktime(start_time))+' sec\n')
-        logfile.write("\n\n")
+    end_time = time.localtime()
+    monitoring.update_execution_time(start_time, end_time)
+    experiment.update_history_execution_time(__file__, start_time, end_time)
 
 
 #

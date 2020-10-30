@@ -4,7 +4,7 @@ import shutil
 import sys
 import time
 
-import commonTools
+import common
 from CommunFunctions.ImageHandling import imread
 import CommunFunctions.cpp_wrapping as cpp_wrapping
 
@@ -14,7 +14,7 @@ import CommunFunctions.cpp_wrapping as cpp_wrapping
 #
 #
 
-monitoring = commonTools.Monitoring()
+monitoring = common.Monitoring()
 
 
 ########################################################################################
@@ -25,17 +25,24 @@ monitoring = commonTools.Monitoring()
 ########################################################################################
 
 
-class IntraRegParameters(object):
+class IntraRegParameters(common.PrefixedParameter):
+
+    ############################################################
+    #
+    # initialisation
+    #
+    ############################################################
 
     def __init__(self):
+
+        common.PrefixedParameter.__init__(self, prefix=['intra_registration_'])
 
         #
         # Co-registration parameters
         #
 
-        self.registration = commonTools.RegistrationParameters()
+        self.registration = common.RegistrationParameters(prefix=self._prefix)
         self.registration.transformation_type = 'rigid'
-        self.registration.prefix = 'intra_registration_'
 
         #
         # intra-sequence transformation parameters
@@ -95,82 +102,23 @@ class IntraRegParameters(object):
         self.xz_movie_post_segmentation_images = []
         self.yz_movie_post_segmentation_images = []
 
-        #
-        # images suffixes/formats
-        #
+        self.maximum_fusion_images = False
+        self.maximum_segmentation_images = False
+        self.maximum_post_segmentation_images = False
 
-        self.result_image_suffix = 'inr'
-        self.default_image_suffix = 'inr'
-
-    def write_parameters(self, log_file_name):
-        with open(log_file_name, 'a') as logfile:
-            logfile.write("\n")
-            logfile.write('IntraRegParameters\n')
-
-            #
-            # Co-registration parameters
-            #
-
-            self.registration.write_parameters(log_file_name)
-
-            #
-            # intra-sequence transformation parameters
-            #
-
-            logfile.write('- reference_index = ' + str(self.reference_index) + '\n')
-            logfile.write('- reference_transformation_file = ' + str(self.reference_transformation_file) + '\n')
-            logfile.write('- reference_transformation_angles = ' + str(self.reference_transformation_angles) + '\n')
-
-            logfile.write('- template_type = ' + str(self.template_type) + '\n')
-            logfile.write('- template_threshold = ' + str(self.template_threshold) + '\n')
-            logfile.write('- margin = ' + str(self.margin) + '\n')
-
-            logfile.write('- resolution = ' + str(self.resolution) + '\n')
-
-            logfile.write('- rebuild_template = ' + str(self.rebuild_template) + '\n')
-
-            #
-            # resampling parameters
-            #
-
-            logfile.write('- sigma_segmentation_images = ' + str(self.sigma_segmentation_images) + '\n')
-            logfile.write('- resample_fusion_images = ' + str(self.resample_fusion_images) + '\n')
-            logfile.write('- resample_segmentation_images = ' + str(self.resample_segmentation_images) + '\n')
-            logfile.write('- resample_post_segmentation_images = ' + str(self.resample_post_segmentation_images) + '\n')
-
-            #
-            # movie parameters
-            #
-
-            logfile.write('- movie_fusion_images = ' + str(self.movie_fusion_images) + '\n')
-            logfile.write('- movie_segmentation_images = ' + str(self.movie_segmentation_images) + '\n')
-            logfile.write('- movie_post_segmentation_images = ' + str(self.movie_post_segmentation_images) + '\n')
-
-            logfile.write('- xy_movie_fusion_images = ' + str(self.xy_movie_fusion_images) + '\n')
-            logfile.write('- xz_movie_fusion_images = ' + str(self.xz_movie_fusion_images) + '\n')
-            logfile.write('- yz_movie_fusion_images = ' + str(self.yz_movie_fusion_images) + '\n')
-
-            logfile.write('- xy_movie_segmentation_images = ' + str(self.xy_movie_segmentation_images) + '\n')
-            logfile.write('- xz_movie_segmentation_images = ' + str(self.xz_movie_segmentation_images) + '\n')
-            logfile.write('- yz_movie_segmentation_images = ' + str(self.yz_movie_segmentation_images) + '\n')
-
-            logfile.write('- xy_movie_post_segmentation_images = ' + str(self.xy_movie_post_segmentation_images) + '\n')
-            logfile.write('- xz_movie_post_segmentation_images = ' + str(self.xz_movie_post_segmentation_images) + '\n')
-            logfile.write('- yz_movie_post_segmentation_images = ' + str(self.yz_movie_post_segmentation_images) + '\n')
-
-            #
-            # images suffixes/formats
-            #
-
-            logfile.write('- result_image_suffix = ' + str(self.result_image_suffix) + '\n')
-            logfile.write('- default_image_suffix = ' + str(self.default_image_suffix) + '\n')
-
-            logfile.write("\n")
-        return
+    ############################################################
+    #
+    # print / write
+    #
+    ############################################################
 
     def print_parameters(self):
         print("")
-        print('IntraRegParameters')
+        print('#')
+        print('# IntraRegParameters')
+        print('#')
+
+        common.PrefixedParameter.print_parameters(self)
 
         #
         # Co-registration parameters
@@ -182,184 +130,197 @@ class IntraRegParameters(object):
         # intra-sequence transformation parameters
         #
 
-        print('- reference_index = ' + str(self.reference_index))
-        print('- reference_transformation_file = ' + str(self.reference_transformation_file))
-        print('- reference_transformation_angles = ' + str(self.reference_transformation_angles))
+        self.varprint('reference_index', self.reference_index)
+        self.varprint('reference_transformation_file', self.reference_transformation_file)
+        self.varprint('reference_transformation_angles', self.reference_transformation_angles)
 
-        print('- template_type = ' + str(self.template_type))
-        print('- template_threshold = ' + str(self.template_threshold))
-        print('- margin = ' + str(self.margin))
+        self.varprint('template_type', self.template_type)
+        self.varprint('template_threshold', self.template_threshold)
+        self.varprint('margin', self.margin)
 
-        print('- resolution = ' + str(self.resolution))
+        self.varprint('resolution', self.resolution)
 
-        print('- rebuild_template = ' + str(self.rebuild_template))
+        self.varprint('rebuild_template', self.rebuild_template)
 
         #
         # resampling parameters
         #
 
-        print('- sigma_segmentation_images = ' + str(self.sigma_segmentation_images))
-        print('- resample_fusion_images = ' + str(self.resample_fusion_images))
-        print('- resample_segmentation_images = ' + str(self.resample_segmentation_images))
-        print('- resample_post_segmentation_images = ' + str(self.resample_post_segmentation_images))
+        self.varprint('sigma_segmentation_images', self.sigma_segmentation_images)
+        self.varprint('resample_fusion_images', self.resample_fusion_images)
+        self.varprint('resample_segmentation_images', self.resample_segmentation_images)
+        self.varprint('resample_post_segmentation_images', self.resample_post_segmentation_images)
 
         #
         # movie parameters
         #
 
-        print('- movie_fusion_images = ' + str(self.movie_fusion_images))
-        print('- movie_segmentation_images = ' + str(self.movie_segmentation_images))
-        print('- movie_post_segmentation_images = ' + str(self.movie_post_segmentation_images))
+        self.varprint('movie_fusion_images', self.movie_fusion_images)
+        self.varprint('movie_segmentation_images', self.movie_segmentation_images)
+        self.varprint('movie_post_segmentation_images', self.movie_post_segmentation_images)
 
-        print('- xy_movie_fusion_images = ' + str(self.xy_movie_fusion_images))
-        print('- xz_movie_fusion_images = ' + str(self.xz_movie_fusion_images))
-        print('- yz_movie_fusion_images = ' + str(self.yz_movie_fusion_images))
+        self.varprint('xy_movie_fusion_images', self.xy_movie_fusion_images)
+        self.varprint('xz_movie_fusion_images', self.xz_movie_fusion_images)
+        self.varprint('yz_movie_fusion_images', self.yz_movie_fusion_images)
 
-        print('- xy_movie_segmentation_images = ' + str(self.xy_movie_segmentation_images))
-        print('- xz_movie_segmentation_images = ' + str(self.xz_movie_segmentation_images))
-        print('- yz_movie_segmentation_images = ' + str(self.yz_movie_segmentation_images))
+        self.varprint('xy_movie_segmentation_images', self.xy_movie_segmentation_images)
+        self.varprint('xz_movie_segmentation_images', self.xz_movie_segmentation_images)
+        self.varprint('yz_movie_segmentation_images', self.yz_movie_segmentation_images)
 
-        print('- xy_movie_post_segmentation_images = ' + str(self.xy_movie_post_segmentation_images))
-        print('- xz_movie_post_segmentation_images = ' + str(self.xz_movie_post_segmentation_images))
-        print('- yz_movie_post_segmentation_images = ' + str(self.yz_movie_post_segmentation_images))
+        self.varprint('xy_movie_post_segmentation_images', self.xy_movie_post_segmentation_images)
+        self.varprint('xz_movie_post_segmentation_images', self.xz_movie_post_segmentation_images)
+        self.varprint('yz_movie_post_segmentation_images', self.yz_movie_post_segmentation_images)
 
-        #
-        # images suffixes/formats
-        #
-
-        print('- result_image_suffix = ' + str(self.result_image_suffix))
-        print('- default_image_suffix = ' + str(self.default_image_suffix))
+        self.varprint('maximum_fusion_images', self.maximum_fusion_images)
+        self.varprint('maximum_segmentation_images', self.maximum_segmentation_images)
+        self.varprint('maximum_post_segmentation_images', self.maximum_post_segmentation_images)
 
         print("")
+        return
 
-    def update_from_args(self, args):
-        self.reference_transformation_file = args.reference_transformation_file
-        self.reference_transformation_angles = args.reference_transformation_angles
+    def write_parameters_in_file(self, logfile):
+        logfile.write("\n")
+        logfile.write('#\n')
+        logfile.write('# IntraRegParameters\n')
+        logfile.write('#\n')
 
-    def update_from_file(self, parameter_file):
-        if parameter_file is None:
-            return
-        if not os.path.isfile(parameter_file):
-            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
-            sys.exit(1)
-
-        margin_is_updated = False
-        parameters = imp.load_source('*', parameter_file)
+        common.PrefixedParameter.write_parameters_in_file(self, logfile)
 
         #
-        # co-registration parameters
+        # Co-registration parameters
         #
 
-        self.registration.update_from_file(parameter_file)
+        self.registration.write_parameters_in_file(logfile)
 
         #
         # intra-sequence transformation parameters
         #
 
-        if hasattr(parameters, 'intra_registration_reference_index'):
-            if parameters.intra_registration_reference_index is not None:
-                self.reference_index = parameters.intra_registration_reference_index
-        if hasattr(parameters, 'intra_registration_reference_resampling_transformation_file'):
-            if parameters.intra_registration_reference_resampling_transformation_file is not None:
-                self.reference_transformation_file = parameters.intra_registration_reference_resampling_transformation_file
-        if hasattr(parameters, 'intra_registration_reference_resampling_transformation_angles'):
-            if parameters.intra_registration_reference_resampling_transformation_angles is not None:
-                self.reference_transformation_angles = parameters.intra_registration_reference_resampling_transformation_angles
+        self.varwrite(logfile, 'reference_index', self.reference_index)
+        self.varwrite(logfile, 'reference_transformation_file', self.reference_transformation_file)
+        self.varwrite(logfile, 'reference_transformation_angles', self.reference_transformation_angles)
 
-        if hasattr(parameters, 'intra_registration_template_type'):
-            if parameters.intra_registration_template_type is not None:
-                self.template_type = parameters.intra_registration_template_type
-        if hasattr(parameters, 'intra_registration_template_threshold'):
-            if parameters.intra_registration_template_threshold is not None:
-                self.template_threshold = parameters.intra_registration_template_threshold
-        if hasattr(parameters, 'intra_registration_margin'):
-            if parameters.intra_registration_margin is not None:
-                self.margin = parameters.intra_registration_margin
-                margin_is_updated = True
+        self.varwrite(logfile, 'template_type', self.template_type)
+        self.varwrite(logfile, 'template_threshold', self.template_threshold)
+        self.varwrite(logfile, 'margin', self.margin)
 
-        if hasattr(parameters, 'intra_registration_resolution'):
-            if parameters.intra_registration_resolution is not None:
-                self.resolution = parameters.intra_registration_resolution
+        self.varwrite(logfile, 'resolution', self.resolution)
 
-        if hasattr(parameters, 'intra_registration_rebuild_template'):
-            if parameters.intra_registration_rebuild_template is not None:
-                self.rebuild_template = parameters.intra_registration_rebuild_template
+        self.varwrite(logfile, 'rebuild_template', self.rebuild_template)
 
         #
         # resampling parameters
         #
 
-        if hasattr(parameters, 'intra_registration_sigma_segmentation_images'):
-            if parameters.intra_registration_sigma_segmentation_images is not None:
-                self.sigma_segmentation_images = parameters.intra_registration_sigma_segmentation_images
-
-        if hasattr(parameters, 'intra_registration_resample_fusion_images'):
-            if parameters.intra_registration_resample_fusion_images is not None:
-                self.resample_fusion_images = parameters.intra_registration_resample_fusion_images
-        if hasattr(parameters, 'intra_registration_resample_segmentation_images'):
-            if parameters.intra_registration_resample_segmentation_images is not None:
-                self.resample_segmentation_images = parameters.intra_registration_resample_segmentation_images
-        if hasattr(parameters, 'intra_registration_resample_post_segmentation_images'):
-            if parameters.intra_registration_resample_post_segmentation_images is not None:
-                self.resample_post_segmentation_images = parameters.intra_registration_resample_post_segmentation_images
-
-        if hasattr(parameters, 'intra_registration_movie_fusion_images'):
-            if parameters.intra_registration_movie_fusion_images is not None:
-                self.movie_fusion_images = parameters.intra_registration_movie_fusion_images
-        if hasattr(parameters, 'intra_registration_movie_segmentation_images'):
-            if parameters.intra_registration_movie_segmentation_images is not None:
-                self.movie_segmentation_images = parameters.intra_registration_movie_segmentation_images
-        if hasattr(parameters, 'intra_registration_movie_post_segmentation_images'):
-            if parameters.intra_registration_movie_post_segmentation_images is not None:
-                self.movie_post_segmentation_images = parameters.intra_registration_movie_post_segmentation_images
-
-        if hasattr(parameters, 'intra_registration_xy_movie_fusion_images'):
-            if parameters.intra_registration_xy_movie_fusion_images is not None:
-                self.xy_movie_fusion_images = parameters.intra_registration_xy_movie_fusion_images
-        if hasattr(parameters, 'intra_registration_xz_movie_fusion_images'):
-            if parameters.intra_registration_xz_movie_fusion_images is not None:
-                self.xz_movie_fusion_images = parameters.intra_registration_xz_movie_fusion_images
-        if hasattr(parameters, 'intra_registration_yz_movie_fusion_images'):
-            if parameters.intra_registration_yz_movie_fusion_images is not None:
-                self.yz_movie_fusion_images = parameters.intra_registration_yz_movie_fusion_images
-
-        if hasattr(parameters, 'intra_registration_xy_movie_segmentation_images'):
-            if parameters.intra_registration_xy_movie_segmentation_images is not None:
-                self.xy_movie_segmentation_images = parameters.intra_registration_xy_movie_segmentation_images
-        if hasattr(parameters, 'intra_registration_xz_movie_segmentation_images'):
-            if parameters.intra_registration_xz_movie_segmentation_images is not None:
-                self.xz_movie_segmentation_images = parameters.intra_registration_xz_movie_segmentation_images
-        if hasattr(parameters, 'intra_registration_yz_movie_segmentation_images'):
-            if parameters.intra_registration_yz_movie_segmentation_images is not None:
-                self.yz_movie_segmentation_images = parameters.intra_registration_yz_movie_segmentation_images
-
-        if hasattr(parameters, 'intra_registration_xy_movie_post_segmentation_images'):
-            if parameters.intra_registration_xy_movie_post_segmentation_images is not None:
-                self.xy_movie_post_segmentation_images = parameters.intra_registration_xy_movie_post_segmentation_images
-        if hasattr(parameters, 'intra_registration_xz_movie_post_segmentation_images'):
-            if parameters.intra_registration_xz_movie_post_segmentation_images is not None:
-                self.xz_movie_post_segmentation_images = parameters.intra_registration_xz_movie_post_segmentation_images
-        if hasattr(parameters, 'intra_registration_yz_movie_post_segmentation_images'):
-            if parameters.intra_registration_yz_movie_post_segmentation_images is not None:
-                self.yz_movie_post_segmentation_images = parameters.intra_registration_yz_movie_post_segmentation_images
+        self.varwrite(logfile, 'sigma_segmentation_images', self.sigma_segmentation_images)
+        self.varwrite(logfile, 'resample_fusion_images', self.resample_fusion_images)
+        self.varwrite(logfile, 'resample_segmentation_images', self.resample_segmentation_images)
+        self.varwrite(logfile, 'resample_post_segmentation_images', self.resample_post_segmentation_images)
 
         #
-        # images suffixes/formats
+        # movie parameters
         #
 
-        if hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
-            if parameters.result_image_suffix is not None:
-                self.result_image_suffix = parameters.RESULT_IMAGE_SUFFIX_FUSE
-        if hasattr(parameters, 'result_image_suffix'):
-            if parameters.result_image_suffix is not None:
-                self.result_image_suffix = parameters.result_image_suffix
+        self.varwrite(logfile, 'movie_fusion_images', self.movie_fusion_images)
+        self.varwrite(logfile, 'movie_segmentation_images', self.movie_segmentation_images)
+        self.varwrite(logfile, 'movie_post_segmentation_images', self.movie_post_segmentation_images)
 
-        if hasattr(parameters, 'default_image_suffix'):
-            if parameters.default_image_suffix is not None:
-                self.default_image_suffix = parameters.default_image_suffix
-                if not hasattr(parameters, 'result_image_suffix') \
-                        and not hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
-                    self.result_image_suffix = parameters.default_image_suffix
+        self.varwrite(logfile, 'xy_movie_fusion_images', self.xy_movie_fusion_images)
+        self.varwrite(logfile, 'xz_movie_fusion_images', self.xz_movie_fusion_images)
+        self.varwrite(logfile, 'yz_movie_fusion_images', self.yz_movie_fusion_images)
+
+        self.varwrite(logfile, 'xy_movie_segmentation_images', self.xy_movie_segmentation_images)
+        self.varwrite(logfile, 'xz_movie_segmentation_images', self.xz_movie_segmentation_images)
+        self.varwrite(logfile, 'yz_movie_segmentation_images', self.yz_movie_segmentation_images)
+
+        self.varwrite(logfile, 'xy_movie_post_segmentation_images', self.xy_movie_post_segmentation_images)
+        self.varwrite(logfile, 'xz_movie_post_segmentation_images', self.xz_movie_post_segmentation_images)
+        self.varwrite(logfile, 'yz_movie_post_segmentation_images', self.yz_movie_post_segmentation_images)
+
+        self.varwrite(logfile, 'maximum_fusion_images', self.maximum_fusion_images)
+        self.varwrite(logfile, 'maximum_segmentation_images', self.maximum_segmentation_images)
+        self.varwrite(logfile, 'maximum_post_segmentation_images', self.maximum_post_segmentation_images)
+
+        logfile.write("\n")
+        return
+
+    def write_parameters(self, log_filename=None):
+        if log_filename is not None:
+            local_log_filename = log_filename
+        else:
+            local_log_filename = monitoring.log_filename
+        if local_log_filename is not None:
+            with open(local_log_filename, 'a') as logfile:
+                self.write_parameters_in_file(logfile)
+        return
+
+    ############################################################
+    #
+    # update
+    #
+    ############################################################
+
+    def update_from_args(self, args):
+        self.reference_transformation_file = args.reference_transformation_file
+        self.reference_transformation_angles = args.reference_transformation_angles
+
+    def update_from_parameters(self, parameters):
+
+        margin_is_updated = False
+
+        #
+        # co-registration parameters
+        #
+
+        self.registration.update_from_parameters(parameters)
+
+        #
+        # intra-sequence transformation parameters
+        #
+        self.reference_index = self.read_parameter(parameters, 'reference_index', self.reference_index)
+        self.reference_transformation_file = self.read_parameter(parameters, 'reference_transformation_file', self.reference_transformation_file)
+        self.reference_transformation_angles = self.read_parameter(parameters, 'reference_transformation_angles', self.reference_transformation_angles)
+
+        self.template_type = self.read_parameter(parameters, 'template_type', self.template_type)
+        self.template_threshold = self.read_parameter(parameters, 'template_threshold', self.template_threshold)
+        old_margin = self.margin
+        self.margin = self.read_parameter(parameters, 'margin', self.margin)
+        if self.margin != old_margin:
+            margin_is_updated = True
+
+        self.resolution = self.read_parameter(parameters, 'resolution', self.resolution)
+
+        self.rebuild_template = self.read_parameter(parameters, 'rebuild_template', self.rebuild_template)
+
+        #
+        # resampling parameters
+        #
+
+        self.sigma_segmentation_images = self.read_parameter(parameters, 'sigma_segmentation_images', self.sigma_segmentation_images)
+
+        self.resample_fusion_images = self.read_parameter(parameters, 'resample_fusion_images', self.resample_fusion_images)
+        self.resample_segmentation_images = self.read_parameter(parameters, 'resample_segmentation_images', self.resample_segmentation_images)
+        self.resample_post_segmentation_images = self.read_parameter(parameters, 'resample_post_segmentation_images', self.resample_post_segmentation_images)
+
+        self.movie_fusion_images = self.read_parameter(parameters, 'movie_fusion_images', self.movie_fusion_images)
+        self.movie_segmentation_images = self.read_parameter(parameters, 'movie_segmentation_images', self.movie_segmentation_images)
+        self.movie_post_segmentation_images = self.read_parameter(parameters, 'movie_post_segmentation_images', self.movie_post_segmentation_images)
+
+        self.xy_movie_fusion_images = self.read_parameter(parameters, 'xy_movie_fusion_images', self.xy_movie_fusion_images)
+        self.xz_movie_fusion_images = self.read_parameter(parameters, 'xz_movie_fusion_images', self.xz_movie_fusion_images)
+        self.yz_movie_fusion_images = self.read_parameter(parameters, 'yz_movie_fusion_images', self.yz_movie_fusion_images)
+
+        self.xy_movie_segmentation_images = self.read_parameter(parameters, 'xy_movie_segmentation_images', self.xy_movie_segmentation_images)
+        self.xz_movie_segmentation_images = self.read_parameter(parameters, 'xz_movie_segmentation_images', self.xz_movie_segmentation_images)
+        self.yz_movie_segmentation_images = self.read_parameter(parameters, 'yz_movie_segmentation_images', self.yz_movie_segmentation_images)
+
+        self.xy_movie_post_segmentation_images = self.read_parameter(parameters, 'xy_movie_post_segmentation_images', self.xy_movie_post_segmentation_images)
+        self.xz_movie_post_segmentation_images = self.read_parameter(parameters, 'xz_movie_post_segmentation_images', self.xz_movie_post_segmentation_images)
+        self.yz_movie_post_segmentation_images = self.read_parameter(parameters, 'yz_movie_post_segmentation_images', self.yz_movie_post_segmentation_images)
+
+        self.maximum_fusion_images = self.read_parameter(parameters, 'maximum_fusion_images', self.maximum_fusion_images)
+        self.maximum_segmentation_images = self.read_parameter(parameters, 'maximum_segmentation_images', self.maximum_segmentation_images)
+        self.maximum_post_segmentation_images = self.read_parameter(parameters, 'maximum_post_segmentation_images', self.maximum_post_segmentation_images)
 
         #
         # default for margin is none (ie no margin)
@@ -375,6 +336,26 @@ class IntraRegParameters(object):
                     or parameters.intra_registration_template_type.lower() == 'post':
                 if margin_is_updated is False:
                     parameters.intra_registration_margin = 10
+        if hasattr(parameters, 'template_type'):
+            if parameters.template_type.lower() == 'segmentation' \
+                    or parameters.template_type.lower() == 'seg' \
+                    or parameters.template_type.lower() == 'post-segmentation' \
+                    or parameters.template_type.lower() == 'post_segmentation' \
+                    or parameters.template_type.lower() == 'post':
+                if margin_is_updated is False:
+                    parameters.intra_registration_margin = 10
+
+
+    def update_from_parameter_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+        self.update_from_parameters(parameters)
+
 
 
 ########################################################################################
@@ -390,7 +371,7 @@ def _get_cotrsf_path(experiment):
     :param experiment:
     :return:
     """
-    cotrsf_path = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory(), 'CO-TRSFS')
+    cotrsf_path = os.path.join(experiment.get_embryo_path(), experiment.intrareg_dir.get_directory(), 'CO-TRSFS')
     return cotrsf_path
 
 
@@ -404,7 +385,7 @@ def _get_cotrsf_path_name(experiment, floating_index, reference_index):
     """
     flo = experiment.get_time_index(floating_index)
     ref = experiment.get_time_index(reference_index)
-    co_trsf_name = experiment.embryoName + '_intrareg_flo' + str(flo) + '_ref' + str(ref) + '.trsf'
+    co_trsf_name = experiment.get_embryo_name() + '_intrareg_flo' + str(flo) + '_ref' + str(ref) + '.trsf'
     return os.path.join(_get_cotrsf_path(experiment), co_trsf_name)
 
 
@@ -415,7 +396,7 @@ def _get_cotrsf_path_format(experiment):
     :return:
     """
     form = experiment.get_time_format()
-    co_trsf_format = experiment.embryoName + '_intrareg_flo' + form + '_ref' + form + '.trsf'
+    co_trsf_format = experiment.get_embryo_name() + '_intrareg_flo' + form + '_ref' + form + '.trsf'
     return os.path.join(_get_cotrsf_path(experiment), co_trsf_format)
 
 
@@ -428,7 +409,7 @@ def _get_trsf_path(experiment):
     firstindex = experiment.first_time_point + experiment.delay_time_point
     lastindex = experiment.last_time_point + experiment.delay_time_point
     trsf_dir = 'TRSFS' + "_t" + str(firstindex) + "-" + str(lastindex)
-    trsf_path = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory(), trsf_dir)
+    trsf_path = os.path.join(experiment.get_embryo_path(), experiment.intrareg_dir.get_directory(), trsf_dir)
     return trsf_path
 
 
@@ -440,7 +421,7 @@ def _get_trsf_name(experiment, index):
     :return:
     """
     ind = experiment.get_time_index(index)
-    trsf_name = experiment.embryoName + '_intrareg_t' + str(ind) + '.trsf'
+    trsf_name = experiment.get_embryo_name() + '_intrareg_t' + str(ind) + '.trsf'
     return trsf_name
 
 
@@ -451,11 +432,11 @@ def _get_trsf_format(experiment):
     :return:
     """
     form = experiment.get_time_format()
-    trsf_format = experiment.embryoName + '_intrareg_t' + form + '.trsf'
+    trsf_format = experiment.get_embryo_name() + '_intrareg_t' + form + '.trsf'
     return trsf_format
 
 
-def _get_template_path_name(experiment, parameters):
+def _get_template_path_name(experiment):
     """
 
     :param experiment:
@@ -463,7 +444,7 @@ def _get_template_path_name(experiment, parameters):
     """
     firstindex = experiment.first_time_point + experiment.delay_time_point
     lastindex = experiment.last_time_point + experiment.delay_time_point
-    result_template = "template" + "_t" + str(firstindex) + "-" + str(lastindex) + "." + parameters.result_image_suffix
+    result_template = "template" + "_t" + str(firstindex) + "-" + str(lastindex) + "." + experiment.result_image_suffix
     return os.path.join(_get_trsf_path(experiment), result_template)
 
 
@@ -486,7 +467,7 @@ def _check_data(experiment, suffix=None):
     first_time_point = experiment.first_time_point + experiment.delay_time_point
     last_time_point = experiment.last_time_point + experiment.delay_time_point
 
-    path_fusion = os.path.join(experiment.embryo_path, experiment.fusion.get_directory())
+    path_fusion = os.path.join(experiment.get_embryo_path(), experiment.fusion_dir.get_directory())
 
     for current_time in range(first_time_point + experiment.delta_time_point,
                               last_time_point + 1, experiment.delta_time_point):
@@ -494,7 +475,8 @@ def _check_data(experiment, suffix=None):
         input_name = experiment.get_image_name(current_time, 'fuse')
 
         if suffix is None:
-            input_image = commonTools.find_file(path_fusion, input_name, local_monitoring=monitoring, callfrom=proc)
+            input_image = common.find_file(path_fusion, input_name, file_type='image', callfrom=proc,
+                                           local_monitoring=monitoring)
 
             if input_image is None:
                 monitoring.to_log_and_console("    .. image '" + input_name + "' not found in '"
@@ -543,7 +525,7 @@ def _coregistration_control(experiment, parameters):
     first_time_point = experiment.first_time_point + experiment.delay_time_point
     last_time_point = experiment.last_time_point + experiment.delay_time_point
 
-    path_fusion = os.path.join(experiment.embryo_path, experiment.fusion.get_directory())
+    path_fusion = experiment.fusion_dir.get_directory()
 
     #
     # loop on time
@@ -557,17 +539,17 @@ def _coregistration_control(experiment, parameters):
 
         if not os.path.isfile(trsf_name) or monitoring.forceResultsToBeBuilt is True:
 
-            floating_prefix = experiment.get_image_name(floating_time, 'fuse')
-            floating_name = commonTools.find_file(path_fusion, floating_prefix, local_monitoring=monitoring,
-                                                  callfrom=proc)
+            floating_prefix = experiment.fusion_dir.get_image_name(floating_time)
+            floating_name = common.find_file(path_fusion, floating_prefix, file_type='image', callfrom=proc,
+                                             local_monitoring=monitoring)
             if floating_name is None:
                 monitoring.to_log_and_console(proc + ": error, image '" + str(floating_prefix) + "' was not found", 1)
                 monitoring.to_log_and_console("\t Exiting")
                 sys.exit(1)
 
-            reference_prefix = experiment.get_image_name(reference_time, 'fuse')
-            reference_name = commonTools.find_file(path_fusion, reference_prefix, local_monitoring=monitoring,
-                                                   callfrom=proc)
+            reference_prefix = experiment.fusion_dir.get_image_name(reference_time)
+            reference_name = common.find_file(path_fusion, reference_prefix, file_type='image', callfrom=proc,
+                                              local_monitoring=monitoring)
             if reference_name is None:
                 monitoring.to_log_and_console(proc + ": error, image '" + str(reference_prefix) + "' was not found", 1)
                 monitoring.to_log_and_console("\t Exiting")
@@ -663,7 +645,7 @@ def _get_reference_transformation(parameters, temporary_dir):
         if type(parameters.reference_transformation_angles) == str:
             s = parameters.reference_transformation_angles.split(' ')
             create_trsf_option = "-angle-unit degree"
-            l = len(create_trsf_option)
+            le = len(create_trsf_option)
             i = 0
             while i < len(s):
                 if s[i].lower() == 'x':
@@ -683,7 +665,7 @@ def _get_reference_transformation(parameters, temporary_dir):
                         monitoring.to_log_and_console(proc + ": weird value for 'Z rotation' -> " + str(s[i + 1]), 1)
                 i += 2
 
-            if len(create_trsf_option) > l:
+            if len(create_trsf_option) > le:
                 trsf_name = os.path.join(temporary_dir, "reference_transformation.trsf")
                 cpp_wrapping.create_trsf(trsf_name, other_options=create_trsf_option, monitoring=monitoring)
                 if os.path.isfile(trsf_name):
@@ -712,7 +694,7 @@ def _transformations_and_template(experiment, parameters, temporary_dir):
         sys.exit(1)
 
     result_dir = _get_trsf_path(experiment)
-    result_template = _get_template_path_name(experiment, parameters)
+    result_template = _get_template_path_name(experiment)
 
     if os.path.isfile(result_template) and monitoring.forceResultsToBeBuilt is not True \
             and parameters.rebuild_template is not True:
@@ -734,19 +716,19 @@ def _transformations_and_template(experiment, parameters, temporary_dir):
         #
         # check whether segmentation image share a common suffix
         #
-        path_template_format = os.path.join(experiment.embryo_path, experiment.seg.get_directory())
-        suffix = commonTools.get_file_suffix(experiment, path_template_format, experiment.get_image_format('seg'),
-                                             flag_time=experiment.get_time_format())
+        path_template_format = os.path.join(experiment.get_embryo_path(), experiment.astec_dir.get_directory())
+        suffix = common.get_file_suffix(experiment, path_template_format, experiment.astec_dir.get_image_format(),
+                                        flag_time=experiment.get_time_format())
 
         if suffix is None:
             monitoring.to_log_and_console(proc + ": no consistent naming was found in '"
-                                          + experiment.seg.get_directory() + "'", 1)
+                                          + experiment.astec_dir.get_directory() + "'", 1)
             monitoring.to_log_and_console("\t switch to fused images as templates", 1)
 
         else:
             monitoring.to_log_and_console("       ... build template from segmentation images of '"
-                                          + experiment.seg.get_directory() + "'", 2)
-            template_name = experiment.get_image_format('seg') + '.' + suffix
+                                          + experiment.astec_dir.get_directory() + "'", 2)
+            template_name = experiment.astec_dir.get_image_format() + '.' + suffix
             template_format = os.path.join(path_template_format, template_name)
 
     elif parameters.template_type.lower() == 'post-segmentation' \
@@ -754,19 +736,19 @@ def _transformations_and_template(experiment, parameters, temporary_dir):
         #
         # check whether post-corrected segmentation image share a common suffix
         #
-        path_template_format = os.path.join(experiment.embryo_path, experiment.post.get_directory())
-        suffix = commonTools.get_file_suffix(experiment, path_template_format, experiment.get_image_format('post'),
-                                             flag_time=experiment.get_time_format())
+        path_template_format = os.path.join(experiment.get_embryo_path(), experiment.post_dir.get_directory())
+        suffix = common.get_file_suffix(experiment, path_template_format, experiment.post_dir.get_image_format(),
+                                        flag_time=experiment.get_time_format())
 
         if suffix is None:
             monitoring.to_log_and_console(proc + ": no consistent naming was found in '"
-                                          + experiment.post.get_directory() + "'", 1)
+                                          + experiment.post_dir.get_directory() + "'", 1)
             monitoring.to_log_and_console("\t switch to fused images as templates", 1)
 
         else:
             monitoring.to_log_and_console("       ... build template from post-segmentation images of '"
-                                          + experiment.post.get_directory() + "'", 2)
-            template_name = experiment.get_image_format('post') + '.' + suffix
+                                          + experiment.post_dir.get_directory() + "'", 2)
+            template_name = experiment.post_dir.get_image_format() + '.' + suffix
             template_format = os.path.join(path_template_format, template_name)
 
     #
@@ -776,18 +758,18 @@ def _transformations_and_template(experiment, parameters, temporary_dir):
         #
         # check whether fusion image share a common suffix
         #
-        path_template_format = os.path.join(experiment.embryo_path, experiment.fusion.get_directory())
-        suffix = commonTools.get_file_suffix(experiment, path_template_format, experiment.get_image_format('fuse'),
-                                             flag_time=experiment.get_time_format())
+        path_template_format = os.path.join(experiment.get_embryo_path(), experiment.fusion_dir.get_directory())
+        suffix = common.get_file_suffix(experiment, path_template_format, experiment.fusion_dir.get_image_format(),
+                                        flag_time=experiment.get_time_format())
         if suffix is None:
             monitoring.to_log_and_console(proc + ": no consistent naming was found in '"
-                                          + experiment.fusion.get_directory() + "'", 1)
+                                          + experiment.fusion_dir.get_directory() + "'", 1)
             monitoring.to_log_and_console("\t Exiting", 1)
             sys.exit(1)
         else:
             monitoring.to_log_and_console("       ... build template from fusion images of '"
-                                          + experiment.fusion.get_directory() + "'", 2)
-            template_name = experiment.get_image_format('fuse') + '.' + suffix
+                                          + experiment.fusion_dir.get_directory() + "'", 2)
+            template_name = experiment.fusion_dir.get_image_format() + '.' + suffix
             template_format = os.path.join(path_template_format, template_name)
 
     #
@@ -839,7 +821,7 @@ def _resample_images(experiment, parameters, template_image, directory_type, int
 
     b = os.path.basename(template_image)
     d = os.path.dirname(template_image)
-    local_template_name = commonTools.find_file(d, b, local_monitoring=monitoring, callfrom=proc)
+    local_template_name = common.find_file(d, b, file_type='image', callfrom=proc, local_monitoring=monitoring)
     if local_template_name is None:
         monitoring.to_log_and_console(proc + ": template '" + str(b) + "' was not found in '" + str(d) + "'", 1)
         monitoring.to_log_and_console("\t resampling will not be done")
@@ -858,11 +840,11 @@ def _resample_images(experiment, parameters, template_image, directory_type, int
     #
 
     if directory_type.lower() == 'fuse':
-        subdir = experiment.fusion
+        working_dir = experiment.fusion_dir
     elif directory_type.lower() == 'post':
-        subdir = experiment.post
+        working_dir = experiment.post_dir
     elif directory_type.lower() == 'seg':
-        subdir = experiment.seg
+        working_dir = experiment.astec_dir
     else:
         monitoring.to_log_and_console(proc + ": unknown directory type '" + str(directory_type) + "'", 1)
         monitoring.to_log_and_console("\t resampling will not be done")
@@ -874,13 +856,12 @@ def _resample_images(experiment, parameters, template_image, directory_type, int
 
     trsf_dir = _get_trsf_path(experiment)
 
-    for idir in range(subdir.get_number_directories()):
+    for idir in range(working_dir.get_number_directories()):
 
-        dir_input = subdir.get_directory(idir)
+        dir_input = working_dir.get_directory(idir)
         monitoring.to_log_and_console("     . resampling '" + str(dir_input) + "'", 2)
-        dir_input = os.path.join(experiment.embryo_path, subdir.get_directory(idir))
-        dir_output = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory(),
-                                  subdir.get_directory(idir))
+        dir_input = os.path.join(experiment.get_embryo_path(), working_dir.get_directory(idir))
+        dir_output = os.path.join(experiment.intrareg_dir.get_directory(), working_dir.get_sub_directory(idir))
         if not os.path.isdir(dir_output):
             os.makedirs(dir_output)
 
@@ -891,16 +872,20 @@ def _resample_images(experiment, parameters, template_image, directory_type, int
         for t in range(first_time_point + experiment.delay_time_point,
                        last_time_point + experiment.delay_time_point + 1, experiment.delta_time_point):
 
-            input_name = experiment.get_image_name(t, directory_type)
-            output_name = experiment.get_image_name(t, 'intrareg', directory_type)
+            input_name = working_dir.get_image_name(t)
 
-            output_image = commonTools.find_file(dir_output, output_name, local_monitoring=None, verbose=False,
-                                                 callfrom=proc)
+            output_name = experiment.intrareg_dir.get_file_prefix() + experiment.intrareg_dir.get_file_suffix() + \
+                          working_dir.get_file_suffix() + experiment.intrareg_dir.get_time_prefix() + \
+                          experiment.get_time_index(t)
+
+            output_image = common.find_file(dir_output, output_name, file_type='image', callfrom=proc,
+                                            local_monitoring=None, verbose=False)
 
             if output_image is None or monitoring.forceResultsToBeBuilt is True or parameters.rebuild_template is True:
 
-                input_image = commonTools.find_file(dir_input, input_name, local_monitoring=monitoring, callfrom=proc)
-                output_image = os.path.join(dir_output, output_name + '.' + str(parameters.result_image_suffix))
+                input_image = common.find_file(dir_input, input_name, file_type='image', callfrom=proc,
+                                               local_monitoring=monitoring)
+                output_image = os.path.join(dir_output, output_name + '.' + str(experiment.result_image_suffix))
                 trsf_name = os.path.join(trsf_dir, _get_trsf_name(experiment, t))
 
                 if input_image is None:
@@ -946,14 +931,14 @@ def _make_movies(experiment, parameters, directory_type, xylist, xzlist, yzlist)
     #
 
     if directory_type.lower() == 'fuse':
-        subdir = experiment.fusion
+        working_dir = experiment.fusion_dir
     elif directory_type.lower() == 'post':
-        subdir = experiment.post
+        working_dir = experiment.post_dir
     elif directory_type.lower() == 'seg':
-        subdir = experiment.seg
+        working_dir = experiment.astec_dir
     else:
         monitoring.to_log_and_console(proc + ": unknown directory type '" + str(directory_type) + "'", 1)
-        monitoring.to_log_and_console("\t resampling will not be done")
+        monitoring.to_log_and_console("\t movies will not be done")
         return
 
     #
@@ -973,14 +958,13 @@ def _make_movies(experiment, parameters, directory_type, xylist, xzlist, yzlist)
     # loop on directories
     #
 
-    for idir in range(subdir.get_number_directories()):
+    for idir in range(working_dir.get_number_directories()):
 
-        dir_input = os.path.join(experiment.intrareg.get_directory(), subdir.get_directory(idir))
+        dir_input = os.path.join(experiment.intrareg_dir.get_directory(), working_dir.get_sub_directory(idir))
         monitoring.to_log_and_console("     . movies from '" + str(dir_input) + "'", 2)
-        dir_input = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory(),
-                                 subdir.get_directory(idir))
-        dir_output = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory(), 'MOVIES',
-                                  subdir.get_directory(idir))
+        dir_output = os.path.join(experiment.intrareg_dir.get_directory(), 'MOVIES',
+                                  working_dir.get_sub_directory(idir))
+
         if not os.path.isdir(dir_output):
             os.makedirs(dir_output)
 
@@ -991,29 +975,37 @@ def _make_movies(experiment, parameters, directory_type, xylist, xzlist, yzlist)
             #
             # read the first image and set XY slice in the middle
             #
-            first_prefix = experiment.get_image_name(first_time_point, 'intrareg', directory_type)
-            first_name = commonTools.find_file(dir_input, first_prefix, local_monitoring=None, verbose=False,
-                                               callfrom=proc)
+            first_prefix = experiment.intrareg_dir.get_file_prefix() + experiment.intrareg_dir.get_file_suffix() + \
+                          working_dir.get_file_suffix() + experiment.intrareg_dir.get_time_prefix() + \
+                          experiment.get_time_index(first_time_point)
+            first_name = common.find_file(dir_input, first_prefix, file_type='image', callfrom=proc,
+                                          local_monitoring=None, verbose=False)
             if first_name is None:
-                monitoring.to_log_and_console(proc + ": no file '" + str(first_prefix) + "' in '" + str(dir_input) + "'", 1)
+                monitoring.to_log_and_console(proc + ": no file '" + str(first_prefix) + "' in '" + str(dir_input) +
+                                              "'", 1)
                 monitoring.to_log_and_console("\t movies will not be done")
                 return
             first_image = imread(os.path.join(dir_input, first_name))
             xy.append(int(first_image.shape[2] / 2))
             del first_image
 
-        input_format = experiment.get_image_format('intrareg', directory_type)
-        input_format = os.path.join(dir_input, input_format + '.' + str(parameters.result_image_suffix))
+        input_format = experiment.intrareg_dir.get_file_prefix() + experiment.intrareg_dir.get_file_suffix() + \
+                       working_dir.get_file_suffix() + experiment.intrareg_dir.get_time_prefix() + \
+                       experiment.get_time_format()
+        input_format = os.path.join(dir_input, input_format + '.' + str(experiment.result_image_suffix))
 
         #
         # processing
         #
 
+        name_prefix = experiment.intrareg_dir.get_file_prefix() + experiment.intrareg_dir.get_file_suffix() + \
+                      working_dir.get_file_suffix() + experiment.intrareg_dir.get_time_prefix() + \
+                      experiment.get_time_index(first_time_point) + '-' + \
+                      experiment.get_time_index(last_time_point)
         if len(xy) > 0:
             for s in xy:
-                name_output = experiment.get_movie_name(first_time_point, last_time_point, 'intrareg', directory_type)
-                name_output += '_xy' + '{:0{width}d}'.format(s, width=4)
-                name_output = os.path.join(dir_output, name_output + '.' + str(parameters.result_image_suffix))
+                name_output = name_prefix + '_xy' + '{:0{width}d}'.format(s, width=4)
+                name_output = os.path.join(dir_output, name_output + '.' + str(experiment.result_image_suffix))
                 if os.path.isfile(name_output) is False or monitoring.forceResultsToBeBuilt is True \
                         or parameters.rebuild_template is True:
                     monitoring.to_log_and_console("       process xy=" + str(s), 2)
@@ -1022,9 +1014,8 @@ def _make_movies(experiment, parameters, directory_type, xylist, xzlist, yzlist)
 
         if len(xz) > 0:
             for s in xz:
-                name_output = experiment.get_movie_name(first_time_point, last_time_point, 'intrareg', directory_type)
-                name_output += '_xz' + '{:0{width}d}'.format(s, width=4)
-                name_output = os.path.join(dir_output, name_output + '.' + str(parameters.result_image_suffix))
+                name_output = name_prefix + '_xz' + '{:0{width}d}'.format(s, width=4)
+                name_output = os.path.join(dir_output, name_output + '.' + str(experiment.result_image_suffix))
                 if os.path.isfile(name_output) is False or monitoring.forceResultsToBeBuilt is True \
                         or parameters.rebuild_template is True:
                     monitoring.to_log_and_console("       process xz=" + str(s), 2)
@@ -1033,9 +1024,8 @@ def _make_movies(experiment, parameters, directory_type, xylist, xzlist, yzlist)
 
         if len(yz) > 0:
             for s in yz:
-                name_output = experiment.get_movie_name(first_time_point, last_time_point, 'intrareg', directory_type)
-                name_output += '_yz' + '{:0{width}d}'.format(s, width=4)
-                name_output = os.path.join(dir_output, name_output + '.' + str(parameters.result_image_suffix))
+                name_output = name_prefix + '_yz' + '{:0{width}d}'.format(s, width=4)
+                name_output = os.path.join(dir_output, name_output + '.' + str(experiment.result_image_suffix))
                 if os.path.isfile(name_output) is False or monitoring.forceResultsToBeBuilt is True \
                         or parameters.rebuild_template is True:
                     monitoring.to_log_and_console("       process yz=" + str(s), 2)
@@ -1044,6 +1034,70 @@ def _make_movies(experiment, parameters, directory_type, xylist, xzlist, yzlist)
 
     return
 
+
+def _make_maximum(experiment, directory_type):
+    """
+
+    :param experiment:
+    :param directory_type:
+    :return:
+    """
+
+    proc = "_make_maximum"
+
+    #
+    #
+    #
+
+    first_time_point = experiment.first_time_point + experiment.delay_time_point
+    last_time_point = experiment.last_time_point + experiment.delay_time_point
+
+    #
+    #
+    #
+
+    if directory_type.lower() == 'fuse':
+        working_dir = experiment.fusion_dir
+    elif directory_type.lower() == 'post':
+        working_dir = experiment.post_dir
+    elif directory_type.lower() == 'seg':
+        working_dir = experiment.astec_dir
+    else:
+        monitoring.to_log_and_console(proc + ": unknown directory type '" + str(directory_type) + "'", 1)
+        monitoring.to_log_and_console("\t maximum will not be done")
+        return
+
+    #
+    # loop on directories
+    #
+
+    for idir in range(working_dir.get_number_directories()):
+
+        dir_input = os.path.join(experiment.intrareg_dir.get_directory(), working_dir.get_sub_directory(idir))
+        monitoring.to_log_and_console("     . maximum from '" + str(dir_input) + "'", 2)
+        dir_output = os.path.join(experiment.intrareg_dir.get_directory(), 'MAXIMUM',
+                                  working_dir.get_sub_directory(idir))
+        if not os.path.isdir(dir_output):
+            os.makedirs(dir_output)
+
+        input_format = experiment.intrareg_dir.get_file_prefix() + experiment.intrareg_dir.get_file_suffix() + \
+                       working_dir.get_file_suffix() + experiment.intrareg_dir.get_time_prefix() + \
+                       experiment.get_time_format()
+        input_format = os.path.join(dir_input, input_format + '.' + str(experiment.result_image_suffix))
+
+        #
+        # processing
+        #
+
+        name_prefix = experiment.intrareg_dir.get_file_prefix() + experiment.intrareg_dir.get_file_suffix() + \
+                      working_dir.get_file_suffix() + experiment.intrareg_dir.get_time_prefix() + \
+                      experiment.get_time_index(first_time_point) + '-' + \
+                      experiment.get_time_index(last_time_point)
+        name_output = name_prefix + '_maximum'
+        name_output = os.path.join(dir_output, name_output + '.' + str(experiment.result_image_suffix))
+        cpp_wrapping.mean_images(input_format, name_output, first_time_point, last_time_point, operation="maximum",
+                                 monitoring=monitoring)
+    return
 
 ########################################################################################
 #
@@ -1062,7 +1116,7 @@ def intraregistration_control(experiment, parameters):
 
     proc = "intraregistration_control"
 
-    if isinstance(experiment, commonTools.Experiment) is False:
+    if isinstance(experiment, common.Experiment) is False:
         monitoring.to_log_and_console(proc + ": bad type for 'experiment' parameter", 1)
         sys.exit(1)
     if isinstance(parameters, IntraRegParameters) is False:
@@ -1085,7 +1139,7 @@ def intraregistration_control(experiment, parameters):
     #
 
     result_dir = _get_trsf_path(experiment)
-    result_template = _get_template_path_name(experiment, parameters)
+    result_template = _get_template_path_name(experiment)
 
     if not os.path.isdir(result_dir) or os.path.isfile(result_template) \
             or parameters.rebuild_template is True or monitoring.forceResultsToBeBuilt is True:
@@ -1176,6 +1230,25 @@ def intraregistration_control(experiment, parameters):
         monitoring.to_log_and_console("    .. movies from post-segmentation images", 2)
         _make_movies(experiment, parameters, 'post', parameters.xy_movie_post_segmentation_images,
                      parameters.xz_movie_post_segmentation_images, parameters.yz_movie_post_segmentation_images)
+
+    #
+    # make maximum images
+    #
+
+    if parameters.maximum_fusion_images is True:
+        monitoring.to_log_and_console("    .. maximum from fusion images", 2)
+        monitoring.to_log_and_console("       warning: this stage may be long", 2)
+        _make_maximum(experiment, 'fuse')
+
+    if parameters.maximum_segmentation_images is True:
+        monitoring.to_log_and_console("    .. maximum from fusion images", 2)
+        monitoring.to_log_and_console("       warning: this stage may be long", 2)
+        _make_maximum(experiment, 'seg')
+
+    if parameters.maximum_post_segmentation_images is True:
+        monitoring.to_log_and_console("    .. maximum from fusion images", 2)
+        monitoring.to_log_and_console("       warning: this stage may be long", 2)
+        _make_maximum(experiment, 'post')
 
     #
     # end processing

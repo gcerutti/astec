@@ -13,8 +13,8 @@ from argparse import ArgumentParser
 #
 
 
-import ASTEC.commonTools as commonTools
-import ASTEC.EMBRYOPROPERTIES as embryoProp
+import ASTEC.common as common
+import ASTEC.properties as properties
 from ASTEC.CommunFunctions.cpp_wrapping import path_to_vt
 #
 #
@@ -61,6 +61,11 @@ def _set_options(my_parser):
                                 ", 'sigma', 'label_in_time', 'barycenter', 'fate', 'fate2', 'fate3', 'fate4'" +
                                 ", 'all-cells', 'principal-value', 'name', 'contact', 'history', 'principal-vector'" +
                                 ", 'name-score', 'cell-compactness'")
+
+    my_parser.add_argument('--check', '--check-volume-lineage',
+                           action='store_const', dest='check_volume_lineage',
+                           default=False, const=True,
+                           help='perform some tests')
 
     my_parser.add_argument('--diagnosis',
                            action='store_const', dest='print_diagnosis',
@@ -129,20 +134,21 @@ if __name__ == '__main__':
     #
 
     start_time = time.localtime()
-    monitoring = commonTools.Monitoring()
-    experiment = commonTools.Experiment()
-    parameters = embryoProp.CellPropertiesParameters()
-    diagnosis = embryoProp.DiagnosisParameters()
+    monitoring = common.Monitoring()
+    experiment = common.Experiment()
 
     #
     # reading command line arguments
+    # and update from command line arguments
     #
-
-    parser = ArgumentParser(description='Computation of cell properties')
+    parser = ArgumentParser(description='X-embryoproperties.py')
     _set_options(parser)
     args = parser.parse_args()
 
     monitoring.update_from_args(args)
+    experiment.update_from_args(args)
+
+    diagnosis = properties.DiagnosisParameters()
     diagnosis.update_from_args(args)
 
     #
@@ -151,46 +157,73 @@ if __name__ == '__main__':
     #
     if args.parameterFile is not None and os.path.isfile(args.parameterFile):
 
-        experiment.update_from_file(args.parameterFile)
-        experiment.update_from_stage("PROPERTIES", __file__, start_time)
-
-        if not os.path.isdir(experiment.path_logdir):
-            os.makedirs(experiment.path_logdir)
-
-        parameters.update_from_file(args.parameterFile)
-
         #
-        # write history information in history file
+        # reading parameter files
+        # and updating parameters
         #
-        commonTools.write_history_information(experiment.path_history_file,
-                                              experiment,
-                                              args.parameterFile,
-                                              start_time,
-                                              os.path.dirname(__file__),
-                                              path_to_vt())
+        parameter_file = common.get_parameter_file(args.parameterFile)
+        experiment.update_from_parameter_file(parameter_file)
 
         #
-        # define log file
-        # and write some information
+        # set
+        # 1. the working directory
+        #    that's where the logfile will be written
+        # 2. the log file name
+        #    it creates the logfile dir, if necessary
         #
-        monitoring.logfile = experiment.path_log_file
-        embryoProp.monitoring.copy(monitoring)
-        commonTools.monitoring.copy(monitoring)
-
-        monitoring.write_parameters(monitoring.logfile)
-        experiment.write_parameters(monitoring.logfile)
-        parameters.write_parameters(monitoring.logfile)
-        diagnosis.write_parameters(monitoring.logfile)
+        experiment.working_dir = experiment.intrareg_dir
+        monitoring.set_log_filename(experiment, __file__, start_time)
 
         #
-        # copy parameter file
+        # keep history of command line executions
+        # and copy parameter file
         #
-        commonTools.copy_date_stamped_file(args.parameterFile, experiment.path_logdir, start_time)
+        experiment.update_history_at_start(__file__, start_time, parameter_file, path_to_vt())
+        experiment.copy_stamped_file(start_time, parameter_file)
+
+        #
+        # copy monitoring information into other "files"
+        # so the log
+        #
+        # filename is known
+        #
+        common.monitoring.copy(monitoring)
+
+        #
+        # write generic information into the log file
+        #
+        monitoring.write_configuration()
+        experiment.write_parameters()
+
+        ############################################################
+        #
+        # specific part
+        #
+        ############################################################
+
+        #
+        # copy monitoring information into other "files"
+        # so the log filename is known
+        #
+        properties.monitoring.copy(monitoring)
+
+        #
+        # manage parameters
+        # 1. initialize
+        # 2. update parameters
+        # 3. write parameters into the logfile
+        #
+
+        parameters = properties.CellPropertiesParameters()
+        parameters.update_from_parameter_file(parameter_file)
+
+        parameters.write_parameters(monitoring.log_filename)
+        diagnosis.write_parameters(monitoring.log_filename)
 
         #
         # compute sequence properties in xml format
         #
-        xml_output = embryoProp.property_computation(experiment)
+        xml_output = properties.property_computation(experiment)
 
         #
         # prepare the copy of the sequence properties in pkl format
@@ -223,13 +256,11 @@ if __name__ == '__main__':
         #
 
         if pkl_is_to_be_done is True or tlp_is_to_be_done is True:
-            inputdict = embryoProp.read_dictionary(xml_output)
+            inputdict = properties.read_dictionary(xml_output)
             if pkl_is_to_be_done is True:
-                propertiesfile = open(pkl_output, 'w')
-                pkl.dump(inputdict, propertiesfile)
-                propertiesfile.close()
+                properties.write_dictionary(pkl_output, inputdict)
             if tlp_is_to_be_done is True:
-                embryoProp.write_tlp_file(inputdict, tlp_output)
+                properties.write_dictionary(tlp_output, inputdict)
             del inputdict
 
         endtime = time.localtime()
@@ -240,16 +271,18 @@ if __name__ == '__main__':
 
     else:
 
+        properties.monitoring.copy(monitoring)
+
         #
         # read input file(s)
         # 1. input file(s): it is assumed that there are keys describing for each dictionary entry
         # 2. lineage file: such a key may be missing
         #
 
-        inputdict = embryoProp.read_dictionary(args.inputFiles)
+        inputdict = properties.read_dictionary(args.inputFiles, inputpropertiesdict={})
 
         if args.print_input_types is True:
-            embryoProp.print_type(inputdict, desc="root")
+            properties.print_type(inputdict, desc="root")
 
         if inputdict == {}:
             print "error: empty input dictionary"
@@ -260,25 +293,33 @@ if __name__ == '__main__':
         #
 
         if args.print_content is True:
-            embryoProp.print_keys(inputdict)
+            properties.print_keys(inputdict, desc="input dictionary")
 
         #
         # is a diagnosis to be done?
         #
 
         if args.print_diagnosis is True:
-            embryoProp.diagnosis(inputdict, args.outputFeatures, diagnosis)
+            properties.diagnosis(inputdict, args.outputFeatures, diagnosis)
+
+
+        # is a check to be done?
+        #
+
+        if args.check_volume_lineage is True:
+            properties.check_volume_lineage(inputdict)
 
         #
         # is there some comparison to be done?
         #
-
         if args.compareFiles is not None and len(args.compareFiles) > 0:
-            comparedict = embryoProp.read_dictionary(args.compareFiles)
+            comparedict = properties.read_dictionary(args.compareFiles, inputpropertiesdict={})
+            if args.print_content is True:
+                properties.print_keys(comparedict, desc="dictionary to be compared with")
             if comparedict == {}:
                 print "error: empty dictionary to be compared with"
             else:
-                embryoProp.comparison(inputdict, comparedict, args.outputFeatures, 'input entry', 'compared entry')
+                properties.comparison(inputdict, comparedict, args.outputFeatures, 'input entry', 'compared entry')
 
         #
         # select features if required
@@ -295,7 +336,7 @@ if __name__ == '__main__':
             for feature in args.outputFeatures:
 
                 # print "search feature '" + str(feature) + "'"
-                target_key = embryoProp.keydictionary[feature]
+                target_key = properties.keydictionary[feature]
 
                 for searchedkey in target_key['input_keys']:
                     if searchedkey in inputdict:
@@ -328,17 +369,7 @@ if __name__ == '__main__':
         else:
             for ofile in args.outputFiles:
                 print "... writing '" + str(ofile) + "'"
-                if ofile.endswith("pkl") is True:
-                    propertiesfile = open(ofile, 'w')
-                    pkl.dump(outputdict, propertiesfile)
-                    propertiesfile.close()
-                elif ofile.endswith("xml") is True:
-                    xmltree = embryoProp.dict2xml(outputdict)
-                    xmltree.write(ofile)
-                elif ofile.endswith("tlp") is True:
-                    embryoProp.write_tlp_file(outputdict, ofile)
-                else:
-                    print "   error: extension not recognized for '" + str(ofile) + "'"
+                properties.write_dictionary(ofile, outputdict)
 
         endtime = time.localtime()
 

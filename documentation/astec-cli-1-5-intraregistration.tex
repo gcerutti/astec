@@ -3,7 +3,7 @@
 
 The sequence intra-registration procedure can be done either after the fusion step, or after the (post-)segmentation step. It aims at
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item compensating for the eventual motion of the imaged sample with respect to the microscope
 \item resampling the fusion and/or the segmentation images into a common frame/geometry, so they can better be compared, and
 \item building 2D+t images made of 2D sections from either the  fusion
@@ -14,7 +14,7 @@ The sequence intra-registration procedure can be done either after the fusion st
 
 The intra-registration procedure is made of the following steps:
 \begin{enumerate}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \label{it:intrareg:co:register} Co-registration of pairs of successive fused images (section
   \ref{sec:cli:intraregistration:coregistration}). This yields the
   transformations $T_{t+1 \leftarrow t}$. Fused images are located in
@@ -50,6 +50,14 @@ The intra-registration procedure is made of the following steps:
   require to re-compute the first steps, with an eventual exception
   for the resampling step. 
 
+\item \label{it:intrareg:co:maximum}
+  Computation of a maximum image from the resampled images (section
+  \ref{sec:cli:intraregistration:maximum}). Computing the maximum over  
+  the resampled fusion images may be useful to define a common cropping
+  area for the sequence.
+  Note that changing the parameters for this step will not require 
+  to re-compute the first steps. 
+
 \end{enumerate}
 
 
@@ -58,7 +66,7 @@ The intra-registration procedure is made of the following steps:
 
 The following options are available:
 \begin{description}
-  \itemsep -1ex
+  \itemsep -0.5ex
 \item[\texttt{-h}] prints a help message
 \item[\texttt{-p \underline{file}}] set the parameter file to be parsed
 \item[\texttt{-e \underline{path}}] set the
@@ -77,6 +85,21 @@ The following options are available:
 \item[\texttt{-nd}] no debug information
 \end{description}
 
+\subsection{Input data}
+\subsubsection{Multichannel acquisition}
+
+The co-registration transformations are computed from one series of fused images, issued from the \texttt{/path/to/experiment/FUSE/FUSE\_<EXP\_FUSE>} directory.
+
+In case of multi-channel acquisition, all fused image directories  listed in the \texttt{EXP\_FUSE} variable will be transformed by the transformations computed on the \textit{first} fused image directory of the list.
+
+As detailed in section \ref{sec:cli:intraregistration:coregistration} Specifying
+\begin{verbatim}
+EXP_FUSE = ['MEMBRANES', 'NUCLEI']
+\end{verbatim}
+in the parameter file implies that co-registrations will be computed on
+the fused images from \texttt{FUSE/FUSE\_MEMBRANES/}, but both fused image series will be transformed.
+
+The same stands for segmentation and post-segmentation series: multiple directories can be specified in either \texttt{EXP\_SEG} or \texttt{EXP\_POST}.
 
 \subsection{Output data}
 
@@ -94,6 +117,7 @@ default value is '\texttt{RELEASE}').
 .4 CO-TRSFS/.
 .4 [FUSE/].
 .4 LOGS/.
+.4 [MAXIMUM/].
 .4 [MOVIES/].
 .4 [POST/].
 .4 [SEG/].
@@ -180,12 +204,12 @@ the fused images from \texttt{FUSE/FUSE\_MEMBRANES/}.
 \end{verbatim}
 
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 
 \item The \verb|intra_registration_reference_index| allows to choose the reference image (the one which remains still, i.e. up to a translation), by default it is the first image image of the series (associated to \verb|begin|). 
 However, it may happen that this image has to be reoriented to fit the user's expectation. The resampling transformation\footnote{The resampling transformation is the one that goes from the destination image towards the input image.}, that re-orient the reference image, can then be given and will be applied to the whole series.
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \verb|intra_registration_reference_resampling_transformation_file| can be given a resampling transformation file name.
 \item \verb|intra_registration_reference_resampling_transformation_angles| can be given a string describing the successive rotations (with respect to the frame axis) to be applied. E.g. the string \verb|"X 30 Y 50"| defines a resampling transformation equal to $R_X(30) \circ R_Y(50)$ where $R_X(30)$ is a rotation of 30 degrees around the X axis and $R_Y(50)$ is a rotation of 50 degrees around the Y axis.
 \end{itemize}
@@ -363,13 +387,63 @@ in the parameter file results in
 
 The same behavior stands for \texttt{EXP\_SEG} and  \texttt{EXP\_POST}.
 
+\subsubsection{Step \ref{it:intrareg:co:maximum}: 3D maximum over the 3D+t sequence}
+\label{sec:cli:intraregistration:maximum}
+
+To set a cropping area valid for the whole resampled sequence, a maximum image can be built from the resampled temporal series. This is controlled by the following parameters:
+\begin{verbatim}
+# intra_registration_maximum_fusion_images = False
+# intra_registration_maximum_segmentation_images = False
+# intra_registration_maximum_post_segmentation_images = False
+\end{verbatim}
+
+If \verb|intra_registration_maximum_fusion_images| is set to \verb|True|, a maximum image is computed over the sequence of resampled fusion images (recall that, after resampling, all images have the same geometry). The value of a voxel in this maximum image is the maximum value (over time) of this voxel in the sequence.
+
+
+The maximum image will be stored in the
+\texttt{INTRAREG/INTRAREG\_<EXP\_INTRAREG>/MAXIMUM/} directory, with the same
+hierarchy than under \texttt{/path/to/experiment}. E.g., 
+\begin{verbatim}
+EXP_FUSE = ['1', '2']
+\end{verbatim}
+in the parameter file results in
+
+\mbox{}
+\dirtree{%
+.1 /path/to/experiment/.
+.2 \ldots.
+.2 FUSE/.
+.3 FUSE\_1/.
+.3 FUSE\_2/.
+.2 INTRAREG/.
+.3 INTRAREG\_<EXP\_INTRAREG>/.
+.4 FUSE/.
+.5 FUSE\_1/.
+.5 FUSE\_2/.
+.4 MAXIMUM/.
+.5 FUSE/.
+.6 FUSE\_1/.
+.6 FUSE\_2/.
+.4 MOVIES/.
+.5 FUSE/.
+.6 FUSE\_1/.
+.6 FUSE\_2/.
+.4 \ldots.
+.2 \ldots.
+}
+\mbox{}
+
+The same behavior stands for \texttt{EXP\_SEG} and  \texttt{EXP\_POST}.
+
+
+
 \subsection{Parameter list}
 
 Please also refer to the file
 \texttt{parameter-file-examples/1.5-intraregistration-parameters.py}
 
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \texttt{EN}
 \item \texttt{EXP\_FUSE} \\
   String (\texttt{str} type) or list (\texttt{list} type) of
@@ -392,6 +466,9 @@ EXP_FUSE = ['exp1', 'exp2']
 \item \texttt{intra\_registration\_compute\_registration}
 \item \texttt{intra\_registration\_lts\_fraction}
 \item \texttt{intra\_registration\_margin}
+\item \texttt{intra\_registration\_maximum\_fusion\_images}
+\item \texttt{intra\_registration\_maximum\_post\_segmentation\_images}
+\item \texttt{intra\_registration\_maximum\_segmentation\_images}
 \item \texttt{intra\_registration\_movie\_fusion\_images}
 \item \texttt{intra\_registration\_movie\_post\_segmentation\_images}
 \item \texttt{intra\_registration\_movie\_segmentation\_images}

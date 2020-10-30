@@ -33,7 +33,6 @@ def __find_exec(executable_file):
     :return:
     """
     cmd = 'which' + ' ' + str(executable_file)
-    path_to_exec = ""
     try:
         which_exec = subprocess.check_output(cmd, shell=True)
         path_to_exec = which_exec.split('\n')[0]
@@ -93,7 +92,7 @@ def _launch_inline_cmd(command_line, monitoring=None):
 
     if monitoring is not None and (monitoring.verbose >= 3 or monitoring.debug > 0):
         monitoring.to_log("* Launch: " + command_line)
-        with open(monitoring.logfile, 'a') as logfile:
+        with open(monitoring.log_filename, 'a') as logfile:
             subprocess.call(command_line, shell=True, stdout=logfile, stderr=subprocess.STDOUT)
     else:
         subprocess.call(command_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -108,8 +107,8 @@ def _launch_inline_cmd(command_line, monitoring=None):
 ############################################################
 
 def applyTrsf(the_image, res_image, the_transformation=None, template_image=None, res_transformation=None,
-              voxel_size=None, dimensions=None, interpolation_mode='linear', cell_based_sigma=0.0,
-              monitoring=None):
+               voxel_size=None, dimensions=None, interpolation_mode='linear', cell_based_sigma=0.0,
+               monitoring=None):
     """
 
     :param the_image: path to the image to be resampled
@@ -225,12 +224,11 @@ def blockmatching(path_ref, path_flo, path_output, path_output_trsf, path_init_t
 
     path_to_exec = _find_exec('blockmatching')
 
-    #
-    # affine registration
-    #
-
-    command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo + " -res " + path_output
-    command_line += " -res-trsf " + path_output_trsf
+    command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo
+    if path_output is not None:
+        command_line += " -res " + path_output
+    if path_output_trsf is not None:
+        command_line += " -res-trsf " + path_output_trsf
     if path_init_trsf is not None:
         command_line += " -left-trsf " + path_init_trsf + " -composition-with-initial"
 
@@ -261,8 +259,7 @@ def blockmatching(path_ref, path_flo, path_output, path_output_trsf, path_init_t
     return
 
 
-def composeTrsf(the_trsfs, res_trsf, other_options=None,
-                  monitoring=None):
+def compose_trsf(the_trsfs, res_trsf, other_options=None, monitoring=None):
     """
 
     :param the_trsfs:
@@ -286,8 +283,60 @@ def composeTrsf(the_trsfs, res_trsf, other_options=None,
     return
 
 
-def mc_seedEdit(the_seeds, res_seeds, fusion_file=None, seeds_file=None, other_options=None,
-                  monitoring=None):
+def ext_image(input_image, output_image, options, other_options=None, monitoring=None):
+
+    path_to_exec = _find_exec('extImage')
+
+    #
+    #
+    #
+
+    command_line = path_to_exec
+
+    command_line += " " + input_image
+    command_line += " " + output_image
+    command_line += " " + options
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def mc_mask_seeds(seed_image, cell_image, seed_result, other_options=None, monitoring=None):
+    # type: (object, object, object, object, object) -> object
+    """
+
+    :param seed_image:
+    :param cell_image:
+    :param seed_result:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('mc-maskSeeds')
+
+    #
+    #
+    #
+    command_line = path_to_exec
+
+    command_line += " -seed-image " + seed_image
+    command_line += " -cell-image " + cell_image
+    command_line += " -output-image " + seed_result
+
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def mc_seed_edit(the_seeds, res_seeds, fusion_file=None, seeds_file=None, other_options=None, monitoring=None):
     """
 
     :param the_seeds:
@@ -302,9 +351,9 @@ def mc_seedEdit(the_seeds, res_seeds, fusion_file=None, seeds_file=None, other_o
 
     command_line = path_to_exec + " " + the_seeds
     command_line += " " + res_seeds
-    if fusion_file is not None:
+    if fusion_file is not None and fusion_file is not '':
         command_line += " -fusion " + fusion_file
-    if seeds_file is not None:
+    if seeds_file is not None and seeds_file is not '':
         command_line += " -seeds " + seeds_file
 
     if other_options is not None:
@@ -314,6 +363,36 @@ def mc_seedEdit(the_seeds, res_seeds, fusion_file=None, seeds_file=None, other_o
 
     return
 
+
+def mean_images(format_input, image_output, first, last, operation="maximum", other_options=None, monitoring=None):
+    """
+
+    :param format_input:
+    :param image_output:
+    :param first:
+    :param last:
+    :param operation:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('meanImages')
+
+    command_line = path_to_exec + " -format " + format_input + " -res " + image_output
+    command_line += " -operation " + operation
+    command_line += " -first " + str(first) + " -last " + str(last)
+    command_line += " -streaming "
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
 
 ############################################################
 #
@@ -707,7 +786,7 @@ def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False
     #
     # filter type
     #
-    if type is not None:
+    if filter_type is not None:
         command_line += " -gaussian-type " + str(filter_type)
     command_line += " -x 0 -y 0 -z 0"
 
@@ -725,6 +804,69 @@ def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False
     _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
+
+
+def gradient_norm(path_input, path_output, filter_value=1.0, real_scale=False, filter_type='deriche',
+                  other_options=None, monitoring=None):
+    """
+
+    :param path_input: path to the image to filter
+    :param path_output: path to the output image
+    :param filter_value: sigma of the gaussian filter for each axis (default is 1.0)
+    :param real_scale: scale values are in 'real' units (will be divided by the voxel size to get 'voxel' values)
+           if this option is at True (default=False)
+    :param filter_type: gaussian type, can be ['deriche'|'fidrich'|'young-1995'|'young-2002'|...
+           ...|'gabor-young-2002'|'convolution'] or None (default is 'deriche')
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('linearFilter')
+
+    command_line = path_to_exec + " " + path_input + " " + path_output
+
+    command_line += " -gradient-modulus"
+    #
+    # filter parameter value
+    #
+    command_line += " -sigma " + str(filter_value)
+    if real_scale is True:
+        command_line += " -unit real"
+    else:
+        command_line += " -unit voxel"
+
+    #
+    # filter type
+    #
+    if filter_type is not None:
+        command_line += " -gaussian-type " + str(filter_type)
+    command_line += " -x 0 -y 0 -z 0"
+
+    #
+    # add points at borders
+    #
+    command_line += " -cont 10"
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def obsolete_gradient_norm(image_input,gradient_output):
+    ''' Perform the gradient norm of an intensity image
+    im_input : input image (SpatialImage)
+    path_input : path to the input image
+    path_output : path to the output image
+    '''
+    path_gradient_norm = _find_exec('norme_gradient')
+    os.system(path_gradient_norm + ' ' + image_input + ' ' + gradient_output + ' -sigma 1')
 
 
 def regional_maxima(path_input, path_output, h=1, other_options=None, monitoring=None):
@@ -895,6 +1037,7 @@ def global_normalization_to_u8(path_input, path_output, min_percentile=0.01, max
 def cell_normalization_to_u8(path_input, path_segmentation, path_output, min_percentile=0.01, max_percentile=0.99,
                              cell_normalization_min_method='cellinterior',
                              cell_normalization_max_method='cellborder',
+                             sigma=5.0,
                              other_options=None, monitoring=None):
     """
 
@@ -905,6 +1048,7 @@ def cell_normalization_to_u8(path_input, path_segmentation, path_output, min_per
     :param max_percentile:
     :param cell_normalization_min_method:
     :param cell_normalization_max_method:
+    :param sigma:
     :param other_options:
     :param monitoring:
     :return:
@@ -920,8 +1064,41 @@ def cell_normalization_to_u8(path_input, path_segmentation, path_output, min_per
     command_line += " -min-method " + cell_normalization_min_method
     command_line += " -max-method " + cell_normalization_max_method
     command_line += " -min-percentile " + str(min_percentile) + " -max-percentile " + str(max_percentile)
-    command_line += " -sigma 5.0"
+    command_line += " -sigma " + str(sigma)
 
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
+
+def outer_contour(path_input, path_output, connectivity=6, sigma=2.0, other_options=None, monitoring=None):
+    """
+
+    :param path_input:
+    :param path_output:
+    :param connectivity:
+    :param sigma:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('cellfilter')
+
+    #
+    #
+    #
+    command_line = path_to_exec + " " + path_input + " " + path_output
+    command_line += " -contour "
+    command_line += " -con " + str(connectivity)
+    command_line += " -sigma " + str(sigma)
+    command_line += " -o 1 "
     #
     #
     #
@@ -1013,11 +1190,12 @@ def seuillage(path_input, path_output, low_threshold=1, high_threshold=None, oth
     return
 
 
-def anisotropic_histogram(path_input_prefix, path_output, path_mask=None,
+def anisotropic_histogram(path_input_extrema, path_output_histogram, path_output, path_mask=None,
                           manual=False, manual_sigma=7, sensitivity=0.98, other_options=None, monitoring=None):
     """
     Centerplanes image binarisation using an adaptative anisotropic threshold method detailed in [Michelin 2016]
-    :param path_input_prefix: generic prefix to input data
+    :param path_input_extrema: input extrema image
+    :param path_output_histogram: output histogram text file
     :param path_output: output binary image
     :param path_mask: binary image (u8 or u16) such that the thresholding is only computed for non-null voxels
            from this mask (8 bits image of same size as input image).
@@ -1035,7 +1213,7 @@ def anisotropic_histogram(path_input_prefix, path_output, path_mask=None,
     #
     #
     #
-    command_line = path_to_exec + " " + path_input_prefix + ".ext.inr " + path_input_prefix + ".hist.txt"
+    command_line = path_to_exec + " " + path_input_extrema + " " + path_output_histogram
     command_line += " -bin-out " + path_output
     if path_mask is not None and os.path.isfile(path_mask):
         command_line += " -mask " + path_mask
@@ -1088,8 +1266,8 @@ def arithmetic_operation(path_first_input, path_second_input, path_output, other
     return
 
 
-def tensor_voting_membrane(path_input, prefix_input, path_output, path_mask=None,
-                           scale_tensor_voting=3.6, sigma_smoothing=0.9, real_scale=True, sample=0.2, monitoring=None):
+def tensor_voting_membrane(path_input, prefix_input, path_output, path_mask=None, scale_tensor_voting=3.6,
+                           sigma_smoothing=0.9, real_scale=True, sample=0.2, random_seed=None, monitoring=None):
     """
     Grey-level image reconstruction from an image of binarised membranes associated to images of orientations.
     :param path_input: path to input image which is contains binarised planar structures,
@@ -1103,6 +1281,7 @@ def tensor_voting_membrane(path_input, prefix_input, path_output, path_mask=None
     :param real_scale: True (default) if scale in real coordinates. False if scale in voxel coordinates.
     :param sample: multiplying parameter for decrease the time-cost of the function by diminishing the
            number of voting token; 0 < sample <= 1, default = 0.2
+    :param random_seed:
     :param monitoring:
     :return:
     """
@@ -1134,6 +1313,8 @@ def tensor_voting_membrane(path_input, prefix_input, path_output, path_mask=None
         command_line += " -mask " + path_mask
     command_line += " -scale " + str(scale_tensor_voting) + " -hessian"
     command_line += " -sample " + str(sample)
+    if random_seed is not None:
+        command_line += " -random-seed " + str(random_seed)
 
     _launch_inline_cmd(command_line, monitoring=monitoring)
 
@@ -1353,8 +1534,7 @@ def create_image(image_out, image_template, other_options=None, monitoring=None)
 #
 #
 #
-############################################################
-
+###########################################################
 
 def non_linear_registration(path_ref, path_flo, path_affine, path_vector, affine_trsf, vector_trsf,
                             py_hl=5, py_ll=3, gaussian_pyramid=True,
@@ -1411,51 +1591,20 @@ def non_linear_registration(path_ref, path_flo, path_affine, path_vector, affine
     #
 
     command_line = path_to_exec + " -ref " + path_ref + " -flo " + path_flo + " -res " + path_vector
-    command_line += " -init-trsf " + affine_trsf
+    command_line += " -left-trsf " + affine_trsf
     command_line += " -res-trsf " + vector_trsf
     command_line += " -composition-with-initial"
 
     command_line += " -pyramid-highest-level " + str(py_hl) + " -pyramid-lowest-level " + str(py_ll)
-    if ( gaussian_pyramid ):
+    if gaussian_pyramid:
         command_line += " -py-gf"
 
     command_line += " -trsf-type vectorfield"
 
     command_line += " -estimator " + transformation_estimator
     command_line += " -lts-fraction " + str(lts_fraction)
-    command_line += " -elastic-sigma " + str(elastic_sigma) + " "  + str(elastic_sigma) + " " + str(elastic_sigma)
-    command_line += " -fluid-sigma " + str(fluid_sigma) + " "  + str(fluid_sigma) + " " + str(fluid_sigma)
-
-    if other_options is not None:
-        command_line += " " + other_options
-
-    _launch_inline_cmd(command_line, monitoring=monitoring)
-
-    return
-
-
-def only_keep_seeds_in_cell(seed_image, cell_image, seed_result,
-                            other_options=None, monitoring=None):
-    """
-
-    :param seed_image:
-    :param cell_image:
-    :param seed_result:
-    :param other_options:
-    :param monitoring:
-    :return:
-    """
-
-    path_to_exec = _find_exec('mc-maskSeeds')
-
-    #
-    #
-    #
-    command_line = path_to_exec
-
-    command_line += " -seed-image " + seed_image
-    command_line += " -cell-image " + cell_image
-    command_line += " -output-image " + seed_result
+    command_line += " -elastic-sigma " + str(elastic_sigma) + " " + str(elastic_sigma) + " " + str(elastic_sigma)
+    command_line += " -fluid-sigma " + str(fluid_sigma) + " " + str(fluid_sigma) + " " + str(fluid_sigma)
 
     if other_options is not None:
         command_line += " " + other_options
@@ -1494,14 +1643,12 @@ def cell_properties(format_input, output, first, last, diagnosis_file=None, max_
     if diagnosis_file is not None:
         command_line += " -diagnosis " + str(diagnosis_file)
     if max_chunks is None:
-        command_line += " -max-chunks-properties 1"
+        pass
     elif type(max_chunks) == int:
         if max_chunks >= 1:
             command_line += " -max-chunks-properties " + str(max_chunks)
         else:
             pass
-    else:
-        command_line += " -max-chunks-properties 1"
 
     #
     #
@@ -1705,10 +1852,10 @@ def obsolete_watershed(path_seeds, path_int, path_output=None, lazy=True, tempor
     if not lazy:
         out=imread(path_output)
         if cmd:
-            cmd='rm '+cmd
-            if verbose:
-                print cmd
-            os.system(cmd)
+           cmd='rm '+cmd
+           if verbose:
+               print cmd
+           os.system(cmd)
         return out
 
 
@@ -1772,7 +1919,7 @@ def obsolete_non_linear_registration(image_file_flo,image_file_ref, affine_image
               " -flo " + image_file_flo+\
               " -res " + vectorfield_image+\
               " -res-trsf " + vectorfield_trsf+\
-              " -init-trsf " +affine_trsf+\
+              " -left-trsf " +affine_trsf+\
               " -trsf-type vectorfield" +\
               " -estimator wlts" +\
               " -py-gf" +\
@@ -1832,7 +1979,7 @@ def rigid_registration(path_ref, path_flo, path_trsf, path_output, path_output_t
               " -pyramid-lowest-level " + str(py_ll) + \
               " -lts-fraction " + str(lts_fraction)
     if path_trsf :
-      cmd = cmd + " -init-trsf " + path_trsf
+      cmd = cmd + " -left-trsf " + path_trsf
     if verbose:
       print cmd
     os.system(cmd)
@@ -1983,15 +2130,6 @@ def outer_detection(im_ref_tmp, radius, seg_ref_tmp):
     imsave('tmp.inr', SpatialImage(im_refB))
     os.system(path_filters + " tmp.inr out_bounds.inr -x 0 -y 0 -z 0 -sigma 1 -o 2")
     return imread('out_bounds.inr'), bounds.astype(np.bool)
-
-def obsolete_gradient_norm(image_input,gradient_output):
-    ''' Perform the gradient norm of an intensity image
-    im_input : input image (SpatialImage)
-    path_input : path to the input image
-    path_output : path to the output image
-    '''
-    path_gradient_norm = _find_exec('norme_gradient')
-    os.system(path_gradient_norm + ' ' + image_input + ' ' + gradient_output + ' -sigma 1')
 
 def readMatrixFile(file,t=int,comments='#'):
     '''
@@ -2974,7 +3112,7 @@ def connexe_with_options(path_input, path_output='tmp_threshold', path_seeds=Non
         os.system('rm ' + path_output)
         return out  
 
-def compose_trsf(path_trsf_1, path_trsf_2, path_output="tmp_compose.inr", lazy=True, verbose=False):
+def obsolete_compose_trsf(path_trsf_1, path_trsf_2, path_output="tmp_compose.inr", lazy=True, verbose=False):
   '''
   Transformations composition 
   '''

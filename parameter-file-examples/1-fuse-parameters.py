@@ -54,28 +54,39 @@ end = 0
 
 
 
-raw_ori = 'left'
-raw_mirrors = False
-raw_resolution = (.17, .17, 1.)
+acquisition_orientation = 'left'
+acquisition_mirrors = False
+acquisition_leftcamera_z_stacking = 'direct'
+acquisition_resolution = (.195, .195, 1.)
 # raw_delay = 0
 
 ## ##### explanation #####
 ##
 ## raw data parameters
 ##
-## raw_ori: image orientation ('right' or 'left')
-##   if im2 angle - im1 angle < 0 => raw_ori = 'right'
-## raw_mirrors: depends on the acquisition protocol, value
-## 	can be set to True or False
-## 	- the standard value of this parameter is False
-## 	- in case of axial symmetry between left
-## 	  and right cameras, then set to True
-## raw_resolution: acquisition voxel size
+## acquisition_orientation: image orientation ('right' or 'left')
+##   gives the rotation (wrt to the Y axis) of the left camera frame of stack #0
+##   to be aligned with the the left camera frame of stack #1
+##   - 'right': +90 degrees
+##   - 'left': -90 degrees
+## acquisition_mirrors: mirroring of the right camera image along the X-axis
+## 	 Right camera images may have to be mirrored along the X-axis to be aligned
+##   with the left camera images
+##   - 'True': the mirroring is done
+##   - 'False': the mirroring is still to be done
+##   Since it should depend on the apparatus, all acquisitions performed by the same
+##   microscope should be the same tuning
+## acquisition_leftcamera_z_stacking
+##   gives the order of stacking of in the Z direction
+##   'direct': from the high-contrasted images (small values of z) to the fuzzy/blurred ones (large values of z)
+##   'inverse':
+## acquisition_resolution: acquisition voxel size
 ##   e.g. raw_resolution = (.21, .21, 1.)
 ## raw_delay: increment to to be added to the time values
 ##   (values in range [begin,end]) when generating the
 ##   fused image names (default is 0)
 ##   eg: acquisition at time point 't' results in the fused image at time 't+raw_delay'
+## acquisition_leftcamera_stacking_direction
 ##
 ## To determine the configuration (raw_ori,raw_resolution) (ie ('left',False),
 ## ('left',True), ('right', False), or ('right', True)), it is advised to perform the fusion
@@ -313,7 +324,7 @@ target_resolution = .3
 # fusion_preregistration_lts_fraction = 0.55
 # fusion_preregistration_pyramid_highest_level = 6
 # fusion_preregistration_pyramid_lowest_level = 3
-# fusion_preregistration_normalization = True
+# fusion_preregistration_normalization = False
 
 # fusion_registration_compute_registration = True
 # fusion_registration_transformation_type = 'affine'
@@ -321,7 +332,7 @@ target_resolution = .3
 # fusion_registration_lts_fraction = 0.55
 # fusion_registration_pyramid_highest_level = 6
 # fusion_registration_pyramid_lowest_level = 3
-# fusion_registration_normalization = True
+# fusion_registration_normalization = False
 
 # fusion_stack_preregistration_compute_registration = True
 # fusion_stack_preregistration_transformation_type = 'affine'
@@ -329,7 +340,7 @@ target_resolution = .3
 # fusion_stack_preregistration_lts_fraction = 0.55
 # fusion_stack_preregistration_pyramid_highest_level = 6
 # fusion_stack_preregistration_pyramid_lowest_level = 3
-# fusion_stack_preregistration_normalization = True
+# fusion_stack_preregistration_normalization = False
 
 # fusion_stack_registration_compute_registration = True
 # fusion_stack_registration_transformation_type = 'vectorfield'
@@ -337,7 +348,7 @@ target_resolution = .3
 # fusion_stack_registration_lts_fraction = 1.0
 # fusion_stack_registration_pyramid_highest_level = 6
 # fusion_stack_registration_pyramid_lowest_level = 3
-# fusion_stack_registration_normalization = True
+# fusion_stack_registration_normalization = False
 
 ##
 ## step 5. co-registration of acquisitions ('direct-fusion' and 'hierarchical-fusion')
@@ -381,6 +392,7 @@ target_resolution = .3
 # fusion_weighting_channel_1 = 'guignard-weighting'
 # fusion_weighting_channel_2 = 'guignard-weighting'
 # fusion_weighting_channel_3 = 'guignard-weighting'
+# fusion_xzsection_extraction = False
 
 ##
 ## step 6. weighted linear combination of the resampled co-registered acquisitions
@@ -388,16 +400,21 @@ target_resolution = .3
 
 ## ##### explanation #####
 ##
-## there are two ways to perform the fusion of the 4 acquisitions:
+## the weighted linear combination of the 4 co-registered stacks can be tuned by the 'fusion_weighting'
+## variable
 ##
-## 1. 'guignard-weighting'
-##    original historical weighting function, described in Leo Guignard's Phd thesis, that puts more weight to
-##    sections close to the camera and take also account the traversed material
-## 2. 'uniform'
-##    the average of the acquisitions
+## - 'uniform': uniform (or constant) weighting, it comes to the average of the resampled co-registered stacks
+## - 'ramp': the weights are linearly increasing or decreasing along the Z axis
+## - 'corner': the weights are constant in a corner portion of the stack, defined by two diagonals in the XZ-section
+## - 'guignard': original historical weighting function, described in Leo Guignard's Phd thesis, that puts more weight
+##    to sections close to the camera and take also account the traversed material
 ##
 ## The variable 'fusion_weighting' allows to set the fusion weighting for all the channels to be processed. Using
 ## the variables 'fusion_weighting_channel_X' allows to set different weighting schemes for each channel.
+##
+## Setting 'fusion_xzsection_extraction' to True allows to extract XZ-sections of the 4 co-registered stacks
+## as well as the weighting function images. It provides an efficient way to check whether the
+## 'acquisition_leftcamera_stacking_direction' variable was correcly set
 ##
 
 

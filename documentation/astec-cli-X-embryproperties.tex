@@ -8,7 +8,7 @@
 
 The following options are available:
 \begin{description}
-  \itemsep -1ex
+  \itemsep -0.5ex
 \item[\texttt{-h}] prints a help message
 \item[\texttt{-p \underline{file}}] set the parameter file to be parsed
 \item[\texttt{-e \underline{path}}] set the
@@ -78,7 +78,7 @@ According that the \texttt{POST/POST\_<EXP\_POST>/} sub-directory exists (that p
 
 The computed information are
 \begin{description}
-  \itemsep -1ex
+  \itemsep -0.5ex
 \item[\texttt{all\_cells}] All the cell identifiers. Each cell (in a segmentation image) has a given label (ranging from 2 and above, 1 being used for the background) in each image. To uniquely identify a cell in the sequence, it has been given an unique identifier computed by $i * 1000 + c$, $i$ and $c$ denoting respectively the image index (ranging in [\texttt{<begin>}, \texttt{<end>}]) and the cell label.
 \item[\texttt{cell\_barycenter}] Cell center of mass (in voxel coordinates)
 \item[\texttt{cell\_contact\_surface}] For each cell, give for each neighboring cell the contact surface. The sum of these contact surfaces is the cell surface.
@@ -92,7 +92,7 @@ The computed information are
 
 The text file \texttt{<EN>\_intrareg\_post\_lineage.txt} contains diagnosis information about the sequence. It lists
 \begin{itemize}
-  \itemsep -1ex
+  \itemsep -0.5ex
 \item the cell with the smallest sizes as well as the ones with the largest sizes
 \item the cell with a weird lineage: cells without a mother cell, or cells without daughter cells or having more than 2 daughter cells
 \item cells having a small intersection with its mother cell with respect to either the mother cell volume or the cell volume. 
@@ -104,7 +104,7 @@ Please also refer to the file
 \texttt{parameter-file-examples/X-embryoproperties-parameters.py}
 
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \texttt{EN}
 \item \texttt{EXP\_INTRAREG}
 \item \texttt{EXP\_POST}
@@ -120,7 +120,7 @@ Please also refer to the file
 \texttt{X-embryoproperties.py} can also help managing property files.
 
 \begin{itemize}
-  \itemsep -1ex
+  \itemsep -0.5ex
 \item Converting from \texttt{xml} to \texttt{pkl} and  the other way around.
   \begin{code}{0.8}
   \$ X-embryoproperties.py -i file.pkl -o file.xml

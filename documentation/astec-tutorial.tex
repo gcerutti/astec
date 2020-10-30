@@ -83,18 +83,23 @@ done with
 \begin{figure}
 \begin{framed}
 \begin{verbatim}
-     1	PATH_EMBRYO = '.'
-     2	
-     3	EN = '2019-Tutorial100'
-     4	
-     5	begin = 0
-     6	end = 20
-     7	
-     8	acquisition_orientation = 'right'
-     9	acquisition_mirrors = False
-    10	acquisition_resolution = (1., 1., 1.)
-    11	
-    12	target_resolution = 1.0
+    1	PATH_EMBRYO = '.'
+    2	
+    3	EN = '2019-Tutorial100'
+    4	
+    5	begin = 0
+    6	end = 20
+    7	
+    8	DIR_LEFTCAM_STACKZERO = 'LC/Stack0000'
+    9	DIR_RIGHTCAM_STACKZERO = 'RC/Stack0000'
+   10	DIR_LEFTCAM_STACKONE = 'LC/Stack0001'
+   11	DIR_RIGHTCAM_STACKONE = 'RC/Stack0001'
+   12	
+   13	acquisition_orientation = 'right'
+   14	acquisition_mirrors = False
+   15	acquisition_resolution = (1., 1., 1.)
+   16	
+   17	target_resolution = 1.0
 \end{verbatim}
 \end{framed}
 \caption{\label{fig:tutorial:parameter:fusion} Tutorial parameter file
@@ -102,7 +107,7 @@ done with
 \end{figure}
 
 \begin{itemize}
-  \itemsep -1ex
+  \itemsep -0.5ex
   \item The variable \texttt{PATH\_EMBRYO} is the path to the directory where
     the directory \texttt{RAWDATA/} is located. It can be either relative (as in the
     above example) or
@@ -111,6 +116,7 @@ done with
     will be named. 
   \item The variables \texttt{begin} and \texttt{end} set respectively the
     first and the last index of the input time points to be processed.
+  \item The variables \texttt{DIR\_LEFTCAM\_STACKZERO}, \texttt{DIR\_RIGHTCAM\_STACKZERO}, \texttt{DIR\_LEFTCAM\_STACKONE} and \texttt{DIR\_RIGHTCAM\_STACKONE} set the sub-directories of the \texttt{RAWDATA/} directory, where the 4 acquisitions of the SPIM microscope are located.
   \item The variables \texttt{acquisition\_orientation} and \texttt{acquisition\_mirrors} are parameters
     describing the acquisition geometry.
   \item The variable \texttt{acquisition\_resolution} is the voxel size (along the 3
@@ -136,14 +142,14 @@ The \texttt{FUSE/} directory contains
 \dirtree{%
 .1 FUSE/.
 .2 FUSE\_RELEASE/.
-.3 2019-Tutorial100\_fuse\_t000.inr.
+.3 2019-Tutorial100\_fuse\_t000.mha.
 .3 {\ldots}.
-.3 2019-Tutorial100\_fuse\_t020.inr.
+.3 2019-Tutorial100\_fuse\_t020.mha.
 .3 LOGS/.
 }
 \mbox{}
 
-The fused images are named after \texttt{<EN>\_fuse\t<XXX>.inr} (where \texttt{<XXX>}
+The fused images are named after \texttt{<EN>\_fuse\t<XXX>.mha} (where \texttt{<XXX>}
 denotes the value of the variable \texttt{XXX}) and indexed from
 \texttt{<begin>} to \texttt{<end>} (as the input data).
 
@@ -182,7 +188,7 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:intra:registration
 \end{figure}
 
 \begin{itemize}
-  \itemsep -1ex
+  \itemsep -0.5ex
   \item The variable \texttt{PATH\_EMBRYO} is the path to the directory where
     the directory \texttt{FUSE/} is located. It can be either relative (as in the
     above example) or
@@ -218,24 +224,24 @@ The \texttt{INTRAREG/} directory contains
 .4 2019-Tutorial100\_intrareg\_flo019\_ref020.trsf.
 .3 FUSE/.
 .4 FUSE\_RELEASE/.
-.5 2019-Tutorial100\_intrareg\_fuse\_t000.inr.
+.5 2019-Tutorial100\_intrareg\_fuse\_t000.mha.
 .5 \ldots.
-.5 2019-Tutorial100\_intrareg\_fuse\_t020.inr.
+.5 2019-Tutorial100\_intrareg\_fuse\_t020.mha.
 .3 LOGS/.
 .3 MOVIES/.
 .4 FUSE/.
 .5 FUSE\_RELEASE/.
-.6 2019-Tutorial100\_intrareg\_fuse\_t000-020\_xy0205.inr.
+.6 2019-Tutorial100\_intrareg\_fuse\_t000-020\_xy0205.mha.
 .3 TRSFS\_t0-20/.
 .4 2019-Tutorial100\_intrareg\_t000.trsf.
 .4 \ldots.
 .4 2019-Tutorial100\_intrareg\_t020.trsf.
-.4 template\_t0-20.inr.
+.4 template\_t0-20.mha.
 }
 \mbox{}
 
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item The directory \texttt{CO-TRSF/} contains the co-registration
   transformations.
 \item The directory \texttt{FUSE/FUSE\_RELEASE/} contains the resampled fused images
@@ -244,7 +250,7 @@ The \texttt{INTRAREG/} directory contains
   microscope has been compensated). 
 \item The directory \texttt{MOVIES/FUSE/FUSE\_RELEASE/} contains a 3D (which is a 2D+t)
   image, here
-  \texttt{2019-Tutorial100\_intrareg\_fuse\_t000-020\_xy0205.inr}, which
+  \texttt{2019-Tutorial100\_intrareg\_fuse\_t000-020\_xy0205.mha}, which
   the \#205 XY-section of the resampled fused images for all the time
   points.
 \item The directory \texttt{TRSFS/}  contains the transformation of
@@ -252,7 +258,7 @@ The \texttt{INTRAREG/} directory contains
   image (an image large enough to including each fused images after
   resampling).
 
-  The template image \texttt{template\_t0-20.inr} is of size $422
+  The template image \texttt{template\_t0-20.mha} is of size $422
   \times 365 \times 410$ with a voxel size of 0.6 (the voxel size can
   be set by the variable \texttt{intra\_registration\_resolution})
 \end{itemize}
@@ -290,7 +296,7 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:mars}).
 
 
 \begin{itemize}
-  \itemsep -1ex
+  \itemsep -0.5ex
   \item The variable \texttt{PATH\_EMBRYO} is the path to the directory where
     the directory \texttt{FUSE/} is located. It can be either relative (as in the
     above example) or
@@ -321,13 +327,12 @@ The \texttt{SEG/} directory contains
 \dirtree{%
 .1 SEG/.
 .2 SEG\_RELEASE/.
-.3 2019-Tutorial100\_mars\_t000.inr.
+.3 2019-Tutorial100\_mars\_t000.mha.
 .3 LOGS/.
-.3 RECONSTRUCTION/.
 }
 \mbox{}
 
-\texttt{2019-Tutorial100\_mars\_t000.inr} is the segmented first
+\texttt{2019-Tutorial100\_mars\_t000.mha} is the segmented first
   time point of the sequence.
 
 
@@ -396,7 +401,7 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:manual:correction}
 \end{figure}
 
 \begin{itemize}
-  \itemsep -1ex
+  \itemsep -0.5ex
   \item The variable \texttt{PATH\_EMBRYO} is the path to the directory where
     the directory \texttt{SEG/} is located. It can be either relative (as in the
     above example) or
@@ -415,14 +420,14 @@ After processing, the \texttt{SEG/} directory contains
 \dirtree{%
 .1 SEG/.
 .2 SEG\_RELEASE/.
-.3 2019-Tutorial100\_mars\_t000.inr.
-.3 2019-Tutorial100\_seg\_t000.inr.
+.3 2019-Tutorial100\_mars\_t000.mha.
+.3 2019-Tutorial100\_seg\_t000.mha.
 .3 LOGS/.
 .3 RECONSTRUCTION/.
 }
 \mbox{}
 
-\texttt{2019-Tutorial100\_seg\_t000.inr} is the corrected version of
+\texttt{2019-Tutorial100\_seg\_t000.mha} is the corrected version of
 the segmentation obtained at the previous step.
 
 
@@ -449,43 +454,8 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:astec}).
      4	
      5	begin = 0
      6	end = 20
-     7	delta = 1
-     8	raw_delay = 0
-     9	
-    10	## General parameters for segmentation propagation
-    11	
-    12	astec_sigma1 = 0.6  		
-    13	astec_sigma2 = 0.15 		
-    14	astec_h_min_min = 4
-    15	astec_h_min_max = 18   		
-    16	
-    17	## Glace Parameters (if astec_membrane_reconstruction_method is set to 1 or 2):
-    18	## membrane_renforcement
-    19	
-    20	astec_sigma_membrane = 0.9
-    21	astec_sensitivity = 0.99  
-    22	astec_manual = False     	
-    23	astec_manual_sigma = 15   
-    24	astec_hard_thresholding = False 
-    25	astec_hard_threshold = 1.0      
-    26	
-    27	## Tensor voting framework
-    28	
-    29	astec_sigma_TV = 3.6    
-    30	astec_sigma_LF = 0.9    
-    31	astec_sample = 0.2      
-    32	
-    33	## Default parameters (for classical use, default values should not be changed)
-    34	
-    35	astec_RadiusOpening = 20 		
-    36	astec_Thau = 25 				
-    37	astec_MinVolume = 1000 		
-    38	astec_VolumeRatioBigger = 0.5 
-    39	astec_VolumeRatioSmaller = 0.1
-    40	astec_MorphosnakeIterations = 10 
-    41	astec_NIterations = 200 		
-    42	astec_DeltaVoxels = 10**3  	
-    43	astec_nb_proc = 10
+     7	
+     8	result_lineage_suffix = 'pkl'
 \end{verbatim}
 \end{framed}
 \caption{\label{fig:tutorial:parameter:astec} Tutorial
@@ -498,33 +468,16 @@ After processing, the \texttt{SEG/} directory contains
 \dirtree{%
 .1 SEG/.
 .2 SEG\_RELEASE/.
-.3 2019-Tutorial100\_mars\_t000.inr.
-.3 2019-Tutorial100\_seg\_lineage.test.
-.3 2019-Tutorial100\_seg\_t000.inr.
-.3 2019-Tutorial100\_seg\_t001.inr.
+.3 2019-Tutorial100\_mars\_t000.mha.
+.3 2019-Tutorial100\_seg\_lineage.pkl.
+.3 2019-Tutorial100\_seg\_t000.mha.
+.3 2019-Tutorial100\_seg\_t001.mha.
 .3 \ldots.
-.3 2019-Tutorial100\_seg\_t020.inr.
-.3 4-astec-tutorial-parameters.py.
+.3 2019-Tutorial100\_seg\_t020.mha.
 .3 LOGS/.
-.3 RECONSTRUCTION/.
 }
 \mbox{}
 
-while a \texttt{2019-Tutorial100\_seg\_lineage.pkl} file has been
-created in the \texttt{path/to/tuto-astec1/} directory.
-
-\mbox{}
-\dirtree{%
-.1 path/to/tuto-astec1/.
-.2 2019-Tutorial100\_seg\_lineage.pkl.
-.2 FUSE/.
-.2 INTRAREG/.
-.2 RAWDATA/.
-.2 README.
-.2 SEG/.
-.2 parameters/.
-}
-\mbox{}
 
 \texttt{2019-Tutorial100\_seg\_lineage.pkl} is a pickle python file
 containing a dictionary (in the python sense). It can be read by
@@ -532,11 +485,11 @@ containing a dictionary (in the python sense). It can be read by
   \$ python \\
   \ldots \\
   >>> import cPickle as pkl \\
-  >>> f=open('2019-Tutorial100\_seg\_lineage.pkl') \\
-  >>> d=pkl.load(f) \\
+  >>> f = open('2019-Tutorial100\_seg\_lineage.pkl', 'r') \\
+  >>> d = pkl.load(f) \\
   >>> f.close()  \\
   >>> d.keys() \\{}
-  ['h\_mins\_information', 'lin\_tree', 'volumes\_information', 'sigmas\_information']
+  ['cell\_lineage', 'cell\_volume']
 \end{code}
 In this pickle file, cells have an unique identifier $i * 1000 + c$, which is made of
 both the image index $i$ and the cell identifier $c$ within a segmentation
@@ -583,7 +536,7 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:intra:registration
 \end{figure}
 
 \begin{itemize}
-  \itemsep -1ex
+  \itemsep -0.5ex
   \item The variable \texttt{PATH\_EMBRYO} is the path to the directory where
     the directory \texttt{FUSE/} is located. It can be either relative (as in the
     above example) or
@@ -596,7 +549,7 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:intra:registration
     sub-directory of the \texttt{INTRAREG/} directory to be created.
   \item  the variable \texttt{intra\_registration\_template\_type} set
     the images to be used to build the template. Here, since it is
-    equal to \texttt{"SEGMENTATION''}, they are the
+    equal to \texttt{'SEGMENTATION'}, they are the
     segmentation images obtained at the previous step.
 
     The variable \texttt{intra\_registration\_template\_threshold} set
@@ -635,34 +588,34 @@ been created and the \texttt{INTRAREG/} directory now contains
 .4 2019-Tutorial100\_intrareg\_flo019\_ref020.trsf.
 .3 FUSE/.
 .4 FUSE\_RELEASE/.
-.5 2019-Tutorial100\_intrareg\_fuse\_t000.inr.
+.5 2019-Tutorial100\_intrareg\_fuse\_t000.mha.
 .5 \ldots.
-.5 2019-Tutorial100\_intrareg\_fuse\_t020.inr.
+.5 2019-Tutorial100\_intrareg\_fuse\_t020.mha.
 .3 LOGS/.
 .3 MOVIES/.
 .4 FUSE/.
 .5 FUSE\_RELEASE/.
-.6 2019-Tutorial100\_intrareg\_fuse\_t0-20\_xy174.inr.
+.6 2019-Tutorial100\_intrareg\_fuse\_t0-20\_xy174.mha.
 .4 SEG/.
 .5 SEG\_RELEASE/.
-.6 2019-Tutorial100\_intrareg\_seg\_t0-20\_xy174.inr.
+.6 2019-Tutorial100\_intrareg\_seg\_t0-20\_xy174.mha.
 .3 SEG/.
 .4 SEG\_RELEASE/.
-.5 2019-Tutorial100\_intrareg\_seg\_t000.inr.
+.5 2019-Tutorial100\_intrareg\_seg\_t000.mha.
 .5 \ldots.
-.5 2019-Tutorial100\_intrareg\_seg\_t020.inr.
+.5 2019-Tutorial100\_intrareg\_seg\_t020.mha.
 .3 TRSFS\_t0-20/.
 .4 2019-Tutorial100\_intrareg\_t000.trsf.
 .4 \ldots.
 .4 2019-Tutorial100\_intrareg\_t020.trsf.
-.4 template\_t0-20.inr.
+.4 template\_t0-20.mha.
 }
 \mbox{}
 
 In addition to directories already described in section
 \ref{sec:tutorial:intra:registration:fuse}, the \texttt{INTRAREG\_SEG/} directory contains
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item The directory \texttt{SEG/SEG\_RELEASE} contains the resampled segmentation images
   in the same geometry (images have the same dimensions along X, Y and
   Z), with drift compensation (the eventual motion of the sample under the
@@ -670,7 +623,7 @@ In addition to directories already described in section
 \item In addition to a 2D+t movie made from the resampled fusion
   images, the directory \texttt{MOVIES/} contains a 2D+t movie made from the resampled segmentation
   images in the sub-directory \texttt{SEG/SEG\_RELEASE}.
-\item The template image \texttt{template\_t0-20.inr} in the directory
+\item The template image \texttt{template\_t0-20.mha} in the directory
   \texttt{TRSFS/} 
   is now of size $323 \times 265 \times 348$ with a voxel size of 0.6,
   which is smaller than the one computed in section
@@ -722,7 +675,7 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:properties:seg}).
 \end{figure}
 
 \begin{itemize}
-  \itemsep -1ex
+  \itemsep -0.5ex
   \item The variable \texttt{PATH\_EMBRYO} is the path to the directory where
     the directory \texttt{FUSE/} is located. It can be either relative (as in the
     above example) or
@@ -759,11 +712,12 @@ After processing, some files appears in the \texttt{INTRAREG/INTRAREG\_SEG/SEG/S
 .3 SEG/.
 .4 SEG\_RELEASE/.
 .5 2019-Tutorial100\_intrareg\_seg\_lineage.pkl.
+.5 2019-Tutorial100\_intrareg\_seg\_lineage.tlp.
 .5 2019-Tutorial100\_intrareg\_seg\_lineage.txt.
 .5 2019-Tutorial100\_intrareg\_seg\_lineage.xml.
-.5 2019-Tutorial100\_intrareg\_seg\_t000.inr.
+.5 2019-Tutorial100\_intrareg\_seg\_t000.mha.
 .5 \ldots.
-.5 2019-Tutorial100\_intrareg\_seg\_t020.inr.
+.5 2019-Tutorial100\_intrareg\_seg\_t020.mha.
 .3 TRSFS\_t0-20/.
 .4 \ldots.
 }
@@ -859,11 +813,8 @@ dedicated parameter file  (figure
      4	
      5	begin = 0
      6	end = 20
-     7	delta = 1
-     8	raw_delay = 0
-     9	
-    10	postcor_Volume_Threshold=10000 	
-    11	postcor_Soon=True 				
+     7					
+     8	result_lineage_suffix = 'pkl'		
 \end{verbatim}
 \end{framed}
 \caption{\label{fig:tutorial:parameter:post:correction} Tutorial
@@ -875,7 +826,6 @@ After processing, a \texttt{POST/} directory has been created
 \mbox{}
 \dirtree{%
 .1 path/to/tuto-astec1/.
-.2 2019-Tutorial100\_seg\_lineage.pkl.
 .2 FUSE/.
 .2 INTRAREG/.
 .2 POST/.
@@ -893,12 +843,10 @@ The \texttt{POST/} directory contains
 .1 POST/.
 .2 POST\_RELEASE/.
 .3 2019-Tutorial100\_post\_lineage.pkl.
-.3 2019-Tutorial100\_post\_lineage.test.
-.3 2019-Tutorial100\_post\_t000.inr.
+.3 2019-Tutorial100\_post\_t000.mha.
 .3 \ldots.
-.3 2019-Tutorial100\_post\_t020.inr.
-.3 5-postcorrection-tutorial-parameters.py.
-.3 5-postcorrection.log.
+.3 2019-Tutorial100\_post\_t020.mha.
+.3 LOGS/.
 }
 \mbox{}
 
@@ -944,7 +892,7 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:intra:registration
 \end{figure}
 
 \begin{itemize}
-  \itemsep -1ex
+  \itemsep -0.5ex
   \item The variable \texttt{PATH\_EMBRYO} is the path to the directory where
     the directory \texttt{FUSE/} is located. It can be either relative (as in the
     above example) or
@@ -1002,35 +950,35 @@ been created and the \texttt{INTRAREG/} directory now contains
 .4 2019-Tutorial100\_intrareg\_flo019\_ref020.trsf.
 .3 FUSE/.
 .4 FUSE\_RELEASE/.
-.5 2019-Tutorial100\_intrareg\_fuse\_t000.inr.
+.5 2019-Tutorial100\_intrareg\_fuse\_t000.mha.
 .5 \ldots.
-.5 2019-Tutorial100\_intrareg\_fuse\_t020.inr.
+.5 2019-Tutorial100\_intrareg\_fuse\_t020.mha.
 .3 LOGS/.
 .3 MOVIES/.
 .4 FUSE/.
 .5 FUSE\_RELEASE/.
-.6 2019-Tutorial100\_intrareg\_fuse\_t0-20\_xy174.inr.
+.6 2019-Tutorial100\_intrareg\_fuse\_t0-20\_xy174.mha.
 .4 POST/.
 .5 POST\_RELEASE/.
-.6 2019-Tutorial100\_intrareg\_post\_t0-20\_xy174.inr.
+.6 2019-Tutorial100\_intrareg\_post\_t0-20\_xy174.mha.
 .4 SEG/.
 .5 SEG\_RELEASE/.
-.6 2019-Tutorial100\_intrareg\_seg\_t0-20\_xy174.inr.
+.6 2019-Tutorial100\_intrareg\_seg\_t0-20\_xy174.mha.
 .3 POST/.
 .4 POST\_RELEASE/.
-.5 2019-Tutorial100\_intrareg\_post\_t000.inr.
+.5 2019-Tutorial100\_intrareg\_post\_t000.mha.
 .5 \ldots.
-.5 2019-Tutorial100\_intrareg\_post\_t020.inr.
+.5 2019-Tutorial100\_intrareg\_post\_t020.mha.
 .3 SEG/.
 .4 SEG\_RELEASE/.
-.5 2019-Tutorial100\_intrareg\_seg\_t000.inr.
+.5 2019-Tutorial100\_intrareg\_seg\_t000.mha.
 .5 \ldots.
-.5 2019-Tutorial100\_intrareg\_seg\_t020.inr.
+.5 2019-Tutorial100\_intrareg\_seg\_t020.mha.
 .3 TRSFS\_t0-20/.
 .4 2019-Tutorial100\_intrareg\_t000.trsf.
 .4 \ldots.
 .4 2019-Tutorial100\_intrareg\_t020.trsf.
-.4 template\_t0-20.inr.
+.4 template\_t0-20.mha.
 .2 INTRAREG\_RELEASE/.
 .3 \ldots.
 .2 INTRAREG\_SEG/.
@@ -1041,7 +989,7 @@ been created and the \texttt{INTRAREG/} directory now contains
 In addition to directories already described in section
 \ref{sec:tutorial:intra:registration:fuse}, the \texttt{INTRAREG\_POST/} directory contains
 \begin{itemize}
-\itemsep -1ex
+\itemsep -0.5ex
 \item The directory \texttt{POST/POST\_RELEASE/} contains the resampled
   post-corrected segmentation images
   in the same geometry (images have the same dimensions along X, Y and
@@ -1051,7 +999,7 @@ In addition to directories already described in section
   and the segmentation images, the directory \texttt{MOVIES/} contains
   a 2D+t movie made from the resampled post-corrected segmentation
   images in the sub-directory \texttt{POST/POST\_RELEASE/}.
-\item The template image \texttt{template\_t0-20.inr} in the directory
+\item The template image \texttt{template\_t0-20.mha} in the directory
   \texttt{TRSFS/} 
   is now of size $323 \times 265 \times 348$ with a voxel size of 0.6,
   has the same size than the one computed in section
@@ -1103,7 +1051,7 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:properties:post}).
 \end{figure}
 
 \begin{itemize}
-  \itemsep -1ex
+  \itemsep -0.5ex
   \item The variable \texttt{PATH\_EMBRYO} is the path to the directory where
     the directory \texttt{FUSE/} is located. It can be either relative (as in the
     above example) or
@@ -1143,9 +1091,9 @@ After processing, some files appears in the \texttt{INTRAREG/INTRAREG\_POST/POST
 .5 2019-Tutorial100\_intrareg\_post\_lineage.pkl.
 .5 2019-Tutorial100\_intrareg\_post\_lineage.txt.
 .5 2019-Tutorial100\_intrareg\_post\_lineage.xml.
-.5 2019-Tutorial100\_intrareg\_post\_t000.inr.
+.5 2019-Tutorial100\_intrareg\_post\_t000.mha.
 .5 \ldots.
-.5 2019-Tutorial100\_intrareg\_post\_t020.inr.
+.5 2019-Tutorial100\_intrareg\_post\_t020.mha.
 .3 SEG/.
 .4 \ldots.
 .3 TRSFS\_t0-20/.

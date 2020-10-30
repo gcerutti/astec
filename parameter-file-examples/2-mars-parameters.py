@@ -88,22 +88,9 @@ begin = 0
 
 ######################################################################
 ##
-## mars parameters
+## reconstruction parameters
 ##
 ######################################################################
-
-
-
-# mars_begin = -1
-# mars_end = -1
-
-## ##### explanation #####
-##
-## interval of time points to be segmented by MARS method
-## default is that only the time point 'begin' (see above)
-## is segmented. More time points can be segmented only
-## 'mars_begin' and 'mars_end' variables. Please note that
-## a 'delta' (see above) step will take place between two processed time points.
 
 
 
@@ -144,17 +131,38 @@ begin = 0
 
 
 
+# normalization_min_percentile = 0.01
+# normalization_max_percentile = 0.99
+
+## ##### explanation #####
+##
+## 'Normalization_to_u8' tuning parameters
+##
+## the intensity values of the input image will be stretched in the range [0, 255]
+## to do so, the cumulative histogram of the input image is computed
+## - I_{min} is the intensity value corresponding to the 'normalization_min_percentile'
+## - I_{max} is the intensity value corresponding to the 'normalization_max_percentile'
+##
+## the mapping is then defined by
+## - values below I_{min} are set to 0
+## - values in [I_{min}, I_{max}] are linearly mapped into [0, 255]
+## - values above I_{max} are set to 255
+
+
+
 # mars_sigma_membrane = 0.9
+# mars_hard_thresholding = False
 # mars_hard_threshold = 1.0
 # mars_sensitivity = 0.99
 # mars_manual = False
 # mars_manual_sigma = 15
 # mars_sigma_TV = 3.6
+# mars_sigma_LF = 0.9
 # mars_sample = 0.2
 
 ## ##### explanation #####
 ##
-## GACE parameters
+## GACE tuning parameters
 ## GACE method is made of three steps
 ## 1. membrane detection
 ## 2. membrane segmentation
@@ -200,6 +208,27 @@ begin = 0
 ##   Additional smoothing parameter for reconstructed image (in real coordinates).
 ##   It seems that the default value = 0.9 um is ok for standard use.
 ##
+
+
+
+######################################################################
+##
+## mars parameters
+##
+######################################################################
+
+
+
+# mars_begin = -1
+# mars_end = -1
+
+## ##### explanation #####
+##
+## interval of time points to be segmented by MARS method
+## default is that only the time point 'begin' (see above)
+## is segmented. More time points can be segmented only
+## 'mars_begin' and 'mars_end' variables. Please note that
+## a 'delta' (see above) step will take place between two processed time points.
 
 
 

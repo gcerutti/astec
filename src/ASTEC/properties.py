@@ -7,11 +7,13 @@ import cPickle as pkl
 import xml.etree.ElementTree as ElementTree
 import numpy as np
 import math
+from scipy import ndimage as nd
 
 from operator import itemgetter
 
-import commonTools
+import common
 import CommunFunctions.cpp_wrapping as cpp_wrapping
+from CommunFunctions.ImageHandling import imread
 
 #
 #
@@ -19,7 +21,7 @@ import CommunFunctions.cpp_wrapping as cpp_wrapping
 #
 #
 
-monitoring = commonTools.Monitoring()
+monitoring = common.Monitoring()
 
 
 ########################################################################################
@@ -49,7 +51,7 @@ class CellPropertiesParameters(object):
         print("")
         return
 
-    def update_from_file(self, parameter_file):
+    def update_from_parameter_file(self, parameter_file):
         if parameter_file is None:
             return
         if not os.path.isfile(parameter_file):
@@ -85,41 +87,38 @@ def property_computation(experiment):
     # as well as the common image suffix
     #
 
-    stage = None
-    intrareg_path = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory(),
-                                 experiment.post.get_directory())
+    intrareg_path = os.path.join(experiment.intrareg_dir.get_directory(), experiment.post_dir.get_sub_directory())
+    #
+    # is there a post-segmentation directory in the intra-registration directory ?
+    #
     if not os.path.isdir(intrareg_path):
         monitoring.to_log(proc + ": '" + str(intrareg_path) + "' does not exist")
-        intrareg_path = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory(),
-                                     experiment.seg.get_directory())
+        intrareg_path = os.path.join(experiment.intrareg_dir.get_directory(), experiment.astec_dir.get_sub_directory())
+        #
+        # if no, is there a segmentation directory in the intra-registration directory ?
+        #
         if not os.path.isdir(intrareg_path):
             monitoring.to_log(proc + ": '" + str(intrareg_path) + "' does not exist")
-            intrareg_path = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory())
+            intrareg_path = experiment.intrareg_dir.get_directory()
             monitoring.to_log_and_console(proc + ": neither POST/ or SEG/ sub-directories in '"
                                           + str(intrareg_path) + "'", 0)
             monitoring.to_log_and_console("Exiting.", 0)
             return None
         else:
-            stage = "seg"
+            working_dir = experiment.astec_dir
     else:
-        stage = "post"
+        working_dir = experiment.post_dir
 
     monitoring.to_log_and_console("... will compute sequence properties from '" + str(intrareg_path) + "'", 0)
 
     #
     # build name format for (post-corrected) segmentation images
     #
+    name_format = experiment.intrareg_dir.get_file_prefix() + experiment.intrareg_dir.get_file_suffix() + \
+                  working_dir.get_file_suffix() + experiment.intrareg_dir.get_time_prefix() + \
+                  experiment.get_time_format()
 
-    if stage.lower() == 'post':
-        name_format = experiment.get_image_format('intrareg', 'post')
-    elif stage.lower() == 'seg':
-        name_format = experiment.get_image_format('intrareg', 'seg')
-    else:
-        monitoring.to_log_and_console(proc + ": weird, this should not be reached", 0)
-        monitoring.to_log_and_console("Exiting.", 0)
-        sys.exit(1)
-
-    suffix = commonTools.get_file_suffix(experiment, intrareg_path, name_format, flag_time=experiment.get_time_format())
+    suffix = common.get_file_suffix(experiment, intrareg_path, name_format, flag_time=experiment.get_time_format())
     if suffix is None:
         monitoring.to_log_and_console(proc + ": no consistent naming was found in '"
                                       + str(intrareg_path) + "'", 1)
@@ -131,8 +130,9 @@ def property_computation(experiment):
     #
     #
     #
-
-    output_name = os.path.join(intrareg_path, experiment.get_image_suffix('intrareg', stage) + "_lineage")
+    output_name = experiment.intrareg_dir.get_file_prefix() + experiment.intrareg_dir.get_file_suffix() + \
+                  working_dir.get_file_suffix() + "_lineage"
+    output_name = os.path.join(intrareg_path, output_name)
 
     if os.path.isfile(output_name + ".xml") and os.path.isfile(output_name + ".pkl"):
         if not monitoring.forceResultsToBeBuilt:
@@ -215,14 +215,70 @@ keydictionary = {'lineage': {'output_key': 'cell_lineage',
                                 'input_keys': ['cell_naming_score', 'Scores', 'scores']},
                  'problems': {'output_key': 'problematic_cells',
                               'input_keys': ['problematic_cells']},
-                 'apicobasal_length': {'output_key': 'cell_apicobasal_length',
-                              'input_keys': ['cell_apicobasal_length']},
-                 'basal_cell': {'output_key': 'cell_basal_cell',
-                                       'input_keys': ['cell_basal_cell']},
-                 'apicobasal_segment': {'output_key': 'cell_apicobasal_segment',
-                              'input_keys': ['cell_apicobasal_segment']},
+                 'urchin_apicobasal_length': {'output_key': 'urchin_cell_apicobasal_length',
+                              'input_keys': ['urchin_cell_apicobasal_length']},
+                 'urchin_adjacency': {'output_key': 'urchin_cell_adjacency',
+                                       'input_keys': ['urchin_cell_adjacency']},
+                 'urchin_apicobasal_segment': {'output_key': 'urchin_cell_apicobasal_segment',
+                              'input_keys': ['urchin_cell_apicobasal_segment']},
+                 'urchin_apical_surface': {'output_key': 'urchin_apical_surface',
+                              'input_keys': ['urchin_apical_surface']},
+                 'urchin_basal_surface': {'output_key': 'urchin_basal_surface',
+                              'input_keys': ['urchin_basal_surface']},
+                 'urchin_apical_contact_edge': {'output_key': 'urchin_apical_contact_edge',
+                              'input_keys': ['urchin_apical_contact_edge']},
+                 'urchin_basal_contact_edge': {'output_key': 'urchin_basal_contact_edge',
+                              'input_keys': ['urchin_basal_contact_edge']},
+                 'urchin_vegetal_distance': {'output_key': 'urchin_vegetal_distance',
+                              'input_keys': ['urchin_vegetal_distance']},
                  'unknown': {'output_key': 'unknown_key',
                              'input_keys': ['unknown_key']}}
+
+
+def normalize_dictionary_keys(inputdict):
+    """
+
+    :param inputdict:
+    :return:
+    """
+
+    if inputdict == {}:
+        return {}
+
+    outputdict = {}
+
+    for inputkey in inputdict:
+        foundkey = False
+        for k in keydictionary:
+            # print "       compare '" + str(tmpkey) + "' with '" + str(k) + "'"
+            if inputkey in keydictionary[k]['input_keys']:
+                outputkey = keydictionary[k]['output_key']
+                monitoring.to_log_and_console("   ... recognized key '" + str(outputkey) + "'", 3)
+                #
+                # update if key already exists, else just create the dictionary entry
+                #
+                outputdict[outputkey] = inputdict[inputkey]
+                foundkey = True
+                break
+
+        if foundkey is False:
+            outputdict[inputkey] = inputdict[inputkey]
+
+    return outputdict
+
+
+def get_dictionary_entry(inputdict, keystring):
+    proc = 'get_dictionary_entry'
+    if keystring not in keydictionary:
+        monitoring.to_log_and_console(str(proc) + ": keystring must be in " + str(keydictionary.keys()), 1)
+        return {}
+    for k in keydictionary[keystring]['input_keys']:
+        if k in inputdict:
+            return inputdict[k]
+    else:
+        monitoring.to_log_and_console(str(proc) + ": '" + str(keystring) + "' was not found in input dictionary", 1)
+        monitoring.to_log_and_console("    keys were: " + str(inputdict.keys()), 1)
+        return {}
 
 ########################################################################################
 #
@@ -567,10 +623,10 @@ def _update_read_dictionary(propertiesdict, tmpdict, filename):
     proc = "_update_read_dictionary"
     unknownkeys = []
 
-    for tmpkey in tmpdict.keys():
+    for tmpkey in tmpdict:
         foundkey = False
 
-        for k in keydictionary.keys():
+        for k in keydictionary:
             # print "       compare '" + str(tmpkey) + "' with '" + str(k) + "'"
             if tmpkey in keydictionary[k]['input_keys']:
                 outputkey = keydictionary[k]['output_key']
@@ -578,7 +634,7 @@ def _update_read_dictionary(propertiesdict, tmpdict, filename):
                 #
                 # update if key already exists, else just create the dictionary entry
                 #
-                if outputkey in propertiesdict.keys():
+                if outputkey in propertiesdict:
                     if type(propertiesdict[outputkey]) is dict and type(tmpdict[tmpkey]) is dict:
                         propertiesdict[outputkey].update(tmpdict[tmpkey])
                     elif type(propertiesdict[outputkey]) is list and type(tmpdict[tmpkey]) is list:
@@ -601,7 +657,7 @@ def _update_read_dictionary(propertiesdict, tmpdict, filename):
         #
         monitoring.to_log_and_console("   ... assume '" + str(filename) + "' is a lineage", 1)
         outputkey = keydictionary['lineage']['output_key']
-        if outputkey in propertiesdict.keys():
+        if outputkey in propertiesdict:
             if type(propertiesdict[outputkey]) is dict and type(tmpdict) is dict:
                 propertiesdict[outputkey].update(tmpdict)
             else:
@@ -619,7 +675,7 @@ def _update_read_dictionary(propertiesdict, tmpdict, filename):
 
         if len(unknownkeys) == 1:
             tmpkey = unknownkeys[0]
-            if outputkey in propertiesdict.keys():
+            if outputkey in propertiesdict:
                 if type(propertiesdict[outputkey]) is dict and type(tmpdict[tmpkey]) is dict:
                     propertiesdict[outputkey].update(tmpdict[tmpkey])
                 elif type(propertiesdict[outputkey]) is list and type(tmpdict[tmpkey]) is list:
@@ -650,19 +706,19 @@ def _set_types_from_xml(propertiesdict):
     if propertiesdict == {}:
         return {}
 
-    if 'cell_barycenter' in propertiesdict.keys():
+    if 'cell_barycenter' in propertiesdict:
         monitoring.to_log_and_console("   ... translate types of 'cell_barycenter'", 3)
-        for c in propertiesdict['cell_barycenter'].keys():
+        for c in propertiesdict['cell_barycenter']:
             propertiesdict['cell_barycenter'][c] = np.array(propertiesdict['cell_barycenter'][c])
 
-    if 'cell_history' in propertiesdict.keys():
+    if 'cell_history' in propertiesdict:
         monitoring.to_log_and_console("   ... translate types of 'cell_history'", 3)
-        for c in propertiesdict['cell_history'].keys():
+        for c in propertiesdict['cell_history']:
             propertiesdict['cell_history'][c] = np.array(propertiesdict['cell_history'][c])
 
-    if 'cell_principal_vectors' in propertiesdict.keys():
+    if 'cell_principal_vectors' in propertiesdict:
         monitoring.to_log_and_console("   ... translate types of 'cell_principal_vectors'", 3)
-        for c in propertiesdict['cell_principal_vectors'].keys():
+        for c in propertiesdict['cell_principal_vectors']:
             for v in range(len(propertiesdict['cell_principal_vectors'][c])):
                 propertiesdict['cell_principal_vectors'][c][v] \
                     = np.array(propertiesdict['cell_principal_vectors'][c][v])
@@ -732,6 +788,8 @@ def read_dictionary(inputfilenames, inputpropertiesdict={}):
             propertiesdict = _read_pkl_file(inputfilenames, propertiesdict)
         else:
             monitoring.to_log_and_console(proc + ": error: extension not recognized for '" + str(inputfilenames) + "'")
+
+        propertiesdict = normalize_dictionary_keys(propertiesdict)
         return propertiesdict
 
     #
@@ -778,9 +836,35 @@ def read_dictionary(inputfilenames, inputpropertiesdict={}):
         else:
             monitoring.to_log_and_console(proc + ": error: extension not recognized for '" + str(filename) + "'")
 
+    propertiesdict = normalize_dictionary_keys(propertiesdict)
     return propertiesdict
 
 
+def write_dictionary(inputfilename, inputpropertiesdict):
+    """
+
+    :param inputfilename:
+    :param inputpropertiesdict:
+    :return:
+    """
+    proc = 'write_dictionary'
+
+    if inputfilename.endswith("pkl") is True:
+        lineagefile = open(inputfilename, 'w')
+        pkl.dump(inputpropertiesdict, lineagefile)
+        lineagefile.close()
+    elif inputfilename.endswith("xml") is True:
+        xmltree = dict2xml(inputpropertiesdict)
+        xmltree.write(inputfilename)
+        del xmltree
+    elif inputfilename.endswith("tlp") is True:
+        write_tlp_file(inputfilename, inputpropertiesdict)
+    else:
+        monitoring.to_log_and_console(str(proc) + ": error when writing lineage file. Extension not recognized for '"
+                                      + os.path.basename(inputfilename) + "'", 1)
+    return
+
+
 ########################################################################################
 #
 # comparison of two dictionaries
@@ -788,14 +872,41 @@ def read_dictionary(inputfilenames, inputpropertiesdict={}):
 ########################################################################################
 
 
-def _decode_cell_id(s):
-    return "cell #{:4d}".format(int(s)/10000) + " of image #{:4d}".format(int(s) % 10000)
+def _decode_cell_id(s, time_digits_for_cell_id=4):
+    div = 10**time_digits_for_cell_id
+    return "cell #{:4d}".format(int(s) % div) + " of image #{:4d}".format(int(s) / div)
+
+
+def _get_time_interval_from_lineage(direct_lineage, time_digits_for_cell_id=4):
+
+    nodes = list(set(direct_lineage.keys()).union(set([v for values in direct_lineage.values() for v in values])))
+    first_time = min(nodes) / 10 ** time_digits_for_cell_id
+    last_time = max(nodes) / 10 ** time_digits_for_cell_id
+    # monitoring.to_log_and_console("  - estimated time interval = [" + str(first_time) + ", " + str(last_time) + "]", 1)
+
+    return first_time, last_time
+
+
+def _get_time_interval_from_properties(d, time_digits_for_cell_id=4):
+
+    proc = "_get_time_interval_from_properties"
+    keylineage = None
+
+    for k in d:
+        if k in keydictionary['lineage']['input_keys']:
+            keylineage = k
+
+    if keylineage is None:
+        monitoring.to_log_and_console(str(proc) + ": no lineage in input dictionary", 1)
+        return None, None
+
+    return _get_time_interval_from_lineage(d[keylineage], time_digits_for_cell_id=time_digits_for_cell_id)
 
 
 ########################################################################################
 #
 # comparison of two dictionaries
-#
+
 ########################################################################################
 
 
@@ -812,23 +923,42 @@ def _intersection_cell_keys(e1, e2, name1, name2):
     difference1 = list(set(e1.keys()).difference(set(e2.keys())))
     difference2 = list(set(e2.keys()).difference(set(e1.keys())))
 
+    monitoring.to_log_and_console("    ... " + str(len(e1.keys())) + " cells are in '" + str(name1) + "'")
+    monitoring.to_log_and_console("    ... " + str(len(e2.keys())) + " cells are in '" + str(name2) + "'")
     if len(difference1) > 0:
-        monitoring.to_log_and_console("    ... cells that are in '" + str(name1) + "' and not in '"
-                                      + str(name2) + "'", 1)
+        monitoring.to_log_and_console("    ... " + str(len(difference1)) + " cells are in '" + str(name1)
+                                      + "' and not in '" + str(name2) + "'", 1)
         s = repr(difference1)
-        monitoring.to_log_and_console("        " + s, 1)
+        monitoring.to_log_and_console("        " + s, 2)
 
     if len(difference2) > 0:
-        monitoring.to_log_and_console("    ... cells that are not in '" + str(name1) + "' but in '"
-                                      + str(name2) + "'", 1)
+        monitoring.to_log_and_console("    ... " + str(len(difference2)) + " cells are not in '" + str(name1)
+                                      + "' but in '" + str(name2) + "'", 1)
         s = repr(difference2)
-        monitoring.to_log_and_console("        " + s, 1)
+        monitoring.to_log_and_console("        " + s, 2)
 
     return intersection
 
 
-# def _compare_lineage(e1, e2, name1, name2, description):
-#     return
+def _compare_lineage(e1, e2, name1, name2, description):
+
+    monitoring.to_log_and_console("  === " + str(description) + " comparison === ", 1)
+
+    intersection = _intersection_cell_keys(e1, e2, name1, name2)
+    if len(intersection) > 0:
+        n = 0
+        for k in intersection:
+            if e1[k] != e2[k]:
+                n += 1
+        monitoring.to_log_and_console("    ... " + str(n) + " cells have different lineages", 1)
+        if n > 0:
+            for k in intersection:
+                if e1[k] != e2[k]:
+                    s = "cell #'" + str(k) + "' has different lineage: "
+                    s += str(e1[k]) + " and " + str(e2[k])
+                    monitoring.to_log_and_console("        " + s, 2)
+
+    return
 
 
 # def _compare_h_min(e1, e2, name1, name2, description):
@@ -849,16 +979,16 @@ def _compare_volume(e1, e2, name1, name2, description):
     #     cell_volume.590002 = <type 'int'>
     #     590002: 236936
 
-    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+    monitoring.to_log_and_console("  === " + str(description) + " comparison === ", 1)
 
     intersection = _intersection_cell_keys(e1, e2, name1, name2)
-
     if len(intersection) > 0:
+        monitoring.to_log_and_console("    ... " + str(len(intersection)) + " cells have different volumes", 1)
         for k in intersection:
             if e1[k] != e2[k]:
                 s = "cell #'" + str(k) + "' has different volumes: "
                 s += str(e1[k]) + " and " + str(e2[k])
-                monitoring.to_log_and_console("        " + s, 1)
+                monitoring.to_log_and_console("        " + s, 2)
 
     return
 
@@ -887,7 +1017,7 @@ def _compare_barycenter(e1, e2, name1, name2, description):
     #     cell_barycenter.590002 = <type 'numpy.ndarray'>
     #     590002: array([ 258.41037242,  226.74975943,  303.67167927])
 
-    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+    monitoring.to_log_and_console("  === " + str(description) + " comparison === ", 1)
 
     intersection = _intersection_cell_keys(e1, e2, name1, name2)
 
@@ -928,7 +1058,7 @@ def _compare_all_cells(e1, e2, name1, name2, description):
     #     liste de numpy.int64
     #     all_cells = <type 'list'>
 
-    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+    monitoring.to_log_and_console("  === " + str(description) + " comparison === ", 1)
 
     difference1 = list(set(e1).difference(set(e2)))
     difference2 = list(set(e2).difference(set(e1)))
@@ -964,7 +1094,7 @@ def _compare_principal_value(e1, e2, name1, name2, description):
     #     cell_principal_values.590002 = <type 'list'>
     #     590002: [1526.0489371146978, 230.60881177650205, 91.063513300019849]
 
-    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+    monitoring.to_log_and_console("  === " + str(description) + " comparison === ", 1)
 
     intersection = _intersection_cell_keys(e1, e2, name1, name2)
 
@@ -1004,7 +1134,7 @@ def _compare_contact(e1, e2, name1, name2, description):
     #     dictionary de dictionary de int
     #     cell_contact_surface.590002.590019 = <type 'int'>
 
-    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+    monitoring.to_log_and_console("  === " + str(description) + " comparison === ", 1)
 
     intersection = _intersection_cell_keys(e1, e2, name1, name2)
 
@@ -1052,7 +1182,7 @@ def _compare_principal_vector(e1, e2, name1, name2, description):
     #         array([-0.24877611,  0.59437038,  0.7647446 ]),
     #         array([ 0.95276511,  0.29219037,  0.08284582])]
 
-    monitoring.to_log_and_console("    === " + str(description) + " comparison === ", 1)
+    monitoring.to_log_and_console("  === " + str(description) + " comparison === ", 1)
 
     intersection = _intersection_cell_keys(e1, e2, name1, name2)
 
@@ -1097,13 +1227,13 @@ def comparison(d1, d2, features, name1, name2):
     unrecognizedkeys1 = []
     unrecognizedkeys2 = []
 
-    for k1 in d1.keys():
+    for k1 in d1:
 
         #
         # loop on known dictionary
         #
         recognizedkey = False
-        for k in keydictionary.keys():
+        for k in keydictionary:
 
             if k1 in keydictionary[k]['input_keys']:
                 recognizedkey = True
@@ -1111,7 +1241,7 @@ def comparison(d1, d2, features, name1, name2):
                 #
                 # got it, try to pair it
                 #
-                for k2 in d2.keys():
+                for k2 in d2:
                     if k2 in keydictionary[k]['input_keys']:
                         pairedkey = True
                         pairedkeys.append([k1, k2])
@@ -1127,20 +1257,20 @@ def comparison(d1, d2, features, name1, name2):
     #
     #
 
-    for k2 in d2.keys():
+    for k2 in d2:
 
         #
         # loop on known dictionary
         #
         recognizedkey = False
-        for k in keydictionary.keys():
+        for k in keydictionary:
             if k2 in keydictionary[k]['input_keys']:
                 recognizedkey = True
                 pairedkey = False
                 #
                 # got it, try to pair it
                 #
-                for k1 in d1.keys():
+                for k1 in d1:
                     if k1 in keydictionary[k]['input_keys']:
                         pairedkey = True
                         # pairedkeys.append([k1,k2])
@@ -1207,8 +1337,7 @@ def comparison(d1, d2, features, name1, name2):
 
         for pk in pairedkeys:
             if pk[0] == keydictionary['lineage']['output_key']:
-                pass
-                # monitoring.to_log_and_console("    comparison of '" + str(pk[0]) + "' not implemented yet", 1)
+                _compare_lineage(d1[pk[0]], d2[pk[1]], name1, name2, pk[0])
             elif pk[0] == keydictionary['h_min']['output_key']:
                 pass
                 # monitoring.to_log_and_console("    comparison of '" + str(pk[0]) + "' not implemented yet", 1)
@@ -1244,7 +1373,7 @@ def comparison(d1, d2, features, name1, name2):
 
     else:
         for f in features:
-            if f not in keydictionary.keys():
+            if f not in keydictionary:
                 monitoring.to_log_and_console("    unknown property '" + str(f) + "' for comparison", 1)
                 continue
 
@@ -1253,8 +1382,7 @@ def comparison(d1, d2, features, name1, name2):
             for i in range(len(pairedkeys)):
                 if pairedkeys[i][0] == outk:
                     if outk == keydictionary['lineage']['output_key']:
-                        pass
-                        # monitoring.to_log_and_console("    comparison of '" + str(outk) + "' not implemented yet", 1)
+                        _compare_lineage(d1[outk], d2[outk], name1, name2, outk)
                     elif outk == keydictionary['h_min']['output_key']:
                         pass
                         # monitoring.to_log_and_console("    comparison of '" + str(outk) + "' not implemented yet", 1)
@@ -1336,15 +1464,120 @@ class DiagnosisParameters(object):
                 self.items = args.diagnosis_items
 
 
-# def _diagnosis_lineage(d):
-#     return
+def _diagnosis_lineage(direct_lineage, description, time_digits_for_cell_id=4):
+
+    proc = "_diagnosis_lineage"
+
+    monitoring.to_log_and_console("  === " + str(description) + " diagnosis === ", 1)
+
+    first_time, last_time = _get_time_interval_from_lineage(direct_lineage,
+                                                            time_digits_for_cell_id=time_digits_for_cell_id)
+    monitoring.to_log_and_console("  - estimated time interval = [" + str(first_time) + ", " + str(last_time) + "]", 1)
+
+    #
+    # cell with more than 2 daughters
+    #
+    multiple_daughters = [cell for cell in direct_lineage if len(direct_lineage[cell]) > 2]
+    divisions = [cell for cell in direct_lineage if len(direct_lineage[cell]) >= 2]
+
+    #
+    # get cells without daughters, remove cells from the last time point
+    #
+    direct_nodes = list(set(direct_lineage.keys()).union(set([v for values in direct_lineage.values() for v in values])))
+    leaves = set(direct_nodes) - set(direct_lineage.keys())
+    early_leaves = [leave for leave in leaves if (leave/10**time_digits_for_cell_id) < last_time]
+
+    #
+    # build a reverse lineage
+    #
+    reverse_lineage = {}
+    for k, values in direct_lineage.iteritems():
+        for v in values:
+            if v not in reverse_lineage:
+                reverse_lineage[v] = [k]
+            else:
+                reverse_lineage[v].append(k)
+
+    #
+    # histogram of lengths for terminal branches
+    #
+    branch_length_histogram = {}
+    branch_lengths = []
+    for leaf in leaves:
+        le = leaf
+        branch = [le]
+        while True:
+            if len(reverse_lineage.get(le, '')) == 1:
+                le = reverse_lineage[le][0]
+                if len(direct_lineage.get(le, '')) == 1:
+                    branch.append(le)
+                else:
+                    break
+            else:
+                break
+        length = len(branch)
+        branch_lengths.append(length)
+        if length in branch_length_histogram:
+            branch_length_histogram[length] += 1
+        else:
+            branch_length_histogram[length] = 1
+    #
+    # get cells with more than 1 mother
+    #
+    multiple_mothers = [cell for cell in reverse_lineage if len(reverse_lineage[cell]) > 1]
+
+    #
+    # get cells without mother, remove cells from the first time point
+    #
+    reverse_nodes = list(set(reverse_lineage.keys()).union(set([v for values in reverse_lineage.values() for v in values])))
+    orphans = set(reverse_nodes) - set(reverse_lineage.keys())
+    late_orphans = [orphan for orphan in orphans if (orphan / 10 ** time_digits_for_cell_id) > first_time]
+
+    monitoring.to_log_and_console("  - found " + str(len(direct_nodes)) + " cells", 1)
+
+    if len(late_orphans) > 0:
+        late_orphans.sort()
+        monitoring.to_log_and_console("  - " + str(len(late_orphans))
+                                      + " lineage branches starting after the first time point", 1)
+        _print_list(late_orphans, time_digits_for_cell_id=time_digits_for_cell_id)
+    if len(multiple_mothers) > 0:
+        multiple_mothers.sort()
+        monitoring.to_log_and_console("  - " + str(len(multiple_mothers)) + " cells with multiple mother cells", 1)
+        _print_list(multiple_mothers, time_digits_for_cell_id=time_digits_for_cell_id)
+
+    if len(leaves) > 0:
+        monitoring.to_log_and_console("  - " + str(len(leaves))
+                                      + " lineage terminal branches", 1)
+    if len(early_leaves) > 0:
+        early_leaves.sort()
+        monitoring.to_log_and_console("  - " + str(len(early_leaves))
+                                      + " lineage terminal branches ending before the last time point", 1)
+        _print_list(early_leaves, time_digits_for_cell_id=time_digits_for_cell_id)
+
+    if len(divisions) > 0:
+        divisions.sort()
+        monitoring.to_log_and_console("  - " + str(len(divisions)) + " cell divisions", 1)
+    if len(multiple_daughters) > 0:
+        multiple_daughters.sort()
+        monitoring.to_log_and_console("  - " + str(len(multiple_daughters))
+                                      + " divisions yielding more than 2 branches", 1)
+        _print_list(multiple_daughters, time_digits_for_cell_id=time_digits_for_cell_id)
+
+    monitoring.to_log("  - terminal branch lengths: ")
+    monitoring.to_log("    " + str(branch_lengths))
+    # lengths = branch_length_histogram.keys()
+    # lengths.sort()
+    # for le in lengths:
+    #    monitoring.to_log_and_console("    length = " + str(le) + " : " + str(branch_length_histogram[le])
+    #                                  + " branches ", 1)
+    return
 
 
 # def _diagnosis_h_min(d):
 #     return
 
 
-def _diagnosis_volume(dictionary, description, diagnosis_parameters=None):
+def _diagnosis_volume(dictionary, description, diagnosis_parameters=None, time_digits_for_cell_id=4):
     """
 
     :param dictionary:
@@ -1357,14 +1590,18 @@ def _diagnosis_volume(dictionary, description, diagnosis_parameters=None):
     #     cell_volume.590002 = <type 'int'>
     #     590002: 236936
 
-    monitoring.to_log_and_console("    === " + str(description) + " diagnosis === ", 1)
+    monitoring.to_log_and_console("  === " + str(description) + " diagnosis === ", 1)
 
-    volume = []
+    all_cell_with_volume = set(dictionary.keys())
+    cell_with_volume = [c for c in all_cell_with_volume if _cell_id(c, time_digits_for_cell_id) != 1]
+    background_with_volume = [c for c in all_cell_with_volume if _cell_id(c, time_digits_for_cell_id) == 1]
 
-    for k in dictionary.keys():
-        volume.append([k, dictionary[k]])
-
+    volume = [[c, dictionary[c]] for c in cell_with_volume]
     volume = sorted(volume, key=itemgetter(1))
+
+    monitoring.to_log_and_console("    ... found " + str(len(background_with_volume))
+                                  + " background cells with volume", 1)
+    monitoring.to_log_and_console("    ... found " + str(len(cell_with_volume)) + " cells with volume", 1)
 
     monitoring.to_log_and_console("    ... smallest volumes", 1)
 
@@ -1372,7 +1609,7 @@ def _diagnosis_volume(dictionary, description, diagnosis_parameters=None):
     n = int(d.items)
     v = int(d.minimal_volume)
 
-    if diagnosis_parameters is not None:
+    if isinstance(diagnosis_parameters, DiagnosisParameters):
         n = int(diagnosis_parameters.items)
         v = int(diagnosis_parameters.minimal_volume)
 
@@ -1433,14 +1670,13 @@ def diagnosis(d, features, diagnosis_parameters):
     :return:
     """
 
-    monitoring.to_log_and_console("\n", 1)
+    # monitoring.to_log_and_console("\n", 1)
     monitoring.to_log_and_console("... diagnosis", 1)
 
     if features is None or len(features) == 0:
-        for k in d.keys():
+        for k in d:
             if k == keydictionary['lineage']['output_key']:
-                pass
-                # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+                _diagnosis_lineage(d[k], k)
             elif k == keydictionary['h_min']['output_key']:
                 pass
                 # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
@@ -1483,7 +1719,7 @@ def diagnosis(d, features, diagnosis_parameters):
 
     else:
         for f in features:
-            if f not in keydictionary.keys():
+            if f not in keydictionary:
                 monitoring.to_log_and_console("    unknown property '" + str(f) + "' for comparison", 1)
                 continue
 
@@ -1492,13 +1728,12 @@ def diagnosis(d, features, diagnosis_parameters):
             for i in range(len(d.keys())):
                 if d.keys()[i] == outk:
                     if outk == keydictionary['lineage']['output_key']:
-                        pass
-                        # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
+                        _diagnosis_lineage(d[outk], outk)
                     elif outk == keydictionary['h_min']['output_key']:
                         pass
                         # monitoring.to_log_and_console("    diagnosis of '" + str(k) + "' not implemented yet", 1)
                     elif outk == keydictionary['volume']['output_key']:
-                        _diagnosis_volume(d[outk], outk, diagnosis_parameters=diagnosis)
+                        _diagnosis_volume(d[outk], outk, diagnosis_parameters=diagnosis_parameters)
                     elif outk == keydictionary['surface']['output_key']:
                         pass
                     elif outk == keydictionary['sigma']['output_key']:
@@ -1541,21 +1776,155 @@ def diagnosis(d, features, diagnosis_parameters):
 
 ########################################################################################
 #
+#
+#
+########################################################################################
+
+def _cell_id(c, time_digits_for_cell_id=4):
+    t = c // 10 ** time_digits_for_cell_id
+    c -= t * 10 ** time_digits_for_cell_id
+    return c
+
+
+def _print_list(tab, time_digits_for_cell_id=4):
+    for c in tab:
+        t = c // 10**time_digits_for_cell_id
+        c -= t * 10**time_digits_for_cell_id
+        monitoring.to_log_and_console("    - cell #" + str(c) + " of time " + str(t), 2)
+
+
+def check_volume_lineage(d, time_digits_for_cell_id=4):
+    """
+    Compare cells found in the volume dictionary with cells found in the lineage dictionary
+    :param d:
+    :param time_digits_for_cell_id:
+    :return:
+    """
+
+    proc = "check_volume_lineage"
+
+    direct_lineage = get_dictionary_entry(d, 'lineage')
+    if direct_lineage == {}:
+        monitoring.to_log_and_console(str(proc) + ": empty lineage information")
+        sys.exit(1)
+
+    dict_volume = get_dictionary_entry(d, 'volume')
+
+    #
+    # check whether cells in volume dictionary are in lineage and vice-versa
+    #
+    if dict_volume is not {}:
+        all_nodes = list(set(direct_lineage.keys()).union(set([v for values in direct_lineage.values()
+                                                               for v in values])))
+        nodes = [c for c in all_nodes if _cell_id(c, time_digits_for_cell_id) != 1]
+        #
+        all_cell_with_volume = set(dict_volume.keys())
+        cell_with_volume = [c for c in all_cell_with_volume if _cell_id(c, time_digits_for_cell_id) != 1]
+        background_with_volume = [c for c in all_cell_with_volume if _cell_id(c, time_digits_for_cell_id) == 1]
+
+        cell_in_volume_not_in_lineage = list(set(cell_with_volume).difference(set(nodes)))
+        cell_in_lineage_not_in_volume = list(set(nodes).difference(set(cell_with_volume)))
+
+        monitoring.to_log_and_console("", 1)
+        monitoring.to_log_and_console("  === volume/lineage cross-checking === ", 1)
+
+        monitoring.to_log_and_console("    ... found " + str(len(background_with_volume))
+                                      + " background cells with volume", 1)
+        monitoring.to_log_and_console("    ... found " + str(len(cell_with_volume)) + " cells with volume", 1)
+        monitoring.to_log_and_console("    ... found " + str(len(nodes)) + " cells in lineage", 1)
+
+        if len(cell_in_volume_not_in_lineage) > 0:
+            cell_in_volume_not_in_lineage.sort()
+            if len(cell_in_volume_not_in_lineage) > 0:
+                monitoring.to_log_and_console("  - " + str(len(cell_in_volume_not_in_lineage))
+                                              + " cells with volume not present in lineage: ", 1)
+                _print_list(cell_in_volume_not_in_lineage, time_digits_for_cell_id=time_digits_for_cell_id)
+        if len(cell_in_lineage_not_in_volume) > 0:
+            cell_in_lineage_not_in_volume.sort()
+            monitoring.to_log_and_console("  - " + str(len(cell_in_lineage_not_in_volume))
+                                          + " cells present in lineage without volume: ", 1)
+            _print_list(cell_in_lineage_not_in_volume, time_digits_for_cell_id=time_digits_for_cell_id)
+
+        _diagnosis_volume(dict_volume, keydictionary['volume']['output_key'],
+                          time_digits_for_cell_id=time_digits_for_cell_id)
+
+    _diagnosis_lineage(direct_lineage, keydictionary['lineage']['output_key'],
+                       time_digits_for_cell_id=time_digits_for_cell_id)
+    monitoring.to_log_and_console("", 1)
+
+    return
+
+
+def check_volume_image(volume_from_lineage, image_name, current_time, time_digits_for_cell_id=4):
+    """
+    Compare cells found in the volume dictionary with cells found in one image
+    :param volume_from_lineage:
+    :param image_name:
+    :param current_time:
+    :param time_digits_for_cell_id:
+    :return:
+    """
+
+    #
+    # read volumes from image
+    #
+    readim = imread(image_name)
+    labels_from_image = np.unique(readim)
+    volume = nd.sum(np.ones_like(readim), readim, index=np.int16(labels_from_image))
+    del readim
+
+    labels_from_image = [current_time * 10 ** time_digits_for_cell_id + int(label) for label in labels_from_image]
+    volume_from_image = dict(zip(labels_from_image, volume))
+
+    labels_from_lineage = [label for label in volume_from_lineage.keys()
+                           if label/10 ** time_digits_for_cell_id == current_time]
+
+    labels_in_lineage_not_in_image = list(set(labels_from_lineage).difference(set(labels_from_image)))
+    labels_in_image_not_in_lineage = list(set(labels_from_image).difference(set(labels_from_lineage)))
+    labels_in_both = list(set(labels_from_image).intersection(set(labels_from_lineage)))
+
+    volume_error = [label for label in labels_in_both if volume_from_image[label] != volume_from_lineage[label]]
+
+    if len(labels_in_lineage_not_in_image) > 0:
+        labels_in_lineage_not_in_image.sort()
+        monitoring.to_log_and_console("  - " + str(len(labels_in_lineage_not_in_image))
+                                      + " cells present in volume dictionary not in image: ", 1)
+        _print_list(labels_in_lineage_not_in_image, time_digits_for_cell_id=time_digits_for_cell_id)
+
+    if len(labels_in_image_not_in_lineage) > 0:
+        labels_in_image_not_in_lineage.sort()
+        monitoring.to_log_and_console("  - " + str(len(labels_in_image_not_in_lineage))
+                                      + " cells present in image not in volume dictionary: ", 1)
+        _print_list(labels_in_image_not_in_lineage, time_digits_for_cell_id=time_digits_for_cell_id)
+
+    if len(volume_error) > 0:
+        volume_error.sort()
+        monitoring.to_log_and_console("  - " + str(len(volume_error))
+                                      + " cells with different volume in image and volume dictionary: ", 1)
+        _print_list(volume_error, time_digits_for_cell_id=time_digits_for_cell_id)
+    return
+
+
+########################################################################################
+#
 # utilities for debugging, etc.
 #
 ########################################################################################
 
-def print_keys(d):
+def print_keys(d, desc=None):
 
     monitoring.to_log_and_console("\n", 1)
-    monitoring.to_log_and_console("... contents", 1)
+    if desc is None:
+        monitoring.to_log_and_console("... contents", 1)
+    else:
+        monitoring.to_log_and_console("... contents of '" + str(desc) + "'", 1)
 
     if type(d) is dict:
         if d == {}:
             monitoring.to_log_and_console("    " + "empty dictionary", 1)
         else:
             monitoring.to_log_and_console("    " + "keys are:", 1)
-            for k in d.keys():
+            for k in d:
                 monitoring.to_log_and_console("    " + "- " + str(k), 1)
     else:
         monitoring.to_log_and_console("    " + "input is not a dictionary", 1)
@@ -1573,7 +1942,7 @@ def print_type(d, t=None, desc=None):
     if type(d) is dict:
 
         print "type of " + desc + " is " + str(t) + str(type(d))
-        for k in d.keys():
+        for k in d:
             print_type(d[k], t + str(type(d)) + ".", desc + "." + str(k))
 
     elif type(d) in (list, np.array, np.ndarray):
@@ -1593,11 +1962,11 @@ def print_type(d, t=None, desc=None):
 #
 ########################################################################################
 
-def write_tlp_file(dictionary, tlpfilename):
+def write_tlp_file(tlpfilename, dictionary):
     """
 
-    :param dictionary:
     :param tlpfilename:
+    :param dictionary:
     :return:
     """
 
@@ -1606,7 +1975,7 @@ def write_tlp_file(dictionary, tlpfilename):
     #
     # is there a lineage
     #
-    if keydictionary['lineage']['output_key'] in dictionary.keys():
+    if keydictionary['lineage']['output_key'] in dictionary:
         lineage = dictionary[keydictionary['lineage']['output_key']]
     else:
         monitoring.to_log_and_console(proc + ": no lineage was found.")
@@ -1648,7 +2017,7 @@ def write_tlp_file(dictionary, tlpfilename):
     #
     #
     #
-    for p in dictionary.keys():
+    for p in dictionary:
         if p == keydictionary['lineage']['output_key']:
             pass
         elif p == keydictionary['all-cells']['output_key']:
