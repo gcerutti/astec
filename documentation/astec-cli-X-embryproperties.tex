@@ -98,22 +98,6 @@ The text file \texttt{<EN>\_intrareg\_post\_lineage.txt} contains diagnosis info
 \item cells having a small intersection with its mother cell with respect to either the mother cell volume or the cell volume. 
 \end{itemize}
 
-\subsubsection{Parameter list}
-
-Please also refer to the file
-\texttt{parameter-file-examples/X-embryoproperties-parameters.py}
-
-\begin{itemize}
-\itemsep -0.5ex
-\item \texttt{EN}
-\item \texttt{EXP\_INTRAREG}
-\item \texttt{EXP\_POST}
-\item \texttt{EXP\_SEG}
-\item \texttt{PATH\_EMBRYO}
-\item \texttt{begin}
-\item \texttt{end}
-\item \texttt{properties\_nb\_proc} the property computation supports parallelism. However, it appears that the opening of several files at the same time may cause the computation to fail. Thus, the default behavior is a sequential processing. To enable parallelism, this parameter can be set to either any negative value (causing a default parallel behavior) or to a positive value indicating the number of threads to be created.
-\end{itemize}
 
 \subsection{Handling properties files}
 

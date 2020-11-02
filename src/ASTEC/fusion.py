@@ -325,18 +325,38 @@ class FusionParameters(common.PrefixedParameter):
         #
         self.acquisition_cropping = self.read_parameter(parameters, 'acquisition_cropping', self.acquisition_cropping)
         self.acquisition_cropping = self.read_parameter(parameters, 'raw_crop', self.acquisition_cropping)
+
+        self.acquisition_cropping_margin_x_0 = self.read_parameter(parameters, 'acquisition_cropping_margin',
+                                                                   self.acquisition_cropping_margin_x_0)
+        self.acquisition_cropping_margin_x_0 = self.read_parameter(parameters, 'acquisition_cropping_margin_x',
+                                                                   self.acquisition_cropping_margin_x_0)
         self.acquisition_cropping_margin_x_0 = self.read_parameter(parameters, 'acquisition_cropping_margin_x_0',
                                                                    self.acquisition_cropping_margin_x_0)
         self.acquisition_cropping_margin_x_0 = self.read_parameter(parameters, 'raw_margin_x_0',
                                                                    self.acquisition_cropping_margin_x_0)
+
+        self.acquisition_cropping_margin_x_1 = self.read_parameter(parameters, 'acquisition_cropping_margin',
+                                                                   self.acquisition_cropping_margin_x_1)
+        self.acquisition_cropping_margin_x_1 = self.read_parameter(parameters, 'acquisition_cropping_margin_x',
+                                                                   self.acquisition_cropping_margin_x_1)
         self.acquisition_cropping_margin_x_1 = self.read_parameter(parameters, 'acquisition_cropping_margin_x_1',
                                                                    self.acquisition_cropping_margin_x_1)
         self.acquisition_cropping_margin_x_1 = self.read_parameter(parameters, 'raw_margin_x_1',
                                                                    self.acquisition_cropping_margin_x_1)
+
+        self.acquisition_cropping_margin_y_0 = self.read_parameter(parameters, 'acquisition_cropping_margin',
+                                                                   self.acquisition_cropping_margin_y_0)
+        self.acquisition_cropping_margin_y_0 = self.read_parameter(parameters, 'acquisition_cropping_margin_y',
+                                                                   self.acquisition_cropping_margin_y_0)
         self.acquisition_cropping_margin_y_0 = self.read_parameter(parameters, 'acquisition_cropping_margin_y_0',
                                                                    self.acquisition_cropping_margin_y_0)
         self.acquisition_cropping_margin_y_0 = self.read_parameter(parameters, 'raw_margin_y_0',
                                                                    self.acquisition_cropping_margin_y_0)
+
+        self.acquisition_cropping_margin_y_1 = self.read_parameter(parameters, 'acquisition_cropping_margin',
+                                                                   self.acquisition_cropping_margin_y_1)
+        self.acquisition_cropping_margin_y_1 = self.read_parameter(parameters, 'acquisition_cropping_margin_y',
+                                                                   self.acquisition_cropping_margin_y_1)
         self.acquisition_cropping_margin_y_1 = self.read_parameter(parameters, 'acquisition_cropping_margin_y_1',
                                                                    self.acquisition_cropping_margin_y_1)
         self.acquisition_cropping_margin_y_1 = self.read_parameter(parameters, 'raw_margin_y_1',
@@ -362,18 +382,38 @@ class FusionParameters(common.PrefixedParameter):
         #
         self.fusion_cropping = self.read_parameter(parameters, 'fusion_cropping', self.fusion_cropping)
         self.fusion_cropping = self.read_parameter(parameters, 'fusion_crop', self.fusion_cropping)
+
+        self.fusion_cropping_margin_x_0 = self.read_parameter(parameters, 'fusion_cropping_margin',
+                                                              self.fusion_cropping_margin_x_0)
+        self.fusion_cropping_margin_x_0 = self.read_parameter(parameters, 'fusion_cropping_margin_x',
+                                                              self.fusion_cropping_margin_x_0)
         self.fusion_cropping_margin_x_0 = self.read_parameter(parameters, 'fusion_cropping_margin_x_0',
                                                               self.fusion_cropping_margin_x_0)
         self.fusion_cropping_margin_x_0 = self.read_parameter(parameters, 'fusion_margin_x_0',
                                                               self.fusion_cropping_margin_x_0)
+
+        self.fusion_cropping_margin_x_1 = self.read_parameter(parameters, 'fusion_cropping_margin',
+                                                              self.fusion_cropping_margin_x_1)
+        self.fusion_cropping_margin_x_1 = self.read_parameter(parameters, 'fusion_cropping_margin_x',
+                                                              self.fusion_cropping_margin_x_1)
         self.fusion_cropping_margin_x_1 = self.read_parameter(parameters, 'fusion_cropping_margin_x_1',
                                                               self.fusion_cropping_margin_x_1)
         self.fusion_cropping_margin_x_1 = self.read_parameter(parameters, 'fusion_margin_x_1',
                                                               self.fusion_cropping_margin_x_1)
+
+        self.fusion_cropping_margin_y_0 = self.read_parameter(parameters, 'fusion_cropping_margin',
+                                                              self.fusion_cropping_margin_y_0)
+        self.fusion_cropping_margin_y_0 = self.read_parameter(parameters, 'fusion_cropping_margin_y',
+                                                              self.fusion_cropping_margin_y_0)
         self.fusion_cropping_margin_y_0 = self.read_parameter(parameters, 'fusion_cropping_margin_y_0',
                                                               self.fusion_cropping_margin_y_0)
         self.fusion_cropping_margin_y_0 = self.read_parameter(parameters, 'fusion_margin_y_0',
                                                               self.fusion_cropping_margin_y_0)
+
+        self.fusion_cropping_margin_y_1 = self.read_parameter(parameters, 'fusion_cropping_margin',
+                                                              self.fusion_cropping_margin_y_1)
+        self.fusion_cropping_margin_y_1 = self.read_parameter(parameters, 'fusion_cropping_margin_y',
+                                                              self.fusion_cropping_margin_y_1)
         self.fusion_cropping_margin_y_1 = self.read_parameter(parameters, 'fusion_cropping_margin_y_1',
                                                               self.fusion_cropping_margin_y_1)
         self.fusion_cropping_margin_y_1 = self.read_parameter(parameters, 'fusion_margin_y_1',

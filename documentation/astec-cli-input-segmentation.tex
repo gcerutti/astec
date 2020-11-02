@@ -1,12 +1,12 @@
-\section{Segmentation preprocessing}
-\label{sec:cli:input:segmentation}
+\section{Image preprocessing}
+\label{sec:cli:input:image:preprocessing}
 
 
 \begin{figure}
 \begin{center}
 \includegraphics[height=50mm]{figures/build-input-segmentation.png}
 \end{center}
-\caption{\label{fig:cli:input:segmentation}
+\caption{\label{fig:cli:input:image:preprocessing}
 The input for segmentation (ie $h$-minima computation, seeded watershed) is built from (eventually) two images derived from the fusion image.}
 \end{figure}
 
@@ -14,7 +14,7 @@ The input for segmentation (ie $h$-minima computation, seeded watershed) is buil
 The segmentation of membranes images is based on a seeded watershed. Seeds are computed from either one single regional minima image (segmentation of the first time point, see section \ref{sec:cli:mars}) or several ones (segmentation by propagation of the other time points, see section \ref{sec:cli:astec}).
 
 
-The regional minima operation, as well as the watershed operation, are conducted on the pre-processed version of the fused image. More precisely, the fused image may undergo two kinds of pre-processing, one denoted \option{intensity\_transformation} (and transform the image values based on its histogram) and the other \option{intensity\_enhancement} (and transform the image based on a membrane dedicated process). The image used for segmentation is the fusion (by the maximum) of these two pre-processing results (see figure \ref{fig:cli:input:segmentation}).
+The regional minima operation, as well as the watershed operation, are conducted on the pre-processed version of the fused image. More precisely, the fused image may undergo two kinds of pre-processing, one denoted \option{intensity\_transformation} (and transform the image values based on its histogram) and the other \option{intensity\_enhancement} (and transform the image based on a membrane dedicated process). The image used for segmentation is the fusion (by the maximum) of these two pre-processing results (see figure \ref{fig:cli:input:image:preprocessing}).
 
 If the fused image is transformed before being segmented, the transformed image is named \texttt{<EN>\_fuse\_t<timepoint>\_membrane.inr} and stored in the directory \texttt{SEG/SEG\_<EXP\_SEG>/RECONSTRUCTION/} if the value of the variable \option{keep\_reconstruction} is set to \texttt{True}.
 
@@ -27,6 +27,7 @@ in the parameter file comes to use the unprocessed fused image as input image fo
 
 
 \subsection{Histogram based image value transformation}
+\label{sec:cli:input:image:preprocessing:histogram}
 
 The option \option{intensity\_transformation} can be set to one out the three (segmentation of the first time point, see section \ref{sec:cli:mars}) or four (segmentation by propagation of the other time points, see section \ref{sec:cli:astec}) values.
 \begin{itemize}
@@ -77,6 +78,7 @@ meaning that $I_{max}$'s are computed at the cells' borders while $I_{min}$'s ar
 
 
 \subsection{Membrane dedicated enhancement}
+\label{sec:cli:input:image:preprocessing:membrane}
 
 The option \option{intensity\_transformation} can be set to one out the two (segmentation of the first time point, see section \ref{sec:cli:mars}) or three (segmentation by propagation of the other time points, see section \ref{sec:cli:astec}) values.
 
@@ -84,7 +86,7 @@ The option \option{intensity\_transformation} can be set to one out the two (seg
 \itemsep -0.5ex
 \item \texttt{None}: this pre-processing channel is not used, meaning that only the histogram based image value transformation will produce the input for the segmentation.
 \item \texttt{'GACE'} stands for \textit{Global Automated Cell Extractor}. This is the method described in \cite{michelin:hal-00915000,michelin:tel-01451608}.
-\item \texttt{'GLACE'} stands for \textit{Grouped Local Automated Cell Extractor}. It differs from one step from \texttt{GACE}: the threshold of extrema image is not computed globally (as in \texttt{GACE}), but one threshold is computed per cell of $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$, from the extrema values of the cell bounding box.
+\item \texttt{'GLACE'} stands for \textit{Grouped Local Automated Cell Extractor}. It differs from one step from \texttt{GACE}: the threshold of extrema image is not computed globally (as in \texttt{GACE}), but one threshold is computed per cell of $S^{\star}_{t-1} \circ \mathcal{T}_{t-1 \leftarrow t}$, from the extrema values of the cell bounding box.
 \end{itemize}
 
 \texttt{GACE} and \texttt{GLACE} consist both of the following steps.

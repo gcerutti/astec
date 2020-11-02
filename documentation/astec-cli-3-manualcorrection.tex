@@ -1,28 +1,17 @@
 \section{\texttt{3-manualcorrection.py}}
 \label{sec:cli:manual:correction}
 
-The seeded watershed is likely to produce segmentation errors, even with a careful choice of parameters. It is advised to set the parameters to favour over-segmentations insted of under-segmentations since the former are much more easier to correct, which is the purpose of \texttt{3-manualcorrection.py}.
+\subsection{Manual correction overview}
+
+The seeded watershed is likely to produce segmentation errors, even with a careful choice of parameters. It is advised to set the parameters to favour over-segmentations insted of under-segmentations since the former are much more easier to correct, which is the purpose of \texttt{3-manualcorrection.py}. 
+Note that the segmentation error correction could also be done at the seed correction step of the \texttt{2-mars.py} stage, see section \ref{sec:cli:mars:seed:correction}.
 
 
-\subsection{\texttt{3-manualcorrection.py} options}
+\subsection{\texttt{3-manualcorrection.py} additional options}
 
 The following options are available:
 \begin{description}
  \itemsep -0.5ex
-\item[\texttt{-h}] prints a help message
-\item[\texttt{-p \underline{file}}] indicates the parameter file to be parsed
-\item[\texttt{-e \underline{path}}] indicates the
-  \texttt{\underline{path}} to the directory where the
-  \texttt{RAWDATA/} directory is located
-\item[\texttt{-k}] allows to keep the temporary files
-\item[\texttt{-f}] forces execution, even if (temporary) result files
-  are already existing
-\item[\texttt{-v}] increases verboseness (both at console and in the
-  log file)
-\item[\texttt{-nv}] no verboseness
-\item[\texttt{-d}]  increases debug information (in the
-  log file)
-\item[\texttt{-nd}] no debug information
 \item[\texttt{-i \underline{input\_image}}] set the \texttt{\underline{input\_image}} file to be corrected. Allows to skip the automated naming of files.
   \item[\texttt{-o \underline{output\_image}}] set the resulting \texttt{\underline{ouput\_image}} file to be saved. Allows to skip the automated naming of files. 
 \item[\texttt{-m \underline{mapping\_file}}] set the \texttt{\underline{mapping\_file}} to be used for the correction.
@@ -64,23 +53,4 @@ E.g. a cell $c$ is recognized to be over-segmented, and then is represented by t
 \end{framed}
 will replace all 10's by 9's in the segmentation image,  thus $c$ will only be represented by 9's after correction. See also the tutorial section \ref{sec:tutorial:manual:correction} for an other example.
 
-\subsection{Parameter list}
 
-Please also refer to the file
-\texttt{parameter-file-examples/3-manualcorrection-parameters.py}
-
-\begin{itemize}
-\itemsep -0.5ex
-\item \texttt{EN}
-\item \texttt{EXP\_SEG}
-\item \texttt{PATH\_EMBRYO}
-\item \texttt{begin}
-\item \texttt{default\_image\_suffix}
-\item \texttt{delta}
-\item \texttt{mancor\_input\_seg\_file}
-\item \texttt{mancor\_mapping\_file}
-\item \texttt{mancor\_output\_seg\_file}
-\item \texttt{mars\_begin}
-\item \texttt{mars\_end}
-\item \texttt{result\_image\_suffix}
-\end{itemize}

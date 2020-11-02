@@ -121,8 +121,12 @@ class ManualCorrectionParameters(object):
         #
         #
         #
+        if hasattr(parameters, 'first_time_point'):
+            self.first_time_point = parameters.first_time_point
         if hasattr(parameters, 'mars_begin'):
             self.first_time_point = parameters.mars_begin
+        if hasattr(parameters, 'last_time_point'):
+            self.last_time_point = parameters.last_time_point
         if hasattr(parameters, 'mars_end'):
             self.last_time_point = parameters.mars_end
 
@@ -132,6 +136,7 @@ class ManualCorrectionParameters(object):
         if hasattr(parameters, 'mancor_input_seg_file'):
             if parameters.mancor_input_seg_file is not None and len(str(parameters.mancor_input_seg_file)) > 0:
                 self.input_image = parameters.mancor_input_seg_file
+
         #
         # for back-compatibility
         #
@@ -142,6 +147,10 @@ class ManualCorrectionParameters(object):
         if hasattr(parameters, 'mancor_output_seg_file'):
             if parameters.mancor_output_seg_file is not None and len(str(parameters.mancor_output_seg_file)) > 0:
                 self.output_image = parameters.mancor_output_seg_file
+
+        if hasattr(parameters, 'mapping_file'):
+            if parameters.mapping_file is not None and len(str(parameters.mapping_file)) > 0:
+                self.mapping_file = parameters.mapping_file
         if hasattr(parameters, 'mancor_mapping_file'):
             if parameters.mancor_mapping_file is not None and len(str(parameters.mancor_mapping_file)) > 0:
                 self.mapping_file = parameters.mancor_mapping_file

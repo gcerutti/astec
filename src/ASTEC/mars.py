@@ -348,11 +348,11 @@ class MarsParameters(WatershedParameters, SeedEditionParameters):
         #
         #
         #
-        if hasattr(parameters, 'mars_begin'):
-            self.first_time_point = parameters.mars_begin
-        if hasattr(parameters, 'mars_end'):
-            self.last_time_point = parameters.mars_end
 
+        self.first_time_point = self.read_parameter(parameters, 'first_time_point', self.first_time_point)
+        self.first_time_point = self.read_parameter(parameters, 'mars_begin', self.first_time_point)
+        self.last_time_point = self.read_parameter(parameters, 'last_time_point', self.last_time_point)
+        self.last_time_point = self.read_parameter(parameters, 'mars_end', self.last_time_point)
         #
         # reconstruction methods
         # backward compatibility

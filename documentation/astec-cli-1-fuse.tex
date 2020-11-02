@@ -2,6 +2,7 @@
 \label{sec:cli:fuse}
 
 \subsection{Fusion method overview}
+\label{sec:cli:fuse:overview}
 
 The fusion is made of the following steps.
 \begin{enumerate}
@@ -33,28 +34,6 @@ The fusion is made of the following steps.
 
 
 
-\subsection{\texttt{1-fuse.py} options}
-
-The following options are available:
-\begin{description}
-  \itemsep -0.5ex
-\item[\texttt{-h}] prints a help message
-\item[\texttt{-p \underline{file}}] set the parameter file to be parsed
-\item[\texttt{-e \underline{path}}] set the
-  \texttt{\underline{path}} to the directory where the
-  \texttt{RAWDATA/} directory is located
-\item[\texttt{-k}] allows to keep the temporary files
-\item[\texttt{-f}] forces execution, even if (temporary) result files
-  are already existing
-\item[\texttt{-v}] increases verboseness (both at console and in the
-  log file)
-\item[\texttt{-nv}] no verboseness
-\item[\texttt{-d}]  increases debug information (in the
-  log file)
-\item[\texttt{-nd}] no debug information
-\end{description}
-
-
 
 \begin{figure}
 \begin{center}
@@ -78,8 +57,7 @@ The frame $(\mathbf{X}, \mathbf{Z})$ of the left camera of stack \#0 needs to be
 \label{sec:cli:fuse:important:parameters}
 
 A simple parameter file for fusion is described in the tutorial
-section \ref{sec:tutorial:fusion}. A more comprehensive parameter file
-example is provided in the \texttt{parameter-file-examples/} directory.
+section \ref{sec:tutorial:fusion}.
 
 Indicating the right values of the
 acquisition parameters is crucial; these parameters are
@@ -420,7 +398,7 @@ This will ease their visual inspection to decide which values of the variable co
 (\texttt{raw\_ori}, \texttt{raw\_mirrors}) to use for the fusion.
 
 \subsubsection{Output data file names}
-
+\label{sec:cli:fuse:output:data:file:names}
 Fused image files are named after the variable \texttt{EN}:
 \texttt{<EN>\_fuse\_t<xxx>.inr} where \texttt{<xxx>} is the time point
 index encoded by a 3-digit integer (with 0 padding).

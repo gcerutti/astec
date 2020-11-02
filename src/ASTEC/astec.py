@@ -78,7 +78,6 @@ class MorphoSnakeParameters(common.PrefixedParameter):
 
         self.energy = 'image'
         self.smoothing = 3
-        self.threshold = 1
         self.balloon = 1
 
         self.processors = 10
@@ -104,7 +103,6 @@ class MorphoSnakeParameters(common.PrefixedParameter):
         self.varprint('delta_voxel', self.delta_voxel)
         self.varprint('energy', self.energy)
         self.varprint('smoothing', self.smoothing)
-        self.varprint('threshold', self.threshold)
         self.varprint('balloon', self.balloon)
         self.varprint('processors', self.processors)
         self.varprint('mimic_historical_astec', self.mimic_historical_astec)
@@ -124,7 +122,6 @@ class MorphoSnakeParameters(common.PrefixedParameter):
         self.varwrite(logfile, 'delta_voxel', self.delta_voxel)
         self.varwrite(logfile, 'energy', self.energy)
         self.varwrite(logfile, 'smoothing', self.smoothing)
-        self.varwrite(logfile, 'threshold', self.threshold)
         self.varwrite(logfile, 'balloon', self.balloon)
         self.varwrite(logfile, 'processors', self.processors)
         self.varwrite(logfile, 'mimic_historical_astec', self.mimic_historical_astec)
@@ -155,7 +152,6 @@ class MorphoSnakeParameters(common.PrefixedParameter):
         
         self.energy = self.read_parameter(parameters, 'energy', self.energy)
         self.smoothing = self.read_parameter(parameters, 'smoothing', self.smoothing)
-        self.threshold = self.read_parameter(parameters, 'threshold', self.threshold)
         self.balloon = self.read_parameter(parameters, 'balloon', self.balloon)
         
         self.processors = self.read_parameter(parameters, 'processors', self.processors)
@@ -1139,6 +1135,9 @@ def _build_seeds_from_selected_parameters(selected_parameter_seeds,
         if len(unseeded_cells) > 0:
             monitoring.to_log_and_console('      process cell without childrens', 3)
             for c in unseeded_cells:
+                #
+                # first_segmentation is segmentation_from_previous
+                #
                 vol = np.sum(first_segmentation == c)
                 if vol <= parameters.minimum_volume_unseeded_cell:
                     monitoring.to_log_and_console('      .. process cell ' + str(c) + ': volume (' + str(vol) + ') <= '
@@ -1315,6 +1314,9 @@ def _volume_diagnosis(prev_volumes, curr_volumes, correspondences, parameters):
                 monitoring.to_log_and_console('    ' + proc + ': no volume for cell ' + str(s)
                                               + ' in current segmentation', 2)
 
+        if parameters.volume_ratio_tolerance >= parameters.volume_ratio_threshold:
+            monitoring.to_log_and_console('    ' + proc + ': weird, volume_ratio_tolerance is larger than'
+                                          + 'volume_ratio_threshold. This may yield unexpected behavior.')
         #
         # kept from Leo, very weird formula
         # volume_ratio is the opposite of the fraction of volume lose for the
@@ -1987,7 +1989,7 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, deforme
     """
     :param astec_name: generic name for image file name construction
     :param previous_segmentation: watershed segmentation obtained with segmentation image at previous timepoint
-    :param deformed_segmentation:
+    :param deformed_segmentation: segmentation image at previous timepoint deformed to superimpose current time point
     :param membrane_image:
     :param correspondences: is a dictionary that gives, for each 'parent' cell (in the segmentation built from previous
     time segmentation) (ie the key), the list of 'children' cells (in the segmentation built from selected seeds)
@@ -2034,7 +2036,7 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, deforme
 
     #
     # here we look at cells that experiment a large decrease of volume
-    # ie vol(mother) >> vol(daughter(s))
+    # ie vol(mother) > vol(daughter(s))
     # this is the step (1) of section 2.3.3.6 of L. Guignard thesis
     # [corresponds to the list to_look_at in historical astec code]
     #
@@ -2056,7 +2058,7 @@ def _outer_volume_decrease_correction(astec_name, previous_segmentation, deforme
 
     #
     # find cells with a volume decrease due to the background
-    # volume decrease is checked wrt the segmentation obtained with seeds from previous time point
+    # volume decrease is checked wrt the deformed segmentation from previous time point
     #
     del prev_seg
     prev_seg = imread(deformed_segmentation)

@@ -1,6 +1,8 @@
 \section{\texttt{1.5-intraregistration.py}}
 \label{sec:cli:intraregistration}
 
+\subsection{Intra-registration procedure overview}
+
 The sequence intra-registration procedure can be done either after the fusion step, or after the (post-)segmentation step. It aims at
 \begin{itemize}
 \itemsep -0.5ex
@@ -62,27 +64,15 @@ The intra-registration procedure is made of the following steps:
 
 
 
-\subsection{\texttt{1.5-intraregistration.py} options}
+\subsection{\texttt{1.5-intraregistration.py} additional options}
 
 The following options are available:
 \begin{description}
   \itemsep -0.5ex
-\item[\texttt{-h}] prints a help message
-\item[\texttt{-p \underline{file}}] set the parameter file to be parsed
-\item[\texttt{-e \underline{path}}] set the
-  \texttt{\underline{path}} to the directory where the
-  \texttt{RAWDATA/} directory is located
-\item[\texttt{-t \underline{file}}] set the resampling transformation file for the reference image (see section \ref{sec:cli:intraregistration:template})
-\item[\texttt{-a \underline{string}}] set the resampling transformation angles for the reference image (see section \ref{sec:cli:intraregistration:template})
-\item[\texttt{-k}] allows to keep the temporary files
-\item[\texttt{-f}] forces execution, even if (temporary) result files
-  are already existing
-\item[\texttt{-v}] increases verboseness (both at console and in the
-  log file)
-\item[\texttt{-nv}] no verboseness
-\item[\texttt{-d}]  increases debug information (in the
-  log file)
-\item[\texttt{-nd}] no debug information
+\item[\texttt{-t \underline{file}}] \mbox{} \\
+  set the resampling transformation file for the reference image (see section \ref{sec:cli:intraregistration:template})
+\item[\texttt{-a \underline{string}}] \mbox{} \\
+  set the resampling transformation angles for the reference image (see section \ref{sec:cli:intraregistration:template})
 \end{description}
 
 \subsection{Input data}
@@ -137,9 +127,8 @@ section \ref{sec:cli:intraregistration:movies}.
 
 
 
-\subsection{Intra-registration parameters}
 
-\subsubsection{Step \ref{it:intrareg:co:register}: co-registration}
+\subsection{Step \ref{it:intrareg:co:register}: co-registration}
 \label{sec:cli:intraregistration:coregistration}
 Default registration parameters for the co-registration are set by:
 \begin{verbatim}
@@ -186,7 +175,7 @@ the fused images from \texttt{FUSE/FUSE\_MEMBRANES/}.
 
 
 
-\subsubsection{Step \ref{it:intrareg:co:template}: template building}
+\subsection{Step \ref{it:intrareg:co:template}: template building}
 \label{sec:cli:intraregistration:template}
 
 \begin{verbatim}
@@ -271,7 +260,7 @@ intra_registration_margin = 10
 Computed transformations from the \textit{template} image as well as the \textit{template} image itself are stored in \verb|INTRAREG/INTRAREG<EXP_INTRAREG>/TRSFS_t<F>-<L>/| where \verb|<F>| and \verb|L| are the first and the last index of the series (specified by \verb|begin| and \verb|end| from the parameter file).
 
 
-\subsubsection{Step \ref{it:intrareg:co:resampling}: resampling fusion/segmentation images}
+\subsection{Step \ref{it:intrareg:co:resampling}: resampling fusion/segmentation images}
 \label{sec:cli:intraregistration:resampling}
 
 The resampling of the fused and/or segmentation images are done
@@ -329,7 +318,7 @@ in the parameter file causes the resampling of both fused image series
 The same behavior stands for \texttt{EXP\_SEG} and  \texttt{EXP\_POST}.
 
 
-\subsubsection{Step \ref{it:intrareg:co:movies}: 2D+t movies}
+\subsection{Step \ref{it:intrareg:co:movies}: 2D+t movies}
 \label{sec:cli:intraregistration:movies}
 For either visual assessment or illustration purposes, 2D+t (i.e. 3D) images can be built from 2D sections extracted from the resampled temporal series. This is controlled by the following parameters:
 \begin{verbatim}
@@ -387,7 +376,7 @@ in the parameter file results in
 
 The same behavior stands for \texttt{EXP\_SEG} and  \texttt{EXP\_POST}.
 
-\subsubsection{Step \ref{it:intrareg:co:maximum}: 3D maximum over the 3D+t sequence}
+\subsection{Step \ref{it:intrareg:co:maximum}: 3D maximum over the 3D+t sequence}
 \label{sec:cli:intraregistration:maximum}
 
 To set a cropping area valid for the whole resampled sequence, a maximum image can be built from the resampled temporal series. This is controlled by the following parameters:
@@ -434,73 +423,3 @@ in the parameter file results in
 \mbox{}
 
 The same behavior stands for \texttt{EXP\_SEG} and  \texttt{EXP\_POST}.
-
-
-
-\subsection{Parameter list}
-
-Please also refer to the file
-\texttt{parameter-file-examples/1.5-intraregistration-parameters.py}
-
-\begin{itemize}
-\itemsep -0.5ex
-\item \texttt{EN}
-\item \texttt{EXP\_FUSE} \\
-  String (\texttt{str} type) or list (\texttt{list} type) of
-  strings. It indicates what are the fused images directories, of the form
-  \texttt{/path/to/experiment/FUSE/FUSE\_<EXP\_FUSE>}.
-\begin{verbatim}
-EXP_FUSE = 'exp1'
-EXP_FUSE = ['exp1', 'exp2']
-\end{verbatim}
-  are both valid. Recall that the default value of \texttt{EXP\_FUSE}
-  is \texttt{'RELEASE'}.
-\item \texttt{EXP\_INTRAREG}
-\item \texttt{EXP\_POST}
-\item \texttt{EXP\_SEG}
-\item \texttt{PATH\_EMBRYO}
-\item \texttt{begin}
-\item \texttt{default\_image\_suffix}
-\item \texttt{delta}
-\item \texttt{end}
-\item \texttt{intra\_registration\_compute\_registration}
-\item \texttt{intra\_registration\_lts\_fraction}
-\item \texttt{intra\_registration\_margin}
-\item \texttt{intra\_registration\_maximum\_fusion\_images}
-\item \texttt{intra\_registration\_maximum\_post\_segmentation\_images}
-\item \texttt{intra\_registration\_maximum\_segmentation\_images}
-\item \texttt{intra\_registration\_movie\_fusion\_images}
-\item \texttt{intra\_registration\_movie\_post\_segmentation\_images}
-\item \texttt{intra\_registration\_movie\_segmentation\_images}
-\item \texttt{intra\_registration\_normalization}
-\item \texttt{intra\_registration\_pyramid\_highest\_level}
-\item \texttt{intra\_registration\_pyramid\_lowest\_level}
-\item \texttt{intra\_registration\_rebuild\_template}\\
-  If set to \texttt{True}, force to recompute the template as well as the
-  transformations from existing co-registrations (that are not
-  re-computed). It is useful when a first intra-registration has been
-  done with only the fusion images: a second intra-registration with
-  the segmentation images as template can be done without recomputing the co-registrations.
-\item \texttt{intra\_registration\_reference\_index}
-\item \texttt{intra\_registration\_reference\_resampling\_transformation\_file}
-\item \texttt{intra\_registration\_reference\_resampling\_transformation\_angles}
-\item \texttt{intra\_registration\_resample\_fusion\_images}
-\item \texttt{intra\_registration\_resample\_post\_segmentation\_images}
-\item \texttt{intra\_registration\_resample\_segmentation\_images}
-\item \texttt{intra\_registration\_resolution}
-\item \texttt{intra\_registration\_sigma\_segmentation\_images}
-\item \texttt{intra\_registration\_template\_threshold}
-\item \texttt{intra\_registration\_template\_type}
-\item \texttt{intra\_registration\_transformation\_estimation\_type}
-\item \texttt{intra\_registration\_transformation\_type}
-\item \texttt{intra\_registration\_xy\_movie\_fusion\_images}
-\item \texttt{intra\_registration\_xy\_movie\_post\_segmentation\_images}
-\item \texttt{intra\_registration\_xy\_movie\_segmentation\_images}
-\item \texttt{intra\_registration\_xz\_movie\_fusion\_images}
-\item \texttt{intra\_registration\_xz\_movie\_post\_segmentation\_images}
-\item \texttt{intra\_registration\_xz\_movie\_segmentation\_images}
-\item \texttt{intra\_registration\_yz\_movie\_fusion\_images}
-\item \texttt{intra\_registration\_yz\_movie\_post\_segmentation\_images}
-\item \texttt{intra\_registration\_yz\_movie\_segmentation\_images}
-\item \texttt{result\_image\_suffix}
-\end{itemize}
