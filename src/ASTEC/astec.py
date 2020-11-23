@@ -193,6 +193,8 @@ class AstecParameters(mars.WatershedParameters, MorphoSnakeParameters):
         #
         ############################################################
         mars.WatershedParameters.__init__(self, prefix=prefix)
+        self.membrane_sigma = 0.0
+
         self.seed_reconstruction = reconstruction.ReconstructionParameters(prefix=[self._prefix, "seed_"])
         self.membrane_reconstruction = reconstruction.ReconstructionParameters(prefix=[self._prefix, "membrane_"])
         self.morphosnake_reconstruction = reconstruction.ReconstructionParameters(prefix=[self._prefix, "morphosnake_"])
@@ -1642,7 +1644,6 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
                         submask_daughter_c[curr_seg[bb] == daughter_c] = mother_c
                     submask_mother_c = np.zeros_like(prev_seg[bb])
                     submask_mother_c[prev_seg[bb] == mother_c] = mother_c
-                    print("reading seed_image_name = "+str(seed_image_name))
                     aux_seed_image = imread(seed_image_name)
                     seeds_c = np.zeros_like(curr_seg[bb])
                     seeds_c[(aux_seed_image[bb] != 0) & (submask_daughter_c == mother_c)] = 1
@@ -2217,13 +2218,14 @@ def _outer_morphosnake_correction(astec_name, input_segmentation, reference_segm
     cpp_wrapping.mathematical_morphology(input_segmentation, opening_name, other_options=options, monitoring=monitoring)
 
     #
-    # remove part of cell that are outside the opening, but do not remove cell from the reference!
+    # remove part of cell that are outside the opening,
+    # that was already ouside in the reference segmentation (to prevent over-correction)
     #
     segmentation = imread(input_segmentation)
     reference = imread(reference_segmentation)
     opening = imread(opening_name)
     for daughter_c in effective_exterior_correction:
-        segmentation[((segmentation == daughter_c) & (reference != daughter_c) & (opening == 1))] = 1
+        segmentation[((segmentation == daughter_c) & (reference == 1) & (opening == 1))] = 1
 
     del opening
     del reference
@@ -2260,7 +2262,7 @@ def _multiple_label_fusion(input_segmentation, output_segmentation, corresponden
         #
         bb = bounding_boxes[daughters[0]]
         for d in daughters:
-            bb = tuple([slice(min(a[0], a[1]).start, max(a[0], a[1]).stop) for a in zip(bb, bounding_boxes[d])])
+            bb = tuple([slice(min(a[0].start, a[1].start), max(a[0].stop, a[1].stop)) for a in zip(bb, bounding_boxes[d])])
         #
         # get a sub-image with the labels to be fused (and 0 elsewhere)
         #
@@ -2457,6 +2459,9 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
                                                        new_dirname=experiment.astec_dir.get_tmp_directory(),
                                                        new_extension=experiment.default_image_suffix)
 
+    #
+    # original astec: there is no smoothing of the membrane image
+    #
     if not os.path.isfile(segmentation_from_previous) or monitoring.forceResultsToBeBuilt is True:
         mars.watershed(deformed_seeds, membrane_image, segmentation_from_previous, experiment, parameters)
 
@@ -2681,6 +2686,11 @@ def astec_process(previous_time, current_time, lineage_tree_information, experim
 
     #
     # Morphosnakes
+    #
+    # keep the current segmentation as a reference
+    # - morphosnakes are supposed to gain volume over the background
+    # -> morphosnakes have to be corrected if there is a gain
+    # -> the correction should not result in a loss
     #
     reference_segmentation = input_segmentation
 

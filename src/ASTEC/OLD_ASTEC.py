@@ -10,6 +10,10 @@ from cpp_wrapping import (obsolete_non_linear_registration, apply_trsf, obsolete
                           obsolete_find_local_minima, outer_detection,
                           obsolete_gradient_norm, obsolete_morpho, obsolete_copy, obsolete_mc_adhocFuse, obsolete_Arit)
 
+#
+# for debugging purposes, to be used with 'k'
+#
+_instrumented_ = False
 
 def compute_volumes(im, labels = None, real = True):
     """
@@ -192,6 +196,7 @@ def get_seeds(seg, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min, bo
     if not os.path.exists(temp_path_h_min):
         seeds_not_prop, mask=obsolete_find_local_minima(temp_path_h_min, fused_file, h_min_max, sigma=sigma, verbose=verbose)
     else:
+        print("\t " + str(temp_path_h_min) + " already exists")
         seeds_not_prop=imread(temp_path_h_min)
 
     h_min=h_min_max
@@ -226,6 +231,7 @@ def get_seeds(seg, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min, bo
             if not os.path.exists(temp_path_h_min):
                 seeds_not_prop, mask=obsolete_find_local_minima(temp_path_h_min,fused_file, h_min, mask=mask, sigma=sigma, verbose=verbose)
             else:
+                print("\t " + str(temp_path_h_min) + " already exists")
                 seeds_not_prop=imread(temp_path_h_min)
             if seeds_not_prop is None:
                 checking=False
@@ -292,9 +298,16 @@ def get_seeds_from_optimized_parameters(t, seg, cells, cells_with_no_seed, right
     sigma_done=[]
     h_min_done=[]
     seeds_images={}
+
+    if _instrumented_:
+        print('get_seeds_from_optimized_parameters')
+
     for c in cells:
-    	print 'get_seeds_from_optimized_parameters on '+str(c)
+        if not _instrumented_:
+            print 'get_seeds_from_optimized_parameters on '+str(c)
         if c in cells_with_no_seed:
+            if _instrumented_:
+                print("- cell " + str(c) + " -> " + "no seeds")
             continue
         if not seeds_images.has_key((right_parameters[c][0], right_parameters[c][1])):
             path_seeds_not_prop=path_h_min.replace('$HMIN',str(right_parameters[c][0])).replace('$SIGMA',str(right_parameters[c][1]));
@@ -332,16 +345,18 @@ def get_seeds_from_optimized_parameters(t, seg, cells, cells_with_no_seed, right
             h_min_information[(t+delta_t)*10**4+label_max]=right_parameters[c][0]
             sigma_information[(t+delta_t)*10**4+label_max]=right_parameters[c][1]
             label_max+=1
+        if _instrumented_:
+            print("- cell " + str(c) + " -> " + str(corres[c]))
 
-	print 'Create Background seed'
+    print 'Create Background seed'
     c=1
     seg_c=np.ones_like(seg)
     seg_c[seg!=c]=0
     sigma_out=sigma
     key_min = (h_min_max, sigma_out)
     for k in seeds_images.iterkeys():
-    	if k[0]<key_min[0]:
-    		key_min = k
+        if k[0]<key_min[0]:
+            key_min = k
 
     print 'Cell propagation'
     seeds_not_prop=seeds_images[key_min]
@@ -420,7 +435,7 @@ def perform_ac(parameters):
 
 def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, divided_cells, bounding_boxes, right_parameters, im_ref, im_ref16, seeds, nb_cells, 
     label_max, exterior_corres, parameters, h_min_information, sigma_information, segmentation_file_ref, segmentation_file_trsf, path_h_min, volumes_t_1, 
-    nb_proc=26,Thau= 25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200 ,DeltaVoxels=10**3):
+    nb_proc=26,Thau= 25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200 ,DeltaVoxels=10**3, temporary_folder=None):
     """
     Return corrected final segmentation based on conservation of volume in time
     seg : propagated segmentation (seg at t deformed on t+dt) (SpatialImage)
@@ -447,6 +462,9 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
     """
 
     # seg_origin : original segmentation (SpatialImage)
+
+    if _instrumented_:
+        print("volume_checking")
 
     seg_origin=imread(segmentation_file_ref)
 
@@ -573,6 +591,9 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
             label_max+=1
             to_fuse_3.append([c, (label_max-1, label_max-2, label_max-3)])
 
+        if _instrumented_ and change_happen:
+            print("- correction cell " + str(c) + " -> " + str(corres[c]))
+
 
 
     if too_little!=[]:
@@ -593,6 +614,11 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
             seg_from_opt_h[seg_from_opt_h==l]=1  
             
         volumes_from_opt_h=compute_volumes(seg_from_opt_h)
+
+    if _instrumented_:
+        imsave(os.path.join(temporary_folder, "segmentation_before_morphosnake.mha"), seg_from_opt_h)
+    from copy import deepcopy
+    reference_seg_from_opt_h = deepcopy(seg_from_opt_h)
 
     lower=[]
     for mother_c, sisters_c in corres.iteritems():
@@ -634,6 +660,9 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
         from multiprocessing import Pool
         pool=Pool(processes=nb_proc)
         mapping=[]
+        if _instrumented_:
+            print("- morphosnakes correction")
+            print("\t morphosnake_correction = " + str(morphosnake_correction))
         for m, daughters in morphosnake_correction:
             bb=slices_dilation(old_bb[m-1], maximum=im_ref.shape, iterations=15)
             im_ref_tmp=deepcopy(im_ref16[bb])
@@ -644,6 +673,10 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
         pool.terminate()
 
         for m, daughters, bb, cell_out in outputs:
+            #
+            # a priori, cell_out is what was gained with respect to background
+            # change somethind if there is a gain
+            #
             if np.sum(seg_from_opt_h[bb] == 1 & cell_out) > 0:
                 seg_from_opt_h[bb][seg_from_opt_h[bb]==1 & cell_out]=daughters[0]
                 if len(daughters)==2:
@@ -658,6 +691,12 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
                 corres[m]=[daughters[0]]
                 exterior_correction.append((m, corres[m]))
 
+        if _instrumented_:
+            imsave(os.path.join(temporary_folder, "segmentation_after_morphosnake.mha"), seg_from_opt_h)
+
+    if _instrumented_ and len(to_fuse_3) > 0:
+        print("- 3 seeds fusion")
+        print("\t to_fuse_3 = " + str(to_fuse_3))
     for c, tf in to_fuse_3:
         bb=slices_dilation(bounding_boxes[c], maximum=seg.shape, iterations=2)
         seg_c=np.ones_like(seg_from_opt_h[bb])
@@ -669,40 +708,67 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
         v3=np.sum(seg_c==tf[2])
         vol_cells_to_f=[v1, v2, v3]
         cell_to_f=np.argmin(vol_cells_to_f)
+        if _instrumented_:
+            print("\t - volumes " + str(tf) + " = " + str(vol_cells_to_f))
+            print("\t   tf[cell_to_f] = " + str(tf[cell_to_f]))
         tmp=nd.binary_dilation(seg_c==tf[cell_to_f])
         p1=tf[np.argsort(vol_cells_to_f)[1]]
         p2=tf[np.argsort(vol_cells_to_f)[2]]
+        if _instrumented_:
+            print("\t   p1 = " + str(p1))
+            print("\t   p2 = " + str(p2))
         im_tmp=np.zeros_like(seg_c)
         im_tmp[seg_c==p1]=p1
         im_tmp[seg_c==p2]=p2
         im_tmp[tmp==False]=0
         p1_share=np.sum(im_tmp==p1)
         p2_share=np.sum(im_tmp==p2)
+        if _instrumented_:
+            print("\t   p1_share = " + str(p1_share))
+            print("\t   p2_share = " + str(p2_share))
         if p1_share>p2_share:
             seg_from_opt_h[seg_from_opt_h==tf[cell_to_f]]=p1
+            if _instrumented_:
+                print("\t merge " + str(tf[cell_to_f]) + " with " + str(p1))
         else:
             seg_from_opt_h[seg_from_opt_h==tf[cell_to_f]]=p2
+            if _instrumented_:
+                print("\t merge " + str(tf[cell_to_f]) + " with " + str(p2))
         corres[c]=[p1, p2]
         divided_cells.append((p1, p2))
 
-    return seg_from_opt_h, bigger, lower, to_look_at, too_little, corres, exterior_correction
+    return seg_from_opt_h, bigger, lower, to_look_at, too_little, corres, exterior_correction, reference_seg_from_opt_h
 
 
-def outer_correction(seg_from_opt_h, exterior_correction,segmentation_file_ref,RadiusOpening=20):
+def outer_correction(seg_from_opt_h, exterior_correction,segmentation_file_ref, reference_seg_from_opt_h, RadiusOpening=20, temporary_folder=None):
     """
     Return an eroded segmentation correcting for potential errors in the morphsnake
     seg_from_opt_h : segmentated image (SpatialImage)
     exterior_correction : list of cells that have been corrected using morphsnake algorithm
     """
     if exterior_correction!=[]:
-    	image_input=segmentation_file_ref.replace('.inr','.seg_from_opt_h.inr')
-        imsave(image_input, SpatialImage(seg_from_opt_h!=1, voxelsize=seg_from_opt_h.voxelsize).astype(np.uint8))
-        image_output=segmentation_file_ref.replace('.inr','.seg_out_h.inr')
+        image_input=os.path.join(temporary_folder,"mask_embryo.mha")
+        imsave(os.path.join(temporary_folder,"mask_embryo.mha"), SpatialImage(seg_from_opt_h!=1, voxelsize=seg_from_opt_h.voxelsize).astype(np.uint8))
+        image_output=os.path.join(temporary_folder,"mask_embryo_opened.mha")
         obsolete_morpho(image_input,image_output,' -ope -R '+str(RadiusOpening))
         opened=imread(image_output)
         cells_to_correct=[i for j in exterior_correction for i in j[1]]
-        os.system('rm -f '+image_input+' '+image_output)
-        to_remove=opened^(seg_from_opt_h>1)
+        if _instrumented_ is False:
+            os.system('rm -f '+image_input+' '+image_output)
+        #
+        # opened est l'ouvert de l'embryon
+        # opened^(seg_from_opt_h>1) : xor entre opened et seg_from_opt_h
+        # ce sont les points de seg_from_opt_h qui ne sont pas dans opened
+        #
+        # ajout "& reference_seg_from_opt_h==1"
+        # ce sont aussi les points du fond dans la segmentation de reference
+        #
+        to_remove= (opened^(seg_from_opt_h>1)) & (reference_seg_from_opt_h==1)
+        if _instrumented_:
+            print("- outer_correction")
+            print("\t exterior_correction = " + str(exterior_correction))
+            print("\t cells_to_correct = " + str(cells_to_correct))
+            imsave(os.path.join(temporary_folder, "mask_for_morphosnake_correction.mha"), to_remove.astype(np.uint8))
         
         for c in cells_to_correct:
             seg_from_opt_h[((seg_from_opt_h==c) & to_remove).astype(np.bool)]=1
@@ -727,7 +793,7 @@ def segmentation_propagation_seeds_init_and_deform(t, segmentation_ref, fused_fi
 
 def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file,  fused_file_u8 , seeds_file,path_seg_trsf, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
     RadiusOpening=20,Thau=25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200,DeltaVoxels=10**3,Volum_Min_No_Seed=100, delSeedsASAP=True, 
-    verbose=False):
+    verbose=False, temporary_folder=None):
     """
     Steps 4 to 9 of segmentation propagation:
     - initial watershed
@@ -747,16 +813,25 @@ def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file,  f
     h_min_information={}
     
 
-    print 'Perform watershed with the seeds from method "segmentation_propagation_seeds_init_and_deform"'
+    print('Perform watershed with the seeds from method "segmentation_propagation_seeds_init_and_deform"')
+    print('\t from image ' + str(fused_file_u8))
     im_fused=imread(fused_file)
     im_fused_8=imread(fused_file_u8)
+    seeds = imread(seeds_file)
 
 
     #
     # segmentation par watershed a l'aide des graines extraites de la segmentation precedente
     #
-    segmentation=obsolete_watershed(seeds_file, im_fused_8, temporary_folder=os.path.dirname(path_seg_trsf), verbose=verbose)
-    seeds=imread(seeds_file)
+    if os.path.isfile(os.path.join(temporary_folder, "watershed_from_previous.mha")):
+        print("\t " + str(os.path.join(temporary_folder, "watershed_from_previous.mha")) + " already exists")
+        segmentation = imread(os.path.join(temporary_folder, "watershed_from_previous.mha"))
+    else:
+        segmentation=obsolete_watershed(seeds_file, im_fused_8, temporary_folder=os.path.dirname(path_seg_trsf), verbose=verbose)
+        if _instrumented_:
+            imsave(os.path.join(temporary_folder,"deformed_seeds_from_previous.mha"), seeds)
+            imsave(os.path.join(temporary_folder, "watershed_from_previous.mha"), segmentation)
+
     if delSeedsASAP:
         cmd='rm %s'%seeds_file
         if verbose:
@@ -783,14 +858,24 @@ def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file,  f
     print 'Applying volume correction '+str(t+delta_t)
     seeds_from_opt_h, seg_from_opt_h, corres, exterior_corres, h_min_information, sigma_information, divided_cells, label_max = get_seeds_from_optimized_parameters(t, segmentation, cells, cells_with_no_seed, 
         right_parameters, delta_t, bounding_boxes, im_fused_8, seeds, parameters, h_min_max, path_h_min, sigma,Volum_Min_No_Seed=Volum_Min_No_Seed, verbose=verbose)
-    
+
+    if _instrumented_:
+        imsave(os.path.join(temporary_folder, "watershed_from_selection.mha"), seg_from_opt_h)
+
     print 'Perform volume checking '+str(t+delta_t)
-    seg_from_opt_h, bigger, lower, to_look_at, too_little, corres, exterior_correction = volume_checking(t,delta_t,segmentation, seeds_from_opt_h, seg_from_opt_h, corres, divided_cells, bounding_boxes, right_parameters, 
+    seg_from_opt_h, bigger, lower, to_look_at, too_little, corres, exterior_correction, reference_seg_from_opt_h = volume_checking(t,delta_t,segmentation, seeds_from_opt_h, seg_from_opt_h, corres, divided_cells, bounding_boxes, right_parameters,
         im_fused_8, im_fused, seeds, nb_cells, label_max, exterior_corres, parameters, h_min_information, sigma_information, segmentation_file_ref, path_seg_trsf, path_h_min, volumes_t_1, 
-        nb_proc=nb_proc,Thau=Thau, MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,NIterations=NIterations ,DeltaVoxels=DeltaVoxels)
+        nb_proc=nb_proc,Thau=Thau, MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,NIterations=NIterations ,DeltaVoxels=DeltaVoxels,
+        temporary_folder=temporary_folder)
+
+
+
 
     print 'Perform Outer Correction '+str(t+delta_t)
-    seg_from_opt_h = outer_correction(seg_from_opt_h, exterior_correction,segmentation_file_ref,RadiusOpening=RadiusOpening)
+    seg_from_opt_h = outer_correction(seg_from_opt_h, exterior_correction,segmentation_file_ref, reference_seg_from_opt_h, RadiusOpening=RadiusOpening, temporary_folder=temporary_folder)
+
+    if _instrumented_:
+        imsave(os.path.join(temporary_folder, "segmentation_after_morphosnake_correction.mha"), seg_from_opt_h)
 
     print 'Compute Volumes'+str(t+delta_t)
     volumes=compute_volumes(seg_from_opt_h)
@@ -822,7 +907,7 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
     rayon_dil=3.6, sigma_membrane=0.9, manual=False, manual_sigma=7, hard_thresholding=False, hard_threshold=1.0, sensitivity=0.99, sigma_TV=3.6, sigma_LF=0.9, sample=0.2, 
     keep_membrane=False, keep_all=False,  path_u8_images=None, nb_proc_ACE=7, 
     min_percentile=0.01, max_percentile=0.99, min_method='cellinterior', max_method='cellborder', sigma_hybridation=5.0, 
-    verbose=False, keepTemporaryFiles=False ):
+    verbose=False, keepTemporaryFiles=False, temporary_folder=None ):
     '''
     Return the propagated segmentation at time t+dt and the updated lineage tree and cell informations
     t : time t
@@ -912,14 +997,27 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
 
 
     print 'Compute Vector Fields from '+str(t)+' to '+str(t+delta_t)
-    obsolete_non_linear_registration(fused_file_ref,\
-                        fused_file, \
-                        vf_file.replace('.inr','_affine.inr'), \
-                        vf_file.replace('.inr','_affine.trsf'),\
-                        vf_file.replace('.inr','_vector.inr'),\
-                        vf_file);
+    #
+    # image_file_flo
+    # image_file_ref
+    # affine_image
+    # affine_trsf
+    # vectorfield_image
+    # vectorfield_trsf
+    #
 
-    cmd='rm -f '+vf_file.replace('.inr','_affine.inr')+' '+vf_file.replace('.inr','_affine.trsf')+' '+vf_file.replace('.inr','_vector.inrf')
+    if not os.path.isfile(vf_file):
+        obsolete_non_linear_registration(fused_file_ref,\
+                            fused_file, \
+                            vf_file.replace('.inr','_affine.inr'), \
+                            vf_file.replace('.inr','_affine.trsf'),\
+                            vf_file.replace('.inr','_vector.inr'),\
+                            vf_file);
+    else:
+        print("\t " + str(vf_file) + " already exists")
+
+
+    cmd='rm -f '+vf_file.replace('.inr','_affine.inr')+' '+vf_file.replace('.inr','_affine.trsf')+' '+vf_file.replace('.inr','_vector.inr')
     if verbose:
         print cmd
     os.system(cmd)
@@ -998,7 +1096,7 @@ def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_fil
                                                                                RadiusOpening=RadiusOpening,Thau=Thau,MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,
                                                                                VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,
                                                                                NIterations=NIterations,DeltaVoxels=DeltaVoxels,Volum_Min_No_Seed=Volum_Min_No_Seed, 
-                                                                               delSeedsASAP=True, verbose=verbose)
+                                                                               delSeedsASAP=True, verbose=verbose, temporary_folder=temporary_folder)
 
     # temporary images deletion
     if keepTemporaryFiles == False:

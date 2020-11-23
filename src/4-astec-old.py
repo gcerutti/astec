@@ -212,8 +212,8 @@ if 'lin_tree' in lin_tree_information:
     restart=-1
     t=begin
     while restart==-1 and t<=end:
-        time_segment=t+p.delta #Time point of Segmentation 
-        segmentation_file=replaceTIME(path_seg_exp_files, time_segment) # seg
+        time_segment=t+p.delta #Time point of Segmentation
+        segmentation_file = os.path.join(path_seg_exp, replaceTIME(path_seg_exp_files, time_segment) + ".inr")
         if not os.path.isfile(segmentation_file): 
             print 'Miss segmentation file at %s -> %s'%(t, segmentation_file)
             restart=t
@@ -297,7 +297,7 @@ for t in range(begin, end):
         sigma_hybridation=p.astec_sigma_hybridation, \
         path_u8_images=reconstruct_file, \
         verbose=True,
-        keepTemporaryFiles=options.keepTemporaryFiles)
+        keepTemporaryFiles=options.keepTemporaryFiles, temporary_folder=temporary_folder)
     
     #SAVE OUTPUT
     print 'Write the segmentation in ' + segmentation_file
