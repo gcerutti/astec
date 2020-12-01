@@ -224,6 +224,9 @@ if __name__ == '__main__':
         # compute sequence properties in xml format
         #
         xml_output = properties.property_computation(experiment)
+        if xml_output is None:
+            monitoring.to_log_and_console('    error during properties computation')
+            sys.exit(-1)
 
         #
         # prepare the copy of the sequence properties in pkl format
@@ -285,7 +288,7 @@ if __name__ == '__main__':
             properties.print_type(inputdict, desc="root")
 
         if inputdict == {}:
-            print "error: empty input dictionary"
+            monitoring.to_log_and_console("error: empty input dictionary")
             sys.exit(-1)
 
         #

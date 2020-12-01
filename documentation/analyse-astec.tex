@@ -2327,6 +2327,33 @@ $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
    953	    if path_u8_images:
    954	        copy(graylevel_file_u8, path_u8_images, verbose=verbose)
    955	
+\end{verbatim} 
+\color{\mycolor}
+There are two fusion images:
+\begin{itemize}
+\itemsep -0.5ex
+\item \verb|graylevel_file| will be named \verb|fused_file| in \verb|segmentation_propagation_from_seeds|
+\begin{itemize}
+\itemsep -0.5ex
+\item used as input image for seeds extraction (regional minima)
+\item used as input image for morphosnake
+\end{itemize}
+\item \verb|graylevel_file_u8| will be named \verb|fused_file_u8| in \verb|segmentation_propagation_from_seeds|
+\begin{itemize}
+\itemsep -0.5ex
+\item used as energy (height) image for watersheds.
+\end{itemize}
+\end{itemize}
+For use without Glace, \verb|fused_file| is the original fusion image on 2 bytes, while \verb|fused_file_u8| is the original fusion image normalized on 1 byte. 
+
+For use with Glace, ie with
+\begin{verbatim}
+astec_membrane_reconstruction_method = 1
+astec_flag_hybridation = True 
+\end{verbatim}
+\verb|fused_file| and \verb|fused_file_u8| are the same image, calculated as the maximum between the fusion image normalized on 1 byte and the result of Glace
+\color{black}
+\begin{verbatim} 
    956	    # segmentation propagation stuff from seeds
    957	    seg_from_opt_h, lin_tree_information = segmentation_propagation_from_seeds(t, segmentation_file_ref, graylevel_file, graylevel_file_u8, seeds_file,path_seg_trsf, 
    958	                                                                               path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,

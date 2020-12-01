@@ -754,7 +754,7 @@ def create_trsf(trsf_out, other_options=None, monitoring=None):
 ############################################################
 
 
-def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False, filter_type='deriche',
+def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False, filter_type=None, border=None,
                      other_options=None, monitoring=None):
     """
 
@@ -765,6 +765,7 @@ def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False
            if this option is at True (default=False)
     :param filter_type: gaussian type, can be ['deriche'|'fidrich'|'young-1995'|'young-2002'|...
            ...|'gabor-young-2002'|'convolution'] or None (default is 'deriche')
+    :param border:
     :param other_options:
     :param monitoring:
     :return:
@@ -773,6 +774,11 @@ def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False
     path_to_exec = _find_exec('linearFilter')
 
     command_line = path_to_exec + " " + path_input + " " + path_output
+
+    #
+    # smoothing
+    #
+    command_line += " -x 0 -y 0 -z 0"
 
     #
     # filter parameter value
@@ -788,12 +794,12 @@ def linear_smoothing(path_input, path_output, filter_value=1.0, real_scale=False
     #
     if filter_type is not None:
         command_line += " -gaussian-type " + str(filter_type)
-    command_line += " -x 0 -y 0 -z 0"
 
     #
     # add points at borders
     #
-    command_line += " -cont 10"
+    if border is not None:
+        command_line += " -cont " + str(border)
 
     #
     #
@@ -1190,17 +1196,17 @@ def seuillage(path_input, path_output, low_threshold=1, high_threshold=None, oth
     return
 
 
-def anisotropic_histogram(path_input_extrema, path_output_histogram, path_output, path_mask=None,
+def anisotropic_histogram(path_input_extrema, path_output_histogram, path_output, path_input_mask=None,
                           manual=False, manual_sigma=7, sensitivity=0.98, other_options=None, monitoring=None):
     """
     Centerplanes image binarisation using an adaptative anisotropic threshold method detailed in [Michelin 2016]
     :param path_input_extrema: input extrema image
     :param path_output_histogram: output histogram text file
     :param path_output: output binary image
-    :param path_mask: binary image (u8 or u16) such that the thresholding is only computed for non-null voxels
+    :param path_input_mask: binary image (u8 or u16) such that the thresholding is only computed for non-null voxels
            from this mask (8 bits image of same size as input image).
     :param manual: if True, enables manual initialisation of sigma value for histograms fitting (default: False)
-    :param manual_sigma: the sigma value for histogram fitting in case of manual mode (default: 20)
+    :param manual_sigma: theb sigma value for histogram fitting in case of manual mode (default: 20)
     :param sensitivity: computes the anisotropic thresholds following a sensitivity criterion (true positive rate):
            threshold = #(membrane class >= threshold) / #(membrane class)
     :param other_options:
@@ -1215,8 +1221,8 @@ def anisotropic_histogram(path_input_extrema, path_output_histogram, path_output
     #
     command_line = path_to_exec + " " + path_input_extrema + " " + path_output_histogram
     command_line += " -bin-out " + path_output
-    if path_mask is not None and os.path.isfile(path_mask):
-        command_line += " -mask " + path_mask
+    if path_input_mask is not None and os.path.isfile(path_input_mask):
+        command_line += " -mask " + path_input_mask
     command_line += " -sensitivity " + str(sensitivity)
     command_line += " -v"
 
@@ -1315,7 +1321,8 @@ def tensor_voting_membrane(path_input, prefix_input, path_output, path_mask=None
     command_line += " -sample " + str(sample)
     if random_seed is not None:
         command_line += " -random-seed " + str(random_seed)
-
+    if real_scale:
+        command_line += " -real"
     _launch_inline_cmd(command_line, monitoring=monitoring)
 
     #
@@ -1712,7 +1719,7 @@ def obsolete_membrane_renforcement(path_input, prefix_output='tmp_membrane', pat
 
     path_membrane = _find_exec('membrane')
     cmd=path_membrane + ' ' + path_input + ' ' + prefix_output +\
-              ' -single -init '+str(init) + options
+              ' -single -init '+str(init) + options + " -extension inr"
     if verbose:
       print cmd
     os.system(cmd)

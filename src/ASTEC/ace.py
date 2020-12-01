@@ -20,6 +20,7 @@ import CommunFunctions.cpp_wrapping as cpp_wrapping
 
 monitoring = common.Monitoring()
 
+_instrumented_ = False
 
 ########################################################################################
 #
@@ -102,6 +103,11 @@ class AceParameters(common.PrefixedParameter):
         #
         #
         #
+        self.processors = 7
+
+        #
+        #
+        #
         self.default_image_suffix = 'mha'
 
     ############################################################
@@ -133,6 +139,7 @@ class AceParameters(common.PrefixedParameter):
         self.varprint('sample_random_seed', self.sample_random_seed)
 
         self.varprint('bounding_box_dilation', self.bounding_box_dilation)
+        self.varprint('processors', self.processors)
         self.varprint('default_image_suffix', self.default_image_suffix)
         print("")
         return
@@ -160,6 +167,7 @@ class AceParameters(common.PrefixedParameter):
         self.varwrite(logfile, 'sample_random_seed', self.sample_random_seed)
 
         self.varwrite(logfile, 'bounding_box_dilation', self.bounding_box_dilation)
+        self.varwrite(logfile, 'processors', self.processors)
         self.varwrite(logfile, 'default_image_suffix', self.default_image_suffix)
         logfile.write("\n")
         return
@@ -192,6 +200,8 @@ class AceParameters(common.PrefixedParameter):
 
         self.bounding_box_dilation = self.read_parameter(parameters, 'bounding_box_dilation',
                                                          self.bounding_box_dilation)
+
+        self.processors = self.read_parameter(parameters, 'processors', self.processors)
 
         self.default_image_suffix = self.read_parameter(parameters, 'default_image_suffix', self.default_image_suffix)
 
@@ -432,6 +442,10 @@ def global_membrane_enhancement(path_input, path_output, experiment, binary_inpu
                                          local_monitoring=None, verbose=False)
             if tmp_image is not None and monitoring.keepTemporaryFiles is False:
                 os.remove(os.path.join(temporary_path, tmp_image))
+        tmp_image = common.find_file(temporary_path, prefix_name + ".histogram.txt", file_type=None, callfrom=proc,
+                                     local_monitoring=None, verbose=False)
+        if tmp_image is not None and monitoring.keepTemporaryFiles is False:
+            os.remove(os.path.join(temporary_path, tmp_image))
 
     for suffix in ['.imvp1', '.imvp2', '.imvp3', '.tv', '.lf']:
         tmp_image = common.find_file(temporary_path, bin_name + suffix, file_type='image', callfrom=proc,
@@ -521,19 +535,21 @@ def cell_binarization(parameters_for_parallelism):
         cpp_wrapping.crop_image(full_phi, cell_phi, bbox, monitoring=monitoring)
 
         cpp_wrapping.anisotropic_histogram(path_input_extrema=cell_ext, path_output_histogram=cell_hist,
-                                           path_output=cell_bin, manual=parameters.manual,
-                                           manual_sigma=parameters.manual_sigma,
-                                           sensitivity=parameters.sensitivity, monitoring=monitoring)
+                                           path_output=cell_bin, path_input_mask=cell_mask, manual=parameters.manual,
+                                           manual_sigma=parameters.manual_sigma, sensitivity=parameters.sensitivity,
+                                           monitoring=monitoring)
+        if not _instrumented_:
+            os.remove(cell_theta)
+            os.remove(cell_phi)
+            os.remove(cell_hist)
 
-        os.remove(cell_theta)
-        os.remove(cell_phi)
-        os.remove(cell_hist)
-
-    os.remove(cell_ext)
+    if not _instrumented_:
+        os.remove(cell_ext)
 
     cpp_wrapping.logical_operation(cell_mask, cell_bin, cell_bin, other_options="-mask", monitoring=monitoring)
 
-    os.remove(cell_mask)
+    if not _instrumented_:
+        os.remove(cell_mask)
 
     return label_of_interest, cell_bin
 
@@ -544,7 +560,7 @@ def cell_binarization(parameters_for_parallelism):
 
 
 def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_output, experiment,
-                              temporary_path=None, parameters=None, n_processor=7):
+                              temporary_path=None, parameters=None):
     """
 
     :param path_input:
@@ -553,7 +569,6 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
     :param experiment:
     :param temporary_path:
     :param parameters:
-    :param n_processor:
     :return:
     """
 
@@ -594,8 +609,14 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
     #    - 'tmp_prefix_name'.phi
     #      the two angle images that give the direction of the vector orthogonal to the membrane
 
-    if (not os.path.isfile(tmp_prefix_name + ".ext.inr") or not os.path.exists(tmp_prefix_name + ".theta.inr")
-        or not os.path.exists(tmp_prefix_name + ".phi.inr")) or monitoring.forceResultsToBeBuilt is True:
+    ext_image = common.find_file(temporary_path, prefix_name + '.ext', file_type='image', callfrom=proc,
+                                 local_monitoring=None, verbose=False)
+    phi_image = common.find_file(temporary_path, prefix_name + '.phi', file_type='image', callfrom=proc,
+                                 local_monitoring=None, verbose=False)
+    theta_image = common.find_file(temporary_path, prefix_name + '.theta', file_type='image', callfrom=proc,
+                                   local_monitoring=None, verbose=False)
+
+    if (ext_image is None or phi_image is None or theta_image is None or monitoring.forceResultsToBeBuilt is True):
         monitoring.to_log_and_console("       membrane extraction of '"
                                       + str(path_input).split(os.path.sep)[-1] + "'", 2)
         #
@@ -687,7 +708,7 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
     monitoring.to_log_and_console(" ", 3)
     monitoring.to_log_and_console("       ----- start: cell-based parallel binarization -----", 3)
 
-    pool = multiprocessing.Pool(processes=n_processor)
+    pool = multiprocessing.Pool(processes=parameters.processors)
     mapping = []
 
     for label_of_interest in labels_of_interest:
@@ -718,7 +739,8 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
         cell_bin = binary_output_cell[1]
         bbox = bboxes[cell_label]
         cpp_wrapping.patch_logical_operation(cell_bin, bin_image, bin_image, bbox, "-or", monitoring=monitoring)
-        os.remove(cell_bin)
+        if not _instrumented_:
+            os.remove(cell_bin)
 
     #
     # tensor voting
@@ -727,10 +749,14 @@ def cell_membrane_enhancement(path_input, previous_deformed_segmentation, path_o
     global_membrane_enhancement(bin_image, path_output, experiment, binary_input=True,
                                 temporary_path=temporary_path, parameters=parameters)
 
-    os.remove(tmp_prefix_name + '.ext.' + parameters.default_image_suffix)
-    os.remove(tmp_prefix_name + '.phi.' + parameters.default_image_suffix)
-    os.remove(tmp_prefix_name + '.theta.' + parameters.default_image_suffix)
-    os.remove(tmp_prefix_name + ".bin." + parameters.default_image_suffix)
+    #
+    # remove images
+    #
+    for suffix in ['.ext', '.phi', '.theta', '.bin']:
+        tmp_image = common.find_file(temporary_path, prefix_name + suffix, file_type='image', callfrom=proc,
+                                     local_monitoring=None, verbose=False)
+        if tmp_image is not None and monitoring.keepTemporaryFiles is False:
+            os.remove(os.path.join(temporary_path, tmp_image))
 
     return
 
@@ -788,9 +814,13 @@ def light_LACE(parameters):
     """
     path_mask, label_of_interest, bbox, path_membrane_prefix, path_bin, rayon_dil, manual, manual_sigma, hard_thresholding, hard_threshold, sensitivity, verbose=parameters
 
+    proc = "light_LACE"
 
-
-    tmp_ID = random_number()
+    label_width = 5
+    tmp_ID = str('{:0{width}d}'.format(label_of_interest, width=label_width))
+    # tmp_ID = random_number()
+    if _instrumented_:
+        print(str(proc) + ": launch " + str(tmp_ID))
     path_WORK = os.path.dirname(path_mask).rstrip(os.path.sep)+os.path.sep
     path_mask_dil = path_WORK+'mask_at_1_dil_'+tmp_ID+'.inr'
 
@@ -801,13 +831,25 @@ def light_LACE(parameters):
     if not path_bin:
         path_bin = path_WORK + "tmp_"+tmp_ID+"."+str(label_of_interest)+'.inr'
 
+    if _instrumented_:
+        print(" - " + str(tmp_ID) +": before assert")
+        print("\t test" + str(path_membrane_prefix+".ext.inr"))
+        print("\t test" + str(path_membrane_prefix + ".theta.inr"))
+        print("\t test" + str(path_membrane_prefix + ".phi.inr"))
+
+
     assert ( os.path.exists(path_membrane_prefix+".ext.inr")) and ( os.path.exists(path_membrane_prefix+".theta.inr")) and ( os.path.exists(path_membrane_prefix+".phi.inr"))
 
+    if _instrumented_:
+        print(" - " + str(tmp_ID) +": before cell extraction")
     if bbox:
         cpp_wrapping.obsolete_cropImage(path_mask, path_mask_dil, bbox, verbose=verbose )
         cpp_wrapping.obsolete_seuillage(path_mask_dil, path_output=path_mask_dil,sb=label_of_interest, sh=label_of_interest, verbose=verbose )
     else:
         cpp_wrapping.obsolete_seuillage(path_mask, path_output=path_mask_dil,sb=label_of_interest, sh=label_of_interest, verbose=verbose )
+
+    if _instrumented_:
+        print(" - " + str(tmp_ID) +": before cell dilation")
 
     # Dilation of the ROI at t+1
     # Dilatation de la zone d'interet a l'instant t+1
@@ -821,6 +863,9 @@ def light_LACE(parameters):
 
     if bbox:
         cpp_wrapping.obsolete_cropImage(path_membrane_prefix+".ext.inr", path_ext_tmp, bbox, verbose=verbose )
+
+    if _instrumented_:
+        print(" - " + str(tmp_ID) +": before binarization")
 
     # Membranes binarization
     if not hard_thresholding:
@@ -841,26 +886,27 @@ def light_LACE(parameters):
     # Mask application on the binary image
     cpp_wrapping.obsolete_Logic(path_mask_dil, path_bin, path_bin, Mode='mask', verbose=verbose)
 
-    if os.path.exists(path_mask_dil):
-        cmd='rm ' + str(path_mask_dil)
-        if verbose:
-            print cmd
-        os.system(cmd)
-    if os.path.exists(path_ext_tmp):
-        cmd='rm ' + str(path_ext_tmp)
-        if verbose:
-            print cmd
-        os.system(cmd)
-    if os.path.exists(path_theta_tmp):
-        cmd='rm ' + str(path_theta_tmp)
-        if verbose:
-            print cmd
-        os.system(cmd)
-    if os.path.exists(path_phi_tmp):
-        cmd='rm ' + str(path_phi_tmp)
-        if verbose:
-            print cmd
-        os.system(cmd)
+    if not _instrumented_:
+        if os.path.exists(path_mask_dil):
+            cmd='rm ' + str(path_mask_dil)
+            if verbose:
+                print cmd
+            os.system(cmd)
+        if os.path.exists(path_ext_tmp):
+            cmd='rm ' + str(path_ext_tmp)
+            if verbose:
+                print cmd
+            os.system(cmd)
+        if os.path.exists(path_theta_tmp):
+            cmd='rm ' + str(path_theta_tmp)
+            if verbose:
+                print cmd
+            os.system(cmd)
+        if os.path.exists(path_phi_tmp):
+            cmd='rm ' + str(path_phi_tmp)
+            if verbose:
+                print cmd
+            os.system(cmd)
 
     return path_bin
 
@@ -1152,7 +1198,7 @@ def LACE(path_fused_0, path_fused_1, path_seg_0, label_of_interest, path_membran
     if not keep_hist and path_membrane_prefix and os.path.exists(path_membrane_prefix+'.hist.txt'):
         files_to_rm += path_membrane_prefix+'.hist.txt' + " "
 
-    if files_to_rm:
+    if files_to_rm and not _instrumented_:
         if verbose:
             print "Deleting temporary files: \n" + files_to_rm
         os.system("rm " + files_to_rm)
@@ -1390,7 +1436,7 @@ def GLACE(path_fused_0, path_fused_1, path_seg_0, labels_of_interest='all', back
     files_to_rm = path_affine_trsf + ' '
     if not keep_vector:
         files_to_rm += path_vector + ' '
-    if files_to_rm:
+    if files_to_rm and not _instrumented_:
         if verbose:
             print "Deleting temporary files: \n" + files_to_rm
         os.system("rm " + files_to_rm)
@@ -1434,7 +1480,7 @@ def GLACE(path_fused_0, path_fused_1, path_seg_0, labels_of_interest='all', back
         if os.path.exists(path_membrane_prefix+'.phi.inr'):
             files_to_rm += path_membrane_prefix+'.phi.inr '
 
-    if files_to_rm:
+    if files_to_rm and not _instrumented_:
         if verbose:
             print "Deleting temporary files: \n" + files_to_rm
         os.system("rm " + files_to_rm)
@@ -1536,6 +1582,9 @@ def GLACE_from_resampled_segmentation(path_fused_1, path_seg_trsf, labels_of_int
     # * GACE on the binary image
 
     '''
+
+    proc = "GLACE_from_resampled_segmentation"
+
     # Test for input images existence
     # Test existence des images d'entree
     assert os.path.exists(path_fused_1), 'Miss fusion file '+path_fused_1
@@ -1590,6 +1639,8 @@ def GLACE_from_resampled_segmentation(path_fused_1, path_seg_trsf, labels_of_int
     if (not os.path.exists(path_membrane_prefix+".ext.inr")) or (not os.path.exists(path_membrane_prefix+".theta.inr")) or (not os.path.exists(path_membrane_prefix+".phi.inr")):
         # Local enhancement of membranes from fused image at t+1 and extraction of the directional maxima (generates the '.[ext|theta|phi].inr')
         # Renforcement des membranes de l'image fusionnee a l'instant t+1 + extraction des maxima directionnels
+        if _instrumented_ :
+            print(str(proc) + ": call obsolete_membrane_renforcement()")
         cpp_wrapping.obsolete_membrane_renforcement(path_fused_1, prefix_output=path_membrane_prefix, path_mask=None,  init=sigma_membrane, verbose=verbose)
 
     # Second step
@@ -1657,6 +1708,7 @@ def GLACE_from_resampled_segmentation(path_fused_1, path_seg_trsf, labels_of_int
             keep_union_of_local_bins=True
 
     # Third step
+    # GACE on the binary image (tensor voting)
 
     GACE(path_union_of_local_bins, binary_input=True, path_output=path_output,
         sigma_membrane=sigma_membrane, manual=manual, manual_sigma=manual_sigma, sensitivity=sensitivity, hard_thresholding=hard_thresholding, hard_threshold=hard_threshold, sigma_TV=sigma_TV, sigma_LF=sigma_LF, sample=sample,
@@ -1678,7 +1730,7 @@ def GLACE_from_resampled_segmentation(path_fused_1, path_seg_trsf, labels_of_int
     if not keep_union_of_local_bins:
         files_to_rm += path_membrane_prefix+'.bin_union.inr '
 
-    if files_to_rm:
+    if files_to_rm and not _instrumented_:
         if verbose:
             print "Deleting temporary files: \n" + files_to_rm
         os.system("rm " + files_to_rm)
@@ -1835,6 +1887,10 @@ def GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=Non
             print "Unexpected error: unable to create working directory"
 
     ### Stuff ###
+    keepAll = False
+    if keep_all or _instrumented_:
+        keepAll = True
+
 
     path_tv_input = ''
     if binary_input:
@@ -1847,26 +1903,26 @@ def GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=Non
         not os.path.exists(path_membrane_prefix + ".phi.inr")):
             # Local enhancement of membranes from fused image at t+1 and extraction of the directional maxima (generates the '.[ext|theta|phi].inr')
             # Renforcement des membranes de l'image fusionnee a l'instant t+1 + extraction des maxima directionnels
-            membrane_renforcement(path_input, prefix_output=path_membrane_prefix, path_mask=None, init=sigma_membrane,
+            cpp_wrapping.obsolete_membrane_renforcement(path_input, prefix_output=path_membrane_prefix, path_mask=None, init=sigma_membrane,
                                   verbose=verbose)
 
         # Membranes binarization
         if not hard_thresholding:
             # Anisotropic threshold of membranes (the choice of the sensitivity parameter may be critical)
             # Seuillage anisotropique des membranes (parametre de sensitivite potentiellement critique)
-            anisotropicHist(path_input=path_membrane_prefix + ".ext.inr", path_output=path_membrane_prefix + '.bin.inr',
+            cpp_wrapping.obsolete_anisotropicHist(path_input=path_membrane_prefix + ".ext.inr", path_output=path_membrane_prefix + '.bin.inr',
                             path_mask=None, manual=manual, manual_sigma=manual_sigma, sensitivity=sensitivity,
-                            keepAll=False, verbose=verbose)
+                            keepAll=keepAll, verbose=verbose)
         else:
             # Hard threshold
-            seuillage(path_input=path_membrane_prefix + ".ext.inr", path_output=path_membrane_prefix + '.bin.inr',
+            cpp_wrapping.obsolete_seuillage(path_input=path_membrane_prefix + ".ext.inr", path_output=path_membrane_prefix + '.bin.inr',
                       sb=hard_threshold, verbose=verbose)
         path_tv_input = path_membrane_prefix + ".bin.inr"
         if path_bin and not os.path.exists(path_bin):
             # Copy of the temporary binary image to the path provided in parameter
             # Copie de l'image binaire temporaire vers le path renseigne en parametre
             assert os.path.exists(path_membrane_prefix + '.bin.inr')
-            copy(path_membrane_prefix + ".bin.inr", path_bin, verbose=verbose)
+            cpp_wrapping.obsolete_copy(path_membrane_prefix + ".bin.inr", path_bin, verbose=verbose)
 
     # Tensor voting on the image of binarized membranes
     if verbose:
@@ -1885,7 +1941,7 @@ def GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=Non
                                                                                           :-1]) + '.phi.inr')), "Error : unexpectedly, <prefix>.theta.inr and/or <prefix>.phi.inr not found for file " + path_tv_input + " before tensor voting step"
 
     cpp_wrapping.obsolete_TVmembrane(path_input=path_tv_input, path_output=path_TV, path_mask=None, scale=sigma_TV, sample=sample,
-               sigma_LF=sigma_LF, realScale=True, keepAll=False, verbose=verbose)
+               sigma_LF=sigma_LF, realScale=True, keepAll=keepAll, verbose=verbose)
 
     # Reading of the reconstructed image (the one returned by the function)
     reconstructed_image = imread(path_TV)
@@ -1923,7 +1979,7 @@ def GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=Non
     if not keep_hist and path_membrane_prefix and os.path.exists(path_membrane_prefix + '.hist.txt'):
         files_to_rm += path_membrane_prefix + '.hist.txt' + " "
 
-    if files_to_rm:
+    if files_to_rm and not _instrumented_:
         if verbose:
             print "Deleting temporary files: \n" + files_to_rm
         os.system("rm " + files_to_rm)
@@ -2166,7 +2222,7 @@ def _GACE(path_input, binary_input=False, path_membrane_prefix=None, path_bin=No
     if not keep_hist and path_membrane_prefix and os.path.exists(path_membrane_prefix + '.hist.txt'):
         files_to_rm += path_membrane_prefix + '.hist.txt' + " "
 
-    if files_to_rm:
+    if files_to_rm and not _instrumented_:
         if verbose:
             print "Deleting temporary files: \n" + files_to_rm
         os.system("rm " + files_to_rm)

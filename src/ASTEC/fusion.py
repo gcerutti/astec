@@ -1152,7 +1152,7 @@ def _build_unreg_weighting_image(template_image_name, weighting_image_name, decr
 
     if fusion_weighting.lower() == 'corner' or fusion_weighting.lower() == 'corner-weighting':
         cpp_wrapping.linear_smoothing(weighting_image_name, weighting_image_name, 5.0, real_scale=False,
-                                      monitoring=monitoring)
+                                      filter_type='deriche', border=10, monitoring=monitoring)
 
     del im
     del unreg_weight

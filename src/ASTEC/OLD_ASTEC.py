@@ -815,6 +815,8 @@ def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file,  f
 
     print('Perform watershed with the seeds from method "segmentation_propagation_seeds_init_and_deform"')
     print('\t from image ' + str(fused_file_u8))
+    print('Morphosnakes will be performed')
+    print('\t on image ' + str(fused_file))
     im_fused=imread(fused_file)
     im_fused_8=imread(fused_file_u8)
     seeds = imread(seeds_file)
