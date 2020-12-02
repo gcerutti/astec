@@ -65,6 +65,9 @@ class PostCorrectionParameters(common.PrefixedParameter):
         self.postponing_minimal_length = 8
         self.postponing_window_length = 4
 
+        #
+        self.processors = 5
+
         # diagnosis
         self.lineage_diagnosis = False
 
@@ -93,6 +96,8 @@ class PostCorrectionParameters(common.PrefixedParameter):
         self.varprint('postponing_minimal_length', self.postponing_minimal_length)
         self.varprint('postponing_window_length', self.postponing_window_length)
 
+        self.varprint('processors', self.processors)
+
         self.varprint('lineage_diagnosis', self.lineage_diagnosis)
         print("")
 
@@ -114,6 +119,8 @@ class PostCorrectionParameters(common.PrefixedParameter):
         self.varwrite(logfile, 'postponing_correlation_threshold', self.postponing_correlation_threshold)
         self.varwrite(logfile, 'postponing_minimal_length', self.postponing_minimal_length)
         self.varwrite(logfile, 'postponing_window_length', self.postponing_window_length)
+
+        self.varwrite(logfile, 'processors', self.processors)
 
         self.varwrite(logfile, 'lineage_diagnosis', self.lineage_diagnosis)
 
@@ -157,6 +164,8 @@ class PostCorrectionParameters(common.PrefixedParameter):
                                                              self.postponing_minimal_length)
         self.postponing_window_length = self.read_parameter(parameters, 'postponing_window_length',
                                                             self.postponing_window_length)
+
+        self.processors = self.read_parameter(parameters, 'processors', self.processors)
 
         self.lineage_diagnosis = self.read_parameter(parameters, 'lineage_diagnosis', self.lineage_diagnosis)
 
@@ -881,7 +890,7 @@ def _postpone_division(lineage, volume, surfaces, labels_to_be_fused, experiment
 #
 ########################################################################################
 
-def contact_surface_computation(experiment):
+def contact_surface_computation(experiment, parameters):
     """
 
     :param experiment: commonTools.Experiment
@@ -940,7 +949,8 @@ def contact_surface_computation(experiment):
 
     options = "-feature contact -surface-estimation 6-neighbors"
     cpp_wrapping.cell_properties(template_format, output_name + ".xml", first_time_point, last_time_point,
-                                 diagnosis_file=output_name + ".txt", other_options=options, monitoring=monitoring)
+                                 diagnosis_file=output_name + ".txt", n_processors=parameters.processors,
+                                 other_options=options, monitoring=monitoring)
 
     return output_name + ".xml"
 
@@ -1032,7 +1042,7 @@ def postcorrection_process(experiment, parameters):
     #
     #
     monitoring.to_log_and_console("   ... compute contact surfaces", 1)
-    surface_file = contact_surface_computation(experiment)
+    surface_file = contact_surface_computation(experiment, parameters)
     surface_information = properties.read_dictionary(surface_file)
     dict_surface = properties.get_dictionary_entry(surface_information, 'contact')
     if dict_surface == {}:
