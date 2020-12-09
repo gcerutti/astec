@@ -1621,9 +1621,15 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
                     # get the smallest h
                     #
                     h_min, sigma = parameter_seeds[mother_c][-1]
-                    seed_image_name = common.add_suffix(image_for_seed, "_seed_h" + str('{:03d}'.format(h_min)),
-                                                        new_dirname=experiment.astec_dir.get_tmp_directory(),
-                                                        new_extension=experiment.default_image_suffix)
+                    if parameters.mimic_historical_astec:
+                        seed_image_name = common.add_suffix(image_for_seed,
+                                                            "_unmasked_seed_h" + str('{:03d}'.format(h_min)),
+                                                            new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                                            new_extension=experiment.default_image_suffix)
+                    else:
+                        seed_image_name = common.add_suffix(image_for_seed, "_seed_h" + str('{:03d}'.format(h_min)),
+                                                            new_dirname=experiment.astec_dir.get_tmp_directory(),
+                                                            new_extension=experiment.default_image_suffix)
                     #
                     # create a sub-image where cells 'daughter_c' has the 'mother_c' value
                     # and a background at '0'
@@ -1654,6 +1660,11 @@ def _volume_decrease_correction(astec_name, previous_segmentation, segmentation_
                         monitoring.to_log_and_console('          .. (2)  cell ' + str(mother_c) + ': '
                                                       + str(correspondences[mother_c]) + ' -> '
                                                       + str(new_correspondences), 3)
+                        if monitoring.debug > 0:
+                            monitoring.to_log_and_console('                  seeds from h=' + str(h_min) + ' image')
+                            monitoring.to_log_and_console('                  parameter_seeds[mother_c]='
+                                                          + str(parameter_seeds[mother_c]))
+                            monitoring.to_log_and_console('                  s='+ str(s))
                         #
                         # remove previous seed
                         # add new seeds, note that they might be several seeds per label '1' or '2'

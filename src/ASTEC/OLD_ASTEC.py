@@ -558,6 +558,12 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
                     h_min_information[(t+delta_t)*10**4+label_max]=h
                     sigma_information[(t+delta_t)*10**4+label_max]=sigma
                     label_max+=1
+                    if _instrumented_:
+                        print("- correction cell " + str(c) + " -> " + str(corres[c]))
+                        print("  - correction (2): " + str(c) + " -> " + str(corres[c]))
+                        print("    seeds from h=" + str(h) + " image ")
+                        print("    parameters[c]=" + str(parameters[c]))
+                        print("    s=" + str(s))
             elif nb_final==1:
                 change_happen=True
                 seeds_from_opt_h[seeds_from_opt_h==corres[c][0]]=0
@@ -611,12 +617,14 @@ def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, div
     if change_happen:
         seg_from_opt_h=obsolete_watershed(SpatialImage(seeds_from_opt_h,voxelsize=seeds_from_opt_h.voxelsize), im_ref, temporary_folder=os.path.dirname(path_h_min))
         for l in exterior_corres:
-            seg_from_opt_h[seg_from_opt_h==l]=1  
+            seg_from_opt_h[seg_from_opt_h==l]=1
+        if _instrumented_:
+            imsave(os.path.join(temporary_folder, "seeds_from_corrected_selection.mha"), seeds_from_opt_h)
+            imsave(os.path.join(temporary_folder, "watershed_from_corrected_selection.mha"), seg_from_opt_h)
             
         volumes_from_opt_h=compute_volumes(seg_from_opt_h)
 
-    if _instrumented_:
-        imsave(os.path.join(temporary_folder, "segmentation_before_morphosnake.mha"), seg_from_opt_h)
+
     from copy import deepcopy
     reference_seg_from_opt_h = deepcopy(seg_from_opt_h)
 
@@ -862,6 +870,7 @@ def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file,  f
         right_parameters, delta_t, bounding_boxes, im_fused_8, seeds, parameters, h_min_max, path_h_min, sigma,Volum_Min_No_Seed=Volum_Min_No_Seed, verbose=verbose)
 
     if _instrumented_:
+        imsave(os.path.join(temporary_folder, "seeds_from_selection.mha"), seeds_from_opt_h)
         imsave(os.path.join(temporary_folder, "watershed_from_selection.mha"), seg_from_opt_h)
 
     print 'Perform volume checking '+str(t+delta_t)

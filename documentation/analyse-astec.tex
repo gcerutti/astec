@@ -1430,6 +1430,10 @@ Premier cas : la s\'election optimale donne 1 graine, et il existe des $h$ qui d
 \color{\mycolor}
 Comme dans \texttt{get\_seeds\_from\_optimized\_parameters()} (section \ref{sec:get:seeds:from:optimized:parameters}, page \pageref{sec:get:seeds:from:optimized:parameters}), on cr\'ee une sous-image, \verb|seg_c|, o\`u la cellule est \`a $c$ et le reste \`a 1.
 \texttt{extract\_seeds()} (section \ref{sec:extract:seeds}, page \pageref{sec:extract:seeds}) renvoie le nombre de graines ainsi qu'une sous-image avec ces graines \'etiquet\'ees. Ici, \texttt{extract\_seeds()} peut renvoyer 1, 2 ou 3 comme nombre de graines, mais n'en num\'erote que 2 dans le cas de graines (\texttt{accept\_3\_seeds} est \`a \texttt{False} par d\'efaut).
+\begin{description}
+\itemsep -0.5ex
+\item[ATTENTION :] ici l'appel \`a \verb|extract_seeds()| fait que l'on ne consid\`ere que les graines strictement incluses dans la cellule $c$ de $\tilde{S}_{t+1}$
+\end{description}
 \color{black}
 \begin{verbatim} 
    496	                if nb==2 and (seg_from_opt_h[bb][seeds_c!=0]==0).any(): #If we can found 2 seeds and one is not in new calculated cell
@@ -1475,6 +1479,10 @@ Les cas o\`u l'ensemble des $h$ donne 1, 2 et plus graines est v\'erifi\'e par l
 \end{verbatim} 
 \color{\mycolor}
 On cr\'ee une sous-image \verb|seg_c| de 0 pour la cellule $c$ dans laquelle on met \`a 1 les cellules filles de $c$ (rappel, il y a une diminution de volume de plus de 50\% entre la m\`ere et les filles) 
+\begin{description}
+\itemsep -0.5ex
+\item[ATTENTION :] ici il n'y a pas d'appel \`a \verb|extract_seeds()|. On r\'ecup\`ere donc des morceaux de graines potentiellement \`a cheval sur deux cellules ($c$ et une voisine)  de $\tilde{S}_{t+1}$
+\end{description}
 \color{black}
 \begin{verbatim} 
    517	                seeds_c=np.zeros_like(seg_from_opt_h[bb])
@@ -1544,6 +1552,10 @@ Premier cas : on r\'ecup\`ere le premier $3$ qui donne 2 graines, donc le plus g
 \end{verbatim} 
 \color{\mycolor}
 Appel \`a \texttt{extract\_seeds()} (section \ref{sec:extract:seeds}, page \pageref{sec:extract:seeds}), avec \verb| accept_3_seeds=True|. On va donc num\'eroter les 3 graines.
+\begin{description}
+\itemsep -0.5ex
+\item[ATTENTION :] ici l'appel \`a \verb|extract_seeds()| (ci-dessous) fait que l'on ne consid\`ere que les graines strictement incluses dans la cellule $c$ de $\tilde{S}_{t+1}$
+\end{description}
 \color{black}
 \begin{verbatim}
    545	            nb, seeds_c=extract_seeds(seg_c, c, path_seeds_not_prop, bb, accept_3_seeds=True)
