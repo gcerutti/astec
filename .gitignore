@@ -32,6 +32,13 @@ SEG
 *.log
 *.synctex.gz
 
+# Python Packages #
+###################
+*.egg
+*.egg-info
+.eggs
+.Python
+
 # Packages #
 ############
 # it's better to unpack these files and commit the raw source
