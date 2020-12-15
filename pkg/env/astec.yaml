@@ -8,6 +8,8 @@ dependencies:
   - python =2.7
   - numpy
   - scipy
+  - matplotlib =2
+  - libtiff
   - h5py
   - cython
   - jupyter
